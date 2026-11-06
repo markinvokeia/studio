@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { UserIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
 import { UserSelector } from '@/components/ui/user-selector';
 import type { User } from '@/lib/types';
 
@@ -17,11 +19,13 @@ export function StepPatientSelect({
   onPatientChange,
   readonlyPatient,
 }: StepPatientSelectProps) {
+  const t = useTranslations('BillingWizard.patient');
+
   if (readonlyPatient) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border bg-muted/30 px-4 py-3 space-y-1">
-          <p className="text-xs text-muted-foreground">Paciente para este cobro</p>
+          <p className="text-xs text-muted-foreground">{t('forThisBilling')}</p>
         </div>
         <div className="rounded-lg border bg-background px-4 py-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 shrink-0">
@@ -45,13 +49,13 @@ export function StepPatientSelect({
     <div className="space-y-4">
       <div className="rounded-lg border bg-muted/30 px-4 py-3">
         <p className="text-xs text-muted-foreground">
-          Selecciona el paciente al que deseas facturar. Si no existe, puedes crearlo directamente desde el selector.
+          {t('hint')}
         </p>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Paciente
+          {t('label')}
         </label>
         <UserSelector
           filterType="PACIENTE"
@@ -59,8 +63,8 @@ export function StepPatientSelect({
           value={selectedPatient?.id}
           selectedUserName={selectedPatient?.name}
           onValueChange={(_, user) => { if (user) onPatientChange(user); }}
-          placeholder="Buscar o crear paciente..."
-          triggerText="Seleccionar paciente"
+          placeholder={t('searchPlaceholder')}
+          triggerText={t('selectTrigger')}
         />
       </div>
 

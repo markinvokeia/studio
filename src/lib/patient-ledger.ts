@@ -80,17 +80,31 @@ function round2(n: number): number {
 
 /**
  * Footer totals of a list of ledger rows. A presupuesto with no invoice behind it isn't a debt
- * yet, and the synthetic opening-balance row isn't a movement, so neither counts. Money
- * converted to another currency was collected there: here it takes back what it had added to
- * the collected total, instead of showing up as if it had been invoiced in this currency.
+ * yet, and the synthetic opening-balance row isn't a movement, so neither counts.
  */
 export function computeLedgerTotals(rows: LedgerRow[]) {
   const counted = rows.filter((r) => r.kind !== 'balance');
-  const convertedOut = (r: LedgerRow) => r.conversion?.side === 'source';
   return {
-    totalDebe: round2(counted.reduce((s, r) => s + (r.status === 'presupuestado' || convertedOut(r) ? 0 : r.debe), 0)),
-    totalHaber: round2(counted.reduce((s, r) => s + (convertedOut(r) ? -r.debe : r.haber), 0)),
+    totalDebe: round2(counted.reduce((s, r) => s + (r.status === 'presupuestado' ? 0 : r.debe), 0)),
+    totalHaber: round2(counted.reduce((s, r) => s + r.haber, 0)),
     finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
+  };
+}
+
+/** Adds up a payment's allocations to invoices in one other currency. */
+function summarizeCrossAllocations(allocations: Payment[], targetCurrency: string): Omit<LedgerRowConversion, 'side'> {
+  const sourceOf = (a: Payment) => Math.abs(a.source_amount ?? 0);
+  const sourceAmount = round2(allocations.reduce((sum, a) => sum + sourceOf(a), 0));
+  return {
+    sourceAmount,
+    sourceCurrency: allocations[0].source_currency || '',
+    targetAmount: round2(allocations.reduce((sum, a) => sum + Math.abs(a.amount_applied ?? 0), 0)),
+    targetCurrency,
+    // Each allocation keeps its own rate, so several of them show their weighted average.
+    rate: sourceAmount > 0
+      ? allocations.reduce((sum, a) => sum + (Number(a.exchange_rate) || 1) * sourceOf(a), 0) / sourceAmount
+      : 1,
+    invoiceDocNo: allocations.map((a) => a.invoice_doc_no).filter(Boolean).join(', '),
   };
 }
 
@@ -300,59 +314,24 @@ export function buildPatientLedger(params: {
     }
   }
 
+  // A payment's allocations to invoices in another currency, by payment and then by the
+  // invoices' currency. They aren't rows of their own: they say where the payment's money landed.
+  const crossAllocationsByPayment = new Map<string, Map<string, Payment[]>>();
+  for (const payment of payments) {
+    const { source_payment_id: paymentId, source_currency: sourceCurrency, currency: targetCurrency } = payment;
+    if (payment.transaction_type !== 'payment_allocation' || !paymentId) continue;
+    if (!sourceCurrency || !targetCurrency || sourceCurrency === targetCurrency) continue;
+    const byCurrency = crossAllocationsByPayment.get(paymentId) ?? new Map<string, Payment[]>();
+    byCurrency.set(targetCurrency, [...(byCurrency.get(targetCurrency) ?? []), payment]);
+    crossAllocationsByPayment.set(paymentId, byCurrency);
+  }
+
   for (const payment of payments) {
     const type = payment.transaction_type || 'direct_payment';
 
-    // An allocation across currencies does move money between two balances: the payment's
-    // currency gives it back and the invoice's currency receives it, so it takes one row in each.
-    if (type === 'payment_allocation') {
-      const sourceCurrency = payment.source_currency;
-      const targetCurrency = payment.currency;
-      if (!sourceCurrency || !targetCurrency || sourceCurrency === targetCurrency) continue;
-      const sourceAmount = round2(Math.abs(payment.source_amount ?? 0));
-      const targetAmount = round2(Math.abs(payment.amount_applied ?? 0));
-      const shared = {
-        date: payment.payment_date || payment.createdAt,
-        kind: 'payment' as const,
-        label: payment.payment_method || payment.method || 'Pago',
-        docNo: payment.doc_no || payment.payment_doc_no,
-        invoiceId: payment.invoice_id || undefined,
-        paymentId: payment.id,
-        sourcePaymentId: payment.source_payment_id,
-        transactionType: type,
-      };
-      const conversion = {
-        sourceAmount,
-        sourceCurrency,
-        targetAmount,
-        targetCurrency,
-        rate: Number(payment.exchange_rate) || 1,
-        invoiceDocNo: payment.invoice_doc_no,
-      };
-      pushRow(sourceCurrency, {
-        ...shared,
-        id: `payment-allocation-source-${payment.id}`,
-        currency: sourceCurrency,
-        debe: sourceAmount,
-        haber: 0,
-        conversion: { ...conversion, side: 'source' },
-      });
-      pushRow(targetCurrency, {
-        ...shared,
-        id: `payment-allocation-target-${payment.id}`,
-        currency: targetCurrency,
-        debe: 0,
-        haber: targetAmount,
-        conversion: { ...conversion, side: 'target' },
-      });
-      continue;
-    }
-
-    // Other allocations (spending credit/prepaid balance or a credit note in the same
-    // currency) are bookkeeping entries for money the ledger already counted once — as the
-    // original direct payment/credit note row. Showing them too would both double the
-    // running balance and read as a second, separate payment (see e.g. a "Finalizado"
-    // credit allocation showing up right after the prepayment that funded it).
+    // Allocations are bookkeeping for money the ledger already counts in the payment/credit
+    // note they come from. Showing them too would read as a second, separate payment (see
+    // e.g. a "Finalizado" credit allocation showing up right after the prepayment that funded it).
     if (type !== 'direct_payment') continue;
     const sourceCurrency = payment.source_currency;
     const currency = payment.currency || sourceCurrency || getClinicCurrency();
@@ -362,10 +341,12 @@ export function buildPatientLedger(params: {
     const haber = payment.invoice_id
       ? round2(Math.abs(payment.amount_applied ?? payment.amount ?? 0))
       : sourceAmount;
-    pushRow(currency, {
-      id: `payment-${payment.id}`,
+
+    // Every row of a payment is that payment, whichever currency it shows: editing, printing
+    // or deleting it acts on the whole document.
+    const paymentRow = {
       date: payment.payment_date || payment.createdAt,
-      kind: 'payment',
+      kind: 'payment' as const,
       label: payment.payment_method || payment.method || 'Pago',
       docNo: payment.doc_no || payment.payment_doc_no,
       notes: payment.notes || undefined,
@@ -373,20 +354,49 @@ export function buildPatientLedger(params: {
       paymentId: payment.id,
       sourcePaymentId: payment.source_payment_id,
       transactionType: type,
-      currency,
       debe: 0,
-      haber,
-      conversion: payment.invoice_id && sourceCurrency && sourceCurrency !== currency
-        ? {
-          side: 'target',
-          sourceAmount,
-          sourceCurrency,
-          targetAmount: haber,
-          targetCurrency: currency,
-          rate: Number(payment.exchange_rate) || 1,
-          invoiceDocNo: payment.invoice_doc_no,
-        }
-        : undefined,
+    };
+
+    // Each balance shows only the money that stayed in it: what was converted counts in the
+    // invoice's currency, and a payment converted in full has no row in its own currency.
+    const conversions = [...(crossAllocationsByPayment.get(payment.id) ?? new Map<string, Payment[]>())]
+      .map(([targetCurrency, allocations]) => summarizeCrossAllocations(allocations, targetCurrency));
+    for (const conversion of conversions) {
+      pushRow(conversion.targetCurrency, {
+        ...paymentRow,
+        id: `payment-${payment.id}-${conversion.targetCurrency}`,
+        currency: conversion.targetCurrency,
+        haber: conversion.targetAmount,
+        conversion: { ...conversion, side: 'target' },
+      });
+    }
+
+    const convertedOut = currency === sourceCurrency
+      ? conversions.reduce((sum, c) => sum + c.sourceAmount, 0)
+      : 0;
+    const remaining = round2(haber - convertedOut);
+    if (conversions.length > 0 && remaining <= 0.005) continue;
+
+    let ownConversion: LedgerRowConversion | undefined;
+    if (conversions.length === 1) {
+      ownConversion = { ...conversions[0], side: 'source' };
+    } else if (payment.invoice_id && sourceCurrency && sourceCurrency !== currency) {
+      ownConversion = {
+        side: 'target',
+        sourceAmount,
+        sourceCurrency,
+        targetAmount: haber,
+        targetCurrency: currency,
+        rate: Number(payment.exchange_rate) || 1,
+        invoiceDocNo: payment.invoice_doc_no,
+      };
+    }
+    pushRow(currency, {
+      ...paymentRow,
+      id: `payment-${payment.id}`,
+      currency,
+      haber: remaining,
+      conversion: ownConversion,
     });
   }
 

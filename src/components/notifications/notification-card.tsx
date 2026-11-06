@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   ArrowRight,
   Bell,
@@ -35,6 +34,7 @@ import { useNotifications } from '@/context/notifications-context';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import { getSalesServices } from '@/services/services';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
@@ -54,6 +54,7 @@ import type {
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function RelativeTime({ iso }: { iso: string }) {
+  const locale = useLocale();
   const [label, setLabel] = React.useState('');
   React.useEffect(() => {
     // The API sends a 'Z'-suffixed string but the wall-clock digits are already local
@@ -62,11 +63,11 @@ function RelativeTime({ iso }: { iso: string }) {
     // here by the client's UTC offset (3h in GMT-3).
     const localIso = iso.replace('Z', '');
     const update = () =>
-      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: es }));
+      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: getDateFnsLocale(locale) }));
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
-  }, [iso]);
+  }, [iso, locale]);
   return <span className="text-[10px] text-muted-foreground">{label}</span>;
 }
 
@@ -79,13 +80,14 @@ function CardWrapper({
   onDismiss: () => void;
   accent: string;
 }) {
+  const t = useTranslations('Notifications');
   return (
     <div className={cn('relative rounded-xl border border-border bg-card p-4 shadow-sm', accent)}>
       <button
         type="button"
         onClick={onDismiss}
         className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-60 hover:opacity-100 hover:bg-accent transition-opacity"
-        aria-label="Descartar"
+        aria-label={t('dismiss')}
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -395,7 +397,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {t('dischargedUntil', {
                   date: (() => {
                     try {
-                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: es });
+                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: getDateFnsLocale(locale) });
                     } catch {
                       return notification.discharge.appointment_date;
                     }

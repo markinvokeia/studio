@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { usePanelWidth } from '@/hooks/use-panel-width';
 import { LEFT_PANEL_NARROW_THRESHOLD } from '@/lib/design-tokens';
@@ -70,6 +71,7 @@ export function TwoPanelLayout({
     forceRightOnly = false,
     storageKey,
 }: TwoPanelLayoutProps) {
+    const tGeneral = useTranslations('General');
     const [isDesktop, setIsDesktop] = React.useState<boolean>(getIsDesktop);
     const leftPanelRef = React.useRef<HTMLDivElement>(null);
     const leftPanelWidth = usePanelWidth(leftPanelRef);
@@ -177,7 +179,7 @@ export function TwoPanelLayout({
                                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
                             >
                                 <ChevronLeft className="h-4 w-4" />
-                                Atrás
+                                {tGeneral('back')}
                             </button>
                         )}
                         <div className="flex-1 min-h-0 overflow-hidden">

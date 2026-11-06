@@ -70,35 +70,35 @@ import { formatMoney } from '@/lib/currency';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 /** El tope de descuento es un dato de runtime: el esquema se construye con el. */
-const buildItemSchema = (maxDiscountPct: number) => z.object({
-  service_id: z.string().min(1, 'Selecciona un servicio'),
+const buildItemSchema = (maxDiscountPct: number, v: (key: string) => string) => z.object({
+  service_id: z.string().min(1, v('selectService')),
   service_name: z.string().optional(),
-  quantity: z.coerce.number().min(1, 'Mínimo 1'),
-  unit_price: z.coerce.number().min(0, 'Precio inválido'),
+  quantity: z.coerce.number().min(1, v('minOne')),
+  unit_price: z.coerce.number().min(0, v('invalidPrice')),
   discount_mode: z.enum(['percent', 'amount']).nullish(),
   discount_value: z.coerce.number().min(0).nullish(),
 }).superRefine((values, ctx) => {
   const base = computeGrossTotal(values.unit_price, values.quantity);
   if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: v('discountExceeded') });
   }
 });
 type ItemFormValues = z.infer<ReturnType<typeof buildItemSchema>>;
 
-const buildInvoiceEditSchema = (maxDiscountPct: number) => z.object({
+const buildInvoiceEditSchema = (maxDiscountPct: number, v: (key: string) => string) => z.object({
   type: z.enum(['invoice', 'credit_note']),
   currency: currencySchema,
-  created_at: z.date({ required_error: 'La fecha de factura es obligatoria' }),
+  created_at: z.date({ required_error: v('invoiceDateRequired') }),
   due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
   is_refund: z.boolean().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
-    service_id: z.string().min(1, 'Selecciona un servicio'),
+    service_id: z.string().min(1, v('selectService')),
     service_name: z.string().optional(),
-    quantity: z.coerce.number().min(1, 'Mínimo 1'),
-    unit_price: z.coerce.number().min(0, 'Precio inválido'),
+    quantity: z.coerce.number().min(1, v('minOne')),
+    unit_price: z.coerce.number().min(0, v('invalidPrice')),
     total: z.coerce.number().optional(),
     discount_mode: z.enum(['percent', 'amount']).nullish(),
     discount_value: z.coerce.number().min(0).nullish(),
@@ -110,18 +110,19 @@ const buildInvoiceEditSchema = (maxDiscountPct: number) => z.object({
   (values.items ?? []).forEach((item, index) => {
     const base = computeGrossTotal(item.unit_price, item.quantity);
     if (!isDiscountWithinLimit(base, { mode: item.discount_mode, value: item.discount_value }, maxDiscountPct)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: 'Supera el descuento máximo permitido' });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: v('discountExceeded') });
     }
   });
   const grossTotal = roundCurrency((values.items ?? []).reduce((sum, item) => sum + computeGrossTotal(item.unit_price, item.quantity), 0));
   if (!isDiscountWithinLimit(grossTotal, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: v('discountExceeded') });
   }
 });
 type InvoiceEditFormValues = z.infer<ReturnType<typeof buildInvoiceEditSchema>>;
 
 // ── Item total display ────────────────────────────────────────────────────────
 function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useForm<ItemFormValues>>; applyDiscount: boolean }) {
+  const tu = useTranslations('UserInvoices');
   const quantity = useWatch({ control: form.control, name: 'quantity' }) ?? 0;
   const unitPrice = useWatch({ control: form.control, name: 'unit_price' }) ?? 0;
   const discountMode = useWatch({ control: form.control, name: 'discount_mode' });
@@ -133,7 +134,7 @@ function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useFo
   );
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">Total</label>
+      <label className="text-sm font-medium">{tu('total')}</label>
       <Input
         value={formatMoney(total, getClinicCurrency())}
         readOnly
@@ -157,7 +158,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Seleccionar fila"
+        aria-label={t('General.selectRow')}
         onClick={(e) => e.stopPropagation()}
       />
     ),
@@ -256,7 +257,10 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
 const fmtCurrency = (v: number, currency?: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || getClinicCurrency() }).format(v || 0);
 
+type UserInvoicesT = (key: string, values?: Record<string, string | number>) => string;
+
 function getInvoiceItemColumns(currency: string | undefined, opts: {
+  t: UserInvoicesT;
   canUpdateItem: boolean;
   canDeleteItem: boolean;
   onEdit: (item: InvoiceItem) => void;
@@ -265,24 +269,24 @@ function getInvoiceItemColumns(currency: string | undefined, opts: {
   const cols: ColumnDef<InvoiceItem>[] = [
     {
       accessorKey: 'service_name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Servicio" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={opts.t('service')} />,
       cell: ({ row }) => <span className="font-medium">{row.original.service_name || '-'}</span>,
     },
     {
       accessorKey: 'quantity',
       size: 90,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Cantidad" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={opts.t('quantity')} />,
     },
     {
       accessorKey: 'unit_price',
       size: 120,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Precio unit." />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={opts.t('unitPrice')} />,
       cell: ({ row }) => fmtCurrency(row.original.unit_price, currency),
     },
     {
       accessorKey: 'total',
       size: 120,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={opts.t('total')} />,
       cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.total, currency)}</span>,
     },
   ];
@@ -311,35 +315,35 @@ function getInvoiceItemColumns(currency: string | undefined, opts: {
   return cols;
 }
 
-function getInvoicePaymentColumns(): ColumnDef<any>[] {
+function getInvoicePaymentColumns(t: UserInvoicesT): ColumnDef<any>[] {
   return [
     {
       accessorKey: 'doc_no',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="N° Pago" />,
-      cell: ({ row }) => <span className="font-medium">{row.original.doc_no || `Pago #${row.original.id}`}</span>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('paymentNo')} />,
+      cell: ({ row }) => <span className="font-medium">{row.original.doc_no || t('paymentFallback', { id: row.original.id })}</span>,
     },
     {
       accessorKey: 'date',
       size: 120,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('date')} />,
       cell: ({ row }) => row.original.date ? formatDisplayDate(row.original.date) : '-',
     },
     {
       accessorKey: 'method',
       size: 140,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Método" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('method')} />,
       cell: ({ row }) => row.original.method || '-',
     },
     {
       accessorKey: 'currency',
       size: 90,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Moneda" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('currency')} />,
       cell: ({ row }) => row.original.currency || '-',
     },
     {
       accessorKey: 'amount',
       size: 120,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Monto" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('amount')} />,
       cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.amount, row.original.currency)}</span>,
     },
   ];
@@ -431,6 +435,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const t = useTranslations();
   const tStatus = useTranslations('InvoicesPage.status');
   const tInvoices = useTranslations('InvoicesPage');
+  const tu = useTranslations('UserInvoices');
+  const tValidation = useTranslations('DocumentValidation');
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
@@ -639,17 +645,17 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM,
         { id: parseInt(selectedInvoice.id, 10) }
       );
-      toast({ title: 'Factura confirmada' });
+      toast({ title: tu('toasts.invoiceConfirmed') });
       await loadInvoices(true);
       onDataChange?.();
     } catch {
-      toast({ title: 'Error al confirmar', variant: 'destructive' });
+      toast({ title: tu('toasts.confirmError'), variant: 'destructive' });
     }
   };
 
   // ── Edit invoice form ─────────────────────────────────────────────────────────
   const discounts = useDiscountSettings();
-  const invoiceEditSchema = React.useMemo(() => buildInvoiceEditSchema(discounts.maxPct), [discounts.maxPct]);
+  const invoiceEditSchema = React.useMemo(() => buildInvoiceEditSchema(discounts.maxPct, tValidation), [discounts.maxPct, tValidation]);
   const onInvalidSubmit = useInvalidSubmitToast();
   const invoiceEditForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
   const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem } = useFieldArray({
@@ -795,13 +801,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           total: i.total,
         })),
       });
-      toast({ title: 'Factura actualizada' });
+      toast({ title: tu('toasts.invoiceUpdated') });
       setIsEditInvoiceOpen(false);
       await loadInvoices(true);
       loadItems(selectedInvoice.id);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
+      toast({ title: e?.message || tu('toasts.updateError'), variant: 'destructive' });
     } finally {
       setIsSubmittingInvoice(false);
     }
@@ -881,7 +887,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           total: i.total,
         })),
       });
-      toast({ title: 'Nota de crédito creada' });
+      toast({ title: tu('toasts.creditNoteCreated') });
       setIsCreditNoteOpen(false);
       await loadInvoices(true);
       onDataChange?.();
@@ -912,14 +918,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         setIsPaymentDialogOpen(true);
       }
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al crear nota de crédito', variant: 'destructive' });
+      toast({ title: e?.message || tu('toasts.creditNoteError'), variant: 'destructive' });
     } finally {
       setIsSubmittingCreditNote(false);
     }
   };
 
   // ── Item form ────────────────────────────────────────────────────────────────
-  const itemSchema = React.useMemo(() => buildItemSchema(discounts.maxPct), [discounts.maxPct]);
+  const itemSchema = React.useMemo(() => buildItemSchema(discounts.maxPct, tValidation), [discounts.maxPct, tValidation]);
   const itemForm = useForm<ItemFormValues>({ resolver: zodResolver(itemSchema) });
 
   React.useEffect(() => {
@@ -947,13 +953,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         is_sales: isSales,
         ...lineToSubmit,
       });
-      toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
+      toast({ title: editingItem ? tu('toasts.itemUpdated') : tu('toasts.itemAdded') });
       itemForm.reset();
       setIsItemDialogOpen(false);
       loadItems(selectedInvoice.id);
       onDataChange?.();
     } catch {
-      toast({ title: 'Error al guardar ítem', variant: 'destructive' });
+      toast({ title: tu('toasts.itemSaveError'), variant: 'destructive' });
     } finally {
       setIsSubmittingItem(false);
     }
@@ -966,12 +972,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICES_ITEMS_DELETE : API_ROUTES.PURCHASES.INVOICES_ITEMS_DELETE,
         { id: parseInt(deletingItem.id, 10) }
       );
-      toast({ title: 'Ítem eliminado' });
+      toast({ title: tu('toasts.itemDeleted') });
       setDeletingItem(null);
       if (selectedInvoice) loadItems(selectedInvoice.id);
       onDataChange?.();
     } catch {
-      toast({ title: 'Error al eliminar', variant: 'destructive' });
+      toast({ title: tu('toasts.deleteError'), variant: 'destructive' });
     }
   };
 
@@ -987,7 +993,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           onClick={handleConfirm}
         >
           <CheckCircle className="h-3.5 w-3.5" />
-          Confirmar
+          {tu('confirm')}
         </Button>
       )}
       {isBookedUnpaid && canCreatePayment && (
@@ -1015,7 +1021,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           }}
         >
           <Zap className="h-3.5 w-3.5" />
-          Cobrar
+          {t('BillingWizard.actions.collect')}
         </Button>
       )}
       {/* Print y Enviar son siempre visibles; Editar es condicional */}
@@ -1023,19 +1029,19 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-              Acciones
+              {tu('actions')}
               <ChevronDown className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
-              Imprimir
+              {tu('print')}
             </DropdownMenuItem>
             {canSendInvoice && (
               <DropdownMenuItem onClick={() => handleSendEmailClick(selectedInvoice)}>
                 <Send className="h-4 w-4 mr-2" />
-                Enviar
+                {tu('send')}
               </DropdownMenuItem>
             )}
             {isDraft && canUpdateInvoice && (
@@ -1043,7 +1049,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  Editar
+                  {tu('edit')}
                 </DropdownMenuItem>
               </>
             )}
@@ -1052,7 +1058,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => { loadItems(selectedInvoice.id); setIsCreditNoteOpen(true); }}>
                   <FileMinus2 className="h-4 w-4 mr-2" />
-                  Nota de crédito
+                  {tu('creditNote')}
                 </DropdownMenuItem>
               </>
             )}
@@ -1061,7 +1067,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       )}
       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedInvoice)}>
         <Eye className="h-3.5 w-3.5" />
-        Ver detalles
+        {tu('viewDetails')}
       </Button>
     </div>
   ) : null;
@@ -1184,20 +1190,20 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
                       {selectedInvoice.type === 'credit_note' ? (
                         <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                          Nota de crédito
+                          {tu('creditNote')}
                           {selectedInvoice.parent_id && (() => {
                             const parent = invoices.find(inv => inv.id === selectedInvoice.parent_id);
                             const parentLabel = parent?.doc_no || `#${selectedInvoice.parent_id}`;
-                            return <> · Relacionada a: <span className="font-medium text-foreground">{parentLabel}</span></>;
+                            return <> · {tu('relatedTo')} <span className="font-medium text-foreground">{parentLabel}</span></>;
                           })()}
                         </SheetDescription>
                       ) : (() => {
                         const creditNote = invoices.find(inv => inv.type === 'credit_note' && inv.parent_id === selectedInvoice.id);
                         return (
                           <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                            Factura
+                            {tu('invoice')}
                             {creditNote && (
-                              <> · Relacionada a: <span className="font-medium text-foreground">Nota de crédito {creditNote.doc_no || `#${creditNote.id}`}</span></>
+                              <> · {tu('relatedTo')} <span className="font-medium text-foreground">{tu('creditNote')} {creditNote.doc_no || `#${creditNote.id}`}</span></>
                             )}
                           </SheetDescription>
                         );
@@ -1229,12 +1235,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <span className="text-sm">{selectedInvoice.due_date ? formatDisplayDate(selectedInvoice.due_date) : '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Creado:</span>
+                    <span className="text-xs text-muted-foreground">{tu('createdLabel')}</span>
                     <span className="text-sm">{formatDisplayDate(selectedInvoice.createdAt)}</span>
                   </div>
                   {selectedInvoice.notes && (
                     <div className="flex items-center gap-2 w-full mt-1">
-                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-xs text-muted-foreground">{tu('notesLabel')}</span>
                       <span className="text-sm text-muted-foreground italic">{selectedInvoice.notes}</span>
                     </div>
                   )}
@@ -1248,7 +1254,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               {isDraft && canConfirmInvoice && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirm}>
                   <CheckCircle className="h-3.5 w-3.5" />
-                  Confirmar
+                  {tu('confirm')}
                 </Button>
               )}
               {isBookedUnpaid && canCreatePayment && (
@@ -1271,24 +1277,24 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   }
                 >
                   <Zap className="h-3.5 w-3.5" />
-                  Cobrar
+                  {t('BillingWizard.actions.collect')}
                 </Button>
               )}
               {/* Acciones secundarias */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
-                Imprimir
+                {tu('print')}
               </Button>
               {canSendInvoice && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
                   <Send className="h-3.5 w-3.5" />
-                  Enviar
+                  {tu('send')}
                 </Button>
               )}
               {isDraft && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditInvoiceOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
-                  Editar
+                  {tu('edit')}
                 </Button>
               )}
             </div>
@@ -1299,11 +1305,11 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <div className="px-6 py-2">
                   <TabsList className="gap-1 rounded-xl border border-border bg-muted/30 p-1 h-auto">
                     <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-                      Ítems
+                      {tu('items')}
                     </TabsTrigger>
                     <TabsTrigger value="payments" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5" />
-                      Pagos
+                      {tu('payments')}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -1311,6 +1317,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <TabsContent value="items" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                   <DataTable
                     columns={getInvoiceItemColumns(selectedInvoice.currency, {
+                      t: tu,
                       canUpdateItem: isDraft && canUpdateItem,
                       canDeleteItem: isDraft && canDeleteItem,
                       onEdit: (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); },
@@ -1344,9 +1351,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                             title={item.service_name || '-'}
                             meta={(
                               <>
-                                <span>Cantidad: {item.quantity}</span>
-                                <span>Precio unit.: {fmtCurrency(item.unit_price, selectedInvoice.currency)}</span>
-                                <span className="font-medium text-foreground">Total: {fmtCurrency(item.total, selectedInvoice.currency)}</span>
+                                <span>{tu('quantity')}: {item.quantity}</span>
+                                <span>{tu('unitPrice')}: {fmtCurrency(item.unit_price, selectedInvoice.currency)}</span>
+                                <span className="font-medium text-foreground">{tu('total')}: {fmtCurrency(item.total, selectedInvoice.currency)}</span>
                               </>
                             )}
                             actions={actionsEl}
@@ -1358,9 +1365,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           title={item.service_name || '-'}
                           subtitle={item.steps || item.step_id || undefined}
                           fields={[
-                            { label: 'Cantidad', value: String(item.quantity) },
-                            { label: 'Precio unit.', value: fmtCurrency(item.unit_price, selectedInvoice.currency) },
-                            { label: 'Total', value: fmtCurrency(item.total, selectedInvoice.currency), primary: true },
+                            { label: tu('quantity'), value: String(item.quantity) },
+                            { label: tu('unitPrice'), value: fmtCurrency(item.unit_price, selectedInvoice.currency) },
+                            { label: tu('total'), value: fmtCurrency(item.total, selectedInvoice.currency), primary: true },
                           ]}
                           actions={actionsEl}
                         />
@@ -1371,7 +1378,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
                 <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                   <DataTable
-                    columns={getInvoicePaymentColumns()}
+                    columns={getInvoicePaymentColumns(tu)}
                     data={invoicePayments}
                     isLoading={isLoadingPayments}
                     useGlobalFilter
@@ -1381,24 +1388,24 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     cardListClassName={detailPaymentsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
                     renderCard={(payment: any) => detailPaymentsListView ? (
                       <DataListRow
-                        title={payment.doc_no || `Pago #${payment.id}`}
+                        title={payment.doc_no || tu('paymentFallback', { id: payment.id })}
                         meta={(
                           <>
                             {payment.date ? <span>{formatDisplayDate(payment.date)}</span> : null}
-                            <span>Método: {payment.method || '-'}</span>
-                            {payment.currency ? <span>Moneda: {payment.currency}</span> : null}
-                            <span className="font-medium text-foreground">Monto: {fmtCurrency(payment.amount, payment.currency)}</span>
+                            <span>{tu('method')}: {payment.method || '-'}</span>
+                            {payment.currency ? <span>{tu('currency')}: {payment.currency}</span> : null}
+                            <span className="font-medium text-foreground">{tu('amount')}: {fmtCurrency(payment.amount, payment.currency)}</span>
                           </>
                         )}
                       />
                     ) : (
                       <DataCard
-                        title={payment.doc_no || `Pago #${payment.id}`}
+                        title={payment.doc_no || tu('paymentFallback', { id: payment.id })}
                         subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
                         fields={[
-                          { label: 'Método', value: payment.method || '-' },
-                          { label: 'Moneda', value: payment.currency || '-' },
-                          { label: 'Monto', value: fmtCurrency(payment.amount, payment.currency), primary: true },
+                          { label: tu('method'), value: payment.method || '-' },
+                          { label: tu('currency'), value: payment.currency || '-' },
+                          { label: tu('amount'), value: fmtCurrency(payment.amount, payment.currency), primary: true },
                         ]}
                       />
                     )}
@@ -1417,17 +1424,17 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <div className="flex-none border-t bg-muted/30 px-6 py-3">
                   <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Total</p>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{tu('total')}</p>
                       <p className="text-sm font-semibold tabular-nums">{fmt(selectedInvoice.total)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Pagado</p>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{tu('paid')}</p>
                       <p className={`text-sm font-semibold tabular-nums ${paidAmt > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                         {fmt(paidAmt)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Saldo pendiente</p>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{tu('balanceDue')}</p>
                       <p className={`text-sm font-semibold tabular-nums ${pendingAmt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {fmt(pendingAmt)}
                       </p>
@@ -1446,20 +1453,20 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           <Form {...invoiceEditForm}>
             <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
-                <DialogTitle>Editar factura</DialogTitle>
-                <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
+                <DialogTitle>{tu('editDialog.title')}</DialogTitle>
+                <DialogDescription>{tu('editDialog.description', { doc: selectedInvoice?.doc_no ?? '' })}</DialogDescription>
               </DialogHeader>
               <DialogBody className="space-y-4 py-4 px-6">
                 {/* Type + Currency */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={invoiceEditForm.control} name="type" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo</FormLabel>
+                      <FormLabel>{tu('type')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                         <SelectContent>
-                          <SelectItem value="invoice">Factura</SelectItem>
-                          <SelectItem value="credit_note">Nota de crédito</SelectItem>
+                          <SelectItem value="invoice">{tu('invoice')}</SelectItem>
+                          <SelectItem value="credit_note">{tu('creditNote')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1467,7 +1474,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   )} />
                   <FormField control={invoiceEditForm.control} name="currency" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Moneda</FormLabel>
+                      <FormLabel>{tu('currency')}</FormLabel>
                       <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1478,7 +1485,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={invoiceEditForm.control} name="created_at" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fecha de Factura</FormLabel>
+                      <FormLabel>{tu('editDialog.invoiceDate')}</FormLabel>
                       <FormControl>
                         <DatePickerInput
                           value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
@@ -1518,7 +1525,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <Card>
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                      <p className="text-sm font-semibold">Ítems de la factura</p>
+                      <p className="text-sm font-semibold">{tu('editDialog.itemsTitle')}</p>
                       {canAddItem && (
                         <Button
                           type="button"
@@ -1526,7 +1533,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           variant="outline"
                           onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
                         >
-                          Agregar Artículo
+                          {tu('addItem')}
                         </Button>
                       )}
                     </div>
@@ -1540,10 +1547,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-muted-foreground text-center border-b">
-                              <th className="text-left font-semibold p-2">Servicio</th>
-                              <th className="font-semibold p-2 w-24">Cantidad</th>
-                              <th className="font-semibold p-2 w-28">Precio unit.</th>
-                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="text-left font-semibold p-2">{tu('service')}</th>
+                              <th className="font-semibold p-2 w-24">{tu('quantity')}</th>
+                              <th className="font-semibold p-2 w-28">{tu('unitPrice')}</th>
+                              <th className="font-semibold p-2 w-28">{tu('total')}</th>
                               {discounts.showLineDiscount && <th className="p-2 w-24"></th>}
                               <th className="p-2 w-10"></th>
                             </tr>
@@ -1568,9 +1575,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             invoiceEditForm.setValue(`items.${index}.total`, Number(service.price) * qty);
                                           }
                                         }}
-                                        placeholder="Buscar servicio..."
-                                        noResultsText="Sin resultados"
-                                        triggerText="Seleccionar servicio"
+                                        placeholder={tu('searchService')}
+                                        noResultsText={tu('noResults')}
+                                        triggerText={tu('selectService')}
                                       />
                                       <FormMessage />
                                     </FormItem>
@@ -1646,7 +1653,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                               </React.Fragment>
                             ))}
                             {editInvoiceItemFields.length === 0 && (
-                              <tr><td colSpan={discounts.showLineDiscount ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                              <tr><td colSpan={discounts.showLineDiscount ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">{tu('noItems')}</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -1688,18 +1695,18 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 {/* Notes */}
                 <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormLabel>{tu('notes')} <span className="text-muted-foreground">{tu('optional')}</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder={tu('editDialog.notesPlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
 
               </DialogBody>
               <DialogFooter>
-                <DialogCancelButton disabled={isSubmittingInvoice}>Cancelar</DialogCancelButton>
+                <DialogCancelButton disabled={isSubmittingInvoice}>{tu('cancel')}</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingInvoice}>
                   {isSubmittingInvoice && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Guardar
+                  {tu('save')}
                 </Button>
               </DialogFooter>
             </form>
@@ -1711,15 +1718,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={itemForm.formState.isDirty}>
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar ítem' : 'Agregar ítem'}</DialogTitle>
-            <DialogDescription>Completa los datos del ítem de la factura.</DialogDescription>
+            <DialogTitle>{editingItem ? tu('itemDialog.titleEdit') : tu('itemDialog.titleAdd')}</DialogTitle>
+            <DialogDescription>{tu('itemDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
             <form onSubmit={itemForm.handleSubmit(handleSubmitItem, onInvalidSubmit)}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Servicio</FormLabel>
+                    <FormLabel>{tu('service')}</FormLabel>
                     <ServiceSelector
                       isSales={isSales}
                       value={field.value}
@@ -1731,8 +1738,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           if (!editingItem) itemForm.setValue('unit_price', service.price);
                         }
                       }}
-                      placeholder="Seleccionar servicio"
-                      triggerText="Seleccionar servicio"
+                      placeholder={tu('selectService')}
+                      triggerText={tu('selectService')}
                     />
                     <FormMessage />
                   </FormItem>
@@ -1740,14 +1747,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={itemForm.control} name="quantity" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cantidad</FormLabel>
+                      <FormLabel>{tu('quantity')}</FormLabel>
                       <FormControl><Input type="number" min={1} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={itemForm.control} name="unit_price" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Precio unitario</FormLabel>
+                      <FormLabel>{tu('unitPriceLong')}</FormLabel>
                       <FormControl><Input type="number" min={0} step="0.01" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1778,10 +1785,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <ItemTotalField form={itemForm} applyDiscount={discounts.showLineDiscount} />
               </div>
               <DialogFooter>
-                <DialogCancelButton>Cancelar</DialogCancelButton>
+                <DialogCancelButton>{tu('cancel')}</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingItem}>
                   {isSubmittingItem && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {editingItem ? 'Guardar cambios' : 'Agregar'}
+                  {editingItem ? tu('itemDialog.saveChanges') : tu('itemDialog.add')}
                 </Button>
               </DialogFooter>
             </form>
@@ -1793,14 +1800,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Eliminar ítem</DialogTitle>
-            <DialogDescription>¿Estás seguro de que deseas eliminar <strong>{deletingItem?.service_name}</strong>? Esta acción no se puede deshacer.</DialogDescription>
+            <DialogTitle>{tu('deleteDialog.title')}</DialogTitle>
+            <DialogDescription>{tu.rich('deleteDialog.description', { name: deletingItem?.service_name ?? '', strong: (chunks) => <strong>{chunks}</strong> })}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingItem(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeletingItem(null)}>{tu('cancel')}</Button>
             <Button variant="destructive" onClick={handleConfirmDeleteItem}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
+              {tu('deleteDialog.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1817,9 +1824,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <FileMinus2 className="h-5 w-5" />
                   </div>
                   <div className="flex flex-col text-left">
-                    <DialogTitle>Nueva nota de crédito</DialogTitle>
+                    <DialogTitle>{tu('creditNoteDialog.title')}</DialogTitle>
                     <DialogDescription>
-                      Factura referenciada: {selectedInvoice?.doc_no}. Monto pagado disponible:{' '}
+                      {tu('creditNoteDialog.description', { doc: selectedInvoice?.doc_no ?? '' })}{' '}
                       <span className="font-medium text-foreground">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || getClinicCurrency() }).format(Number(selectedInvoice?.paid_amount) || 0)}
                       </span>
@@ -1832,14 +1839,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={creditNoteForm.control} name="currency" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Moneda</FormLabel>
+                      <FormLabel>{tu('currency')}</FormLabel>
                       <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={creditNoteForm.control} name="created_at" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fecha</FormLabel>
+                      <FormLabel>{tu('date')}</FormLabel>
                       <FormControl>
                         <DatePickerInput
                           value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
@@ -1855,14 +1862,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <Card>
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                      <p className="text-sm font-semibold">Ítems</p>
+                      <p className="text-sm font-semibold">{tu('items')}</p>
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         onClick={() => { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
                       >
-                        Agregar Artículo
+                        {tu('addItem')}
                       </Button>
                     </div>
                     <div className="overflow-x-auto px-4 pb-4">
@@ -1875,10 +1882,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-muted-foreground text-center border-b">
-                              <th className="text-left font-semibold p-2">Servicio</th>
-                              <th className="font-semibold p-2 w-24">Cantidad</th>
-                              <th className="font-semibold p-2 w-28">Precio unit.</th>
-                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="text-left font-semibold p-2">{tu('service')}</th>
+                              <th className="font-semibold p-2 w-24">{tu('quantity')}</th>
+                              <th className="font-semibold p-2 w-28">{tu('unitPrice')}</th>
+                              <th className="font-semibold p-2 w-28">{tu('total')}</th>
                               <th className="p-2 w-10"></th>
                             </tr>
                           </thead>
@@ -1901,9 +1908,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             creditNoteForm.setValue(`items.${index}.total`, Number(service.price) * qty);
                                           }
                                         }}
-                                        placeholder="Buscar servicio..."
-                                        noResultsText="Sin resultados"
-                                        triggerText="Seleccionar servicio"
+                                        placeholder={tu('searchService')}
+                                        noResultsText={tu('noResults')}
+                                        triggerText={tu('selectService')}
                                       />
                                       <FormMessage />
                                     </FormItem>
@@ -1965,7 +1972,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                               </tr>
                             ))}
                             {creditNoteItemFields.length === 0 && (
-                              <tr><td colSpan={5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                              <tr><td colSpan={5} className="text-center text-muted-foreground text-xs py-4">{tu('noItems')}</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -1974,13 +1981,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     {creditNoteItemFields.length > 0 && (
                       <div className="mt-4 flex justify-between items-end border-t border-dashed px-4 pb-4 pt-4">
                         <p className="text-xs text-muted-foreground">
-                          Máximo permitido:{' '}
+                          {tu('creditNoteDialog.maxAllowed')}{' '}
                           <span className="font-medium text-foreground">
                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || getClinicCurrency() }).format(Number(selectedInvoice?.paid_amount) || 0)}
                           </span>
                         </p>
                         <div className="text-right">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{tu('total')}</p>
                           <p className={`text-2xl font-semibold ${creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0) > (Number(selectedInvoice?.paid_amount) || 0) ? 'text-destructive' : ''}`}>
                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || getClinicCurrency() }).format(
                               creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0)
@@ -1995,8 +2002,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 {/* Notes */}
                 <FormField control={creditNoteForm.control} name="notes" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Motivo de la nota de crédito..." {...field} /></FormControl>
+                    <FormLabel>{tu('notes')} <span className="text-muted-foreground">{tu('optional')}</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder={tu('creditNoteDialog.notesPlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -2008,19 +2015,19 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Devolución directa al cliente</FormLabel>
+                      <FormLabel>{tu('creditNoteDialog.refund')}</FormLabel>
                       <p className="text-xs text-muted-foreground">
-                        Al crear la nota de crédito se abrirá el formulario de pago para registrar la devolución.
+                        {tu('creditNoteDialog.refundHint')}
                       </p>
                     </div>
                   </FormItem>
                 )} />
               </DialogBody>
               <DialogFooter>
-                <DialogCancelButton disabled={isSubmittingCreditNote}>Cancelar</DialogCancelButton>
+                <DialogCancelButton disabled={isSubmittingCreditNote}>{tu('cancel')}</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingCreditNote}>
                   {isSubmittingCreditNote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Crear nota de crédito
+                  {tu('creditNoteDialog.create')}
                 </Button>
               </DialogFooter>
             </form>

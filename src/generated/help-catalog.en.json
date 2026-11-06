@@ -1,5 +1,5 @@
 {
- "version": "09fd2fd4d3ab8ff0",
+ "version": "bb104f468ce9b210",
  "locale": "en",
  "journey": [
   {
@@ -10719,6 +10719,7 @@
     {
      "id": "purchases.providers.field.is_refund",
      "kind": "field",
+     "label": "Direct refund to the customer",
      "source": "src/components/users/user-invoices.tsx"
     },
     {
@@ -10873,6 +10874,7 @@
     {
      "id": "purchases.providers.tab.facturas",
      "kind": "tab",
+     "label": "Invoices",
      "source": "src/components/users/user-quotes.tsx"
     },
     {
@@ -10889,6 +10891,7 @@
     {
      "id": "purchases.providers.tab.items",
      "kind": "tab",
+     "label": "Items",
      "source": "src/components/users/user-invoices.tsx"
     },
     {
@@ -10900,6 +10903,7 @@
     {
      "id": "purchases.providers.tab.pagos",
      "kind": "tab",
+     "label": "Payments",
      "source": "src/components/users/user-quotes.tsx"
     },
     {

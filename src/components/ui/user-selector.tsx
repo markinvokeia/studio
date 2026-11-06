@@ -46,8 +46,8 @@ export function UserSelector({
     value,
     selectedUserName,
     onValueChange,
-    placeholder = 'Buscar...',
-    triggerText = 'Seleccionar',
+    placeholder: placeholderProp,
+    triggerText: triggerTextProp,
     className,
     disabled = false,
     'aria-invalid': ariaInvalid,
@@ -55,6 +55,8 @@ export function UserSelector({
     onRequestCreate,
 }: UserSelectorProps) {
     const t = useTranslations();
+    const placeholder = placeholderProp ?? t('EntitySelectors.searchPlaceholder');
+    const triggerText = triggerTextProp ?? t('EntitySelectors.selectTrigger');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     // Poner a otra ficha a cargo del paciente nuevo la modifica; proveedores no aplica.
@@ -127,7 +129,7 @@ export function UserSelector({
                 }
                 setUsers(usersData.map((u: any): User => ({
                     id: String(u.id),
-                    name: u.name || 'Sin nombre',
+                    name: u.name || t('EntitySelectors.noName'),
                     email: u.email || '',
                     phone_number: u.phone_number || '',
                     is_active: u.is_active ?? true,
@@ -147,7 +149,7 @@ export function UserSelector({
             }
         }, 300);
         return () => clearTimeout(handler);
-    }, [searchQuery, filterType]);
+    }, [searchQuery, filterType, t]);
 
     const fallbackSelectedUser = React.useMemo<User | undefined>(() => {
         if (!value || !selectedUserName) return undefined;
@@ -231,7 +233,7 @@ export function UserSelector({
                 return;
             }
             if (errPayload) {
-                setCreateError('Revisá que la información ingresada sea válida.');
+                setCreateError(t('EntitySelectors.invalidData'));
                 return;
             }
             if (adoptDependentIds.length > 0) {
@@ -252,7 +254,7 @@ export function UserSelector({
             }
             const newUsers = usersData.map((u: any): User => ({
                 id: String(u.id),
-                name: u.name || 'Sin nombre',
+                name: u.name || t('EntitySelectors.noName'),
                 email: u.email || '',
                 phone_number: u.phone_number || '',
                 is_active: u.is_active ?? true,
@@ -277,14 +279,12 @@ export function UserSelector({
             } else if (errPayload?.code === 'invalid_name') {
                 setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
             } else {
-                setCreateError(resolveDependencyErrorCode(errPayload?.code, t) ?? 'Revisá que la información ingresada sea válida.');
+                setCreateError(resolveDependencyErrorCode(errPayload?.code, t) ?? t('EntitySelectors.invalidData'));
             }
         } finally {
             setIsSaving(false);
         }
     };
-
-    const entityLabel = filterType === 'PROVEEDOR' ? 'proveedor' : 'paciente';
 
     return (
         <>
@@ -314,7 +314,7 @@ export function UserSelector({
                         {isLoading ? (
                             <div className="flex items-center justify-center p-4">
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                <span className="text-sm text-muted-foreground">Buscando...</span>
+                                <span className="text-sm text-muted-foreground">{t('EntitySelectors.searching')}</span>
                             </div>
                         ) : (
                             <>
@@ -341,7 +341,7 @@ export function UserSelector({
 
                                 {users.length === 0 && (
                                     <p className="py-5 text-center text-sm text-muted-foreground">
-                                        No hay resultados.
+                                        {t('EntitySelectors.noResults')}
                                     </p>
                                 )}
 
@@ -350,12 +350,12 @@ export function UserSelector({
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">
-                                                    Se creará un nuevo {entityLabel}
+                                                    {t(filterType === 'PROVEEDOR' ? 'EntitySelectors.newSupplier' : 'EntitySelectors.newPatient')}
                                                 </p>
                                                 <Input
                                                     value={createName}
                                                     onChange={e => { setCreateName(e.target.value); setCreateError(null); }}
-                                                    placeholder="Nombre *"
+                                                    placeholder={t('EntitySelectors.namePlaceholder')}
                                                     className="h-7 text-sm"
                                                     autoFocus
                                                 />
@@ -365,14 +365,14 @@ export function UserSelector({
                                                     <PhoneInput
                                                         value={createPhone}
                                                         onChange={phone => { setCreatePhone(phone); setCreateError(null); }}
-                                                        placeholder="Teléfono"
+                                                        placeholder={t('EntitySelectors.phonePlaceholder')}
                                                         className="[&_[role=combobox]]:h-7 [&_[role=combobox]]:px-2 [&_input]:h-7"
                                                     />
                                                 </div>
                                                 <Input
                                                     value={createEmail}
                                                     onChange={e => { setCreateEmail(e.target.value); setCreateError(null); }}
-                                                    placeholder="Email"
+                                                    placeholder={t('EntitySelectors.emailPlaceholder')}
                                                     className="h-7 text-sm"
                                                 />
                                                 {createError && (
@@ -387,7 +387,7 @@ export function UserSelector({
                                                         type="button"
                                                     >
                                                         {isSaving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                                                        Guardar
+                                                        {t('EntitySelectors.save')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -398,7 +398,7 @@ export function UserSelector({
                                                 type="button"
                                             >
                                                 <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">Crear "{searchQuery}"</span>
+                                                <span className="truncate">{t('EntitySelectors.createNamed', { name: searchQuery })}</span>
                                             </button>
                                         )}
                                     </div>

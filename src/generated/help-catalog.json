@@ -1,5 +1,5 @@
 {
- "version": "3573947c720969a8",
+ "version": "191e7bdfdadec533",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -10806,6 +10806,7 @@
     {
      "id": "purchases.providers.field.is_refund",
      "kind": "field",
+     "label": "Devolución directa al cliente",
      "source": "src/components/users/user-invoices.tsx"
     },
     {
@@ -10960,6 +10961,7 @@
     {
      "id": "purchases.providers.tab.facturas",
      "kind": "tab",
+     "label": "Facturas",
      "source": "src/components/users/user-quotes.tsx"
     },
     {
@@ -10976,6 +10978,7 @@
     {
      "id": "purchases.providers.tab.items",
      "kind": "tab",
+     "label": "Ítems",
      "source": "src/components/users/user-invoices.tsx"
     },
     {
@@ -10987,6 +10990,7 @@
     {
      "id": "purchases.providers.tab.pagos",
      "kind": "tab",
+     "label": "Pagos",
      "source": "src/components/users/user-quotes.tsx"
     },
     {

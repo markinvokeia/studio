@@ -393,11 +393,7 @@ function findRowPayment(payments: Payment[] | undefined, row: LedgerRow): Paymen
 function conversionEditCeiling(payments: Payment[] | undefined, row: LedgerRow): number | undefined {
   const payment = findRowPayment(payments, row);
   if (!payment) return undefined;
-  const hasConversion = !!row.conversion || (payments ?? []).some((p) =>
-    p.transaction_type === 'payment_allocation'
-    && p.source_payment_id === payment.id
-    && !!p.currency && p.currency !== p.source_currency);
-  return hasConversion ? Math.abs(payment.source_amount ?? 0) : undefined;
+  return row.conversion ? Math.abs(payment.source_amount ?? 0) : undefined;
 }
 
 /** One line in the allocations popover — deliberately thin, just enough to show and
@@ -2757,7 +2753,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               </div>
 
               {displayRows.length === 0 ? (
-                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty')}</div>
+                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty', { currency: currency || getClinicCurrency() })}</div>
               ) : (
                 <div className="space-y-2 py-1">
                   {displayRows.map((row) => {
@@ -3107,7 +3103,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <DialogHeader>
             <DialogTitle>
               {confirmAction?.type === 'quote' && t('dialogs.deleteQuote.title')}
-              {confirmAction?.type === 'payment' && t(confirmAction.row.transactionType === 'payment_allocation' ? 'dialogs.deletePaymentAllocation.title' : 'dialogs.deletePayment.title')}
+              {confirmAction?.type === 'payment' && t('dialogs.deletePayment.title')}
               {confirmAction?.type === 'creditNote' && t('dialogs.deleteCreditNote.title')}
               {confirmAction?.type === 'revertInvoice' && t('dialogs.revertInvoice.title')}
               {confirmAction?.type === 'deleteInvoice' && t('dialogs.deleteInvoice.title')}
@@ -3117,7 +3113,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <DialogBody className="px-6 py-4">
             <p className="text-sm text-muted-foreground">
               {confirmAction?.type === 'quote' && t('dialogs.deleteQuote.description')}
-              {confirmAction?.type === 'payment' && t(confirmAction.row.transactionType === 'payment_allocation' ? 'dialogs.deletePaymentAllocation.description' : 'dialogs.deletePayment.description')}
+              {confirmAction?.type === 'payment' && t('dialogs.deletePayment.description')}
               {confirmAction?.type === 'creditNote' && t('dialogs.deleteCreditNote.description')}
               {confirmAction?.type === 'revertInvoice' && t('dialogs.revertInvoice.description')}
               {confirmAction?.type === 'deleteInvoice' && t('dialogs.deleteInvoice.description')}

@@ -76,6 +76,7 @@ const PEEK_ICON: Record<PeekItem, React.ReactNode> = {
 export function Header() {
     const pathname = usePathname();
     const tFloating = useTranslations('FloatingActions');
+    const tBilling = useTranslations('BillingWizard');
     const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
     const { activeCashSession, user, sedes } = useAuth();
@@ -198,20 +199,20 @@ export function Header() {
         };
 
         if (alertCount > prev.alerts) {
-            const pl: Record<string, string> = { CRITICAL: 'crítica', HIGH: 'alta', MEDIUM: 'media', LOW: 'baja' };
+            const knownPriority = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(highestPriority);
             triggerHint(
-                `Nueva alerta · prioridad ${pl[highestPriority] ?? highestPriority}`,
+                tFloating('hints.newAlert', { priority: knownPriority ? tFloating(`hints.priority.${highestPriority}`) : highestPriority }),
                 'bg-card border-red-400 text-red-700 dark:text-red-300 shadow-lg',
                 <Bell className="h-3.5 w-3.5 text-red-500 shrink-0" />,
                 alertsIconRef,
             );
         } else if (inboxCount > prev.inbox) {
             const latest = notifications.find((n) => !n.seen);
-            let label = 'Nueva notificación';
+            let label = tFloating('hints.newNotification');
             if (latest) {
-                if (latest.type === 'new_appointment') label = `Nuevo turno · ${latest.appointment.patientName}`;
-                else if (latest.type === 'appointment_status_change') label = `${latest.appointment.patientName} · estado actualizado`;
-                else if (latest.type === 'session_completed') label = `Sesión completada · ${latest.appointment.patientName}`;
+                if (latest.type === 'new_appointment') label = tFloating('hints.newAppointment', { patient: latest.appointment.patientName });
+                else if (latest.type === 'appointment_status_change') label = tFloating('hints.statusUpdated', { patient: latest.appointment.patientName });
+                else if (latest.type === 'session_completed') label = tFloating('hints.sessionCompleted', { patient: latest.appointment.patientName });
                 else if (latest.type === 'reminder') label = latest.reminder.title;
             }
             triggerHint(
@@ -222,7 +223,7 @@ export function Header() {
             );
         } else if (notes.length > prev.notes) {
             const note = notes[0];
-            const raw = note?.text ?? 'Nueva nota';
+            const raw = note?.text ?? tFloating('hints.newNote');
             const label = raw.length > 40 ? raw.slice(0, 40) + '…' : raw;
             triggerHint(
                 label,
@@ -294,38 +295,38 @@ export function Header() {
                             </Button>
 
                             {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
-                                <PanelItem label="Paciente" helpId="rail.section.patient">
+                                <PanelItem label={tFloating('rail.patient')} helpId="rail.section.patient">
                                     <QuickPatientSearch />
                                 </PanelItem>
                             )}
 
                             {sedes.length > 1 && (
-                                <PanelItem label="Sede" helpId="rail.section.sede">
+                                <PanelItem label={tFloating('rail.sede')} helpId="rail.section.sede">
                                     <WorkingSedeSelector />
                                 </PanelItem>
                             )}
 
                             {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
-                                <PanelItem label="Caja" helpId="rail.section.cash">
+                                <PanelItem label={tFloating('rail.cash')} helpId="rail.section.cash">
                                     <OpenCashSessionWidget />
                                 </PanelItem>
                             )}
 
                             {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
-                                <PanelItem label="TV" helpId="rail.section.tv">
+                                <PanelItem label={tFloating('rail.tv')} helpId="rail.section.tv">
                                     <TVDisplayWidget />
                                 </PanelItem>
                             )}
 
                             {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
-                                <PanelItem label="Cobrar" helpId="rail.section.bill">
+                                <PanelItem label={tBilling('actions.collect')} helpId="rail.section.bill">
                                     <Button
                                         data-help-id="rail.btn.bill"
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => openBillingWizard({})}
                                         className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                                        title="Cobro Rápido"
+                                        title={tBilling('title')}
                                     >
                                         <Zap className="h-5 w-5" />
                                     </Button>
@@ -335,26 +336,26 @@ export function Header() {
                             <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
 
                             <div ref={alertsIconRef} className="w-full">
-                                <PanelItem label="Alertas" helpId="rail.section.alerts">
+                                <PanelItem label={tFloating('rail.alerts')} helpId="rail.section.alerts">
                                     <AlertsWidget />
                                 </PanelItem>
                             </div>
 
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
-                                <PanelItem label="Cambio" helpId="rail.section.exchange">
+                                <PanelItem label={tFloating('rail.exchange')} helpId="rail.section.exchange">
                                     <ExchangeRate activeCashSession={activeCashSession} />
                                 </PanelItem>
                             )}
 
                             <div ref={inboxIconRef} className="w-full">
-                                <PanelItem label="Inbox" helpId="rail.section.inbox">
+                                <PanelItem label={tFloating('rail.inbox')} helpId="rail.section.inbox">
                                     <NotificationsBell variant="round" />
                                 </PanelItem>
                             </div>
 
                             {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                                 <div ref={notesIconRef} className="w-full">
-                                <PanelItem label="Notas" helpId="rail.section.notes">
+                                <PanelItem label={tFloating('rail.notes')} helpId="rail.section.notes">
                                         <Button
                                             data-help-id="rail.btn.notes"
                                             variant="ghost"
@@ -426,7 +427,7 @@ export function Header() {
                                 size="icon"
                                 onClick={() => openBillingWizard({})}
                                 className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                                title="Cobro Rápido"
+                                title={tBilling('title')}
                             >
                                 <Zap className="h-5 w-5" />
                             </Button>
