@@ -1,5 +1,5 @@
 {
- "version": "aeb9105c2b56ee5f",
+ "version": "4b9f07a5f84f7526",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -35079,7 +35079,6 @@
    "group": "Ficha periodoncia",
    "id": "patients.perio-screening",
    "inputs": {
-    "examType": "Tipo de examen como figura en la lista (p. ej. «Cribado PSR/BPE»)",
     "patient": "Nombre, correo o documento del paciente"
    },
    "keywords": [
@@ -35141,15 +35140,6 @@
      "target": "patients.btn.new-periodontogram",
      "title": "Periodontograma",
      "until": "perio-session.section.header"
-    },
-    {
-     "action": "fill",
-     "details": "Cribado PSR/BPE: un código por sextante en lugar del sondaje completo.",
-     "id": "type-pick",
-     "optional": true,
-     "target": "perio-session.field.exam-type",
-     "title": "Tipo de examen",
-     "value": "{{values.examType}}"
     },
     {
      "action": "highlight",

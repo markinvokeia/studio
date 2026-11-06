@@ -230,6 +230,22 @@ async function signPad(page: Page) {
   });
   await page.waitForTimeout(800);
 }
+/**
+ * Periodontograma: también autoguarda, así que elegir el tipo de examen lo hace la persona
+ * (la guía no escribe antes de un OK). En el video lo hace el grabador.
+ */
+const PERIO_GESTURES: Record<string, Record<string, (page: Page) => Promise<void>>> = {
+  'patients.perio-screening': {
+    type: async (page) => {
+      await showClick(page, 'perio-session.field.exam-type');
+      await page.locator('[data-help-id="perio-session.field.exam-type"]:visible').first().click({ timeout: 5000 });
+      await page.waitForTimeout(700);
+      await page.getByRole('option', { name: /PSR\/BPE/ }).click({ timeout: 5000 });
+      await page.waitForTimeout(1200);
+    },
+  },
+};
+
 const usesAestheticSession = (id: string) => /^patients\.aesthetic-|^workspace\.aesthetic-session$/.test(id);
 
 let alertsAsToast = false;
@@ -297,6 +313,13 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
         return !!gesture;
       },
       firstMatch: ['patients.btn.timeline-open-aesthetic'],
+    } : {}),
+    ...(PERIO_GESTURES[rec.id] ? {
+      personActs: async (p: Page, step: { id: string }) => {
+        const gesture = PERIO_GESTURES[rec.id][step.id];
+        await gesture?.(p);
+        return !!gesture;
+      },
     } : {}),
     onStep: (step, index) => segments.push({ index, title: step.title, description: step.description, details: step.details, action: step.action, t: Date.now() - t0 + INTRO_MS }),
   });

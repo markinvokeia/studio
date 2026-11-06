@@ -1,5 +1,5 @@
 {
- "version": "95babea282b33e16",
+ "version": "2b469fb775362be8",
  "locale": "en",
  "journey": [
   {
@@ -34998,7 +34998,6 @@
    "group": "Periodontics record",
    "id": "patients.perio-screening",
    "inputs": {
-    "examType": "Exam type as shown in the list (e.g. \"PSR/BPE screening\")",
     "patient": "Patient's name, email or document"
    },
    "keywords": [
@@ -35060,15 +35059,6 @@
      "target": "patients.btn.new-periodontogram",
      "title": "Periodontal chart",
      "until": "perio-session.section.header"
-    },
-    {
-     "action": "fill",
-     "details": "PSR/BPE screening: one code per sextant instead of the full probing.",
-     "id": "type-pick",
-     "optional": true,
-     "target": "perio-session.field.exam-type",
-     "title": "Exam type",
-     "value": "{{values.examType}}"
     },
     {
      "action": "highlight",
