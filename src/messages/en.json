@@ -209,7 +209,6 @@
       "creditNoteDeleteError": "Could not delete the credit note",
       "paymentUpdated": "Payment updated",
       "releasedCredit": "{amount} became available as patient credit",
-
       "releasedPending": "{amount} is no longer applied to invoices, which show that balance as pending again",
       "paymentUpdateError": "Could not update the payment",
       "creditNoteUpdated": "Credit note updated",
@@ -8646,15 +8645,14 @@
         "nothingToErase": "No marks from today on that tooth",
         "erased": "Erased on {where}",
         "brushOn": "Brush: {condition} as {status}. Tap the teeth; Esc to exit",
-        "invalidTooth": "{tooth} is not a valid tooth"
+        "invalidTooth": "{tooth} is not a valid tooth",
+        "statusChanged": "{condition} → {status}"
       }
     },
     "inspector": {
       "label": "Selected tooth",
       "recordAs": "Record as",
-      "bySurface": "Goes on a surface: pick the surfaces first",
-      "useAsBrush": "Use as brush",
-      "useAsBrushFor": "Use {condition} as brush",
+      "bySurface": "Goes on a surface: tap the surfaces on the odontogram",
       "searchPlaceholder": "Search condition or treatment",
       "scope": {
         "surface": "per surface",
@@ -8666,7 +8664,6 @@
       "fromToday": "From this session",
       "dictated": "dictated",
       "byAgent": "proposed by Invoke",
-      "changeStatusTo": "Change to {status}",
       "void": "Void (it is logged)",
       "remove": "Delete",
       "temporalSuffix": "(primary)",
@@ -8699,8 +8696,8 @@
       "teethWithMarks": "{count, plural, one {# tooth with records} other {# teeth with records}}",
       "emptyMouth": "No records yet.",
       "changesToday": "{count, plural, =0 {No changes in this session yet} one {# new mark in this session} other {# new marks in this session}}",
-      "tipTitle": "Two taps per mark:",
-      "tip": "tap the tooth surface on the odontogram, then the condition. To repeat the same condition on several teeth, use the brush.",
+      "tipTitle": "Pick and mark:",
+      "tip": "tap a condition, then the teeth or surfaces on the odontogram; it stays active until you release it (Esc or tap it again). If you pick the tooth first, it is recorded there right away.",
       "tiles": {
         "caries": "Caries",
         "resin": "Resin",
@@ -8718,7 +8715,10 @@
         "extraction": "Extraction / missing",
         "bridge": "Fixed bridge"
       },
-      "backToFrequent": "Frequent"
+      "backToFrequent": "Frequent",
+      "releaseActive": "Active: tap it again to release it",
+      "changeStatus": "Change status",
+      "changeStatusOf": "Status: {status}. Change status"
     },
     "dictation": {
       "label": "Dictate findings",

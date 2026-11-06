@@ -571,7 +571,7 @@
     },
     "patients.section.odontogram-inspector": {
       "label": "Tooth inspector",
-      "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth."
+      "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has (change a mark's status from its menu). With no tooth, the conditions to activate and the state of the whole mouth."
     },
     "patients.field.odontogram-record-as": {
       "label": "Record as",
@@ -579,7 +579,7 @@
     },
     "patients.section.odontogram-tiles": {
       "label": "Frequent conditions",
-      "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row."
+      "description": "Tapping a condition makes it active: every tooth or surface you tap on the odontogram gets it, until you release it with Esc or by tapping it again. If a tooth was already selected, it is recorded there too."
     },
     "patients.field.odontogram-search": {
       "label": "Search condition",

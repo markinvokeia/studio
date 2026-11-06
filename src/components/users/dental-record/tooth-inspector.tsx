@@ -2,9 +2,16 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Ban, Brush, ChevronLeft, ChevronRight, Search, Trash2, X } from 'lucide-react';
+import { Ban, Check, ChevronDown, ChevronLeft, ChevronRight, Search, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -53,6 +60,12 @@ export function useConditionLabel() {
 
 const tileKey = (tile: FrequentTile) => tile.id;
 
+/** The condition kept active to mark the teeth and faces touched next */
+export interface ActiveCondition {
+  condition: OdontogramCondition;
+  fixedStatus?: OdontogramMarkStatus;
+}
+
 export interface ToothInspectorProps {
   state: OdontogramState;
   /** The session this one starts from: its marks are voided, not deleted */
@@ -61,11 +74,13 @@ export interface ToothInspectorProps {
   selectedSurfaces: OdontogramSurface[];
   mode: OdontogramMarkStatus;
   readOnly: boolean;
+  /** Condition active on the chart (highlighted among the tiles and results) */
+  active?: ActiveCondition | null;
   onModeChange: (mode: OdontogramMarkStatus) => void;
   onToggleSurface: (surface: OdontogramSurface) => void;
   onClearSurfaces: () => void;
+  /** Records the condition on the selection (if any) and keeps it active; picking the active one releases it */
   onApply: (condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus) => void;
-  onBrush: (condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus) => void;
   onRemoveMark: (toothId: string, slot: MarkSlot) => void;
   onRequestVoid: (mark: OdontogramMark) => void;
   onChangeStatus: (toothId: string, slot: MarkSlot, status: OdontogramMarkStatus) => void;
@@ -116,39 +131,33 @@ function ModeSelector({ mode, onModeChange }: Pick<ToothInspectorProps, 'mode' |
   );
 }
 
-function Tiles({ mode, needsSurface, narrow, onApply, onBrush }: { mode: OdontogramMarkStatus; needsSurface: boolean } & Pick<ToothInspectorProps, 'onApply' | 'onBrush' | 'narrow'>) {
+const isActive = (active: ActiveCondition | null | undefined, condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus) =>
+  !!active && active.condition === condition && active.fixedStatus === fixedStatus;
+
+function Tiles({ mode, active, narrow, onApply }: { mode: OdontogramMarkStatus } & Pick<ToothInspectorProps, 'active' | 'onApply' | 'narrow'>) {
   const t = useTranslations('DentalRecord');
   const helpScope = useHelpScope();
   return (
     <div className="grid grid-cols-2 gap-1.5" data-help-id={composeHelpId(helpScope, 'section', 'odontogram-tiles')}>
       {FREQUENT_TILES.map((tile) => {
-        const procedure = getProcedure(tile.id);
-        const bySurface = procedure?.appliesTo === 'surface';
+        const bySurface = getProcedure(tile.id)?.appliesTo === 'surface';
+        const on = isActive(active, tile.id, tile.fixedStatus);
         return (
-          <div
+          <button
             key={tileKey(tile)}
-            role="button"
-            tabIndex={0}
+            type="button"
             onClick={() => onApply(tile.id, tile.fixedStatus)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onApply(tile.id, tile.fixedStatus); } }}
-            title={bySurface ? t('inspector.bySurface') : undefined}
+            aria-pressed={on}
+            title={on ? t('inspector.releaseActive') : bySurface ? t('inspector.bySurface') : undefined}
             className={cn(
-              'flex h-[38px] min-w-0 cursor-pointer items-center rounded-xl border bg-card pr-1 font-medium', narrow ? 'gap-1.5 pl-2 text-[12.5px]' : 'gap-2 pl-2.5 text-[13px]', 'transition-colors hover:border-primary hover:bg-[var(--odo-sel)]',
-              bySurface && needsSurface && 'opacity-60',
+              'flex h-[38px] min-w-0 items-center rounded-xl border bg-card pr-2 text-left font-medium', narrow ? 'gap-1.5 pl-2 text-[12.5px]' : 'gap-2 pl-2.5 text-[13px]', 'transition-colors hover:border-primary hover:bg-[var(--odo-sel)]',
+              on && 'border-primary bg-[var(--odo-sel)] ring-2 ring-primary/25',
             )}
           >
             <StatusDot status={tile.fixedStatus ?? mode} />
             <span className="min-w-0 flex-1 truncate">{t(`inspector.tiles.${tile.id}`)}</span>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onBrush(tile.id, tile.fixedStatus); }}
-              className="grid h-6 w-5 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              title={t('inspector.useAsBrush')}
-              aria-label={t('inspector.useAsBrushFor', { condition: t(`inspector.tiles.${tile.id}`) })}
-            >
-              <Brush className="h-3.5 w-3.5" />
-            </button>
-          </div>
+            {on && <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />}
+          </button>
         );
       })}
     </div>
@@ -162,7 +171,7 @@ const PICKER_HEIGHT = 'h-[170px]';
  * Search and categories on top; below, the frequent tiles or, while searching or filtering, the
  * results in the same space (scrolling inside), so the inspector keeps its height.
  */
-function ConditionPicker({ mode, needsSurface, narrow, onApply, onBrush }: { mode: OdontogramMarkStatus; needsSurface: boolean } & Pick<ToothInspectorProps, 'onApply' | 'onBrush' | 'narrow'>) {
+function ConditionPicker({ mode, active, narrow, onApply }: { mode: OdontogramMarkStatus } & Pick<ToothInspectorProps, 'active' | 'onApply' | 'narrow'>) {
   const t = useTranslations('DentalRecord');
   const helpScope = useHelpScope();
   const label = useConditionLabel();
@@ -220,7 +229,8 @@ function ConditionPicker({ mode, needsSurface, narrow, onApply, onBrush }: { mod
               key={p.id}
               type="button"
               onClick={() => onApply(p.id)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-muted"
+              aria-pressed={isActive(active, p.id)}
+              className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-muted', isActive(active, p.id) && 'bg-[var(--odo-sel)] font-semibold text-primary')}
             >
               <StatusDot status={mode} />
               <span className="min-w-0 flex-1 truncate">{label(p.id, true)}</span>
@@ -231,7 +241,7 @@ function ConditionPicker({ mode, needsSurface, narrow, onApply, onBrush }: { mod
           )) : <p className="px-2 py-1.5 text-xs text-muted-foreground">{t('inspector.noResults')}</p>}
         </div>
       ) : (
-        <Tiles mode={mode} needsSurface={needsSurface} narrow={narrow} onApply={onApply} onBrush={onBrush} />
+        <Tiles mode={mode} active={active} narrow={narrow} onApply={onApply} />
       )}
     </div>
   );
@@ -296,7 +306,6 @@ function MarkRow({ mark, inherited, readOnly, showTooth, onRemove, onVoid, onCha
   const t = useTranslations('DentalRecord');
   const label = useConditionLabel();
   const tooth = Number(mark.toothId);
-  const next = STATUS_ORDER[(STATUS_ORDER.indexOf(mark.status) + 1) % STATUS_ORDER.length];
   return (
     <div className="flex items-center gap-2 rounded-xl border py-2 pl-2.5 pr-2 text-[13px]">
       <StatusDot status={mark.status} />
@@ -316,10 +325,25 @@ function MarkRow({ mark, inherited, readOnly, showTooth, onRemove, onVoid, onCha
         <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', STATUS_CHIP[mark.status])}>{t(`status.${mark.status}`)}</span>
       ) : (
         <>
-          <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-[11.5px]" onClick={() => onChangeStatus(next)} title={t('inspector.changeStatusTo', { status: t(`status.${next}`) })}>
-            <StatusDot status={mark.status} className="mr-1 h-2 w-2" />
-            {t(`status.${mark.status}`)}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11.5px]" title={t('inspector.changeStatus')} aria-label={t('inspector.changeStatusOf', { status: t(`status.${mark.status}`) })}>
+                <StatusDot status={mark.status} className="h-2 w-2" />
+                {t(`status.${mark.status}`)}
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">{t('inspector.changeStatus')}</DropdownMenuLabel>
+              {STATUS_ORDER.map((status) => (
+                <DropdownMenuItem key={status} onSelect={() => onChangeStatus(status)} className="gap-2 text-[13px]">
+                  <StatusDot status={status} />
+                  <span className="flex-1">{t(`status.${status}`)}</span>
+                  {status === mark.status && <Check className="h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {inherited ? (
             <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={onVoid} title={t('inspector.void')} aria-label={t('inspector.void')}>
               <Ban className="h-3.5 w-3.5" />
@@ -379,7 +403,7 @@ function SingleInspector(props: ToothInspectorProps & { tooth: number }) {
         {!readOnly && (
           <>
             <ModeSelector mode={mode} onModeChange={props.onModeChange} />
-            <ConditionPicker mode={mode} needsSurface={selectedSurfaces.length === 0} narrow={props.narrow} onApply={props.onApply} onBrush={props.onBrush} />
+            <ConditionPicker mode={mode} active={props.active} narrow={props.narrow} onApply={props.onApply} />
           </>
         )}
       </Section>
@@ -441,7 +465,7 @@ function MultiInspector(props: ToothInspectorProps) {
       {!props.readOnly && (
         <>
           <ModeSelector mode={props.mode} onModeChange={props.onModeChange} />
-          <ConditionPicker mode={props.mode} needsSurface={props.selectedSurfaces.length === 0} narrow={props.narrow} onApply={props.onApply} onBrush={props.onBrush} />
+          <ConditionPicker mode={props.mode} active={props.active} narrow={props.narrow} onApply={props.onApply} />
           <p className="text-xs text-muted-foreground">{t('inspector.multiSurfacesHint')}</p>
         </>
       )}
@@ -449,7 +473,8 @@ function MultiInspector(props: ToothInspectorProps) {
   );
 }
 
-function MouthOverview({ state, previousState, readOnly, onSelectTooth }: ToothInspectorProps) {
+function MouthOverview(props: ToothInspectorProps) {
+  const { state, previousState, readOnly, onSelectTooth } = props;
   const t = useTranslations('DentalRecord');
   const label = useConditionLabel();
   const teeth = Object.keys(state)
@@ -460,6 +485,15 @@ function MouthOverview({ state, previousState, readOnly, onSelectTooth }: ToothI
 
   return (
     <>
+      {!readOnly && (
+        <Section>
+          <div className="rounded-xl bg-primary/10 px-3 py-2.5 text-[12.5px] text-primary dark:text-foreground">
+            <b>{t('inspector.tipTitle')}</b> {t('inspector.tip')}
+          </div>
+          <ModeSelector mode={props.mode} onModeChange={props.onModeChange} />
+          <ConditionPicker mode={props.mode} active={props.active} narrow={props.narrow} onApply={props.onApply} />
+        </Section>
+      )}
       <Section>
         <div className="flex items-center gap-2">
           <SectionTitle>{t('inspector.mouthState')}</SectionTitle>
@@ -484,13 +518,6 @@ function MouthOverview({ state, previousState, readOnly, onSelectTooth }: ToothI
         ) : <p className="text-xs text-muted-foreground">{t('inspector.emptyMouth')}</p>}
         {!readOnly && <p className="text-xs text-muted-foreground">{t('inspector.changesToday', { count: newToday })}</p>}
       </Section>
-      {!readOnly && (
-        <Section>
-          <div className="rounded-xl bg-primary/10 px-3 py-2.5 text-[12.5px] text-primary dark:text-foreground">
-            <b>{t('inspector.tipTitle')}</b> {t('inspector.tip')}
-          </div>
-        </Section>
-      )}
     </>
   );
 }

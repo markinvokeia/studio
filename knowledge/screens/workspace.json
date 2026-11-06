@@ -206,7 +206,7 @@
     },
     "workspace.section.odontogram-inspector": {
       "label": "Inspector de la pieza",
-      "description": "Con una pieza elegida: sus caras, cómo registrar, las condiciones y lo que ya tiene. Sin pieza, el estado de toda la boca."
+      "description": "Con una pieza elegida: sus caras, cómo registrar, las condiciones y lo que ya tiene (el estado de cada marca se cambia desde su menú). Sin pieza, las condiciones para activar y el estado de toda la boca."
     },
     "workspace.field.odontogram-record-as": {
       "label": "Registrar como",
@@ -214,7 +214,7 @@
     },
     "workspace.section.odontogram-tiles": {
       "label": "Condiciones frecuentes",
-      "description": "Un toque registra la condición en la pieza o caras elegidas. El pincel de cada ficha la deja activa para marcar varias piezas seguidas."
+      "description": "Al tocar una condición queda activa: cada pieza o cara que toques en el odontograma la recibe, hasta soltarla con Esc o tocándola de nuevo. Si ya había una pieza elegida, se registra ahí también."
     },
     "workspace.field.odontogram-search": {
       "label": "Buscar condición",

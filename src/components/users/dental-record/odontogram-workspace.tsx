@@ -37,6 +37,7 @@ import {
   isValidTooth,
   LOWER_PERMANENT,
   LOWER_TEMPORAL,
+  sameConcept,
   surfaceFromLetter,
   surfaceLetter,
   UPPER_PERMANENT,
@@ -58,6 +59,7 @@ import {
   placementOf,
   proposalKeys,
   type ProposedMark,
+  rangeMarksOf,
   removeMark,
   setToothNotes,
   voidMark,
@@ -86,8 +88,8 @@ export interface OdontogramWorkspaceProps {
   /** Dictated or agent marks waiting for confirmation */
   proposals: ProposedMark[];
   onProposalsChange: (proposals: ProposedMark[]) => void;
-  /** Records a change of the chart (goes to undo) with the line for the session notes */
-  onChange: (next: OdontogramState, note?: string) => void;
+  /** Records a change of the chart (goes to undo; the session notes follow from the net changes) */
+  onChange: (next: OdontogramState) => void;
   /** Tooth notes: typed text, kept out of undo */
   onNotesChange: (next: OdontogramState) => void;
   canUndo: boolean;
@@ -212,11 +214,6 @@ export function OdontogramWorkspace({
   const statusLabel = (s: OdontogramMarkStatus) => t(`status.${s}`).toLowerCase();
   const undoAction = <ToastAction altText={t('toolbar.undo')} onClick={onUndo}>{t('toolbar.undo')}</ToastAction>;
 
-  const noteFor = (tooth: string, condition: OdontogramCondition, surface: OdontogramSurface | undefined, status: OdontogramMarkStatus) =>
-    surface
-      ? t('autoNote.surfaceAdded', { tooth, surface: surfaceLetter(Number(tooth), surface), label: `${label(condition, true)} (${statusLabel(status)})` })
-      : t('autoNote.toothAdded', { tooth, label: `${label(condition, true)} (${statusLabel(status)})` });
-
   // ── Recording marks ─────────────────────────────────────────────────────────
 
   function requireSurface(condition: OdontogramCondition, status: OdontogramMarkStatus) {
@@ -250,59 +247,47 @@ export function OdontogramWorkspace({
       const idx = sameArch.map((n) => arch.indexOf(n));
       const from = arch[Math.min(...idx)];
       const to = arch[Math.max(...idx)];
-      onChange(
-        addRangeMark(state, from, to, { condition, status, by: userId }),
-        t('autoNote.rangeAdded', { from, to, label: `${label(condition, true)} (${statusLabel(status)})` }),
-      );
+      onChange(addRangeMark(state, from, to, { condition, status, by: userId }));
       toast({ title: t('workspace.toast.recorded', { condition: label(condition, true), where: `${from}–${to}`, status: statusLabel(status) }), action: undoAction });
       setLastCondition(condition);
       return;
     }
 
     let next = state;
-    const notes: string[] = [];
     const where: string[] = [];
     for (const n of teeth) {
       const toothId = String(n);
       const placeOnSurface = placementOf(conditionForStatus(condition, status), faces[0]) !== null && faces.length > 0;
       if (placeOnSurface) {
-        for (const surface of faces) {
-          next = addMark(next, { toothId, condition, surface, status, by: userId });
-          notes.push(noteFor(toothId, condition, surface, status));
-        }
+        for (const surface of faces) next = addMark(next, { toothId, condition, surface, status, by: userId });
         where.push(`${n} ${faces.map((s) => surfaceLetter(n, s)).join('')}`);
       } else {
         next = addMark(next, { toothId, condition, status, by: userId });
-        notes.push(noteFor(toothId, condition, undefined, status));
         where.push(String(n));
       }
     }
-    onChange(next, notes.join('\n'));
+    onChange(next);
     setSurfaces([]);
     setLastCondition(condition);
     toast({ title: t('workspace.toast.recorded', { condition: label(condition, true), where: where.join(', '), status: statusLabel(status) }), action: undoAction });
   }
 
   function remove(toothId: string, slot: MarkSlot) {
-    const mark = listToothMarks(toothId, state[toothId]).find((m) => m.slot === slot);
-    if (!mark) return;
-    onChange(removeMark(state, toothId, slot), mark.surface
-      ? t('autoNote.surfaceRemoved', { tooth: toothId, surface: surfaceLetter(Number(toothId), mark.surface), label: label(mark.condition, true) })
-      : t('autoNote.toothRemoved', { tooth: toothId, label: label(mark.condition, true) }));
+    if (!listToothMarks(toothId, state[toothId]).some((m) => m.slot === slot)) return;
+    onChange(removeMark(state, toothId, slot));
   }
 
+  /** A bridge changes status as a whole: every tooth of its range */
   function changeStatus(toothId: string, slot: MarkSlot, status: OdontogramMarkStatus) {
     const mark = listToothMarks(toothId, state[toothId]).find((m) => m.slot === slot);
-    if (!mark) return;
-    onChange(changeMarkStatus(state, toothId, slot, status), t('autoNote.statusChanged', { tooth: toothId, label: label(mark.condition, true), status: statusLabel(status) }));
+    if (!mark || mark.status === status) return;
+    onChange(rangeMarksOf(state, mark).reduce((acc, m) => changeMarkStatus(acc, m.toothId, m.slot, status), state));
+    toast({ title: t('workspace.toast.statusChanged', { condition: label(mark.condition, true), status: statusLabel(status) }), action: undoAction });
   }
 
   function confirmVoid() {
     if (!voidTarget || !voidReason.trim()) return;
-    onChange(
-      voidMark(state, voidTarget.toothId, voidTarget.slot, voidReason.trim(), userId),
-      t('autoNote.voided', { tooth: voidTarget.toothId, label: label(voidTarget.condition, true), reason: voidReason.trim() }),
-    );
+    onChange(voidMark(state, voidTarget.toothId, voidTarget.slot, voidReason.trim(), userId));
     toast({ title: t('void.done') });
     setVoidTarget(null);
     setVoidReason('');
@@ -331,14 +316,18 @@ export function OdontogramWorkspace({
     }
     const id = conditionForStatus(condition, status);
     const onSurface = getProcedure(id)?.appliesTo === 'surface';
+    // The inspector follows the brush, so what the tooth has is in view while marking
+    setSelection([tooth]);
+    setSurfaces([]);
     if (onSurface && !surface) {
-      setSelection([tooth]);
       toast({ title: t('workspace.toast.brushNeedsSurface') });
       return;
     }
     const toothId = String(tooth);
-    const existing = listToothMarks(toothId, state[toothId]).find((m) => (onSurface ? m.surface === surface : !m.surface) && m.condition === id);
+    const existing = listToothMarks(toothId, state[toothId]).find((m) => (onSurface ? m.surface === surface : !m.surface) && sameConcept(m.condition, id));
     if (existing) {
+      // Same condition in another status: it changes status (indicated → existing…), it is not removed
+      if (existing.status !== status) return changeStatus(toothId, existing.slot, status);
       if (isInheritedMark(previousState, existing)) {
         toast({ title: t('workspace.toast.inheritedUseVoid') });
         return;
@@ -361,10 +350,7 @@ export function OdontogramWorkspace({
       toast({ title: t('workspace.toast.inheritedUseVoid') });
       return;
     }
-    const next = today.reduce((acc, m) => removeMark(acc, toothId, m.slot), state);
-    onChange(next, today.map((m) => (m.surface
-      ? t('autoNote.surfaceRemoved', { tooth: toothId, surface: surfaceLetter(tooth, m.surface), label: label(m.condition, true) })
-      : t('autoNote.toothRemoved', { tooth: toothId, label: label(m.condition, true) }))).join('\n'));
+    onChange(today.reduce((acc, m) => removeMark(acc, toothId, m.slot), state));
     toast({ title: t('workspace.toast.erased', { where: surface ? `${tooth} ${surfaceLetter(tooth, surface)}` : String(tooth) }), action: undoAction });
   }
 
@@ -427,12 +413,45 @@ export function OdontogramWorkspace({
     if (view === 'history') setView('fdi');
   }
 
-  function startBrush(condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus) {
+  function startBrush(condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus, announce = true) {
     setBrush({ condition, fixedStatus });
     setTool('brush');
     setRangeStart(null);
     setLastCondition(condition);
-    toast({ title: t('workspace.toast.brushOn', { condition: label(condition, true), status: statusLabel(fixedStatus ?? mode) }) });
+    if (announce) toast({ title: t('workspace.toast.brushOn', { condition: label(condition, true), status: statusLabel(fixedStatus ?? mode) }) });
+  }
+
+  /**
+   * A condition picked in the inspector: recorded on the selected tooth (and faces) when there is
+   * one, and kept active so the next teeth or faces touched on the chart get it too. Picking the
+   * active one again lets it go.
+   */
+  function pick(condition: OdontogramCondition, fixedStatus?: OdontogramMarkStatus) {
+    if (readOnly) return;
+    if (tool === 'brush' && brush?.condition === condition && brush.fixedStatus === fixedStatus) {
+      exitTool();
+      return;
+    }
+    // While a condition is active the selection only follows the brush: another one replaces it
+    if (tool === 'brush') {
+      startBrush(condition, fixedStatus);
+      return;
+    }
+    if (isRangeCondition(condition)) {
+      if (selection.length) apply(condition, fixedStatus);
+      else startBrush(condition, fixedStatus);
+      return;
+    }
+    const status = fixedStatus ?? mode;
+    const ready = selection.length > 0 && (!requireSurface(condition, status) || surfaces.length > 0);
+    if (ready) apply(condition, fixedStatus);
+    startBrush(condition, fixedStatus, !ready);
+  }
+
+  /** A face touched in the inspector: marked with the active condition, or added to the selection */
+  function toggleInspectorSurface(surface: OdontogramSurface) {
+    if (tool === 'brush' && brush && selection.length === 1) return brushAt(selection[0], surface);
+    setSurfaces((cur) => (cur.includes(surface) ? cur.filter((x) => x !== surface) : [...cur, surface]));
   }
 
   function chooseTool(next: Tool) {
@@ -476,11 +495,7 @@ export function OdontogramWorkspace({
   }
 
   function confirmProposals() {
-    const next = applyProposals(state, proposals.map((p) => ({ ...p, by: userId })));
-    const notes = proposals.map((p) => (p.toothEndId
-      ? t('autoNote.rangeAdded', { from: p.toothId, to: p.toothEndId, label: `${label(p.condition, true)} (${statusLabel(p.status)})` })
-      : noteFor(p.toothId, p.condition, p.surface, p.status)));
-    onChange(next, notes.join('\n'));
+    onChange(applyProposals(state, proposals.map((p) => ({ ...p, by: userId }))));
     onProposalsChange([]);
     toast({ title: t('proposals.confirmed') });
   }
@@ -527,7 +542,7 @@ export function OdontogramWorkspace({
     if (k === 'e') return chooseTool('erase');
     if (selection.length === 1) {
       const surface = surfaceFromLetter(k);
-      if (surface) setSurfaces((s) => (s.includes(surface) ? s.filter((x) => x !== surface) : [...s, surface]));
+      if (surface) toggleInspectorSurface(surface);
     }
   };
   const keyRef = React.useRef(handleKey);
@@ -618,7 +633,6 @@ export function OdontogramWorkspace({
         onToggleSurface={() => undefined}
         onClearSurfaces={() => undefined}
         onApply={() => undefined}
-        onBrush={() => undefined}
         onRemoveMark={() => undefined}
         onRequestVoid={() => undefined}
         onChangeStatus={() => undefined}
@@ -635,11 +649,11 @@ export function OdontogramWorkspace({
       selectedSurfaces={surfaces}
       mode={mode}
       readOnly={readOnly}
+      active={tool === 'brush' ? brush : null}
       onModeChange={setMode}
-      onToggleSurface={(s) => setSurfaces((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))}
+      onToggleSurface={toggleInspectorSurface}
       onClearSurfaces={() => setSurfaces([])}
-      onApply={(c, fixed) => apply(c, fixed)}
-      onBrush={startBrush}
+      onApply={pick}
       onRemoveMark={remove}
       onRequestVoid={(m) => { setVoidTarget(m); setVoidReason(''); }}
       onChangeStatus={changeStatus}

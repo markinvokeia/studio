@@ -209,7 +209,6 @@
       "creditNoteDeleteError": "No se pudo eliminar la nota de crédito",
       "paymentUpdated": "Pago actualizado",
       "releasedCredit": "{amount} pasó a estar disponible como crédito del paciente",
-
       "releasedPending": "{amount} ha dejado de aplicarse a facturas, que vuelven a tener ese saldo pendiente",
       "paymentUpdateError": "No se pudo actualizar el pago",
       "creditNoteUpdated": "Nota de crédito actualizada",
@@ -8646,15 +8645,14 @@
         "nothingToErase": "No hay marcas de hoy en esa pieza",
         "erased": "Borrado en {where}",
         "brushOn": "Pincel: {condition} como {status}. Toca las piezas; Esc para salir",
-        "invalidTooth": "{tooth} no es una pieza válida"
+        "invalidTooth": "{tooth} no es una pieza válida",
+        "statusChanged": "{condition} → {status}"
       }
     },
     "inspector": {
       "label": "Pieza seleccionada",
       "recordAs": "Registrar como",
-      "bySurface": "Va por cara: elige las superficies primero",
-      "useAsBrush": "Usar como pincel",
-      "useAsBrushFor": "Usar {condition} como pincel",
+      "bySurface": "Va por cara: toca las superficies en el odontograma",
       "searchPlaceholder": "Buscar condición o tratamiento",
       "scope": {
         "surface": "por cara",
@@ -8666,7 +8664,6 @@
       "fromToday": "De esta sesión",
       "dictated": "dictado",
       "byAgent": "propuesto por Invoke",
-      "changeStatusTo": "Cambiar a {status}",
       "void": "Anular (queda registrado)",
       "remove": "Eliminar",
       "temporalSuffix": "temporal",
@@ -8699,8 +8696,8 @@
       "teethWithMarks": "{count, plural, one {# pieza con registros} other {# piezas con registros}}",
       "emptyMouth": "Sin registros todavía.",
       "changesToday": "{count, plural, =0 {Sin cambios todavía en esta sesión} one {# marca nueva en esta sesión} other {# marcas nuevas en esta sesión}}",
-      "tipTitle": "Dos toques por marca:",
-      "tip": "toca la cara de la pieza en el odontograma y después la condición. Para repetir la misma condición en varias piezas, usa el pincel.",
+      "tipTitle": "Elige y marca:",
+      "tip": "toca una condición y después las piezas o caras en el odontograma; queda activa hasta que la sueltes (Esc o tocándola de nuevo). Si eliges antes la pieza, se registra ahí mismo.",
       "tiles": {
         "caries": "Caries",
         "resin": "Resina",
@@ -8718,7 +8715,10 @@
         "extraction": "Exodoncia / ausente",
         "bridge": "Puente fijo"
       },
-      "backToFrequent": "Frecuentes"
+      "backToFrequent": "Frecuentes",
+      "releaseActive": "Activa: tócala de nuevo para soltarla",
+      "changeStatus": "Cambiar estado",
+      "changeStatusOf": "Estado: {status}. Cambiar estado"
     },
     "dictation": {
       "label": "Dictado de hallazgos",

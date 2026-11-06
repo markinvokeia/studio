@@ -9,7 +9,7 @@ import type {
   OdontogramToothState,
 } from '@/lib/types';
 
-import { conditionForStatus, defaultStatus, getProcedure, isRangeCondition, sameConcept, SURFACE_ABBR, SURFACE_ORDER, teethBetween } from './odontogram-catalog';
+import { conceptOf, conditionForStatus, defaultStatus, getProcedure, isRangeCondition, sameConcept, SURFACE_ABBR, SURFACE_ORDER, teethBetween } from './odontogram-catalog';
 
 // Pure helpers over the persisted `estado_odontograma` shape. The odontogram UI reads and
 // writes this shape directly, so whatever it produces stays compatible with existing sessions.
@@ -273,6 +273,61 @@ export function changeMarkStatus(state: OdontogramState, toothId: string, slot: 
   const tooth = cloneTooth(next[toothId]);
   if (tooth.meta?.[newSlot] && mark.meta?.at) tooth.meta[newSlot] = { ...tooth.meta[newSlot], at: mark.meta.at };
   return withTooth(next, toothId, tooth);
+}
+
+/** The marks of a bridge: every tooth recorded with the same `range` and concept as `mark` */
+export function rangeMarksOf(state: OdontogramState, mark: OdontogramMark): OdontogramMark[] {
+  const range = mark.meta?.range;
+  if (!range) return [mark];
+  return Object.keys(state).flatMap((id) => listToothMarks(id, state[id]))
+    .filter((m) => m.meta?.range === range && sameConcept(m.condition, mark.condition));
+}
+
+/** One change of the chart between two states, as it goes to the session notes */
+export type MarkChange =
+  | { kind: 'added'; mark: OdontogramMark }
+  | { kind: 'removed'; mark: OdontogramMark }
+  | { kind: 'status'; mark: OdontogramMark; from: OdontogramMarkStatus }
+  | { kind: 'voided'; mark: OdontogramMark; reason: string };
+
+/** Where a mark sits, regardless of its status: its surface, or its concept on the tooth */
+function placeKey(mark: OdontogramMark): string {
+  return `${mark.toothId}|${mark.surface ?? `t:${conceptKey(mark.condition)}`}`;
+}
+
+function conceptKey(condition: OdontogramCondition): string {
+  return conceptOf(condition) ?? condition;
+}
+
+/**
+ * Net changes from `start` to `current`, in tooth order: what was marked and then taken back does
+ * not show up, and a status changed twice is one change.
+ */
+export function diffMarks(start: OdontogramState, current: OdontogramState): MarkChange[] {
+  const before = new Map<string, OdontogramMark>();
+  const after = new Map<string, OdontogramMark>();
+  for (const id of Object.keys(start)) listToothMarks(id, start[id]).forEach((m) => before.set(placeKey(m), m));
+  for (const id of Object.keys(current)) listToothMarks(id, current[id]).forEach((m) => after.set(placeKey(m), m));
+
+  const newlyVoided = (mark: OdontogramMark) => {
+    const old = new Set((start[mark.toothId]?.voided ?? []).map((v) => `${v.slot}|${v.at}`));
+    return (current[mark.toothId]?.voided ?? []).find((v) => !old.has(`${v.slot}|${v.at}`) && v.slot === mark.slot);
+  };
+
+  const changes: MarkChange[] = [];
+  const keys = Array.from(new Set([...before.keys(), ...after.keys()]));
+  keys.sort((a, b) => Number(a.split('|')[0]) - Number(b.split('|')[0]));
+  for (const key of keys) {
+    const was = before.get(key);
+    const now = after.get(key);
+    if (was && (!now || !sameConcept(was.condition, now.condition))) {
+      const voided = newlyVoided(was);
+      changes.push(voided ? { kind: 'voided', mark: was, reason: voided.reason } : { kind: 'removed', mark: was });
+    }
+    if (now && (!was || !sameConcept(was.condition, now.condition))) changes.push({ kind: 'added', mark: now });
+    else if (now && was && now.status !== was.status) changes.push({ kind: 'status', mark: now, from: was.status });
+  }
+  return changes;
 }
 
 /** Same concept already marked in that place (to skip duplicated proposals) */

@@ -1,5 +1,5 @@
 {
- "version": "68f79ad0d8936468",
+ "version": "d9b38c7f1172288b",
  "locale": "en",
  "journey": [
   {
@@ -9313,14 +9313,14 @@
      "source": "knowledge/screens/patients.json"
     },
     {
-     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth.",
+     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has (change a mark's status from its menu). With no tooth, the conditions to activate and the state of the whole mouth.",
      "id": "patients.section.odontogram-inspector",
      "kind": "section",
      "label": "Tooth inspector",
      "source": "knowledge/screens/patients.json"
     },
     {
-     "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row.",
+     "description": "Tapping a condition makes it active: every tooth or surface you tap on the odontogram gets it, until you release it with Esc or by tapping it again. If a tooth was already selected, it is recorded there too.",
      "id": "patients.section.odontogram-tiles",
      "kind": "section",
      "label": "Frequent conditions",
@@ -18253,14 +18253,14 @@
      "source": "knowledge/screens/workspace.json"
     },
     {
-     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth.",
+     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has (change a mark's status from its menu). With no tooth, the conditions to activate and the state of the whole mouth.",
      "id": "workspace.section.odontogram-inspector",
      "kind": "section",
      "label": "Tooth inspector",
      "source": "knowledge/screens/workspace.json"
     },
     {
-     "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row.",
+     "description": "Tapping a condition makes it active: every tooth or surface you tap on the odontogram gets it, until you release it with Esc or by tapping it again. If a tooth was already selected, it is recorded there too.",
      "id": "workspace.section.odontogram-tiles",
      "kind": "section",
      "label": "Frequent conditions",

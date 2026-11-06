@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import type {
   OdontogramMarcacion,
   OdontogramSnapshot,
@@ -27,19 +27,22 @@ import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
-import { isTemporalTooth } from './odontogram-catalog';
+import { archOf, isTemporalTooth, surfaceLetter } from './odontogram-catalog';
 import {
   carryOverState,
   cloneState,
+  diffMarks,
   isInheritedMark,
   listToothMarks,
   marcacionesToProposals,
+  type MarkChange,
   type ProposedMark,
 } from './odontogram-state';
 import { type Dentition, OdontogramChart } from './odontogram-chart';
 import { type OdontogramView, OdontogramWorkspace } from './odontogram-workspace';
 import { SessionForm } from './session-form';
 import type { SessionFormValues } from './session-form';
+import { useConditionLabel } from './tooth-inspector';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useAuth } from '@/context/AuthContext';
@@ -72,10 +75,27 @@ function formatLongSessionDate(dateStr: string) {
   }
 }
 
-/** Undo stack entries keep the auto-generated notes in sync with the chart */
-type EditSnapshot = { state: OdontogramState; notes: string };
-
 const MAX_UNDO_STEPS = 60;
+
+/**
+ * Brings the session notes in line with the chart: the lines written for the previous chart that no
+ * longer apply are taken out (only if they are still there as written) and the new ones go at the
+ * end. What the professional typed or edited is left alone.
+ */
+function syncAutoNotes(notes: string, before: string[], after: string[]): string {
+  const keep = new Set(after);
+  const had = new Set(before);
+  const lines = notes ? notes.split('\n') : [];
+  for (const line of before) {
+    if (keep.has(line)) continue;
+    const i = lines.lastIndexOf(line);
+    if (i >= 0) lines.splice(i, 1);
+  }
+  const added = after.filter((line) => !had.has(line));
+  const text = lines.join('\n').replace(/\s+$/, '');
+  if (!added.length) return text;
+  return text ? `${text}\n${added.join('\n')}` : added.join('\n');
+}
 
 
 /** Outcome of an agent prefill request, reported back so the agent never claims a change that did not happen */
@@ -139,8 +159,13 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   const [notes, setNotes] = useState('');
   const [initialNotes, setInitialNotes] = useState('');
   const [nextSessionPlan, setNextSessionPlan] = useState('');
-  const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
-  const [redoStack, setRedoStack] = useState<EditSnapshot[]>([]);
+  const [undoStack, setUndoStack] = useState<OdontogramState[]>([]);
+  const [redoStack, setRedoStack] = useState<OdontogramState[]>([]);
+  /**
+   * Where the session started from (the previous session, carried over): the session notes describe
+   * the net changes from it, so what is marked and then taken back leaves no line
+   */
+  const [noteBaseState, setNoteBaseState] = useState<OdontogramState>({});
   /** Dictated or agent marks waiting for the professional to confirm them */
   const [proposals, setProposals] = useState<ProposedMark[]>([]);
   /** State of the session this edit starts from; its marks are voided instead of deleted */
@@ -223,6 +248,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   function resetEditingSession(initialState: OdontogramState, initialNotesValue: string, initialPlan: string, base: OdontogramState | null) {
     setStep(1);
     setEditingState(initialState);
+    setNoteBaseState(base ? carryOverState(base) : {});
     setBaseState(base);
     setNotes(initialNotesValue);
     setInitialNotes(initialNotesValue);
@@ -296,6 +322,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setIsEditing(false);
     setIsFullscreen(false);
     setEditingState({});
+    setNoteBaseState({});
     setEditingSessionId(null);
     setEditingSnapshot(null);
     setNotes('');
@@ -357,30 +384,82 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     onSessionSaved?.();
   }, [appointmentId, editingSessionId, editingSnapshot, editingState, onSessionSaved, patientId, proposals.length, t, toast]);
 
-  // Every chart edit records the previous state (and notes) so it can be undone
-  function commitEdit(nextState: OdontogramState, noteEntry?: string) {
-    setUndoStack((prev) => [...prev.slice(-(MAX_UNDO_STEPS - 1)), { state: editingState, notes }]);
+  // ── Session notes: one line per net change of the chart since the edit began ──
+  const conditionLabel = useConditionLabel();
+  const statusLabel = (status: string) => t(`status.${status}`).toLowerCase();
+  function noteLines(current: OdontogramState): string[] {
+    // A bridge recorded in one go is one line (D14–16), not one per tooth
+    const groups: MarkChange[][] = [];
+    const byRange = new Map<string, MarkChange[]>();
+    for (const change of diffMarks(noteBaseState, current)) {
+      const range = change.kind === 'added' || change.kind === 'status' ? change.mark.meta?.range : undefined;
+      const key = range && `${change.kind}|${range}|${change.mark.status}`;
+      const group = key ? byRange.get(key) : undefined;
+      if (group) {
+        group.push(change);
+        continue;
+      }
+      groups.push([change]);
+      if (key) byRange.set(key, groups[groups.length - 1]);
+    }
+    return groups.map((group) => {
+      if (group.length === 1) return describeChange(group[0], group[0].mark.toothId);
+      const arch = archOf(Number(group[0].mark.toothId));
+      const teeth = group.map((c) => Number(c.mark.toothId)).sort((a, b) => arch.indexOf(a) - arch.indexOf(b));
+      const { mark } = group[0];
+      if (group[0].kind === 'added') {
+        return t('autoNote.rangeAdded', { from: teeth[0], to: teeth[teeth.length - 1], label: `${conditionLabel(mark.condition, true)} (${statusLabel(mark.status)})` });
+      }
+      return describeChange(group[0], `${teeth[0]}–${teeth[teeth.length - 1]}`);
+    });
+  }
+  function describeChange(change: MarkChange, tooth: string): string {
+    const { mark } = change;
+    const label = conditionLabel(mark.condition, true);
+    const surface = mark.surface ? surfaceLetter(Number(mark.toothId), mark.surface) : null;
+    switch (change.kind) {
+      case 'added':
+        return surface
+          ? t('autoNote.surfaceAdded', { tooth, surface, label: `${label} (${statusLabel(mark.status)})` })
+          : t('autoNote.toothAdded', { tooth, label: `${label} (${statusLabel(mark.status)})` });
+      case 'removed':
+        return surface ? t('autoNote.surfaceRemoved', { tooth, surface, label }) : t('autoNote.toothRemoved', { tooth, label });
+      case 'status':
+        return t('autoNote.statusChanged', { tooth: surface ? `${tooth}(${surface})` : tooth, label, status: statusLabel(mark.status) });
+      case 'voided':
+        return t('autoNote.voided', { tooth, label, reason: change.reason });
+    }
+  }
+
+  /** Moves the chart to `next` and rewrites the lines of the notes that describe it */
+  function moveChartTo(next: OdontogramState) {
+    const before = noteLines(editingState);
+    const after = noteLines(next);
+    setEditingState(next);
+    setNotes((prev) => syncAutoNotes(prev, before, after));
+  }
+
+  // Every chart edit records the previous state so it can be undone
+  function commitEdit(nextState: OdontogramState) {
+    setUndoStack((prev) => [...prev.slice(-(MAX_UNDO_STEPS - 1)), editingState]);
     setRedoStack([]);
-    setEditingState(nextState);
-    if (noteEntry) setNotes((prev) => (prev ? `${prev}\n${noteEntry}` : noteEntry));
+    moveChartTo(nextState);
   }
 
   function handleUndo() {
     const previous = undoStack[undoStack.length - 1];
     if (!previous) return;
     setUndoStack((prev) => prev.slice(0, -1));
-    setRedoStack((prev) => [...prev, { state: editingState, notes }]);
-    setEditingState(previous.state);
-    setNotes(previous.notes);
+    setRedoStack((prev) => [...prev, editingState]);
+    moveChartTo(previous);
   }
 
   function handleRedo() {
     const next = redoStack[redoStack.length - 1];
     if (!next) return;
     setRedoStack((prev) => prev.slice(0, -1));
-    setUndoStack((prev) => [...prev, { state: editingState, notes }]);
-    setEditingState(next.state);
-    setNotes(next.notes);
+    setUndoStack((prev) => [...prev, editingState]);
+    moveChartTo(next);
   }
 
   function handleConfirm() {
@@ -513,6 +592,29 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         controlsExtra={isEditing && !portalTarget ? stepControls : undefined}
       />
   );
+
+  // Read mode: what was written in the session (notes, plan and date of the next visit)
+  const sessionNotes = !isEditing && currentSnapshot && (currentSnapshot.notes?.trim() || currentSnapshot.planProximaCita?.trim() || currentSnapshot.fechaProximaCita) ? (
+    <section className="grid gap-3 rounded-2xl border bg-card p-4 md:grid-cols-2" aria-label={t('session.notes')}>
+      {currentSnapshot.notes?.trim() && (
+        <div className={cn('flex min-w-0 flex-col gap-1.5', !(currentSnapshot.planProximaCita?.trim() || currentSnapshot.fechaProximaCita) && 'md:col-span-2')}>
+          <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('session.notes')}</h3>
+          <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">{currentSnapshot.notes.trim()}</p>
+        </div>
+      )}
+      {(currentSnapshot.planProximaCita?.trim() || currentSnapshot.fechaProximaCita) && (
+        <div className={cn('flex min-w-0 flex-col gap-1.5', !currentSnapshot.notes?.trim() && 'md:col-span-2')}>
+          <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('session.nextSessionPlan')}</h3>
+          {currentSnapshot.fechaProximaCita && (
+            <span className="text-xs text-muted-foreground">{t('session.nextSessionDate')}: {formatDisplayDate(currentSnapshot.fechaProximaCita)}</span>
+          )}
+          {currentSnapshot.planProximaCita?.trim() && (
+            <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">{currentSnapshot.planProximaCita.trim()}</p>
+          )}
+        </div>
+      )}
+    </section>
+  ) : null;
 
   const sessionForm = isEditing && (
     <SessionForm
@@ -747,6 +849,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       ) : (
         <div className="flex flex-col gap-4">
           {workspace}
+          {sessionNotes}
         </div>
       )}
 
