@@ -403,7 +403,9 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
     : status === 'closed' ? 100 : Math.round((90 * sextantsCoded) / 6) + (status === 'diagnosed' ? 10 : 0);
   const guideExam = exams.find((e) => e.id === draft.guideExamId) ?? null;
   const previousExams = exams.filter((e) => e.id !== stored?.id && e.status !== 'void' && e.date <= draft.date);
-  const onMissingClick = status === 'probing' && isScreening ? () => setStep(1) : status === 'probing' ? () => revealMissing(progress.pd < progress.total ? 'pd' : 'gm') : status === 'probed' ? () => setStep(3) : status === 'diagnosed' ? () => setStep(4) : undefined;
+  // Cribado: lleva a lo que dice el aviso (sextantes sin código o el diagnóstico).
+  const screeningTarget = sextantsCoded < 6 ? 1 : 3;
+  const onMissingClick = isScreening && (status === 'probing' || status === 'probed') ? () => setStep(screeningTarget) : status === 'probing' ? () => revealMissing(progress.pd < progress.total ? 'pd' : 'gm') : status === 'probed' ? () => setStep(3) : status === 'diagnosed' ? () => setStep(4) : undefined;
   const earlierSessions = previousExams.map((e) => ({ id: e.id, date: e.date, examType: e.examType, teeth: e.teeth, diagnosis: e.diagnosis, screening: e.screening }));
   const todaySession = { id: stored?.id ?? 'today', date: draft.date, examType: draft.examType, teeth: draft.teeth, screening: draft.screening };
 
@@ -420,7 +422,7 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
           onStep={setStep}
           status={status}
           completeness={completeness}
-          missing={isScreening && status === 'probing' ? t('flow.missing.sextants', { count: 6 - sextantsCoded }) : missingText(t, status, progress)}
+          missing={isScreening ? screeningMissingText(t, status, sextantsCoded) : missingText(t, status, progress)}
           onMissingClick={onMissingClick}
           done={{ 1: status !== 'probing', 2: evolutionSeen || status === 'closed', 3: !!draft.diagnosis?.confirmedAt, 4: status === 'closed' }}
           saveIndicator={<SaveIndicator state={saveState} leaving={leaving} readOnly={readOnly} status={status} hasStored={!!stored} onRetry={() => { ensureSaved().catch(() => undefined); }} />}
@@ -541,6 +543,15 @@ function missingText(t: Translate, status: PerioExamStatus, progress: ReturnType
   if (progress.pd < progress.total) return t('flow.missing.depths', { count: progress.total - progress.pd });
   if (progress.gm < progress.total) return t('flow.missing.margin', { count: progress.total - progress.gm });
   if (status === 'probed') return t('flow.missing.diagnosis');
+  return t('flow.missing.ready');
+}
+
+/** Cribado: no hay sitios que sondar, solo los seis sextantes y después el diagnóstico. */
+function screeningMissingText(t: Translate, status: PerioExamStatus, sextantsCoded: number): string {
+  if (status === 'closed') return t('flow.missing.closed');
+  if (status === 'void') return t('flow.missing.void');
+  if (sextantsCoded < 6) return t('flow.missing.sextants', { count: 6 - sextantsCoded });
+  if (status === 'probing' || status === 'probed') return t('flow.missing.diagnosis');
   return t('flow.missing.ready');
 }
 
