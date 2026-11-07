@@ -1,0 +1,69 @@
+{
+  "id": "config.clinics",
+  "summary": "General business details: name, logo, contact, tax ID and currencies.",
+  "purpose": "It's the first thing to set up. The name and logo show on quotes, invoices, reminders and the patient portal; the main currency is the one for prices and the cash register.",
+  "tips": [
+    "If you have more than one branch, the address goes on each branch and not here.",
+    "Changing the main currency doesn't convert prices already entered."
+  ],
+  "elements": {
+    "config.clinics.field.clinic-logo": {
+      "label": "Logo",
+      "description": "Image shown on printed documents and on the patient portal."
+    },
+    "config.clinics.field.clinic-name": {
+      "label": "Name",
+      "description": "The clinic's trade name."
+    },
+    "config.clinics.field.clinic-location": {
+      "label": "Address",
+      "description": "Only visible with one branch or none; with several, each branch has its own."
+    },
+    "config.clinics.field.clinic-email": {
+      "label": "Email",
+      "description": "Contact email patients see."
+    },
+    "config.clinics.field.clinic-phone": {
+      "label": "Phone",
+      "description": "Contact phone, with country code."
+    },
+    "config.clinics.field.clinic-rut": {
+      "label": "Tax ID",
+      "description": "Tax identification for invoicing."
+    },
+    "config.clinics.field.clinic-currency": {
+      "label": "Main currency",
+      "description": "Currency for prices, quotes and the cash register."
+    },
+    "config.clinics.field.clinic-secondary-currency": {
+      "label": "Secondary currency",
+      "description": "Optional: another currency you also charge in (the conversion is shown)."
+    },
+    "config.clinics.btn.save": {
+      "label": "Save",
+      "description": "Saves the clinic details."
+    },
+    "config.clinics.btn.add-sede": {
+      "label": "Add branch",
+      "description": "Creates a branch without leaving this screen."
+    },
+    "config.clinics.sede.field.name": {
+      "label": "Branch name"
+    },
+    "config.clinics.sede.field.address": {
+      "label": "Branch address"
+    },
+    "config.clinics.sede.field.phone": {
+      "label": "Branch phone"
+    },
+    "config.clinics.sede.field.email": {
+      "label": "Branch email"
+    },
+    "config.clinics.sede.field.is_active": {
+      "label": "Branch active"
+    },
+    "config.clinics.sede.btn.submit": {
+      "label": "Create / Save branch"
+    }
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { buildMovementConcept } from '@/lib/financial-summary';
 import type { FinancialSummaryPrintData } from '@/stores/print-document-store';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
@@ -67,7 +68,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
         {report.phone_number && (
           <div>
             <span className="text-gray-500">{t('financialSummary.phone')}: </span>
-            <span className="font-medium">{report.phone_number}</span>
+            <span className="font-medium">{formatPhoneNumber(report.phone_number)}</span>
           </div>
         )}
       </div>

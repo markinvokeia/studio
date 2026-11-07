@@ -1,0 +1,70 @@
+{
+  "id": "permissions.create",
+  "title": "Crear un permiso",
+  "module": "Sistema",
+  "summary": "Alta de un permiso.",
+  "screens": [
+    "permissions"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "action": "Acción: Crear | Leer | Guardar | Eliminar | Gestionar",
+    "resource": "Recurso (ej. reports)"
+  },
+  "keywords": [
+    "nuevo permiso",
+    "crear permiso"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/permissions",
+      "title": "Menú → Sistema → Permisos",
+      "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "permissions.btn.new",
+      "title": "Crear",
+      "until": "permissions.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "permissions.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "action",
+      "action": "fill",
+      "target": "permissions.field.action",
+      "title": "Acción",
+      "value": "{{values.action}}",
+      "details": "Obligatoria: qué se habilita sobre el recurso (ver, crear, editar, borrar o todo)."
+    },
+    {
+      "id": "resource",
+      "action": "fill",
+      "target": "permissions.field.resource",
+      "title": "Recurso",
+      "value": "{{values.resource}}",
+      "details": "Obligatorio: la pantalla o el dato sobre el que se habilita la acción."
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "permissions.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "permissions.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

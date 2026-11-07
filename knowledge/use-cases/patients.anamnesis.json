@@ -1,0 +1,108 @@
+{
+  "id": "patients.anamnesis",
+  "title": "Cargar la anamnesis",
+  "module": "Pacientes",
+  "summary": "Antecedentes personales, medicación, antecedentes familiares, alergias y hábitos. Alergias y padecimientos aparecen como alerta en la ficha.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Historia clínica",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "anamnesis",
+    "alergias",
+    "antecedentes",
+    "medicación",
+    "hábitos",
+    "historia médica",
+    "padecimientos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.anamnesis"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.anamnesis",
+      "title": "Anamnesis",
+      "until": "patients.section.anamnesis-personal"
+    },
+    {
+      "id": "personal",
+      "action": "highlight",
+      "target": "patients.section.anamnesis-personal",
+      "title": "Antecedentes personales",
+      "details": "Enfermedades y condiciones del paciente. Con + agregás una."
+    },
+    {
+      "id": "meds",
+      "action": "highlight",
+      "target": "patients.section.anamnesis-medications",
+      "title": "Medicación",
+      "details": "Lo que toma habitualmente: se consulta al recetar."
+    },
+    {
+      "id": "family",
+      "action": "highlight",
+      "target": "patients.section.anamnesis-family",
+      "title": "Antecedentes familiares",
+      "skipIfMissing": true
+    },
+    {
+      "id": "allergies",
+      "action": "highlight",
+      "target": "patients.section.anamnesis-allergies",
+      "title": "Alergias",
+      "details": "Se muestran como alerta roja en el encabezado de la ficha."
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "patients.btn.anamnesis-add-allergy",
+      "title": "Agregar alergia",
+      "details": "Elegí la alergia del catálogo y su severidad.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "habits",
+      "action": "highlight",
+      "target": "patients.section.anamnesis-habits",
+      "title": "Hábitos",
+      "details": "Tabaco, alcohol, bruxismo y otros.",
+      "skipIfMissing": true
+    }
+  ]
+}

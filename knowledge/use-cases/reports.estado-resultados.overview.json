@@ -1,0 +1,107 @@
+{
+  "id": "reports.estado-resultados.overview",
+  "title": "Usar el reporte Estado de Resultados",
+  "module": "Reportes",
+  "summary": "Ingresos menos gastos del período: el resultado económico de la clínica.",
+  "screens": [
+    "reports.estado-resultados"
+  ],
+  "keywords": [
+    "estado de resultados",
+    "ganancia",
+    "resultado",
+    "margen"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/estado-resultados",
+      "title": "Menú → Reportes → Estado de Resultados",
+      "details": "Ingresos menos gastos del período: el resultado económico de la clínica."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.estado-resultados.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.estado-resultados.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.estado-resultados.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.estado-resultados.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.estado-resultados.section.results",
+        "reports.estado-resultados.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.estado-resultados.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.estado-resultados.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.estado-resultados.section.kpi",
+      "title": "Indicadores",
+      "details": "Margen del período.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.estado-resultados.section.results",
+      "title": "Resultados",
+      "details": "Ingresos, gastos y resultado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.estado-resultados.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.estado-resultados.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.estado-resultados.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

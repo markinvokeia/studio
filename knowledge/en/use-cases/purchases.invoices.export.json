@@ -1,0 +1,31 @@
+{
+  "id": "purchases.invoices.export",
+  "title": "Export invoices",
+  "summary": "Download the invoice list to Excel or CSV.",
+  "module": "Purchases",
+  "keywords": [
+    "export invoices",
+    "excel",
+    "csv"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Invoices",
+      "details": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly."
+    },
+    {
+      "id": "export",
+      "title": "Export"
+    },
+    {
+      "id": "format",
+      "title": "Format",
+      "details": "Excel or CSV."
+    },
+    {
+      "id": "run",
+      "title": "Download"
+    }
+  ]
+}

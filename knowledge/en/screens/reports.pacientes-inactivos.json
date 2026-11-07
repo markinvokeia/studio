@@ -1,0 +1,63 @@
+{
+  "id": "reports.pacientes-inactivos",
+  "summary": "Inactive patients.",
+  "purpose": "Patients who haven't come in a while, for win-back campaigns.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.pacientes-inactivos.section.filters": {
+      "label": "Filters",
+      "description": "«No activity for more than» (months) and «Medical discharge only»."
+    },
+    "reports.pacientes-inactivos.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.pacientes-inactivos.section.empty": {
+      "label": "No data"
+    },
+    "reports.pacientes-inactivos.section.kpi": {
+      "label": "Indicators",
+      "description": "Total inactive, how many by medical discharge, how many by inactivity and how many owing."
+    },
+    "reports.pacientes-inactivos.section.results": {
+      "label": "Results",
+      "description": "Each patient with their last visit; you can contact them from here."
+    },
+    "reports.pacientes-inactivos.section.table": {
+      "label": "Details"
+    },
+    "reports.pacientes-inactivos.section.export": {
+      "label": "Export and print"
+    },
+    "reports.pacientes-inactivos.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.pacientes-inactivos.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.pacientes-inactivos.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.pacientes-inactivos.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.pacientes-inactivos.btn.print": {
+      "label": "Print"
+    },
+    "reports.pacientes-inactivos.filter.period": {
+      "label": "Period"
+    },
+    "reports.pacientes-inactivos.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.pacientes-inactivos.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.pacientes-inactivos.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

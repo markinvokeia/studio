@@ -3,6 +3,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -31,6 +32,7 @@ import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { SignatureUploader } from '@/components/users/signature-uploader';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
@@ -229,7 +231,7 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -669,7 +671,7 @@ export default function SystemUsersPage() {
           rightPanel={
             selectedUser && (
               <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                <CardHeader data-help-id="system.users.section.detail" className="flex flex-row items-start justify-between flex-none p-4">
                   <div className="flex items-start gap-3 min-w-0 flex-1">
                     <div className="header-icon-circle mt-0.5">
                       <Users className="h-5 w-5" />
@@ -680,7 +682,7 @@ export default function SystemUsersPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {hasPasswordPermission && (
-                      <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                      <Button data-help-id="system.users.btn.initial-password" variant="outline" size="sm" onClick={handleSendInitialPassword}>
                         <KeyRound className="mr-2 h-4 w-4" />
                         {t('SystemUsersPage.setInitialPassword')}
                       </Button>
@@ -691,6 +693,7 @@ export default function SystemUsersPage() {
                     </Button>
                   </div>
                 </CardHeader>
+                <HelpScopeProvider scope="system.users.detail">
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList>
@@ -719,7 +722,7 @@ export default function SystemUsersPage() {
                             )} />
                             <FormField control={detailForm.control} name="phone" render={({ field }) => (
                               <FormItem><FormLabel>{t('SystemUsersPage.createDialog.phone')}</FormLabel><FormControl>
-                                <PhoneInput {...field} defaultCountry="UY" placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                               </FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -785,6 +788,7 @@ export default function SystemUsersPage() {
                     </div>
                   </Tabs>
                 </CardContent>
+                </HelpScopeProvider>
               </Card>
             )
           }
@@ -843,7 +847,6 @@ export default function SystemUsersPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

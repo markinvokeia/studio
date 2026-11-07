@@ -4,6 +4,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -57,6 +58,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
@@ -234,7 +236,7 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -652,7 +654,7 @@ export default function DoctorsPage() {
         rightPanel={
           selectedUser && (
             <Card className="h-full flex flex-col">
-              <CardHeader className="flex flex-row items-start justify-between flex-none">
+              <CardHeader data-help-id="config.doctors.section.detail" className="flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
                 </div>
@@ -661,6 +663,7 @@ export default function DoctorsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      data-help-id="config.doctors.btn.initial-password"
                       onClick={() => { if (canSetInitialPassword) sendInitialPassword.run(selectedUser.id); }}
                       loading={sendInitialPassword.isPending}
                     >
@@ -688,6 +691,7 @@ export default function DoctorsPage() {
                   activeTabId={activeTab}
                   onTabClick={(tab) => setActiveTab(tab.id)}
                 />
+                <HelpScopeProvider scope="config.doctors.detail">
                 <div className="flex-1 overflow-auto px-4 py-4">
                   {activeTab === 'details' && (
                     <Form {...detailForm}>
@@ -709,7 +713,7 @@ export default function DoctorsPage() {
                         )} />
                         <FormField control={detailForm.control} name="phone" render={({ field }) => (
                           <FormItem><FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel><FormControl>
-                            <PhoneInput {...field} defaultCountry="UY" placeholder={t('DoctorsPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                            <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                           </FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -810,6 +814,7 @@ export default function DoctorsPage() {
                     <UserPreferencesTab user={selectedUser} showAlertStyle sedes={sedes} />
                   )}
                 </div>
+                </HelpScopeProvider>
               </CardContent>
             </Card>
           )
@@ -876,7 +881,6 @@ export default function DoctorsPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('DoctorsPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

@@ -1,0 +1,63 @@
+{
+  "id": "system.alert-rules.overview",
+  "title": "Recorrer Reglas de Alertas",
+  "module": "Sistema",
+  "summary": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "reglas de alertas",
+    "regla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas",
+      "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.alert-rules.filter.search",
+      "title": "Buscá la regla",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.alert-rules.section.first-row",
+      "title": "Elegí la regla",
+      "until": "system.alert-rules.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.alert-rules.section.detail",
+      "title": "Detalle"
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "system.alert-rules.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "system.alert-rules.btn.delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación.",
+      "skipIfMissing": true
+    }
+  ]
+}

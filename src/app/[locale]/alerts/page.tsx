@@ -724,7 +724,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-card">
+                <CardContent data-help-id="alerts.section.summary" className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-card">
                     <Can permission={ALERT_CENTER_PERMISSIONS.VIEW_KPIS}>
                         <SummaryCard title={t('summary.total')} count={summaryCounts.total} accentColor="#6366f1" />
                         <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} accentColor="#EF4444" />
@@ -746,20 +746,20 @@ function AlertsCenterPageContent() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => loadAlerts()} disabled={loading} title={t('reload')}>
+                            <Button data-help-id="alerts.btn.refresh" variant="outline" size="icon" className="h-9 w-9" onClick={() => loadAlerts()} disabled={loading} title={t('reload')}>
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                             </Button>
                             <Can permission={ALERT_CENTER_PERMISSIONS.FILTER}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="icon" className="h-9 w-9" title={t('filters.title')}><Filter className="h-4 w-4" /></Button>
+                                        <Button data-help-id="alerts.btn.filters" variant="outline" size="icon" className="h-9 w-9" title={t('filters.title')}><Filter className="h-4 w-4" /></Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-80">
+                                    <DropdownMenuContent data-help-id="alerts.section.filters" className="w-80">
                                         <div className="space-y-4 p-4">
                                             <div>
                                                 <Label htmlFor="status">{t('filters.status')}</Label>
                                                 <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger data-help-id="alerts.filter.status">
                                                         <SelectValue placeholder={t('filters.all')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -775,7 +775,7 @@ function AlertsCenterPageContent() {
                                             <div>
                                                 <Label htmlFor="priority">{t('filters.priority')}</Label>
                                                 <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value)}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger data-help-id="alerts.filter.priority">
                                                         <SelectValue placeholder={t('filters.all')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -794,7 +794,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4 p-6 bg-card pb-24">
+                <CardContent data-help-id="alerts.section.list" className="space-y-4 p-6 bg-card pb-24">
                     {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => {
                         const allInCategorySelected = categoryAlerts.every(a => selectedAlerts.includes(a.id));
                         const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));
@@ -805,8 +805,9 @@ function AlertsCenterPageContent() {
                                 open={openCategories.includes(category)}
                                 onOpenChange={() => toggleCategory(category)}
                             >
-                                <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-left font-semibold">
+                                <div data-help-id="alerts.section.category" className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-left font-semibold">
                                     <Checkbox
+                                        data-help-id="alerts.field.select-category"
                                         checked={allInCategorySelected ? true : (someInCategorySelected ? "indeterminate" : false)}
                                         onCheckedChange={(checked) => handleSelectCategory(categoryAlerts, !!checked)}
                                     />
@@ -822,8 +823,9 @@ function AlertsCenterPageContent() {
                                 <CollapsibleContent>
                                     <div className="divide-y divide-border">
                                         {categoryAlerts.map(alert => (
-                                            <div key={alert.id} className="flex items-start gap-3 p-4 hover:bg-muted/50">
+                                            <div key={alert.id} data-help-id="alerts.section.alert" className="flex items-start gap-3 p-4 hover:bg-muted/50">
                                                 <Checkbox
+                                                    data-help-id="alerts.field.select-alert"
                                                     className="mt-1 shrink-0"
                                                     checked={selectedAlerts.includes(alert.id)}
                                                     onCheckedChange={(checked) => handleSelectAlert(alert.id, !!checked)}
@@ -835,6 +837,7 @@ function AlertsCenterPageContent() {
                                                         {alert.patient_id ? (
                                                             <button
                                                                 type="button"
+                                                                data-help-id="alerts.btn.view-patient"
                                                                 onClick={() => openPatientFromAlert(alert)}
                                                                 title={t('actions.viewPatient')}
                                                                 className="group flex items-start gap-1.5 text-left font-semibold leading-snug text-primary hover:underline focus-visible:underline focus-visible:outline-none"
@@ -897,6 +900,7 @@ function AlertsCenterPageContent() {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
+                                                                data-help-id="alerts.btn.send-email"
                                                                 title={emailEnabled ? t('actions.sendEmail') : t('actions.sendEmailUnavailable')}
                                                                 onClick={() => openAlertEmailComposer(alert)}
                                                                 disabled={!emailEnabled}
@@ -906,7 +910,7 @@ function AlertsCenterPageContent() {
                                                         </Can>
                                                         {statusFilter !== '' && (
                                                             <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                                <Button data-help-id="alerts.btn.complete" variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
                                                             </Can>
                                                         )}
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
@@ -914,6 +918,7 @@ function AlertsCenterPageContent() {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
+                                                                data-help-id="alerts.btn.send-whatsapp"
                                                                 title={whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
                                                                 onClick={() => sendAlertWhatsApp(alert)}
                                                                 disabled={!whatsappEnabled || whatsappSending}
@@ -926,16 +931,16 @@ function AlertsCenterPageContent() {
                                                             </Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.registerCall')} onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="h-4 w-4" /></Button>
+                                                            <Button data-help-id="alerts.btn.register-call" variant="ghost" size="icon" className="h-8 w-8" title={t('actions.registerCall')} onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="h-4 w-4" /></Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.snooze')} onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="h-4 w-4" /></Button>
+                                                            <Button data-help-id="alerts.btn.snooze" variant="ghost" size="icon" className="h-8 w-8" title={t('actions.snooze')} onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="h-4 w-4" /></Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.ignore')} onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="h-4 w-4" /></Button>
+                                                            <Button data-help-id="alerts.btn.ignore" variant="ghost" size="icon" className="h-8 w-8" title={t('actions.ignore')} onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="h-4 w-4" /></Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.addNote')} onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="h-4 w-4" /></Button>
+                                                            <Button data-help-id="alerts.btn.add-note" variant="ghost" size="icon" className="h-8 w-8" title={t('actions.addNote')} onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="h-4 w-4" /></Button>
                                                         </Can>
                                                                 </>
                                                             );
@@ -1027,7 +1032,7 @@ function AlertsCenterPageContent() {
                     </DialogHeader>
                     <div className="space-y-4 px-6 py-4">
                         <Label htmlFor="reason">{t('ignoreAlert.reason')}</Label>
-                        <Textarea
+                        <Textarea data-help-id="alerts.field.ignore-reason"
                             id="reason"
                             value={ignoreReason}
                             onChange={(e) => setIgnoreReason(e.target.value)}
@@ -1035,7 +1040,7 @@ function AlertsCenterPageContent() {
                         />
                     </div>
                     <DialogFooter>
-                        <Button
+                        <Button data-help-id="alerts.btn.ignore-confirm"
                             onClick={() => {
                                 markAsIgnored(alertsToIgnore, ignoreReason);
                                 setIgnoreDialogOpen(false);
@@ -1058,7 +1063,7 @@ function AlertsCenterPageContent() {
                     <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="snoozeDate">{t('snoozeAlert.date')}</Label>
-                            <Input
+                            <Input data-help-id="alerts.field.snooze-date"
                                 type="datetime-local"
                                 id="snoozeDate"
                                 value={snoozeDate}
@@ -1068,14 +1073,14 @@ function AlertsCenterPageContent() {
                         <div>
                             <Label>{t('snoozeAlert.quickOptions')}</Label>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.day')}</Button>
-                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>3 {t('snoozeAlert.days')}</Button>
-                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.week')}</Button>
+                                <Button data-help-id="alerts.btn.snooze-1d" variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.day')}</Button>
+                                <Button data-help-id="alerts.btn.snooze-3d" variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>3 {t('snoozeAlert.days')}</Button>
+                                <Button data-help-id="alerts.btn.snooze-1w" variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.week')}</Button>
                             </div>
                         </div>
                         <div>
                             <Label htmlFor="reason">{t('snoozeAlert.reason')}</Label>
-                            <Textarea
+                            <Textarea data-help-id="alerts.field.snooze-reason"
                                 id="reason"
                                 value={snoozeReason}
                                 onChange={(e) => setSnoozeReason(e.target.value)}
@@ -1084,7 +1089,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
+                        <Button data-help-id="alerts.btn.snooze-confirm"
                             onClick={() => {
                                 snoozeAlerts(alertsToSnooze, snoozeDate, snoozeReason);
                                 setSnoozeDialogOpen(false);
@@ -1109,7 +1114,7 @@ function AlertsCenterPageContent() {
                     <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="registerCallDate">{t('registerCall.date')}</Label>
-                            <Input
+                            <Input data-help-id="alerts.field.call-date"
                                 type="datetime-local"
                                 id="registerCallDate"
                                 value={registerCallDate}
@@ -1118,7 +1123,7 @@ function AlertsCenterPageContent() {
                         </div>
                         <div>
                             <Label htmlFor="registerCallNotes">{t('registerCall.notes')}</Label>
-                            <Textarea
+                            <Textarea data-help-id="alerts.field.call-notes"
                                 id="registerCallNotes"
                                 value={registerCallNotes}
                                 onChange={(e) => setRegisterCallNotes(e.target.value)}
@@ -1127,7 +1132,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
+                        <Button data-help-id="alerts.btn.call-confirm"
                             onClick={() => {
                                 registerCall(alertsToRegisterCall, registerCallDate, registerCallNotes);
                                 setRegisterCallDialogOpen(false);
@@ -1152,7 +1157,7 @@ function AlertsCenterPageContent() {
                     <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="noteContent">{t('addNote.note')}</Label>
-                            <Textarea
+                            <Textarea data-help-id="alerts.field.note"
                                 id="noteContent"
                                 value={noteContent}
                                 onChange={(e) => setNoteContent(e.target.value)}
@@ -1161,7 +1166,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
+                        <Button data-help-id="alerts.btn.note-confirm"
                             onClick={() => {
                                 addNote(alertsForNote, noteContent);
                                 setAddNoteDialogOpen(false);

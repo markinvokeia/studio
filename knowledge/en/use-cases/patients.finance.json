@@ -1,0 +1,90 @@
+{
+  "id": "patients.finance",
+  "title": "View the patient's account",
+  "summary": "Finance: quotes, invoiced treatments, payments and balance; print the summary or the account statement.",
+  "module": "Patients",
+  "group": "Finance",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "patient account",
+    "balance",
+    "debt",
+    "account statement",
+    "patient payments",
+    "patient invoices",
+    "account ledger"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "tab",
+      "title": "Finance"
+    },
+    {
+      "id": "toolbar",
+      "title": "Period and currency",
+      "details": "Filter by period, search for a document and choose the currency."
+    },
+    {
+      "id": "ledger",
+      "title": "Account ledger",
+      "details": "Each quote, treatment and payment with its balance. Tap a row to invoice it, charge it, print it or send it."
+    },
+    {
+      "id": "add-quote",
+      "title": "Add quote"
+    },
+    {
+      "id": "add-treatment",
+      "title": "Add treatment",
+      "details": "Invoices a treatment performed."
+    },
+    {
+      "id": "add-payment",
+      "title": "Record payment"
+    },
+    {
+      "id": "print",
+      "title": "Print summary",
+      "details": "For the period you're viewing."
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "details": "Invoiced, paid, debt and available balance."
+    },
+    {
+      "id": "quotes",
+      "title": "Quotes"
+    },
+    {
+      "id": "quote-row",
+      "title": "A quote",
+      "details": "Tap it to see its items, invoice it or charge it."
+    },
+    {
+      "id": "invoices",
+      "title": "Invoices"
+    },
+    {
+      "id": "payments",
+      "title": "Payments"
+    }
+  ]
+}

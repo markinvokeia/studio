@@ -1,0 +1,67 @@
+{
+  "id": "reports.comparativo-produccion",
+  "status": "draft",
+  "summary": "Comparativo de producción.",
+  "purpose": "La producción mes a mes de los últimos 12 meses, por profesional.",
+  "useCases": [
+    "reports.comparativo-produccion.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.comparativo-produccion.section.filters": {
+      "label": "Filtros",
+      "description": "Año y moneda."
+    },
+    "reports.comparativo-produccion.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.comparativo-produccion.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.comparativo-produccion.section.kpi": {
+      "label": "Indicadores",
+      "description": "Mejor mes, mes actual, promedio mensual y cantidad de profesionales."
+    },
+    "reports.comparativo-produccion.section.results": {
+      "label": "Resultados",
+      "description": "Evolución mensual y comparación entre profesionales."
+    },
+    "reports.comparativo-produccion.section.table": {
+      "label": "Detalle"
+    },
+    "reports.comparativo-produccion.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.comparativo-produccion.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.comparativo-produccion.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.comparativo-produccion.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.comparativo-produccion.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.comparativo-produccion.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.comparativo-produccion.filter.period": {
+      "label": "Período"
+    },
+    "reports.comparativo-produccion.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.comparativo-produccion.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.comparativo-produccion.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "id": "alerts.overview",
+  "title": "Use the Alerts Center",
+  "summary": "What each part shows: summary by priority, alerts by category, the patient, the status, the history and the actions.",
+  "module": "Alerts Center",
+  "keywords": [
+    "alerts",
+    "alerts center",
+    "pending",
+    "notices",
+    "what do i have to do",
+    "priority",
+    "critical"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "details": "How many pending alerts there are in total and how many are critical, high and medium priority."
+    },
+    {
+      "id": "refresh",
+      "title": "Refresh",
+      "details": "Reloads the alerts."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "By status (pending, completed, action taken, ignored, suppressed) and by priority."
+    },
+    {
+      "id": "category",
+      "title": "Categories",
+      "details": "Alerts are grouped by category (appointments, billing, follow-up, patients, reminders, dates). The category's checkbox selects all its alerts."
+    },
+    {
+      "id": "alert",
+      "title": "An alert",
+      "details": "The color strip is the priority. Below the title you see the data that created it, the action history and the status."
+    },
+    {
+      "id": "patient",
+      "title": "View patient",
+      "details": "The title opens the patient's record."
+    },
+    {
+      "id": "whatsapp",
+      "title": "Send WhatsApp",
+      "details": "Sends the rule's WhatsApp template to the patient. Disabled if they have no phone or the rule has no template."
+    },
+    {
+      "id": "email",
+      "title": "Send email",
+      "details": "Opens the email with the rule's text so you can review and send it."
+    },
+    {
+      "id": "call",
+      "title": "Log call",
+      "details": "Notes that you called, when and what was discussed."
+    },
+    {
+      "id": "snooze",
+      "title": "Snooze",
+      "details": "Removes it from the inbox until a date (1 day, 3 days, 1 week or another)."
+    },
+    {
+      "id": "ignore",
+      "title": "Ignore",
+      "details": "Dismisses it with a reason, without doing anything."
+    },
+    {
+      "id": "note",
+      "title": "Add note",
+      "details": "A comment for the team; it stays in the alert's history."
+    }
+  ]
+}

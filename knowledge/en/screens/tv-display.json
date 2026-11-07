@@ -1,0 +1,70 @@
+{
+  "id": "tv-display",
+  "summary": "Waiting room screen.",
+  "purpose": "Sets up the TV screen that calls patients for their appointment.",
+  "elements": {
+    "tv-display.section.settings": {
+      "label": "Settings"
+    },
+    "tv-display.section.preview": {
+      "label": "Preview"
+    },
+    "tv-display.section.controls": {
+      "label": "Controls"
+    },
+    "tv-display.section.rooms": {
+      "label": "Quick actions",
+      "description": "Next patient per room."
+    },
+    "tv-display.btn.open-screen": {
+      "label": "Open screen"
+    },
+    "tv-display.btn.turn-on": {
+      "label": "Turn on"
+    },
+    "tv-display.btn.turn-off": {
+      "label": "Turn off",
+      "description": "Applies as soon as you tap it."
+    },
+    "tv-display.btn.resume": {
+      "label": "Resume"
+    },
+    "tv-display.btn.pause": {
+      "label": "Snooze"
+    },
+    "tv-display.btn.promo": {
+      "label": "Show promo"
+    },
+    "tv-display.btn.refresh": {
+      "label": "Refresh"
+    },
+    "tv-display.btn.next": {
+      "label": "Next",
+      "description": "Applies as soon as you tap it."
+    },
+    "tv-display.field.theme": {
+      "label": "Theme"
+    },
+    "tv-display.section.calendars": {
+      "label": "Rooms"
+    },
+    "tv-display.field.refresh-interval": {
+      "label": "Refresh"
+    },
+    "tv-display.field.promo-interval": {
+      "label": "Promo interval"
+    },
+    "tv-display.section.promo-videos": {
+      "label": "Promotional videos"
+    },
+    "tv-display.section.video-column": {
+      "label": "Video column"
+    },
+    "tv-display.section.music": {
+      "label": "Music"
+    },
+    "tv-display.btn.save": {
+      "label": "Save"
+    }
+  }
+}

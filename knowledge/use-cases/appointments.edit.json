@@ -1,0 +1,97 @@
+{
+  "id": "appointments.edit",
+  "title": "Editar una cita: fecha, hora, profesional o consultorio",
+  "module": "Agenda",
+  "summary": "Abrir la cita, cambiar sus datos y guardar.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "doctor": "Nombre del profesional",
+    "calendar": "Nombre del consultorio",
+    "date": "Fecha AAAA-MM-DD",
+    "time": "Hora HH:MM"
+  },
+  "keywords": [
+    "editar",
+    "modificar",
+    "cambiar hora",
+    "cambiar fecha",
+    "reprogramar",
+    "cambiar profesional",
+    "cambiar consultorio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Abrí la cita",
+      "until": [
+        "appointments.btn.edit-appointment",
+        "appointments.btn.quick-edit"
+      ],
+      "blocking": true,
+      "details": "Clic derecho sobre la cita (o un clic: en el modo personalizado se abre su tarjeta)."
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "appointments.btn.edit-appointment",
+      "title": "Editar cita",
+      "skipIfMissing": true
+    },
+    {
+      "id": "quick-edit",
+      "action": "click",
+      "target": "appointments.btn.quick-edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "appointments.field.doctor",
+      "value": "{{values.doctor}}",
+      "optional": true,
+      "title": "Profesional"
+    },
+    {
+      "id": "calendar",
+      "action": "fill",
+      "target": "appointments.field.calendar",
+      "value": "{{values.calendar}}",
+      "optional": true,
+      "title": "Consultorio"
+    },
+    {
+      "id": "date",
+      "action": "fill",
+      "target": "appointments.field.date",
+      "value": "{{values.date}}",
+      "optional": true,
+      "title": "Fecha"
+    },
+    {
+      "id": "time",
+      "action": "fill",
+      "target": "appointments.field.time",
+      "value": "{{values.time}}",
+      "optional": true,
+      "title": "Hora"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.save",
+      "title": "Guardar los cambios"
+    }
+  ]
+}

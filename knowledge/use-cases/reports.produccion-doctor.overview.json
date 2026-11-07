@@ -1,0 +1,114 @@
+{
+  "id": "reports.produccion-doctor.overview",
+  "title": "Usar el reporte Producción por Doctor",
+  "module": "Reportes",
+  "summary": "Lo que produjo cada profesional en el período: tratamientos facturados y su valor.",
+  "screens": [
+    "reports.produccion-doctor"
+  ],
+  "keywords": [
+    "producción por doctor",
+    "cuánto facturó cada doctor",
+    "producción del profesional"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/produccion-doctor",
+      "title": "Menú → Reportes → Producción por Doctor",
+      "details": "Lo que produjo cada profesional en el período: tratamientos facturados y su valor."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.filter.currency",
+      "title": "Moneda",
+      "details": "Muestra los montos en la moneda elegida.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.produccion-doctor.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.produccion-doctor.section.results",
+        "reports.produccion-doctor.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.produccion-doctor.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.section.kpi",
+      "title": "Indicadores",
+      "details": "Cuántos profesionales produjeron y el total.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.section.results",
+      "title": "Resultados",
+      "details": "Gráfico y tabla por profesional.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.produccion-doctor.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

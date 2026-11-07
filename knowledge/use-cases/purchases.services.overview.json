@@ -1,0 +1,59 @@
+{
+  "id": "purchases.services.overview",
+  "title": "Recorrer productos y servicios de proveedores",
+  "module": "Compras",
+  "summary": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+  "screens": [
+    "purchases.services"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "productos de proveedores",
+    "insumos",
+    "lista de compras"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/services",
+      "title": "Menú → Compras → Productos y Servicios de Proveedores",
+      "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.services.filter.search",
+      "title": "Buscá el producto o servicio",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.services.section.first-row",
+      "title": "Elegí el producto o servicio",
+      "details": "Tocalo para abrir su ficha.",
+      "until": "purchases.services.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "purchases.services.section.detail",
+      "title": "Ficha",
+      "details": "Nombre y categoría; con el tacho se elimina."
+    },
+    {
+      "id": "details",
+      "action": "click",
+      "target": "purchases.services.tab.details",
+      "title": "Datos",
+      "details": "Se editan directo y se guardan con «Guardar».",
+      "skipIfMissing": true
+    }
+  ]
+}

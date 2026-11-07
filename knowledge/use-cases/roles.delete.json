@@ -1,0 +1,48 @@
+{
+  "id": "roles.delete",
+  "title": "Eliminar un rol",
+  "module": "Sistema",
+  "summary": "Desde el listado (pide confirmación).",
+  "screens": [
+    "roles"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar rol",
+    "borrar rol"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/roles",
+      "title": "Menú → Sistema → Roles",
+      "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "roles.filter.search",
+      "title": "Buscá el rol",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "row",
+      "action": "click",
+      "target": "roles.btn.row-delete",
+      "title": "Eliminar",
+      "until": "roles.btn.delete-confirm"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "roles.btn.delete-confirm",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

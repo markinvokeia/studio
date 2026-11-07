@@ -1,0 +1,42 @@
+{
+  "id": "config.prescription-templates",
+  "summary": "Prescription templates.",
+  "purpose": "The format of the prescriptions doctors issue: letterhead, body and signature.",
+  "tips": [
+    "Each doctor's signature is entered on their record."
+  ],
+  "elements": {
+    "config.prescription-templates.section.first-row": {
+      "label": "First record in the list"
+    },
+    "config.prescription-templates.section.row": {
+      "label": "Record"
+    },
+    "config.prescription-templates.section.detail": {
+      "label": "Details"
+    },
+    "config.prescription-templates.btn.edit": {
+      "label": "Edit"
+    },
+    "config.prescription-templates.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "config.prescription-templates.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "This can't be undone."
+    },
+    "config.prescription-templates.field.name": {
+      "label": "Name"
+    },
+    "config.prescription-templates.field.description": {
+      "label": "Description"
+    },
+    "config.prescription-templates.field.content_html": {
+      "label": "Content"
+    },
+    "config.prescription-templates.field.is_active": {
+      "label": "Active"
+    }
+  }
+}

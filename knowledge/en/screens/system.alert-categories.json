@@ -1,0 +1,53 @@
+{
+  "id": "system.alert-categories",
+  "summary": "Alert categories.",
+  "purpose": "They group alerts (collections, reminders, follow-up) to filter and prioritize them.",
+  "elements": {
+    "system.alert-categories.section.first-row": {
+      "label": "First in the list"
+    },
+    "system.alert-categories.section.row": {
+      "label": "Record"
+    },
+    "system.alert-categories.section.detail": {
+      "label": "Details"
+    },
+    "system.alert-categories.btn.edit": {
+      "label": "Edit"
+    },
+    "system.alert-categories.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "system.alert-categories.btn.confirm-action": {
+      "label": "Confirm"
+    },
+    "system.alert-categories.field.name": {
+      "label": "Name"
+    },
+    "system.alert-categories.field.code": {
+      "label": "Code",
+      "description": "Internal identifier, no spaces."
+    },
+    "system.alert-categories.field.color": {
+      "label": "Color"
+    },
+    "system.alert-categories.field.icon": {
+      "label": "Icon"
+    },
+    "system.alert-categories.field.internal_category_id": {
+      "label": "Internal category",
+      "description": "Which module it belongs to."
+    },
+    "system.alert-categories.field.sort_order": {
+      "label": "Order",
+      "description": "Position in the Alerts Center."
+    },
+    "system.alert-categories.field.description": {
+      "label": "Description"
+    },
+    "system.alert-categories.field.is_active": {
+      "label": "Active"
+    }
+  }
+}

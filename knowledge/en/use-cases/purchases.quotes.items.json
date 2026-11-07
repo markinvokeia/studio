@@ -1,0 +1,53 @@
+{
+  "id": "purchases.quotes.items",
+  "title": "View and change a quote's items",
+  "summary": "Items tab: the quote's lines; in draft, they're added, edited or removed.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Number or provider"
+  },
+  "keywords": [
+    "quote items",
+    "items",
+    "lines",
+    "add service to quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Quotes",
+      "details": "A provider's quote: which products or services, at what price. Once confirmed, it's invoiced when received."
+    },
+    {
+      "id": "search",
+      "title": "Find the quote",
+      "details": "By number or by provider."
+    },
+    {
+      "id": "pick",
+      "title": "Open the quote",
+      "details": "Tap the quote in the list. The guide continues once its details open."
+    },
+    {
+      "id": "tab",
+      "title": "Items"
+    },
+    {
+      "id": "row",
+      "title": "An item",
+      "details": "Tap it to edit or remove it (drafts only)."
+    },
+    {
+      "id": "add",
+      "title": "Add item"
+    },
+    {
+      "id": "edit",
+      "title": "Edit item"
+    },
+    {
+      "id": "remove",
+      "title": "Remove item"
+    }
+  ]
+}

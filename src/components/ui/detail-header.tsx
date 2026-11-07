@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { LucideIcon, X } from 'lucide-react';
 import * as React from 'react';
@@ -43,8 +45,9 @@ export function DetailHeader({
     onClose,
     className,
 }: DetailHeaderProps) {
+    const helpScope = useHelpScope();
     return (
-        <div className={cn('flex flex-col gap-3', className)}>
+        <div data-help-id={composeHelpId(helpScope, 'section', 'detail-header')} className={cn('flex flex-col gap-3', className)}>
             {/* Main header row with icon, title, and close button */}
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0 flex-1">

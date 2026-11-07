@@ -13,9 +13,10 @@ import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResu
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
-import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestBlockWindow, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_MODE, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
+import { clinicVisibleHoursRange, countEventsOutsideVisibleHours, customVisibleHoursRange, isOutsideVisibleHours, type ClinicHoursScope, type VisibleHoursRange } from '@/components/calendar/calendar-visible-hours';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -65,6 +66,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarColorSources, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
 import { parseClinicExceptions } from '@/lib/clinic-exceptions';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
@@ -79,8 +81,8 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { addMinutes, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { AlarmClock, AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -95,6 +97,7 @@ import { ReminderMobileSheet } from '@/components/calendar/reminder-mobile-sheet
 import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { BlockSlotDialog, type BlockSlotTarget } from '@/components/appointments/block-slot-dialog';
 import { EnableSlotDialog, type EnableSlotTarget } from '@/components/appointments/enable-slot-dialog';
 import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
@@ -118,7 +121,7 @@ import { resolveColorSources, useCalendarColorSourceStore } from '@/stores/calen
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
-import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
+import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, AVAILABILITY_CHANGED_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { canManageReminder, isRecurringReminder, normalizeReminder } from '@/lib/reminders';
@@ -394,7 +397,7 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const notes = isImported ? '' : (appt.notes || '').trim();
     // Solo lo usa el formato que lo pide, y solo si el paciente (o su responsable,
     // cuando el paciente no tiene teléfono propio) lo tiene cargado.
-    const phone = isImported ? '' : cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel);
+    const phone = isImported ? '' : formatPhoneNumber(cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel));
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
     }
@@ -859,6 +862,7 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
     const tEnableSlot = useTranslations('AppointmentsPage.enableSlot');
+    const tBlockSlot = useTranslations('AppointmentsPage.blockSlot');
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
@@ -1605,6 +1609,17 @@ export default function AppointmentsPage() {
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
     // "New patient" full-form dialog opened from the inline draft's patient picker.
     const [inlineCreatePatient, setInlineCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
+    // Patient from that dialog (newly created or an existing record picked on a cédula/phone match).
+    const applyPatientToInlineDraft = (patient: UserType) => {
+        setInlineDraft((d) => {
+            if (!d) return d;
+            // Same default-doctor rule as picking an existing patient.
+            const defaultDoctor = !d.doctor && patient.doctor_id
+                ? doctors.find((doc) => String(doc.id) === String(patient.doctor_id)) ?? null
+                : null;
+            return { ...d, patient, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
+        });
+    };
     // Backend availability check for the inline card (room + doctor over the whole
     // duration). Same setting and endpoint as the full appointment form; informative only.
     const inlineAvailability = useSlotAvailability(
@@ -4032,10 +4047,14 @@ export default function AppointmentsPage() {
 
     // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
     // fetch the availability of every sede and combine.
-    React.useEffect(() => {
+    // `loadClinicSchedules` se reusa desde el refresco en vivo: si otro usuario
+    // edita los horarios semanales (Configuración → Horarios), la grilla tiene
+    // que repintar las bandas sin esperar a un reload de la página.
+    const clinicSchedulesRequestRef = React.useRef(0);
+    const loadClinicSchedules = React.useCallback(async () => {
         if (sedes.length === 0) return;
-        let cancelled = false;
-        Promise.all(
+        const requestId = ++clinicSchedulesRequestRef.current;
+        const all = await Promise.all(
             sedes.map((sede) =>
                 api.get(API_ROUTES.CLINIC_SCHEDULES, { sede_id: String(sede.id) })
                     .then((data) => {
@@ -4050,21 +4069,45 @@ export default function AppointmentsPage() {
                     })
                     .catch(() => [] as ClinicSchedule[]),
             ),
-        ).then((all) => { if (!cancelled) setClinicSchedules(all.flat()); });
-        return () => { cancelled = true; };
+        );
+        // Only the latest load may write: changing sede twice quickly, or an SSE
+        // refresh racing the initial load, can't leave another sede's hours.
+        if (requestId === clinicSchedulesRequestRef.current) setClinicSchedules(all.flat());
     }, [sedes]);
+    React.useEffect(() => {
+        void loadClinicSchedules();
+    }, [loadClinicSchedules]);
 
     // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
     // A failed reload keeps the previous list: clearing it would lift every closure.
-    const loadClinicExceptions = React.useCallback(() =>
-        api.get(API_ROUTES.EXCEPTIONS)
+    const clinicExceptionsRequestRef = React.useRef(0);
+    const loadClinicExceptions = React.useCallback(() => {
+        const requestId = ++clinicExceptionsRequestRef.current;
+        return api.get(API_ROUTES.EXCEPTIONS)
             // Recurrence and its day lists come along: without them calendar-gaps.ts
             // couldn't match weekly/biweekly/monthly or multi-date exceptions.
-            .then((data) => setClinicExceptions(parseClinicExceptions(data)))
-            .catch(() => undefined), []);
+            .then((data) => {
+                if (requestId === clinicExceptionsRequestRef.current) setClinicExceptions(parseClinicExceptions(data));
+            })
+            .catch(() => undefined);
+    }, []);
     React.useEffect(() => {
         void loadClinicExceptions();
     }, [loadClinicExceptions]);
+
+    // Cambios de disponibilidad hechos por OTRO usuario (o desde otra pestaña):
+    // n8n publica `availability_changed` en `feriados/*` y `clinicschedules/*`.
+    // Las bandas grises/rojas y los "huecos" se calculan de estos dos estados,
+    // así que recargarlos alcanza para que el cambio se vea al instante, sin
+    // recargar la página ni volver a pedir las citas (no cambiaron).
+    React.useEffect(() => {
+        const handler = () => {
+            void loadClinicExceptions();
+            void loadClinicSchedules();
+        };
+        window.addEventListener(AVAILABILITY_CHANGED_EVENT, handler);
+        return () => window.removeEventListener(AVAILABILITY_CHANGED_EVENT, handler);
+    }, [loadClinicExceptions, loadClinicSchedules]);
 
     // Schedules scoped to the selected sede (matching sede + rows with no sede).
     const effectiveSchedules = React.useMemo(() => {
@@ -4164,8 +4207,45 @@ export default function AppointmentsPage() {
         };
     }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes]);
 
+    // ── "Bloquear horario" desde un horario abierto ───────────────────────────
+    // Crea un cierre de una vez. Que además recorte aperturas pide su propio
+    // permiso, y eso lo controla el diálogo escritura por escritura.
+    const [blockSlotTarget, setBlockSlotTarget] = React.useState<BlockSlotTarget | null>(null);
+
+    const blockSlotTargetFor = React.useCallback((slot: CalendarSlotContextMenuContext): BlockSlotTarget | null => {
+        if (slot.isBlocked || !blockUnavailable || effectiveSchedules.length === 0) return null;
+        // Un cierre es de la sede, no del doctor: desde su columna se leería como
+        // "bloquear a este doctor" y cerraría a todos.
+        if (slot.context?.groupBy === 'doctor') return null;
+        const { sedeId, schedules, exceptions } = blockingScopeForSlot(slot);
+        const slotMin = slot.date.getHours() * 60 + slot.date.getMinutes();
+        const suggested = suggestBlockWindow(slot.date, schedules, exceptions, slotMin);
+        if (!suggested) return null;
+        return {
+            day: slot.date,
+            sedeId: sedeId || undefined,
+            sedeName: sedeId ? sedes.find((s) => String(s.id) === sedeId)?.name : undefined,
+            singleBranch: sedes.length <= 1,
+            schedules,
+            exceptions: clinicExceptions,
+            calendarIds: calendars
+                .filter((c) => !sedeId || String(c.sede_id ?? '') === sedeId)
+                .map((c) => String(c.id)),
+            initialStartMin: suggested.startMin,
+            initialEndMin: suggested.endMin,
+        };
+    }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes, clinicExceptions, calendars]);
+
+    // Todas las agendas que alcanza el cierre: `appointments` solo tiene las visibles.
+    // Sin agendas no se consulta, porque sin filtro el backend devolvería todas las citas.
+    const loadDayAppointmentsForBlock = React.useCallback(async (target: BlockSlotTarget) => {
+        if (target.calendarIds.length === 0) return [];
+        return getAppointments(target.calendarIds, startOfDay(target.day), endOfDay(target.day), calendars, services, doctors, t, colorSourcesFor);
+    }, [calendars, services, doctors, t, colorSourcesFor]);
+
     const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => {
         const enableTarget = canEnableSlots ? enableSlotTargetFor(slot) : null;
+        const blockTarget = enableSlotPermissions.create ? blockSlotTargetFor(slot) : null;
         return (
             <>
                 {enableTarget && (
@@ -4174,6 +4254,7 @@ export default function AppointmentsPage() {
                             className="flex cursor-pointer items-center gap-2"
                             // Next tick: the menu has to finish unwinding its pointer-events
                             // lock before the dialog takes its own.
+                            data-help-id="appointments.btn.slot-enable"
                             onSelect={() => setTimeout(() => setEnableSlotTarget(enableTarget), 0)}
                         >
                             <CalendarClock className="h-4 w-4" />
@@ -4185,6 +4266,7 @@ export default function AppointmentsPage() {
                 <ContextMenuItem
                     disabled={slot.isBlocked}
                     className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-appointment"
                     onSelect={() => handleCreateAppointmentFromSlot(slot)}
                 >
                     <CalendarPlus className="h-4 w-4" />
@@ -4192,6 +4274,7 @@ export default function AppointmentsPage() {
                 </ContextMenuItem>
                 <ContextMenuItem
                     className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-reminder"
                     onSelect={() => handleCreateReminderFromSlot(slot)}
                 >
                     <BellRing className="h-4 w-4" />
@@ -4199,14 +4282,29 @@ export default function AppointmentsPage() {
                 </ContextMenuItem>
                 <ContextMenuItem
                     className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-note"
                     onSelect={() => handleCreateNoteFromSlot(slot)}
                 >
                     <FileText className="h-4 w-4" />
                     {tReminders('createType.note')}
                 </ContextMenuItem>
+                {blockTarget && (
+                    <>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                            className="flex cursor-pointer items-center gap-2"
+                            data-help-id="appointments.btn.slot-block"
+                            // Next tick, like "Habilitar": the menu releases its pointer-events lock first.
+                            onSelect={() => setTimeout(() => setBlockSlotTarget(blockTarget), 0)}
+                        >
+                            <Ban className="h-4 w-4" />
+                            {tBlockSlot('menuItem')}
+                        </ContextMenuItem>
+                    </>
+                )}
             </>
         );
-    }, [canEnableSlots, enableSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot]);
+    }, [canEnableSlots, enableSlotPermissions.create, enableSlotTargetFor, blockSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot, tBlockSlot]);
 
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
@@ -4579,6 +4677,74 @@ export default function AppointmentsPage() {
         [effectiveEvents],
     );
 
+    // ── Franja horaria visible (preferencia del usuario) ─────────────────────
+    // Solo recorta lo que se ve en las vistas con horas: no toca citas ni horarios.
+    const visibleHoursMode = calendarSettings?.visible_hours_mode ?? DEFAULT_VISIBLE_HOURS_MODE;
+    const isTimeGridView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+    // Días de la rejilla: el rango cargado sin los días ocultos (si se ocultan todos,
+    // la vista los muestra igual).
+    const visibleHoursDays = React.useMemo(() => {
+        if (!isTimeGridView || !fetchRange?.start || !fetchRange?.end) return [];
+        let days: Date[];
+        try {
+            days = eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+        const hidden = calendarSettings?.hidden_weekdays ?? [];
+        const shown = days.filter((day) => !hidden.includes(day.getDay()));
+        return shown.length > 0 ? shown : days;
+    }, [isTimeGridView, fetchRange, calendarSettings?.hidden_weekdays]);
+
+    const preferredVisibleHours = React.useMemo<VisibleHoursRange | null>(() => {
+        if (!isTimeGridView) return null;
+        if (visibleHoursMode === 'custom') {
+            return customVisibleHoursRange(calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end);
+        }
+        if (visibleHoursMode !== 'clinic' || clinicSchedules.length === 0) return null;
+        // Agrupado por consultorio: la jornada de la sede de cada columna en pantalla.
+        // Si no, la de la línea de tiempo (sede por defecto), igual que el bloqueo.
+        const scopes: ClinicHoursScope[] = effectiveGroupBy === 'calendar' && effectiveGroupingColumns.length > 0
+            ? effectiveGroupingColumns.map((col) => {
+                const cal = calendars.find((c) => String(c.id) === String(col.value));
+                const sedeId = cal?.sede_id ? String(cal.sede_id) : '';
+                return { schedules: schedulesForSede(sedeId), exceptions: exceptionsForSede(sedeId || timelineSede) };
+            })
+            : [{ schedules: effectiveSchedules, exceptions: exceptionsForSede(timelineSede) }];
+        return clinicVisibleHoursRange(visibleHoursDays, scopes);
+    }, [isTimeGridView, visibleHoursMode, calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end, clinicSchedules.length, effectiveGroupBy, effectiveGroupingColumns, calendars, schedulesForSede, exceptionsForSede, timelineSede, effectiveSchedules, visibleHoursDays]);
+
+    // "Ver todas las horas" desde el aviso: es temporal (no se guarda) y se apaga al
+    // cambiar la preferencia, para que el cambio se vea en el acto.
+    const [showAllHours, setShowAllHours] = React.useState(false);
+    React.useEffect(() => {
+        setShowAllHours(false);
+    }, [visibleHoursMode, calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end]);
+    const visibleHours = showAllHours ? null : preferredVisibleHours;
+
+    const visibleHoursDayKeys = React.useMemo(
+        () => new Set(visibleHoursDays.map((day) => format(day, 'yyyy-MM-dd'))),
+        [visibleHoursDays],
+    );
+    const hiddenByVisibleHoursCount = React.useMemo(
+        () => (preferredVisibleHours ? countEventsOutsideVisibleHours(gridEvents, preferredVisibleHours, visibleHoursDayKeys) : 0),
+        [preferredVisibleHours, gridEvents, visibleHoursDayKeys],
+    );
+
+    // Una cita elegida en "Buscar cita" que cae fuera de la franja se mostraría
+    // recortada: se abre la vista completa. Se resuelve una vez por elección, cuando
+    // la cita ya está cargada (puede llegar después, al navegar a otra semana).
+    const revealedFocusNonceRef = React.useRef<number | null>(null);
+    React.useEffect(() => {
+        if (!focusedEvent || !preferredVisibleHours || revealedFocusNonceRef.current === focusedEvent.nonce) return;
+        const event = gridEvents.find((e) => String(e.id) === String(focusedEvent.id));
+        if (!event) return;
+        revealedFocusNonceRef.current = focusedEvent.nonce;
+        const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+        const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
+        if (isValid(start) && isValid(end) && isOutsideVisibleHours(start, end, preferredVisibleHours)) setShowAllHours(true);
+    }, [focusedEvent, gridEvents, preferredVisibleHours]);
+
     /**
      * Lo que realmente ocupa la agenda a efectos de "Buscar huecos".
      *
@@ -4745,7 +4911,7 @@ export default function AppointmentsPage() {
         // Shared building blocks reused across the "invoke" and "custom" layouts.
         const statusSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-status" className="cursor-pointer gap-2">
                     <ClipboardCheck className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tStatusMenu('changeStatus')}</span>
@@ -4780,7 +4946,7 @@ export default function AppointmentsPage() {
 
         const moveToSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.move-to" className="cursor-pointer gap-2">
                     <CalendarIcon className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tDrag('moveTo')}</span>
@@ -4809,7 +4975,7 @@ export default function AppointmentsPage() {
 
         const durationSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.duration" className="cursor-pointer gap-2">
                     <Clock className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tDrag('duration')}</span>
@@ -4836,7 +5002,7 @@ export default function AppointmentsPage() {
 
         const doctorSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-doctor" disabled={rowActionPending} className="cursor-pointer gap-2">
                     <UserCog className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
@@ -4873,7 +5039,7 @@ export default function AppointmentsPage() {
         );
         const calendarSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-calendar" disabled={rowActionPending} className="cursor-pointer gap-2">
                     <Building2 className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
@@ -4910,7 +5076,7 @@ export default function AppointmentsPage() {
         );
         const rescheduleItem = canReschedule(appointment.status) ? (
             <ContextMenuItem
-                key="reschedule"
+                data-help-id="appointments.btn.reschedule" key="reschedule"
                 onClick={(e) => {
                     e.stopPropagation();
                     handleReschedule(appointment);
@@ -4923,7 +5089,7 @@ export default function AppointmentsPage() {
         ) : null;
         const editItem = (
             <ContextMenuItem
-                key="edit-appointment"
+                data-help-id="appointments.btn.edit-appointment" key="edit-appointment"
                 onSelect={() => handleEditAppointment(appointment)}
                 className="flex items-center gap-2 cursor-pointer"
             >
@@ -4944,14 +5110,14 @@ export default function AppointmentsPage() {
                 <>
                     <ContextMenuSeparator />
                     <ContextMenuSub>
-                        <ContextMenuSubTrigger disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
+                        <ContextMenuSubTrigger data-help-id="appointments.btn.patient-menu" disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
                             <UserRound className="h-4 w-4 shrink-0" />
                             <span className="min-w-0 flex-1 truncate">{hasPatient ? appointment.patientName : t('createDialog.none')}</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-56">
                             {canViewPatientStatement && (
                                 <ContextMenuItem
-                                    key="patient-accounts"
+                                    data-help-id="appointments.btn.patient-accounts" key="patient-accounts"
                                     onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
                                     className="flex items-center gap-2 cursor-pointer"
                                 >
@@ -4960,7 +5126,7 @@ export default function AppointmentsPage() {
                                 </ContextMenuItem>
                             )}
                             <ContextMenuItem
-                                key="patient-history"
+                                data-help-id="appointments.btn.patient-history" key="patient-history"
                                 onSelect={() => openPatientHistory(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4968,7 +5134,7 @@ export default function AppointmentsPage() {
                                 {t('contextMenu.clinicHistory')}
                             </ContextMenuItem>
                             <ContextMenuItem
-                                key="patient-documents"
+                                data-help-id="appointments.btn.patient-documents" key="patient-documents"
                                 onSelect={() => openPatientDocuments(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4977,7 +5143,7 @@ export default function AppointmentsPage() {
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem
-                                key="patient-appointments-history"
+                                data-help-id="appointments.btn.patient-appointments" key="patient-appointments-history"
                                 onSelect={() => openPatientAppointments(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4986,7 +5152,7 @@ export default function AppointmentsPage() {
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem
-                                key="patient-data"
+                                data-help-id="appointments.btn.patient-data" key="patient-data"
                                 onSelect={() => openPatientView({
                                     userId: appointment.patientId,
                                     userName: appointment.patientName,
@@ -5018,7 +5184,7 @@ export default function AppointmentsPage() {
                     <ContextMenuSeparator />
                     {editItem}
                     <ContextMenuItem
-                        key="delete"
+                        data-help-id="appointments.btn.delete-appointment" key="delete"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSoftDeleteTarget(appointment);
@@ -5031,7 +5197,7 @@ export default function AppointmentsPage() {
 
                     <ContextMenuSeparator />
                     <ContextMenuSub>
-                        <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                        <ContextMenuSubTrigger data-help-id="appointments.btn.change-color" className="cursor-pointer gap-2">
                             <Palette className="h-4 w-4 shrink-0" />
                             {tPanel('changeColor')}
                         </ContextMenuSubTrigger>
@@ -5059,7 +5225,7 @@ export default function AppointmentsPage() {
             {durationSubmenu}
             {rescheduleItem}
             <ContextMenuItem
-                key="clinic-session"
+                data-help-id="appointments.btn.clinic-session" key="clinic-session"
                 onClick={(e) => {
                     e.stopPropagation();
                     handleOpenClinicSession(appointment);
@@ -5147,7 +5313,7 @@ export default function AppointmentsPage() {
 
                 <ContextMenuSeparator />
                 <ContextMenuItem
-                    key="delete"
+                    data-help-id="appointments.btn.delete-appointment" key="delete"
                     onClick={(e) => {
                         e.stopPropagation();
                         setSoftDeleteTarget(appointment);
@@ -5198,6 +5364,7 @@ export default function AppointmentsPage() {
                 {/* Left: selection counter — always visible */}
                 <div className="flex items-center gap-2 shrink-0">
                     <Checkbox
+                        data-help-id="appointments.field.bulk-select-all"
                         checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
                         onCheckedChange={(c) => handleSelectAllVisible(!!c)}
                     />
@@ -5223,7 +5390,7 @@ export default function AppointmentsPage() {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     {/* Date preset selector */}
                     <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                        <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
+                        <SelectTrigger data-help-id="appointments.filter.bulk-period" className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -5240,7 +5407,7 @@ export default function AppointmentsPage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <Button data-help-id="appointments.filter.bulk-doctors" variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
                                         <Users className="h-3.5 w-3.5 shrink-0" />
                                         {!isBulkToolbarCompact && tBulk('doctorFilter')}
                                         {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
@@ -5283,7 +5450,7 @@ export default function AppointmentsPage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <Button data-help-id="appointments.filter.bulk-calendars" variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
                                         <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
                                         {!isBulkToolbarCompact && tBulk('calendarFilter')}
                                         {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
@@ -5331,7 +5498,7 @@ export default function AppointmentsPage() {
                                 size="sm"
                                 className="h-8 gap-1.5 text-xs"
                                 disabled={bulkSelectedIds.size === 0}
-                                onClick={() => setIsReassignDialogOpen(true)}
+                                data-help-id="appointments.btn.bulk-reassign" onClick={() => setIsReassignDialogOpen(true)}
                             >
                                 <Stethoscope className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('reassignDoctor')}
@@ -5341,7 +5508,7 @@ export default function AppointmentsPage() {
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                            <Button data-help-id="appointments.btn.bulk-exit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
                                 <X className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('exitBulkMode')}
                             </Button>
@@ -5447,6 +5614,31 @@ export default function AppointmentsPage() {
                                 onClose={handleCloseSearch}
                             />
                         )}
+                        {/* Aviso de la franja horaria: cuántas citas quedan fuera y acceso
+                            temporal a la vista completa. Cede el lugar al error de carga. */}
+                        {!appointmentsError && preferredVisibleHours && (showAllHours || hiddenByVisibleHoursCount > 0) && (
+                            <div
+                                className="absolute bottom-3 left-1/2 z-40 flex w-max max-w-[92%] -translate-x-1/2 items-center gap-2 rounded-full border bg-card/95 py-1 pl-3 pr-1 text-xs text-muted-foreground shadow-lg backdrop-blur"
+                                role="status"
+                                data-help-id="appointments.section.visible-hours-notice"
+                            >
+                                <AlarmClock className="h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                    {showAllHours
+                                        ? tCalendar('visibleHours.showingAll')
+                                        : tCalendar('visibleHours.outsideCount', { count: hiddenByVisibleHoursCount })}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 shrink-0 rounded-full px-2.5 text-xs font-medium text-primary"
+                                    data-help-id="appointments.btn.visible-hours-toggle"
+                                    onClick={() => setShowAllHours((v) => !v)}
+                                >
+                                    {showAllHours ? tCalendar('visibleHours.backToRange') : tCalendar('visibleHours.showAll')}
+                                </Button>
+                            </div>
+                        )}
                         {appointmentsError && (
                             <div className="absolute bottom-3 left-1/2 z-40 flex w-[min(92%,28rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-destructive/30 bg-card/95 px-3 py-2 text-xs text-destructive shadow-lg backdrop-blur">
                                 <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -5462,6 +5654,7 @@ export default function AppointmentsPage() {
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
                             hiddenWeekdays={calendarSettings?.hidden_weekdays}
+                            visibleHours={visibleHours}
                             events={gridEvents}
                             allDayEvents={allDayEvents}
                             focusDate={searchFocusDate}
@@ -5505,7 +5698,7 @@ export default function AppointmentsPage() {
                                     variant={agendasPanelOpen ? 'default' : 'outline'}
                                     size="sm"
                                     className="h-10 gap-1.5 shrink-0"
-                                    onClick={() => setAgendasPanelOpen((o) => !o)}
+                                    data-help-id="appointments.btn.agendas" onClick={() => setAgendasPanelOpen((o) => !o)}
                                     title="Ctrl+B"
                                 >
                                     <CalendarDays className="h-4 w-4" />
@@ -5539,7 +5732,7 @@ export default function AppointmentsPage() {
                                         variant={searchActive ? 'default' : 'outline'}
                                         size="sm"
                                         className="h-10 w-full justify-start gap-2"
-                                        onClick={handleToggleSearch}
+                                        data-help-id="appointments.btn.search" onClick={handleToggleSearch}
                                     >
                                         <Search className="h-4 w-4 shrink-0" />
                                         <span className="truncate">{tSearch('button')}</span>
@@ -5549,7 +5742,7 @@ export default function AppointmentsPage() {
                                             variant={gapsActive ? 'default' : 'outline'}
                                             size="sm"
                                             className="h-10 justify-start gap-2"
-                                            onClick={handleToggleGaps}
+                                            data-help-id="appointments.btn.gaps" onClick={handleToggleGaps}
                                         >
                                             <CalendarSearch className="h-4 w-4 shrink-0" />
                                             <span className="truncate">{tGaps('button')}</span>
@@ -5757,7 +5950,7 @@ export default function AppointmentsPage() {
                                                     variant={searchActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
-                                                    onClick={handleToggleSearch}
+                                                    data-help-id="appointments.btn.search" onClick={handleToggleSearch}
                                                 >
                                                     <Search className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
@@ -5773,7 +5966,7 @@ export default function AppointmentsPage() {
                                                     variant={gapsActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
-                                                    onClick={handleToggleGaps}
+                                                    data-help-id="appointments.btn.gaps" onClick={handleToggleGaps}
                                                 >
                                                     <CalendarSearch className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
@@ -5785,7 +5978,7 @@ export default function AppointmentsPage() {
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button
+                                                <Button data-help-id="appointments.btn.bulk"
                                                     variant={isBulkMode ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
@@ -5810,6 +6003,7 @@ export default function AppointmentsPage() {
                                                 <TooltipTrigger asChild>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button
+                                                            data-help-id="appointments.btn.create-menu"
                                                             variant={isMobile ? "ghost" : "default"}
                                                             size={primaryIconOnly ? "icon" : "sm"}
                                                             className={primaryIconOnly ? (isMobile ? "h-8 w-8" : "h-10 w-10") : "h-10 gap-1.5"}
@@ -5831,6 +6025,7 @@ export default function AppointmentsPage() {
                                         </TooltipProvider>
                                         <DropdownMenuContent align="end" className="w-64 p-1.5">
                                             <DropdownMenuItem
+                                                data-help-id="appointments.btn.new-appointment"
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
                                                 onSelect={handleNewAppointmentClick}
                                             >
@@ -5846,7 +6041,7 @@ export default function AppointmentsPage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                                onSelect={handleNewReminderClick}
+                                                data-help-id="appointments.btn.new-reminder" onSelect={handleNewReminderClick}
                                             >
                                                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
                                                     <BellRing className="h-4 w-4" />
@@ -5860,7 +6055,7 @@ export default function AppointmentsPage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                                onSelect={handleNewNoteClick}
+                                                data-help-id="appointments.btn.new-note" onSelect={handleNewNoteClick}
                                             >
                                                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-100 text-sky-700">
                                                     <FileText className="h-4 w-4" />
@@ -5894,7 +6089,7 @@ export default function AppointmentsPage() {
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.print" onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <FileSpreadsheet className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
@@ -5904,7 +6099,7 @@ export default function AppointmentsPage() {
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.refresh" onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </TooltipTrigger>
@@ -5943,7 +6138,7 @@ export default function AppointmentsPage() {
                                             size="sm"
                                             className="h-7 shrink-0 gap-1.5"
                                             disabled={bulkSelectedIds.size === 0}
-                                            onClick={() => setIsReassignDialogOpen(true)}
+                                            data-help-id="appointments.btn.bulk-reassign" onClick={() => setIsReassignDialogOpen(true)}
                                         >
                                             <Stethoscope className="h-3.5 w-3.5" />
                                             {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
@@ -6122,6 +6317,14 @@ export default function AppointmentsPage() {
                 onEnabled={loadClinicExceptions}
             />
 
+            <BlockSlotDialog
+                target={blockSlotTarget}
+                permissions={enableSlotPermissions}
+                onOpenChange={(open) => { if (!open) setBlockSlotTarget(null); }}
+                onBlocked={loadClinicExceptions}
+                loadDayAppointments={loadDayAppointmentsForBlock}
+            />
+
             <AppointmentFormDialog
                 open={isCreateOpen}
                 onOpenChange={handleOpenChange}
@@ -6149,16 +6352,10 @@ export default function AppointmentsPage() {
                 onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
                 initialName={inlineCreatePatient.initialName}
                 showCancelAction={isCustomMode}
-                onCreated={(created) => {
-                    setInlineDraft((d) => {
-                        if (!d) return d;
-                        // Same default-doctor rule as picking an existing patient.
-                        const defaultDoctor = !d.doctor && created.doctor_id
-                            ? doctors.find((doc) => String(doc.id) === String(created.doctor_id)) ?? null
-                            : null;
-                        return { ...d, patient: created, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
-                    });
-                }}
+                withDependents
+                onCreated={applyPatientToInlineDraft}
+                // Cédula/teléfono de una ficha existente: recepción la elige y sigue con la cita.
+                onSelectExisting={applyPatientToInlineDraft}
             />
             <AlertDialog
                 open={isInlineDiscardConfirmOpen}
@@ -6290,6 +6487,7 @@ export default function AppointmentsPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isSoftDeleting}>{tPanel('deleteCancel')}</AlertDialogCancel>
                         <AlertDialogAction
+                            data-help-id="appointments.btn.delete-confirm"
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             disabled={isSoftDeleting}
                             onClick={(e) => {

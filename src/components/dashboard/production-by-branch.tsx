@@ -26,7 +26,7 @@ export function ProductionByBranch({ data, currency, isLoading, className }: Pro
   const t = useTranslations('DashboardGerencial');
 
   return (
-    <Card className={cn('flex flex-col', className)}>
+    <Card data-help-id="dashboard.section.branches" className={cn('flex flex-col', className)}>
       <CardHeader className="flex-row items-center gap-2 space-y-0 border-b py-3.5">
         <CardTitle className="text-sm font-extrabold tracking-tight">{t('branches')}</CardTitle>
         {data?.sede_source === 'estimated' && <EstimatedBadge />}

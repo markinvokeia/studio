@@ -1,0 +1,19 @@
+{
+  "id": "system.licenses",
+  "summary": "Invoke license.",
+  "purpose": "The plan purchased, its limits (doctors, users, new patients per month) and its expiration.",
+  "elements": {
+    "system.licenses.section.master-key": {
+      "label": "Master key",
+      "description": "License management is protected: first you enter the Invoke IA master key. Without it you can't see or generate licenses."
+    },
+    "system.licenses.section.generate-new": {
+      "label": "Generate license",
+      "description": "Type, dates, limits and AI access."
+    },
+    "system.licenses.section.generated-key": {
+      "label": "Current license",
+      "description": "The current key."
+    }
+  }
+}

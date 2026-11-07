@@ -12,6 +12,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportPacientesInactivosResponse, ReportPacientesInactivosRow } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -89,7 +90,7 @@ export default function PacientesInactivosPage() {
 
   const columns: ColumnDef<ReportPacientesInactivosRow>[] = [
     { accessorKey: 'patient_name', header: t('col_paciente'), size: printMode ? 260 : undefined },
-    { accessorKey: 'phone_number', header: t('col_telefono'), size: 120 },
+    { accessorKey: 'phone_number', header: t('col_telefono'), size: 120, cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     {
       accessorKey: 'last_activity_date',
       header: t('col_ultima_actividad'),
@@ -272,7 +273,7 @@ export default function PacientesInactivosPage() {
                     <div key={r.id} className="flex items-center justify-between text-sm gap-2">
                       <div className="min-w-0">
                         <p className="truncate font-medium max-w-[160px]">{r.patient_name}</p>
-                        <p className="text-xs text-muted-foreground">{r.phone_number}</p>
+                        <p className="text-xs text-muted-foreground">{formatPhoneNumber(r.phone_number)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         {r.days_inactive != null ? (

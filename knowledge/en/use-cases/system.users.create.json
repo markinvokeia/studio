@@ -1,0 +1,53 @@
+{
+  "id": "system.users.create",
+  "title": "Create a user",
+  "summary": "New user.",
+  "module": "System",
+  "inputs": {
+    "name": "Name",
+    "email": "Email"
+  },
+  "keywords": [
+    "new user",
+    "create user"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Users",
+      "details": "Everyone who signs in to the system (doctors, receptionists, administration) with their roles."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "email",
+      "title": "Email"
+    },
+    {
+      "id": "phone",
+      "title": "Phone"
+    },
+    {
+      "id": "identity_document",
+      "title": "ID"
+    },
+    {
+      "id": "active_sede_id",
+      "title": "Default branch"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

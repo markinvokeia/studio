@@ -3,6 +3,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -67,6 +68,7 @@ import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText,
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -240,6 +242,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
             <Button
               variant="outline"
               size="sm"
+              data-help-id="purchases.providers.btn.notes-edit"
               onClick={() => setIsEditing(true)}
             >
               {t('ProvidersPage.notes.edit')}
@@ -257,6 +260,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
               </Button>
               <Button
                 size="sm"
+                data-help-id="purchases.providers.btn.notes-save"
                 onClick={handleSave}
                 disabled={isSaving}
               >
@@ -340,7 +344,7 @@ function ProvidersTableNarrow({
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -799,7 +803,7 @@ function ProvidersPageContent() {
         rightPanel={
           selectedProvider && canViewDetail ? (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex-none p-4 pb-2 space-y-0">
+              <CardHeader data-help-id="purchases.providers.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <div className="header-icon-circle flex-none">
@@ -814,7 +818,7 @@ function ProvidersPageContent() {
                     {/* + Quick create dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
+                          <Button data-help-id="purchases.providers.btn.create-menu" variant="default" size="sm" className="h-8 gap-1.5 px-3">
                             <Plus className="h-4 w-4" />
                             <span className="hidden sm:inline">{t('ProvidersPage.quickCreate.title')}</span>
                             <ChevronDown className="h-3.5 w-3.5 opacity-70 hidden sm:block" />
@@ -823,19 +827,19 @@ function ProvidersPageContent() {
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuLabel className="text-xs text-muted-foreground">{t('ProvidersPage.quickCreate.financial')}</DropdownMenuLabel>
                           {canCreateQuote && (
-                            <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
+                            <DropdownMenuItem data-help-id="purchases.providers.btn.new-quote" onClick={() => setIsQuoteDialogOpen(true)}>
                               <FileText className="h-4 w-4 mr-2 text-emerald-600" />
                               {t('ProvidersPage.quickCreate.quote')}
                             </DropdownMenuItem>
                           )}
                           {canCreateInvoice && (
-                            <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
+                            <DropdownMenuItem data-help-id="purchases.providers.btn.new-invoice" onClick={() => setIsInvoiceDialogOpen(true)}>
                               <Receipt className="h-4 w-4 mr-2 text-emerald-600" />
                               {t('ProvidersPage.quickCreate.invoice')}
                             </DropdownMenuItem>
                           )}
                           {canCreatePayment && (
-                            <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
+                            <DropdownMenuItem data-help-id="purchases.providers.btn.new-prepaid" onClick={() => setIsPrepaidDialogOpen(true)}>
                               <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />
                               {t('ProvidersPage.quickCreate.prepaid')}
                             </DropdownMenuItem>
@@ -846,6 +850,7 @@ function ProvidersPageContent() {
                     <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
                       <PopoverTrigger asChild>
                         <Button
+                          data-help-id="purchases.providers.btn.preferences"
                           variant={isPreferencesOpen ? 'secondary' : 'outline'}
                           size="sm"
                           className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
@@ -873,6 +878,7 @@ function ProvidersPageContent() {
                                 ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                 : "text-green-600 hover:bg-green-50"
                             )}
+                            data-help-id="purchases.providers.btn.toggle-active"
                             onClick={() => handleToggleActivate(selectedProvider)}
                           >
                             <ToggleLeft className="h-5 w-5" />
@@ -913,6 +919,7 @@ function ProvidersPageContent() {
                   {isValidString(selectedProvider.email) && (
                     <button
                       type="button"
+                      data-help-id="purchases.providers.btn.email"
                       onClick={() => setIsEmailDialogOpen(true)}
                       className="flex items-center gap-1 max-w-[220px] truncate hover:text-foreground hover:underline"
                     >
@@ -923,17 +930,18 @@ function ProvidersPageContent() {
                   {isValidString(selectedProvider.phone_number) && (
                     <button
                       type="button"
+                      data-help-id="purchases.providers.btn.whatsapp"
                       onClick={() => setIsWhatsAppDialogOpen(true)}
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
                     >
                       <WhatsAppIcon className="h-3 w-3" />
-                      {selectedProvider.phone_number}
+                      {formatPhoneNumber(selectedProvider.phone_number)}
                     </button>
                   )}
                   {isValidString(selectedProvider.alternative_phone) && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
-                      {selectedProvider.alternative_phone}
+                      {formatPhoneNumber(selectedProvider.alternative_phone)}
                     </span>
                   )}
                   {isValidString(selectedProvider.identity_document) && (
@@ -988,6 +996,7 @@ function ProvidersPageContent() {
                       />
                     );
                   })()}
+                  <HelpScopeProvider scope="purchases.providers.detail">
                   <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-3">
                     {activeTab === 'info' && (
                       <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-lg bg-muted/30 p-3">
@@ -1010,7 +1019,7 @@ function ProvidersPageContent() {
                               )} />
                               <FormField control={detailForm.control} name="phone" render={({ field }) => (
                                 <FormItem><FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel><FormControl>
-                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                                 </FormControl><FormMessage /></FormItem>
                               )} />
                               <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -1021,7 +1030,7 @@ function ProvidersPageContent() {
                               )} />
                               <FormField control={detailForm.control} name="alternative_phone" render={({ field }) => (
                                 <FormItem><FormLabel>{t('ProvidersPage.createDialog.alternative_phone')}</FormLabel><FormControl>
-                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                                 </FormControl><FormMessage /></FormItem>
                               )} />
                               <FormField control={detailForm.control} name="bank_account" render={({ field }) => (
@@ -1097,6 +1106,7 @@ function ProvidersPageContent() {
                       <NotesTab user={selectedProvider} onUpdate={handleUpdateNotes} />
                     )}
                   </div>
+                  </HelpScopeProvider>
                 </div>
               </CardContent>
             </Card>
@@ -1199,7 +1209,6 @@ function ProvidersPageContent() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />
@@ -1244,7 +1253,6 @@ function ProvidersPageContent() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

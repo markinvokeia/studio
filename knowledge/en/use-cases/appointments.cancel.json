@@ -1,0 +1,45 @@
+{
+  "id": "appointments.cancel",
+  "title": "Cancel an appointment",
+  "summary": "Cancel with the right reason: in advance, late, by the doctor, without notice, by the clinic or other.",
+  "module": "Calendar",
+  "keywords": [
+    "cancel",
+    "cancellation",
+    "void appointment",
+    "reason",
+    "without notice",
+    "drop appointment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "open-menu",
+      "title": "Right-click the appointment",
+      "details": "The appointment menu opens. If you don't see it, change the day with the arrows or use Find appointment."
+    },
+    {
+      "id": "status-menu",
+      "title": "Change status",
+      "details": "Hover over Change status to see the statuses."
+    },
+    {
+      "id": "reason",
+      "title": "Choose the reason",
+      "details": "In advance: they let you know ahead of time. Late: they let you know at the last minute. By the doctor: the doctor cancels it. Under Cancel… you'll find without notice, by the clinic and Other reason (with a note). The reason stays in the history and in the cancellation reports."
+    },
+    {
+      "id": "note",
+      "title": "Cancellation note",
+      "details": "Only with Other reason: explain why it's being canceled."
+    },
+    {
+      "id": "confirm",
+      "title": "Confirm the cancellation"
+    }
+  ]
+}

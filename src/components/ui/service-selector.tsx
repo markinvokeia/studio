@@ -51,15 +51,18 @@ export function ServiceSelector({
     value,
     selectedServiceName,
     onValueChange,
-    placeholder = 'Buscar servicio...',
-    noResultsText = 'No se encontraron servicios.',
-    loadingText = 'Cargando...',
-    triggerText = 'Seleccionar servicio',
+    placeholder: placeholderProp,
+    noResultsText,
+    loadingText: loadingTextProp,
+    triggerText: triggerTextProp,
     className,
     disabled = false,
     'aria-invalid': ariaInvalid,
 }: ServiceSelectorProps) {
-    const t = useTranslations('General');
+    const t = useTranslations('EntitySelectors');
+    const placeholder = placeholderProp ?? t('searchService');
+    const loadingText = loadingTextProp ?? t('loading');
+    const triggerText = triggerTextProp ?? t('selectService');
     const { hasPermission } = usePermissions();
     const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -72,7 +75,7 @@ export function ServiceSelector({
     const [isCreating, setIsCreating] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const noResultsMessage = noResultsText || t('noResults');
+    const noResultsMessage = noResultsText || t('noServices');
 
     // Reset create mode when search query changes
     React.useEffect(() => {
@@ -269,7 +272,7 @@ export function ServiceSelector({
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">
-                                                    Este servicio se creará automáticamente
+                                                    {t('serviceWillBeCreated')}
                                                 </p>
                                                 <div className="flex items-center gap-2 px-1">
                                                     <span className="text-sm flex-1 truncate font-medium">
@@ -283,7 +286,7 @@ export function ServiceSelector({
                                                         type="button"
                                                     >
                                                         {isSaving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                                                        Guardar
+                                                        {t('save')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -294,7 +297,7 @@ export function ServiceSelector({
                                                 type="button"
                                             >
                                                 <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">Crear "{searchQuery}"</span>
+                                                <span className="truncate">{t('createNamed', { name: searchQuery })}</span>
                                             </button>
                                         )}
                                     </div>

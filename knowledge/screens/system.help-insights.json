@@ -1,0 +1,43 @@
+{
+  "id": "system.help-insights",
+  "status": "draft",
+  "summary": "Métricas del asistente de Invoke: preguntas, resolución, tickets, videos y avance del onboarding.",
+  "purpose": "Muestra cuánto resuelve solo el asistente, qué se escala al equipo y en qué pantallas se traba la gente. Desde acá se trabaja la cola de preguntas sin resolver y los tickets.",
+  "tips": [
+    "Una pregunta sin resolver se cierra completando la ficha o la guía de su pantalla en knowledge/ y marcándola como resuelta.",
+    "La meta es que el asistente resuelva el 85% de las preguntas y que el fin de semana sólo lleguen incidentes críticos."
+  ],
+  "useCases": [
+    "system.help-insights.overview"
+  ],
+  "elements": {
+    "system.help-insights.section.by-week": {
+      "label": "Por semana",
+      "description": "Preguntas, guías iniciadas y resueltas."
+    },
+    "system.help-insights.section.by-screen": {
+      "label": "Por pantalla",
+      "description": "Dónde más se pide ayuda."
+    },
+    "system.help-insights.section.open": {
+      "label": "Preguntas sin buena respuesta",
+      "description": "Lo que la gente pidió y no le sirvió: candidatos a guía nueva."
+    },
+    "system.help-insights.section.tickets": {
+      "label": "Tickets",
+      "description": "Consultas derivadas a soporte."
+    },
+    "system.help-insights.section.catalog": {
+      "label": "Catálogo",
+      "description": "Versión del mapa del producto publicada."
+    },
+    "system.help-insights.section.videos": {
+      "label": "Videos",
+      "description": "Pedidos de videos de guías."
+    },
+    "system.help-insights.section.onboarding": {
+      "label": "Puesta en marcha",
+      "description": "Avance de las clínicas en el onboarding."
+    }
+  }
+}

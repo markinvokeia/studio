@@ -1,0 +1,71 @@
+{
+  "id": "clinic-catalog.dental-surfaces.overview",
+  "title": "Recorrer Superficies Dentales",
+  "module": "Catálogo de la Clínica",
+  "summary": "Las caras de cada pieza (oclusal, mesial, distal…) que se eligen en el odontograma.",
+  "screens": [
+    "clinic-catalog.dental-surfaces"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "superficies dentales",
+    "superficie dental",
+    "catálogo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/dental-surfaces",
+      "title": "Menú → Catálogo de la Clínica → Superficies Dentales",
+      "details": "Las caras de cada pieza (oclusal, mesial, distal…) que se eligen en el odontograma."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "clinic-catalog.dental-surfaces.filter.search",
+      "title": "Buscá la superficie dental",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.section.first-row",
+      "title": "Elegí la superficie dental",
+      "until": "clinic-catalog.dental-surfaces.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.section.detail",
+      "title": "Detalle"
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.btn.delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.btn.new",
+      "title": "Crear",
+      "skipIfMissing": true
+    }
+  ]
+}

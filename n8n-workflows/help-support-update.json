@@ -1,0 +1,151 @@
+{
+  "name": "Help - Soporte Actualizar",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "help/support/update",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "id": "node-auth",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst b = input.body || {};\nconst type = b.type === 'ticket' ? 'ticket' : b.type === 'question' ? 'question' : null;\nif (!type) throw new Error('type inválido');\nconst id = String(b.id || '');\nif (!(type === 'ticket' ? /^\\d{1,12}$/ : /^[0-9a-f-]{36}$/i).test(id)) throw new Error('id inválido');\nconst STATUSES = { question: ['resolved', 'ignored', 'open'], ticket: ['open', 'in_progress', 'resolved', 'closed'] };\nconst status = String(b.status || '');\nif (!STATUSES[type].includes(status)) throw new Error('status inválido');\nconst note = typeof b.note === 'string' ? b.note.slice(0, 2000) : '';\nreturn [{ json: { user_id: String(userId), type, id, status, note } }];"
+      },
+      "position": [
+        330,
+        300
+      ]
+    },
+    {
+      "id": "node-pg-update",
+      "name": "Actualizar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH allowed AS (\n    SELECT EXISTS (\n    SELECT 1\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND COALESCE((to_jsonb(ur) ->> 'is_active')::boolean, true)\n       AND p.code = 'HELP_INSIGHTS_VIEW'\n  ) AS ok\n), q AS (\n    UPDATE public.help_questions\n       SET resolution_status = $4,\n           feedback = CASE WHEN $5 = '' THEN feedback ELSE concat_ws(E'\\n', feedback, $5) END\n     WHERE $2 = 'question' AND id::text = $3 AND (SELECT ok FROM allowed)\n    RETURNING id::text\n), t AS (\n    UPDATE public.help_support_tickets\n       SET status = $4,\n           resolution = COALESCE(NULLIF($5, ''), resolution),\n           assigned_to = COALESCE(assigned_to, $1::uuid),\n           updated_at = now()\n     WHERE $2 = 'ticket' AND id::text = $3 AND (SELECT ok FROM allowed)\n    RETURNING id::text\n)\nSELECT (SELECT ok FROM allowed) AS allowed, COALESCE((SELECT id FROM q), (SELECT id FROM t)) AS id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.type, $json.id, $json.status, $json.note ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const row = $input.first()?.json || {};\nif (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));\nif (!row.allowed) return [{ json: { status: 403, body: { error: 'forbidden', message: 'Falta el permiso HELP_INSIGHTS_VIEW' } } }];\nreturn [{ json: { status: row.id ? 200 : 404, body: { id: row.id ?? null } } }];"
+      },
+      "position": [
+        790,
+        300
+      ]
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "position": [
+        1020,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Actualizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN:\n1. Credenciales ya asignadas: \"JWT Auth account\" en el Webhook y \"Postgres account\" en los nodos Postgres.\n2. Activar el workflow.\n\nGENERADO por scripts/n8n/generate-help-workflows.mjs — no editar a mano.\nTablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql\n\nRUTA: POST /webhook/help/support/update (Authorization: Bearer <JWT>)\nBODY: { type: 'question' | 'ticket', id, status, note? }\n  question: status resolved | ignored | open\n  ticket:   status open | in_progress | resolved | closed\nPERMISO: HELP_INSIGHTS_VIEW."
+  }
+}

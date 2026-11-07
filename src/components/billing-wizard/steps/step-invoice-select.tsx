@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,15 +40,17 @@ interface InvoiceDetail {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function paymentStatusBadge(status?: string): { label: string; cls: string } | null {
+type PaymentStatusKey = 'paid' | 'partial' | 'unpaid' | 'overdue' | 'cancelled' | 'pending';
+
+function paymentStatusBadge(status?: string): { key: PaymentStatusKey; cls: string } | null {
   switch (status) {
-    case 'paid':          return { label: 'Pagado',       cls: 'border-emerald-400 text-emerald-700' };
+    case 'paid':          return { key: 'paid',      cls: 'border-emerald-400 text-emerald-700' };
     case 'partial':
-    case 'partially_paid': return { label: 'Pago parcial', cls: 'border-amber-400 text-amber-700' };
-    case 'unpaid':        return { label: 'Sin pagar',    cls: 'border-slate-300 text-slate-500' };
-    case 'overdue':       return { label: 'Vencido',      cls: 'border-red-400 text-red-600' };
-    case 'cancelled':     return { label: 'Cancelado',    cls: 'border-slate-300 text-slate-500' };
-    case 'pending':       return { label: 'Pendiente',    cls: 'border-amber-300 text-amber-600' };
+    case 'partially_paid': return { key: 'partial',   cls: 'border-amber-400 text-amber-700' };
+    case 'unpaid':        return { key: 'unpaid',    cls: 'border-slate-300 text-slate-500' };
+    case 'overdue':       return { key: 'overdue',   cls: 'border-red-400 text-red-600' };
+    case 'cancelled':     return { key: 'cancelled', cls: 'border-slate-300 text-slate-500' };
+    case 'pending':       return { key: 'pending',   cls: 'border-amber-300 text-amber-600' };
     default:              return null;
   }
 }
@@ -94,6 +97,7 @@ async function fetchInvoiceDetail(
   invoiceId: string,
   isSales: boolean,
   fallbackCurrency: string,
+  serviceFallback: (serviceId: string) => string,
 ): Promise<InvoiceDetail> {
   const itemsEndpoint = isSales
     ? API_ROUTES.SALES.INVOICE_ITEMS
@@ -119,7 +123,7 @@ async function fetchInvoiceDetail(
   const items: InvoiceLineItem[] = rawItems.map((item: any) => ({
     id: String(item.id || item.invoice_item_id || Math.random()),
     description:
-      item.service_name || item.description || item.name || `Servicio #${item.service_id}`,
+      item.service_name || item.description || item.name || serviceFallback(String(item.service_id)),
     toothNumber: item.tooth_number ? Number(item.tooth_number) : undefined,
     quantity: Number(item.quantity || 1),
     total: Math.abs(Number(item.total || item.amount || 0)),
@@ -152,6 +156,7 @@ export function StepInvoiceSelect({
   newlyCreatedInvoiceId,
   embedded = false,
 }: StepInvoiceSelectProps) {
+  const t = useTranslations('BillingWizard');
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
   // null = currently loading; InvoiceDetail = loaded
   const [detailCache, setDetailCache] = React.useState<Map<string, InvoiceDetail | null>>(
@@ -182,6 +187,7 @@ export function StepInvoiceSelect({
             invoiceId,
             isSales,
             inv.currency || getClinicCurrency(),
+            (id) => t('invoices.serviceFallback', { id }),
           );
           setDetailCache((prev) => new Map(prev).set(invoiceId, detail));
         } catch {
@@ -191,7 +197,7 @@ export function StepInvoiceSelect({
         }
       }
     },
-    [detailCache, isSales],
+    [detailCache, isSales, t],
   );
 
   if (isLoading) {
@@ -217,8 +223,7 @@ export function StepInvoiceSelect({
         <div className="rounded-lg border bg-muted/30 px-4 py-3 space-y-1">
           {patientName && <p className="text-sm font-semibold">{patientName}</p>}
           <p className="text-xs text-muted-foreground">
-            {subtitle ??
-              'Este presupuesto ya está completamente facturado. Selecciona las facturas que deseas cobrar.'}
+            {subtitle ?? t('invoices.fullyInvoicedHint')}
           </p>
         </div>
       )}
@@ -226,13 +231,13 @@ export function StepInvoiceSelect({
       {/* Invoice list */}
       <div className="space-y-1">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Facturas pendientes de pago
+          {t('invoices.pendingTitle')}
         </p>
         {invoices.length === 0 ? (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              No hay facturas pendientes de pago para este presupuesto.
+              {t('invoices.empty')}
             </AlertDescription>
           </Alert>
         ) : (
@@ -263,14 +268,14 @@ export function StepInvoiceSelect({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-sm font-medium truncate">
-                            Factura #{inv.doc_no || inv.invoice_doc_no || inv.id}
+                            {t('invoices.docLabel', { doc: inv.doc_no || inv.invoice_doc_no || inv.id })}
                           </span>
                           {newlyCreatedInvoiceId && inv.id === newlyCreatedInvoiceId && (
                             <Badge
                               variant="outline"
                               className="shrink-0 text-[10px] border-emerald-400 text-emerald-700"
                             >
-                              Nueva
+                              {t('invoices.newBadge')}
                             </Badge>
                           )}
                         </div>
@@ -289,12 +294,12 @@ export function StepInvoiceSelect({
                             variant="outline"
                             className={cn('text-[10px]', statusBadge.cls)}
                           >
-                            {statusBadge.label}
+                            {t(`invoices.status.${statusBadge.key}`)}
                           </Badge>
                         )}
                         {(inv.paid_amount || 0) > 0 && (
                           <span className="text-xs text-muted-foreground">
-                            Pagado: {fmtCurrency(inv.paid_amount || 0, invCurrency)}
+                            {t('invoices.paidAmount', { amount: fmtCurrency(inv.paid_amount || 0, invCurrency) })}
                           </span>
                         )}
                       </div>
@@ -313,7 +318,7 @@ export function StepInvoiceSelect({
                       ) : (
                         <ChevronRight className="h-3.5 w-3.5" />
                       )}
-                      <span>Detalle</span>
+                      <span>{t('invoices.detail')}</span>
                     </button>
                   </div>
 
@@ -328,7 +333,7 @@ export function StepInvoiceSelect({
                         </div>
                       ) : !cachedDetail || (cachedDetail.items.length === 0 && cachedDetail.payments.length === 0) ? (
                         <p className="px-4 py-3 text-xs text-muted-foreground italic">
-                          Sin detalle disponible.
+                          {t('invoices.noDetail')}
                         </p>
                       ) : (
                         <>
@@ -336,7 +341,7 @@ export function StepInvoiceSelect({
                           {cachedDetail.items.length > 0 && (
                             <div className="px-4 py-2.5 space-y-1.5">
                               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                Servicios facturados
+                                {t('invoices.servicesInvoiced')}
                               </p>
                               {cachedDetail.items.map((item) => (
                                 <div
@@ -347,7 +352,7 @@ export function StepInvoiceSelect({
                                     {item.description}
                                     {item.toothNumber ? (
                                       <span className="ml-1 text-muted-foreground">
-                                        D.{item.toothNumber}
+                                        {t('toothAbbr', { tooth: item.toothNumber })}
                                       </span>
                                     ) : null}
                                     {item.quantity > 1 ? (
@@ -368,7 +373,7 @@ export function StepInvoiceSelect({
                           {cachedDetail.payments.length > 0 && (
                             <div className="px-4 py-2.5 space-y-1.5">
                               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                Cobros registrados
+                                {t('invoices.paymentsRecorded')}
                               </p>
                               {cachedDetail.payments.map((pmt) => (
                                 <div
@@ -402,14 +407,14 @@ export function StepInvoiceSelect({
                           {/* ── Totals ── */}
                           <div className="px-4 py-2.5 space-y-1">
                             <div className="flex justify-between text-xs font-semibold">
-                              <span>Total factura</span>
+                              <span>{t('invoices.invoiceTotal')}</span>
                               <span className="tabular-nums">
                                 {fmtCurrency(inv.total || 0, invCurrency)}
                               </span>
                             </div>
                             {(inv.paid_amount || 0) > 0 && (
                               <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Cobrado</span>
+                                <span>{t('invoices.collected')}</span>
                                 <span className="tabular-nums text-emerald-700">
                                   {fmtCurrency(inv.paid_amount || 0, invCurrency)}
                                 </span>
@@ -421,7 +426,7 @@ export function StepInvoiceSelect({
                                 pending > 0 ? 'text-amber-700' : 'text-emerald-700',
                               )}
                             >
-                              <span>Pendiente</span>
+                              <span>{t('invoices.pending')}</span>
                               <span className="tabular-nums">{fmtCurrency(pending, invCurrency)}</span>
                             </div>
                           </div>
@@ -439,7 +444,7 @@ export function StepInvoiceSelect({
       {/* Total selected summary */}
       {selectedIds.size > 0 && (
         <div className="rounded-md bg-muted px-3 py-2.5 text-sm flex justify-between font-semibold">
-          <span>Total a cobrar</span>
+          <span>{t('invoices.totalToCollect')}</span>
           <span className="tabular-nums text-primary">{fmtCurrency(totalSelected, currency)}</span>
         </div>
       )}

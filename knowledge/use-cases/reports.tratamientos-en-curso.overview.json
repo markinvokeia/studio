@@ -1,0 +1,98 @@
+{
+  "id": "reports.tratamientos-en-curso.overview",
+  "title": "Usar el reporte Tratamientos en Curso",
+  "module": "Reportes",
+  "summary": "Tratamientos de varias etapas que todavía no terminaron, para hacerles seguimiento.",
+  "screens": [
+    "reports.tratamientos-en-curso"
+  ],
+  "keywords": [
+    "tratamientos en curso",
+    "planes de tratamiento",
+    "seguimiento de tratamientos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/tratamientos-en-curso",
+      "title": "Menú → Reportes → Tratamientos en Curso",
+      "details": "Tratamientos de varias etapas que todavía no terminaron, para hacerles seguimiento."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.section.filters",
+      "title": "Filtros",
+      "details": "Estado y profesional."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.tratamientos-en-curso.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.tratamientos-en-curso.section.results",
+        "reports.tratamientos-en-curso.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.tratamientos-en-curso.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.section.kpi",
+      "title": "Indicadores",
+      "details": "Total, activos, completados y tasa de completado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.section.results",
+      "title": "Resultados",
+      "details": "Avance de cada tratamiento y la próxima etapa pendiente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.tratamientos-en-curso.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

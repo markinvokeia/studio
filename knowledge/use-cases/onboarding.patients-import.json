@@ -1,0 +1,40 @@
+{
+  "id": "onboarding.patients-import",
+  "title": "Importar pacientes desde una planilla",
+  "module": "Pacientes",
+  "summary": "El asistente de importación lee un Excel o CSV, te deja mapear columnas, valida y recién después importa.",
+  "screens": [
+    "system.import"
+  ],
+  "keywords": [
+    "importar",
+    "planilla",
+    "excel",
+    "csv",
+    "migrar pacientes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/import",
+      "title": "Abro Importar datos"
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "system.import.section.step",
+      "title": "Elegí qué importar",
+      "description": "Seleccioná Pacientes. Después subís el archivo, revisás cómo se mapean las columnas y validás.",
+      "details": "Elegí Pacientes. Podés importar desde Excel o CSV; el asistente detecta columnas y te deja corregir el mapeo."
+    },
+    {
+      "id": "next",
+      "action": "confirm",
+      "target": "system.import.btn.next",
+      "title": "Seguir con el asistente",
+      "description": "Pulsá Siguiente en cada paso. Nada se importa hasta la confirmación final.",
+      "details": "Cada paso se valida antes de seguir. Nada se importa hasta la confirmación final, y los errores se muestran fila por fila."
+    }
+  ]
+}

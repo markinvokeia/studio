@@ -1,0 +1,67 @@
+{
+  "id": "patients.info-tab",
+  "title": "Tour the Information tab",
+  "summary": "The patient's details, notes and preferences, sub-tab by sub-tab.",
+  "module": "Patients",
+  "group": "Information",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "information tab",
+    "personal details",
+    "what's in information"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "tab",
+      "title": "Information",
+      "details": "Personal details, internal notes and preferences."
+    },
+    {
+      "id": "details",
+      "title": "Details",
+      "details": "Form with name, contact, ID, mutual society, default doctor, dependent and responsible contact. It's edited and saved here."
+    },
+    {
+      "id": "form",
+      "title": "Patient details",
+      "details": "Change what you need and save with «Save changes»."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "Internal notes for the team, not clinical."
+    },
+    {
+      "id": "notes-body",
+      "title": "Patient notes",
+      "details": "«Edit» to write; they're saved with «Save»."
+    },
+    {
+      "id": "prefs",
+      "title": "Preferences",
+      "details": "Notices they get, finance view and scheduling."
+    },
+    {
+      "id": "prefs-body",
+      "title": "Finance view",
+      "details": "Normal or Custom. Saved as soon as you tap it."
+    }
+  ]
+}

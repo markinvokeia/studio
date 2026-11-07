@@ -82,7 +82,7 @@ export function FutureAppointmentsConfirmDialog({
 
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleCancel}>{t('cancel')}</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm}>{t('confirm')}</AlertDialogAction>
+          <AlertDialogAction data-help-id="appointments.btn.future-confirm" onClick={handleConfirm}>{t('confirm')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

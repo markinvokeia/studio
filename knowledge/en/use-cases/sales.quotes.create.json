@@ -1,0 +1,88 @@
+{
+  "id": "sales.quotes.create",
+  "title": "Create a quote",
+  "summary": "New quote: patient, date, currency, branch and the items with quantity and price. It stays as a draft.",
+  "module": "Sales",
+  "inputs": {
+    "party": "Patient",
+    "service": "Service or product",
+    "quantity": "Quantity",
+    "notes": "Notes"
+  },
+  "keywords": [
+    "new quote",
+    "create quote",
+    "quote",
+    "quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Quotes",
+      "details": "The treatment plan with prices for the patient to approve; once confirmed it's invoiced, booked and charged."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Opens the quote form."
+    },
+    {
+      "id": "party",
+      "title": "Patient",
+      "details": "Choose the patient. If they don't show up, register them first."
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "currency",
+      "title": "Currency",
+      "details": "If you choose a currency other than the clinic's, the exchange rate shows up."
+    },
+    {
+      "id": "rate",
+      "title": "Exchange rate"
+    },
+    {
+      "id": "sede",
+      "title": "Branch"
+    },
+    {
+      "id": "items",
+      "title": "Items",
+      "details": "Each line is a service or product with quantity, price and total."
+    },
+    {
+      "id": "add",
+      "title": "Add item"
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "details": "The price is filled in from the list; you can change it."
+    },
+    {
+      "id": "qty",
+      "title": "Quantity"
+    },
+    {
+      "id": "price",
+      "title": "Unit price"
+    },
+    {
+      "id": "tooth",
+      "title": "Tooth",
+      "details": "Optional: the treatment's tooth."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It stays as a draft: you can review, send and confirm it later."
+    }
+  ]
+}

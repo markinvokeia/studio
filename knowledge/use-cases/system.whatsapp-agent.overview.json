@@ -1,0 +1,59 @@
+{
+  "id": "system.whatsapp-agent.overview",
+  "title": "Configurar Agente WhatsApp",
+  "module": "Sistema",
+  "summary": "El agente que responde por WhatsApp a los pacientes: si está prendido y en qué horario.",
+  "screens": [
+    "system.whatsapp-agent"
+  ],
+  "keywords": [
+    "agente de whatsapp",
+    "bot",
+    "respuestas automáticas"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/whatsapp-agent",
+      "title": "Menú → Sistema → Agente WhatsApp",
+      "details": "El agente que responde por WhatsApp a los pacientes: si está prendido y en qué horario."
+    },
+    {
+      "id": "agent",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.section.agent",
+      "title": "Agente",
+      "skipIfMissing": true
+    },
+    {
+      "id": "hours",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.section.hours",
+      "title": "Horario",
+      "details": "Fuera de horario responde con el mensaje de ausencia.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "enabled",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.field.agent-enabled",
+      "title": "Agente habilitado",
+      "skipIfMissing": true
+    },
+    {
+      "id": "hours-on",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.field.hours-enabled",
+      "title": "Aplicar horario",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.whatsapp-agent.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "system.import",
+  "status": "draft",
+  "summary": "Importación de datos desde planillas.",
+  "purpose": "Asistente para importar pacientes y otros datos desde Excel o CSV: mapea columnas, valida y recién después importa.",
+  "tips": [
+    "Probá primero con pocas filas."
+  ],
+  "useCases": [
+    "onboarding.patients-import",
+    "system.import.overview"
+  ],
+  "elements": {}
+}

@@ -26,6 +26,7 @@ import { ServiceSelector } from '@/components/ui/service-selector';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -676,7 +677,7 @@ export default function InvoicesPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="px-6 py-3">
+                                    <div data-help-id="sales.invoices.section.summary" className="px-6 py-3">
                                         <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.status')}:</span>
@@ -719,28 +720,28 @@ export default function InvoicesPage() {
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                <div data-help-id="sales.invoices.section.actions" className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                                     {canConfirmAction && (
-                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
+                                        <Button data-help-id="sales.invoices.btn.confirm" variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
                                             <CheckCircle className="h-3.5 w-3.5" />
                                             {t('confirmInvoiceDialog.confirm')}
                                         </Button>
                                     )}
                                     {canAddPaymentAction && (
-                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: true }, () => { loadInvoices(); loadPayments(); })}>
+                                        <Button data-help-id="sales.invoices.btn.add-payment" variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: true }, () => { loadInvoices(); loadPayments(); })}>
                                             <Zap className="h-3.5 w-3.5" />
                                             {t('paymentDialog.add')}
                                         </Button>
                                     )}
                                     {(canConfirmAction || canAddPaymentAction) && <Separator orientation="vertical" className="h-6 mx-1" />}
                                     {canPrint && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintInvoice(selectedInvoice)}>
+                                        <Button data-help-id="sales.invoices.btn.print" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintInvoice(selectedInvoice)}>
                                             <Printer className="h-3.5 w-3.5" />
                                             {t('actions.print')}
                                         </Button>
                                     )}
                                     {canSendEmail && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
+                                        <Button data-help-id="sales.invoices.btn.email" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
                                             <Send className="h-3.5 w-3.5" />
                                             {t('actions.sendEmail')}
                                         </Button>
@@ -752,6 +753,7 @@ export default function InvoicesPage() {
                                         activeTabId={activeTab}
                                         onTabClick={(tab) => setActiveTab(tab.id)}
                                     />
+                                    <HelpScopeProvider scope="sales.invoices.detail">
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                         {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
@@ -850,6 +852,7 @@ export default function InvoicesPage() {
                                             </div>
                                         )}
                                     </div>
+                                    </HelpScopeProvider>
                                 </CardContent>
                             </Card>
                         )
@@ -888,13 +891,13 @@ export default function InvoicesPage() {
                                         <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
                                     </div>
                                 )}
-                                <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                                <Input data-help-id="sales.invoices.field.import-file" id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('paymentDialog.cancel')}</Button>
-                        <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
+                        <Button data-help-id="sales.invoices.btn.import-submit" onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
                             {isProcessingImport ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -931,7 +934,7 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="sales.invoices.btn.item-delete-confirm" onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -950,7 +953,7 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="sales.invoices.btn.confirm-ok" onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>

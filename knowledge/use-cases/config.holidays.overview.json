@@ -1,0 +1,76 @@
+{
+  "id": "config.holidays.overview",
+  "title": "Recorrer Horarios de Excepción",
+  "module": "Configuración de Negocio",
+  "summary": "Feriados, cierres puntuales o recurrentes, o días con horario distinto. Ganan sobre el horario normal.",
+  "screens": [
+    "config.holidays"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "horarios de excepción",
+    "horario de excepción",
+    "ver horario de excepción",
+    "qué es horario de excepción"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/holidays",
+      "title": "Menú → Configuración de Negocio → Horarios de Excepción",
+      "details": "Feriados, cierres puntuales o recurrentes, o días con horario distinto. Ganan sobre el horario normal."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.holidays.filter.search",
+      "title": "Buscá el horario de excepción",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.holidays.section.first-row",
+      "title": "Elegí el horario de excepción",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.holidays.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "config.holidays.section.detail",
+      "title": "Detalle",
+      "details": "Los datos del registro elegido."
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "config.holidays.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "config.holidays.btn.delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "config.holidays.btn.new",
+      "title": "Crear",
+      "details": "Agrega un nuevo horario de excepción.",
+      "skipIfMissing": true
+    }
+  ]
+}

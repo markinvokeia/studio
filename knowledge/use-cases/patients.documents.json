@@ -1,0 +1,93 @@
+{
+  "id": "patients.documents",
+  "title": "Subir un documento al paciente",
+  "module": "Pacientes",
+  "summary": "Clínica → Documentos: subir PDF o imágenes (consentimientos, estudios, radiografías).",
+  "screens": [
+    "patients"
+  ],
+  "group": "Historia clínica",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "documento",
+    "subir archivo",
+    "adjuntar",
+    "consentimiento",
+    "radiografía",
+    "estudio",
+    "pdf"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.documents"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.documents",
+      "title": "Documentos",
+      "until": "patients.section.documents"
+    },
+    {
+      "id": "list",
+      "action": "highlight",
+      "target": "patients.section.documents",
+      "title": "Documentos del paciente",
+      "details": "Los subidos y los adjuntos de las sesiones. Tocá uno para verlo."
+    },
+    {
+      "id": "add",
+      "action": "click",
+      "target": "patients.btn.documents-add",
+      "title": "Agregar documento",
+      "until": "patients.field.documents-file",
+      "skipIfMissing": true
+    },
+    {
+      "id": "file",
+      "action": "highlight",
+      "target": "patients.field.documents-file",
+      "title": "Elegí el archivo",
+      "details": "Tocá o arrastrá el archivo: PDF, imagen o Word, hasta 10 MB."
+    },
+    {
+      "id": "upload",
+      "action": "confirm",
+      "target": "patients.btn.documents-upload",
+      "title": "Subir",
+      "details": "Se habilita cuando elegiste el archivo."
+    }
+  ]
+}

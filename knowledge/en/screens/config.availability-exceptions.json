@@ -1,0 +1,48 @@
+{
+  "id": "config.availability-exceptions",
+  "summary": "Exceptions to doctors' availability.",
+  "purpose": "Vacations, leave or specific days when a doctor doesn't see patients (or works other hours). They override the regular availability.",
+  "tips": [
+    "One exception can cover several days at once."
+  ],
+  "elements": {
+    "config.availability-exceptions.section.first-row": {
+      "label": "First record in the list"
+    },
+    "config.availability-exceptions.section.row": {
+      "label": "Record"
+    },
+    "config.availability-exceptions.section.detail": {
+      "label": "Details"
+    },
+    "config.availability-exceptions.btn.edit": {
+      "label": "Edit"
+    },
+    "config.availability-exceptions.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "config.availability-exceptions.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "This can't be undone."
+    },
+    "config.availability-exceptions.field.user_id": {
+      "label": "Doctor"
+    },
+    "config.availability-exceptions.field.dates": {
+      "label": "Dates",
+      "description": "One or several days."
+    },
+    "config.availability-exceptions.field.is_available": {
+      "label": "Available?",
+      "description": "Unchecked: doesn't see patients those days. Checked: works extra in that time range."
+    },
+    "config.availability-exceptions.field.start_time": {
+      "label": "From",
+      "description": "Empty: all day."
+    },
+    "config.availability-exceptions.field.end_time": {
+      "label": "Until"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "system.alert-categories.overview",
+  "title": "Recorrer Categorías de Alertas",
+  "module": "Sistema",
+  "summary": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+  "screens": [
+    "system.alert-categories"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "categorías de alertas",
+    "categoría"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-categories",
+      "title": "Menú → Sistema → Categorías de Alertas",
+      "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.alert-categories.filter.search",
+      "title": "Buscá la categoría",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.alert-categories.section.first-row",
+      "title": "Elegí la categoría",
+      "until": "system.alert-categories.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.alert-categories.section.detail",
+      "title": "Detalle"
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "system.alert-categories.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "system.alert-categories.btn.delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación.",
+      "skipIfMissing": true
+    }
+  ]
+}

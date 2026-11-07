@@ -48,6 +48,12 @@ export const HOUR_SLOT_HEIGHT = 80;
 /** Selectable hour-slot heights for the calendar density setting */
 export const HOUR_SLOT_HEIGHT_OPTIONS = [60, 80, 100, 120, 140, 160, 180, 200] as const;
 
+/** Techo del ajuste automático ("fit") de la altura de hora cuando hay una franja
+ *  visible. Con franjas muy cortas (p. ej. 30 min) una hora mediría cientos de
+ *  píxeles y la rejilla dejaría de leerse; por encima de este valor se deja el
+ *  espacio sobrante debajo, como en la vista completa. */
+export const MAX_FIT_HOUR_SLOT_HEIGHT = 240;
+
 /** Selectable default slot durations (minutes). Defines how many slots fit in an
  *  hour (60/duration) and therefore how tall one slot ends up being for a given
  *  hour height. */
@@ -153,6 +159,19 @@ export const DEFAULT_COLOR_BY_STATUS = true;
 
 /** Hour to auto-scroll to on initial day/week view render (working day start) */
 export const DEFAULT_SCROLL_HOUR = 8;
+
+/** Which hours the day/week grid shows.
+ *  - full:   the whole day (default; users without a saved preference).
+ *  - custom: the user's own start/end range.
+ *  - clinic: the clinic's working hours for the days on screen. */
+export const VISIBLE_HOURS_MODES = ['full', 'custom', 'clinic'] as const;
+export type VisibleHoursMode = (typeof VISIBLE_HOURS_MODES)[number];
+export const DEFAULT_VISIBLE_HOURS_MODE: VisibleHoursMode = 'full';
+/** Range proposed the first time the user picks "custom". */
+export const DEFAULT_VISIBLE_HOURS_START = '09:00';
+export const DEFAULT_VISIBLE_HOURS_END = '17:00';
+/** Step (minutes) of the start/end pickers of the custom range. */
+export const VISIBLE_HOURS_STEP_MINUTES = 30;
 
 /** Calendar display modes.
  *  - invoke: the calendar as it works today (multi-column when grouped).

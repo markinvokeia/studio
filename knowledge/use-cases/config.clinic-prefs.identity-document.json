@@ -1,0 +1,61 @@
+{
+  "id": "config.clinic-prefs.identity-document",
+  "title": "Exigir el documento de identidad del paciente",
+  "module": "Configuración de Negocio",
+  "summary": "Preferencias de Clínica → Documento de identidad: obligatorio en la ficha y/o para que una cita pase a ciertos estados.",
+  "screens": [
+    "config.clinic-prefs"
+  ],
+  "keywords": [
+    "documento de identidad",
+    "cédula",
+    "exigir documento",
+    "documento obligatorio",
+    "completar cita",
+    "bloquear estado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/clinic-prefs",
+      "title": "Menú → Configuración de Negocio → Preferencias de Clínica"
+    },
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "config.clinic-prefs.section.identity-document",
+      "title": "Documento de identidad",
+      "details": "Dos opciones independientes: una para la ficha del paciente y otra para los estados de las citas."
+    },
+    {
+      "id": "required",
+      "action": "highlight",
+      "target": "config.clinic-prefs.field.identity_document_required",
+      "title": "Exigir documento de identidad",
+      "details": "Encendido: la ficha del paciente no se guarda sin documento. Apagado (por defecto) puede quedar vacío."
+    },
+    {
+      "id": "warn",
+      "action": "highlight",
+      "target": "config.clinic-prefs.field.identity_document_warn",
+      "title": "Exigirlo para cambiar el estado de una cita",
+      "details": "Encendido: la cita no pasa a los estados elegidos si el paciente no tiene documento. Al encenderlo arranca con «Completada». Cancelar nunca se bloquea."
+    },
+    {
+      "id": "statuses",
+      "action": "highlight",
+      "target": "config.clinic-prefs.field.identity_document_warn_statuses",
+      "title": "Estados que lo exigen",
+      "details": "Marcá en qué estados se pide. Si se bloquea, aparece un aviso con acceso directo a los datos del paciente para cargarlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.clinic-prefs.btn.save",
+      "title": "Guardar",
+      "details": "Aplica a toda la clínica: agenda, Mi Consultorio y portal del paciente."
+    }
+  ]
+}

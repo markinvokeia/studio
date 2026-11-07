@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Pill, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
+import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Pill, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, Sparkles, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useHelpScope } from '@/components/help/help-scope';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
+import { composeHelpId } from '@/lib/help/help-id';
 
 export interface PatientActionsMenuProps {
   /** Whether the patient is currently active (controls the activate/deactivate label). */
@@ -29,6 +31,7 @@ export interface PatientActionsMenuProps {
   // Clinical "create" actions — only shown when provided.
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
+  onCreateAestheticSession?: () => void;
   onCreateMedicalInstruction?: () => void;
   onCreatePrescription?: () => void;
   onCreateDocument?: () => void;
@@ -68,6 +71,7 @@ export function PatientActionsMenu({
   showActivate = true,
   onCreateClinicalSession,
   onCreateOdontogram,
+  onCreateAestheticSession,
   onCreateMedicalInstruction,
   onCreatePrescription,
   onCreateDocument,
@@ -84,7 +88,10 @@ export function PatientActionsMenu({
   onPreferences,
 }: PatientActionsMenuProps) {
   const t = useTranslations();
-  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateMedicalInstruction || onCreatePrescription || onCreateDocument);
+  // Help ids con el scope de la pantalla (patients.btn.create-menu…).
+  const helpScope = useHelpScope();
+  const hid = (name: string) => composeHelpId(helpScope, 'btn', name);
+  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateAestheticSession || onCreateMedicalInstruction || onCreatePrescription || onCreateDocument);
   const hasFinancialCreate = !!(onQuickBill || onCreateQuote || onCreateInvoice || onCreatePrepaid);
   const hasAgendaCreate = !!onCreateAppointment;
   const hasCreateMenu = hasClinicalCreate || hasFinancialCreate || hasAgendaCreate;
@@ -100,42 +107,47 @@ export function PatientActionsMenu({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                  <button type="button" data-help-id={hid('create-menu')} className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
                     <Plus className="sm:hidden h-4 w-4 flex-none" />
-                    <span className="hidden sm:inline">Crear</span>
+                    <span className="hidden sm:inline">{t('PatientActionsMenu.create')}</span>
                     <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
                   </button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>Crear</TooltipContent>
+              <TooltipContent>{t('PatientActionsMenu.create')}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-48">
               {hasClinicalCreate && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.clinical')}</DropdownMenuLabel>
                   {onCreateClinicalSession && (
-                    <DropdownMenuItem onClick={onCreateClinicalSession}>
-                      <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
+                    <DropdownMenuItem data-help-id={hid('new-session')} onClick={onCreateClinicalSession}>
+                      <Stethoscope className="h-4 w-4 mr-2 text-primary" />{t('PatientActionsMenu.clinicalSession')}
                     </DropdownMenuItem>
                   )}
                   {onCreateOdontogram && (
-                    <DropdownMenuItem onClick={onCreateOdontogram}>
-                      <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
+                    <DropdownMenuItem data-help-id={hid('new-odontogram')} onClick={onCreateOdontogram}>
+                      <Smile className="h-4 w-4 mr-2 text-purple-600" />{t('PatientActionsMenu.odontogramSession')}
+                    </DropdownMenuItem>
+                  )}
+                  {onCreateAestheticSession && (
+                    <DropdownMenuItem data-help-id={hid('new-aesthetic')} onClick={onCreateAestheticSession}>
+                      <Sparkles className="h-4 w-4 mr-2 text-rose-500" />{t('PatientActionsMenu.createAestheticSession')}
                     </DropdownMenuItem>
                   )}
                   {onCreateMedicalInstruction && (
-                    <DropdownMenuItem onClick={onCreateMedicalInstruction}>
-                      <ClipboardList className="h-4 w-4 mr-2 text-primary" />Indicación médica
+                    <DropdownMenuItem data-help-id={hid('new-indication')} onClick={onCreateMedicalInstruction}>
+                      <ClipboardList className="h-4 w-4 mr-2 text-primary" />{t('PatientActionsMenu.medicalInstruction')}
                     </DropdownMenuItem>
                   )}
                   {onCreatePrescription && (
-                    <DropdownMenuItem onClick={onCreatePrescription}>
-                      <Pill className="h-4 w-4 mr-2 text-primary" />Receta médica
+                    <DropdownMenuItem data-help-id={hid('new-prescription')} onClick={onCreatePrescription}>
+                      <Pill className="h-4 w-4 mr-2 text-primary" />{t('PatientActionsMenu.prescription')}
                     </DropdownMenuItem>
                   )}
                   {onCreateDocument && (
-                    <DropdownMenuItem onClick={onCreateDocument}>
-                      <Upload className="h-4 w-4 mr-2 text-primary" />Documento
+                    <DropdownMenuItem data-help-id={hid('new-document')} onClick={onCreateDocument}>
+                      <Upload className="h-4 w-4 mr-2 text-primary" />{t('PatientActionsMenu.document')}
                     </DropdownMenuItem>
                   )}
                   {(hasFinancialCreate || hasAgendaCreate) && <DropdownMenuSeparator />}
@@ -143,26 +155,26 @@ export function PatientActionsMenu({
               )}
               {hasFinancialCreate && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.financial')}</DropdownMenuLabel>
                   {onQuickBill && (
-                    <DropdownMenuItem onClick={onQuickBill}>
-                      <Zap className="h-4 w-4 mr-2 text-emerald-600" />Cobro rápido
+                    <DropdownMenuItem data-help-id={hid('quick-bill')} onClick={onQuickBill}>
+                      <Zap className="h-4 w-4 mr-2 text-emerald-600" />{t('BillingWizard.title')}
                     </DropdownMenuItem>
                   )}
                   {onQuickBill && (onCreateQuote || onCreateInvoice || onCreatePrepaid) && <DropdownMenuSeparator />}
                   {onCreateQuote && (
-                    <DropdownMenuItem onClick={onCreateQuote}>
-                      <FileText className="h-4 w-4 mr-2 text-emerald-600" />Presupuesto
+                    <DropdownMenuItem data-help-id={hid('new-quote')} onClick={onCreateQuote}>
+                      <FileText className="h-4 w-4 mr-2 text-emerald-600" />{t('PatientActionsMenu.quote')}
                     </DropdownMenuItem>
                   )}
                   {onCreateInvoice && (
-                    <DropdownMenuItem onClick={onCreateInvoice}>
-                      <Receipt className="h-4 w-4 mr-2 text-emerald-600" />Factura
+                    <DropdownMenuItem data-help-id={hid('new-invoice')} onClick={onCreateInvoice}>
+                      <Receipt className="h-4 w-4 mr-2 text-emerald-600" />{t('PatientActionsMenu.invoice')}
                     </DropdownMenuItem>
                   )}
                   {onCreatePrepaid && (
-                    <DropdownMenuItem onClick={onCreatePrepaid}>
-                      <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />Prepago
+                    <DropdownMenuItem data-help-id={hid('new-prepaid')} onClick={onCreatePrepaid}>
+                      <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />{t('PatientActionsMenu.prepaid')}
                     </DropdownMenuItem>
                   )}
                   {hasAgendaCreate && <DropdownMenuSeparator />}
@@ -170,9 +182,9 @@ export function PatientActionsMenu({
               )}
               {onCreateAppointment && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Agenda</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={onCreateAppointment}>
-                    <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />Cita
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.agenda')}</DropdownMenuLabel>
+                  <DropdownMenuItem data-help-id={hid('new-appointment')} onClick={onCreateAppointment}>
+                    <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />{t('PatientActionsMenu.appointment')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -186,31 +198,31 @@ export function PatientActionsMenu({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                  <button type="button" data-help-id={hid('more-menu')} className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
                     <MoreHorizontal className="sm:hidden h-4 w-4 flex-none" />
-                    <span className="hidden sm:inline">Más acciones</span>
+                    <span className="hidden sm:inline">{t('PatientActionsMenu.moreActions')}</span>
                     <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
                   </button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>Más acciones</TooltipContent>
+              <TooltipContent>{t('PatientActionsMenu.moreActions')}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-52">
               {(hasEmail || hasPhone) && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Comunicación</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.communication')}</DropdownMenuLabel>
                   {hasEmail && (
-                    <DropdownMenuItem onClick={onEmail}>
-                      <Mail className="h-4 w-4 mr-2" />Enviar email
+                    <DropdownMenuItem data-help-id={hid('email')} onClick={onEmail}>
+                      <Mail className="h-4 w-4 mr-2" />{t('PatientActionsMenu.sendEmail')}
                     </DropdownMenuItem>
                   )}
                   {hasPhone && (
-                    <DropdownMenuItem onClick={onWhatsApp}>
+                    <DropdownMenuItem data-help-id={hid('whatsapp')} onClick={onWhatsApp}>
                       <WhatsAppIcon className="h-4 w-4 mr-2" />WhatsApp
                     </DropdownMenuItem>
                   )}
                   {hasPhone && onSendWhatsAppTemplate && (
-                    <DropdownMenuItem onClick={onSendWhatsAppTemplate}>
+                    <DropdownMenuItem data-help-id={hid('whatsapp-reminder')} onClick={onSendWhatsAppTemplate}>
                       <BellRing className="h-4 w-4 mr-2" />{t('PatientActionsMenu.sendReminder')}
                     </DropdownMenuItem>
                   )}
@@ -219,15 +231,15 @@ export function PatientActionsMenu({
               )}
               {hasStatusActions && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Estado</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.status')}</DropdownMenuLabel>
                   {onToggleDischarge && (
-                    <DropdownMenuItem onClick={onToggleDischarge} disabled={isBusy}>
+                    <DropdownMenuItem data-help-id={hid('discharge')} onClick={onToggleDischarge} disabled={isBusy}>
                       {hasDischarge ? <XCircle className="h-4 w-4 mr-2 text-green-600" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                       {hasDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}
                     </DropdownMenuItem>
                   )}
                   {showActivate && (
-                    <DropdownMenuItem onClick={onToggleActivate}>
+                    <DropdownMenuItem data-help-id={hid('toggle-active')} onClick={onToggleActivate}>
                       <ToggleLeft className={`h-4 w-4 mr-2 ${isActive ? 'text-destructive' : 'text-green-600'}`} />
                       {isActive ? t('UserColumns.deactivate') : t('UserColumns.activate')}
                     </DropdownMenuItem>
@@ -237,8 +249,8 @@ export function PatientActionsMenu({
               )}
               {onPreferences && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Configuración</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={onPreferences}>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t('PatientActionsMenu.settings')}</DropdownMenuLabel>
+                  <DropdownMenuItem data-help-id={hid('preferences')} onClick={onPreferences}>
                     <SlidersHorizontal className="h-4 w-4 mr-2" />{t('UsersPage.preferencesButton')}
                   </DropdownMenuItem>
                 </>

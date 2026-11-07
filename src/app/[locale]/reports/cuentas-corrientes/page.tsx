@@ -11,6 +11,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportCuentasCorrientesResponse, ReportCuentasCorrientesRow } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn, fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -58,7 +59,7 @@ export default function CuentasCorrientesPage() {
 
   const columns: ColumnDef<ReportCuentasCorrientesRow>[] = [
     { accessorKey: 'patient_name', header: t('col_paciente'), size: 180 },
-    { accessorKey: 'phone_number', header: t('col_telefono'), size: 140 },
+    { accessorKey: 'phone_number', header: t('col_telefono'), size: 140, cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     {
       accessorKey: 'total_invoiced',
       header: t('col_facturado'),

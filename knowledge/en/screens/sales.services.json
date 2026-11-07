@@ -1,0 +1,136 @@
+{
+  "id": "sales.services",
+  "summary": "Catalog of services and treatments with price and duration.",
+  "purpose": "They're chosen when booking, quoting and invoicing. The duration sets the appointment length; services with a workflow have steps (sessions).",
+  "tips": [
+    "Check 'Bookable online' so the patient can book it from the portal.",
+    "To use it on the aesthetic record: choose the unit of measure, check \"Aesthetic service\", save and complete the Aesthetics tab."
+  ],
+  "elements": {
+    "sales.services.field.name": {
+      "description": "Service name."
+    },
+    "sales.services.field.price": {
+      "description": "List price."
+    },
+    "sales.services.field.currency": {
+      "description": "Price currency."
+    },
+    "sales.services.field.duration_minutes": {
+      "description": "Appointment length in minutes."
+    },
+    "sales.services.field.category_id": {
+      "description": "Category to group them in lists and reports."
+    },
+    "sales.services.field.bookable_online": {
+      "description": "The patient can book it from the portal."
+    },
+    "sales.services.field.service_type": {
+      "description": "Service with a workflow: a treatment in several steps/sessions."
+    },
+    "sales.services.section.first-row": {
+      "label": "First in the list"
+    },
+    "sales.services.section.row": {
+      "label": "Record"
+    },
+    "sales.services.section.detail": {
+      "label": "Record"
+    },
+    "sales.services.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "sales.services.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    },
+    "sales.services.field.color": {
+      "label": "Color",
+      "description": "Appointment color on the calendar."
+    },
+    "sales.services.field.description": {
+      "label": "Description"
+    },
+    "sales.services.field.indications": {
+      "label": "Instructions",
+      "description": "What the patient is told before the appointment."
+    },
+    "sales.services.field.is_active": {
+      "label": "Active"
+    },
+    "sales.services.btn.add-step": {
+      "label": "Add stage"
+    },
+    "sales.services.tab.details": {
+      "label": "Details"
+    },
+    "sales.services.field.unit_id": {
+      "label": "Unit of measure",
+      "description": "What the applied or sold amount is measured in (U, ml, mg…). Required for an aesthetic service."
+    },
+    "sales.services.field.is_aesthetic": {
+      "label": "Aesthetic service",
+      "description": "Adds it to the aesthetic record and enables the Aesthetics tab."
+    },
+    "sales.services.tab.aesthetic": {
+      "label": "Aesthetics",
+      "description": "How it is marked on the aesthetic record and its consent."
+    },
+    "sales.services.section.aesthetic-config": {
+      "label": "Aesthetic record",
+      "description": "Tool, dose, limits, next appointment and aftercare. Saved separately from the service."
+    },
+    "sales.services.section.aesthetic-tool": {
+      "label": "Marked with",
+      "description": "Points, areas or line."
+    },
+    "sales.services.field.aesthetic-default-quantity": {
+      "label": "Initial quantity per mark"
+    },
+    "sales.services.field.aesthetic-max-per-session": {
+      "label": "Maximum per session",
+      "description": "Warns, doesn't block."
+    },
+    "sales.services.field.aesthetic-min-interval": {
+      "label": "Minimum interval on a zone",
+      "description": "Warns, doesn't block."
+    },
+    "sales.services.field.aesthetic-follow-up-days": {
+      "label": "Suggested next appointment",
+      "description": "Days until the follow-up offered when closing."
+    },
+    "sales.services.field.aesthetic-follow-up-label": {
+      "label": "Next appointment name"
+    },
+    "sales.services.field.aesthetic-aftercare": {
+      "label": "Aftercare",
+      "description": "Sent by WhatsApp when closing the session."
+    },
+    "sales.services.btn.aesthetic-save": {
+      "label": "Save aesthetic settings"
+    },
+    "sales.services.section.consent-template": {
+      "label": "Consent",
+      "description": "The service's own text. Without one the generic text is used; changing it only affects new signatures."
+    },
+    "sales.services.field.consent-title": {
+      "label": "Document title"
+    },
+    "sales.services.field.consent-body": {
+      "label": "Consent text"
+    },
+    "sales.services.btn.consent-from-generic": {
+      "label": "Start from the generic one"
+    },
+    "sales.services.section.consent-variables": {
+      "label": "Variables",
+      "description": "Patient, doctor, service, product and date."
+    },
+    "sales.services.btn.consent-preview": {
+      "label": "Preview"
+    },
+    "sales.services.btn.consent-save": {
+      "label": "Save consent"
+    }
+  }
+}

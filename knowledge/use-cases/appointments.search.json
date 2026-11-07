@@ -1,0 +1,54 @@
+{
+  "id": "appointments.search",
+  "title": "Buscar una cita",
+  "module": "Agenda",
+  "summary": "Encontrar las citas de un paciente en cualquier fecha.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "query": "Nombre, teléfono o documento del paciente"
+  },
+  "keywords": [
+    "buscar",
+    "encontrar",
+    "donde esta",
+    "cuando tiene",
+    "citas de un paciente",
+    "proxima cita"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "search",
+      "action": "click",
+      "target": "appointments.btn.search",
+      "title": "Buscar cita"
+    },
+    {
+      "id": "query",
+      "action": "fill",
+      "target": "appointments.filter.appointments",
+      "value": "{{values.query}}",
+      "title": "Escribí el paciente o el título",
+      "details": "Por nombre, teléfono, email o documento del paciente, o por el título de la cita. Busca en todas las fechas; al elegir un resultado la agenda va a ese día y abre la cita."
+    },
+    {
+      "id": "result",
+      "action": "highlight",
+      "target": "appointments.section.search-results",
+      "title": "Elegí la cita",
+      "until": [
+        "appointments.section.quick-view",
+        "appointments.btn.edit-appointment"
+      ],
+      "details": "Se ven las citas pasadas y futuras que coinciden. Al elegir una, la agenda va a ese día y abre la cita."
+    }
+  ]
+}

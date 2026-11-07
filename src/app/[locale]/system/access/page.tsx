@@ -159,7 +159,7 @@ export default function AccessLogPage() {
 
     const rightPanel = selectedLog ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.access.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><UserCheck className="h-5 w-5" /></div>
                     <div className="min-w-0">

@@ -10,6 +10,7 @@ import { CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDisplayDate } from '@/lib/utils'
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { usePatientView } from '@/stores/patient-view-store'
 import type { PatientDischarge, User } from '@/lib/types'
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
@@ -86,7 +87,7 @@ export function PatientDetailHeader({
   )
 
   return (
-    <CardHeader className="flex-none p-4 pb-2 space-y-0">
+    <CardHeader data-help-id="patients.section.header" className="flex-none p-4 pb-2 space-y-0">
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1 flex items-center gap-2">
           <TooltipProvider>
@@ -95,7 +96,7 @@ export function PatientDetailHeader({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                      <button type="button" className="flex-none cursor-pointer">
+                      <button type="button" data-help-id="patients.btn.alerts" className="flex-none cursor-pointer">
                         {alertIcon}
                       </button>
                     </PopoverTrigger>
@@ -162,7 +163,7 @@ export function PatientDetailHeader({
         <div className="flex items-center gap-0.5 ml-2 flex-none">{actions}</div>
       </div>
 
-      <div className="flex items-center gap-x-3 gap-y-1 mt-1 ml-10 flex-wrap text-xs text-muted-foreground">
+      <div data-help-id="patients.section.contact" className="flex items-center gap-x-3 gap-y-1 mt-1 ml-10 flex-wrap text-xs text-muted-foreground">
         {user.birth_date && (
           <span className="flex items-center gap-1">
             <Cake className="h-3 w-3" />
@@ -211,7 +212,7 @@ export function PatientDetailHeader({
         {effectivePatientPhone ? (
           <span className="flex items-center gap-1">
             <WhatsAppIcon className="h-3 w-3" />
-            {effectivePatientPhone}
+            {formatPhoneNumber(effectivePatientPhone)}
           </span>
         ) : null}
         {currentDischarge && (

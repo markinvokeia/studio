@@ -1,0 +1,151 @@
+{
+  "name": "Help - Video Cola",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "help/videos/queue",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "id": "node-auth",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst limit = Math.max(1, Math.min(10, Number(input.body?.limit) || 3));\nreturn [{ json: { user_id: String(userId), limit } }];"
+      },
+      "position": [
+        330,
+        300
+      ]
+    },
+    {
+      "id": "node-pg-queue",
+      "name": "Tomar Pedidos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH allowed AS (\n    SELECT EXISTS (\n    SELECT 1\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND COALESCE((to_jsonb(ur) ->> 'is_active')::boolean, true)\n       AND p.code = 'HELP_CATALOG_SYNC'\n  ) AS ok\n), picked AS (\n    SELECT id FROM public.help_video_requests\n     WHERE status = 'pending' AND (SELECT ok FROM allowed)\n     ORDER BY created_at\n     LIMIT $2::int\n     FOR UPDATE SKIP LOCKED\n)\nUPDATE public.help_video_requests r\n   SET status = 'processing', updated_at = now()\n  FROM picked\n WHERE r.id = picked.id\nRETURNING r.id, r.use_case_id, r.locale, (SELECT ok FROM allowed) AS allowed;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.limit ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r.id);\nreturn [{ json: { body: { requests: rows.map(r => ({ id: r.id, use_case_id: r.use_case_id, locale: r.locale })) } } }];"
+      },
+      "position": [
+        790,
+        300
+      ]
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "position": [
+        1020,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Tomar Pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tomar Pedidos": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN:\n1. Credenciales ya asignadas: \"JWT Auth account\" en el Webhook y \"Postgres account\" en los nodos Postgres.\n2. Activar el workflow.\n\nGENERADO por scripts/n8n/generate-help-workflows.mjs — no editar a mano.\nTablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql\n\nRUTA: POST /webhook/help/videos/queue (Authorization: Bearer <JWT>)\nBODY: { limit? }\nPERMISO: HELP_CATALOG_SYNC (lo usa el worker de videos con un usuario técnico).\n\nToma hasta `limit` pedidos pendientes y los marca 'processing' (SKIP LOCKED:\ndos workers no toman el mismo)."
+  }
+}

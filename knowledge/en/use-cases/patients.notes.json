@@ -1,0 +1,57 @@
+{
+  "id": "patients.notes",
+  "title": "Write something on the patient's record",
+  "summary": "The patient's internal notes (not clinical): preferences, notices for the front desk.",
+  "module": "Patients",
+  "group": "Information",
+  "inputs": {
+    "patient": "Patient's name, email or ID",
+    "notes": "Note text"
+  },
+  "keywords": [
+    "notes",
+    "write down",
+    "remarks",
+    "patient note",
+    "comment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "info",
+      "title": "Information"
+    },
+    {
+      "id": "tab",
+      "title": "Notes",
+      "details": "Internal free text; the team sees it, not the patient."
+    },
+    {
+      "id": "edit",
+      "title": "Edit notes"
+    },
+    {
+      "id": "text",
+      "title": "Write the note"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Saves the note. Cancel discards what you wrote."
+    }
+  ]
+}

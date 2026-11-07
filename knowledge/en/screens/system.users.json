@@ -1,0 +1,46 @@
+{
+  "id": "system.users",
+  "summary": "System users.",
+  "purpose": "Every user with access (staff and doctors), their roles and their status.",
+  "tips": [
+    "To add front desk or administration staff, Receptionists & Administration is simpler."
+  ],
+  "elements": {
+    "system.users.section.first-row": {
+      "label": "First in the list"
+    },
+    "system.users.section.row": {
+      "label": "Record"
+    },
+    "system.users.section.detail": {
+      "label": "Record"
+    },
+    "system.users.detail.field.name": {
+      "label": "Name"
+    },
+    "system.users.detail.btn.submit": {
+      "label": "Save"
+    },
+    "system.users.detail.tab.details": {
+      "label": "Details"
+    },
+    "system.users.detail.tab.roles": {
+      "label": "Roles",
+      "description": "Which roles they have: each role adds permissions."
+    },
+    "system.users.detail.tab.logs": {
+      "label": "Logs",
+      "description": "What they did in the system."
+    },
+    "system.users.detail.tab.signature": {
+      "label": "Signature"
+    },
+    "system.users.detail.tab.preferences": {
+      "label": "Preferences"
+    },
+    "system.users.btn.initial-password": {
+      "label": "Initial password",
+      "description": "Sent as soon as you tap it."
+    }
+  }
+}

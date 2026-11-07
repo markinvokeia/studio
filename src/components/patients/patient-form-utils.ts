@@ -1,4 +1,4 @@
-import { isValidPhoneNumber } from 'libphonenumber-js';
+import { isValidPhoneNumber, parsePhoneNumberFromString } from 'libphonenumber-js';
 import * as z from 'zod';
 
 import { API_ROUTES } from '@/constants/routes';
@@ -6,7 +6,7 @@ import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api'
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
 import { getPersonNameIssue, normalizePersonName, type PersonNameIssue } from '@/lib/person-name';
-import type { DuplicateContactOwners, MutualSociety, PatientDependent, UniqueConflict, User } from '@/lib/types';
+import type { DuplicateContactOwner, DuplicateContactOwners, MutualSociety, PatientDependent, UniqueConflict, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
 /** Clave de traducción por motivo de `getPersonNameIssue`. La comparte el alta rápida. */
@@ -113,7 +113,14 @@ export type DependantContactInfo = {
 };
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
-export async function upsertUser(userData: UserFormValues, options?: { confirmDuplicates?: boolean }) {
+export async function upsertUser(
+  userData: UserFormValues,
+  options?: {
+    confirmDuplicates?: boolean;
+    /** Fichas que le ceden su teléfono/correo a este paciente y quedan a su cargo. */
+    adoptDependentIds?: string[];
+  },
+) {
   const payload = {
     ...userData,
     name: normalizePersonName(userData.name),
@@ -127,8 +134,9 @@ export async function upsertUser(userData: UserFormValues, options?: { confirmDu
     is_sales: true,
     // Segundo envío tras la advertencia de contacto repetido (`duplicate_contact`).
     ...(options?.confirmDuplicates ? { confirm_duplicates: true } : {}),
+    ...(options?.adoptDependentIds?.length ? { adopt_dependent_ids: options.adoptDependentIds } : {}),
   };
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload);
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -164,6 +172,48 @@ export function getDuplicateContactWarning(error: any): DuplicateContactOwners |
 export function getUniqueConflict(payload: any): UniqueConflict | null {
   if (payload?.code !== 'unique_conflict' || !Array.isArray(payload.conflictedFields)) return null;
   return { conflictedFields: payload.conflictedFields, owners: payload.owners ?? {} };
+}
+
+/**
+ * Fichas a las que se puede pasar a depender de quien se guarda, cediéndole el teléfono o el
+ * correo repetido. Con `blockedFields` (`unique_conflict`) tienen que poder ceder todas las
+ * dueñas de todos los campos bloqueados: si queda alguno sin resolver, ofrecerlo solo
+ * llevaría a otro rechazo. Un backend sin `adoptable` no ofrece nada.
+ */
+export function getAdoptableOwners(owners: DuplicateContactOwners, blockedFields?: string[]): DuplicateContactOwner[] {
+  const contactOwners = [...(owners.phone ?? []), ...(owners.email ?? [])];
+  if (blockedFields) {
+    const canUnblock = blockedFields.every((field) => {
+      if (field !== 'phone' && field !== 'email') return false;
+      const fieldOwners = owners[field] ?? [];
+      return fieldOwners.length > 0 && fieldOwners.every((owner) => owner.adoptable === true);
+    });
+    if (!canUnblock) return [];
+  }
+  const seen = new Set<string>();
+  return contactOwners.filter((owner) => {
+    const id = String(owner.id);
+    if (owner.adoptable !== true || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+/**
+ * Datos que el alta del responsable toma de la ficha del dependiente, y qué hay que sacarle a
+ * esa ficha una vez creado: el backend le quita lo que coincide, pero el formulario abierto
+ * lo sigue teniendo y al guardarlo se lo devolvería (el upsert reescribe la ficha entera).
+ */
+export function contactMovedToGuardian(
+  dependent: { phone?: string | null; email?: string | null },
+  guardian: { phone_number?: string | null; email?: string | null },
+): { phone: boolean; email: boolean } {
+  const phoneKey = phoneMatchKey(dependent.phone);
+  const email = dependent.email?.trim().toLowerCase();
+  return {
+    phone: !!phoneKey && phoneKey === phoneMatchKey(guardian.phone_number),
+    email: !!email && email === guardian.email?.trim().toLowerCase(),
+  };
 }
 
 /**
@@ -218,6 +268,8 @@ const DEPENDENCY_ERROR_KEYS: Record<string, string> = {
   guardian_has_dependents: 'UsersPage.dependents.errors.guardianHasDependents',
   user_not_found: 'UsersPage.dependents.errors.notFound',
   responsible_not_found: 'UsersPage.dependents.errors.notFound',
+  adopt_save_failed: 'UsersPage.dependents.errors.adoptSaveFailed',
+  adopt_link_failed: 'UsersPage.dependents.errors.adoptLinkFailed',
 };
 
 export function resolveDependencyErrorCode(
@@ -404,6 +456,174 @@ function extractSearchUsers(data: any): any[] {
   return data && typeof data === 'object' ? [data] : [];
 }
 
+/** Documento comparable: sin puntos, guiones ni espacios ("1.234.567-2" = "12345672"). */
+export function normalizeIdentityDocument(value: string | null | undefined): string {
+  return (value ?? '').replace(/[^0-9a-z]/gi, '').toUpperCase();
+}
+
+/**
+ * Número nacional sin prefijo de país ni ceros: "+598 99 123 456" y "099123456" son el
+ * mismo teléfono. `null` si no parece un teléfono.
+ */
+export function phoneMatchKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = parsePhoneNumberFromString(value, DEFAULT_PHONE_COUNTRY);
+  const digits = (parsed?.nationalNumber ?? value.replace(/\D/g, '')).replace(/^0+/, '');
+  return digits.length >= 6 ? digits : null;
+}
+
+/** Ficha encontrada en el listado, con la forma de los dueños que devuelve `/users/upsert`. */
+function toMatchOwner(user: User): DuplicateContactOwner {
+  return {
+    id: user.id,
+    name: user.name,
+    is_active: user.is_active,
+    document: user.identity_document || null,
+    birth_date: user.birth_date || null,
+    phone_number: user.phone_number || null,
+    is_dependent: user.is_dependent ?? false,
+    responsible_name: user.responsible_contact_name ?? null,
+    // El listado se pide con `filter_type=PACIENTE`.
+    is_patient: true,
+  };
+}
+
+/**
+ * Pacientes que ya tienen exactamente esta cédula o este teléfono, para avisar mientras se
+ * completa un alta (antes de que `/users/upsert` lo rechace al guardar). La búsqueda del
+ * listado es por texto parcial: acá se queda solo con las coincidencias exactas.
+ */
+export async function findExistingPatientMatches(
+  field: 'identity_document' | 'phone',
+  value: string,
+  signal?: AbortSignal,
+): Promise<DuplicateContactOwner[]> {
+  const target = field === 'identity_document' ? normalizeIdentityDocument(value) : phoneMatchKey(value);
+  if (!target) return [];
+  // El documento puede estar guardado con o sin puntos: se busca de las dos formas.
+  const terms = field === 'identity_document' ? [...new Set([value.trim(), target])] : [target];
+  const responses = await Promise.all(terms.map((search) => api.get(
+    API_ROUTES.USERS,
+    { search, filter_type: 'PACIENTE', page: '1', limit: '20' },
+    undefined,
+    { signal },
+  )));
+  const seen = new Set<string>();
+  return responses
+    .flatMap((data) => extractSearchUsers(data).map(mapSearchUser))
+    .filter((user) => {
+      if (!user.id || seen.has(user.id)) return false;
+      const key = field === 'identity_document'
+        ? normalizeIdentityDocument(user.identity_document)
+        : phoneMatchKey(user.phone_number);
+      if (key !== target) return false;
+      seen.add(user.id);
+      return true;
+    })
+    .map(toMatchOwner);
+}
+
+/** Valores del formulario para una ficha guardada. */
+export function userToFormValues(u: User): UserFormValues {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email || '',
+    phone: u.phone_number || '',
+    identity_document: u.identity_document || '',
+    identity_document_type: u.identity_document_type || 'cedula_uy',
+    birth_date: u.birth_date || '',
+    address: u.address || '',
+    notes: u.notes || '',
+    is_active: u.is_active,
+    mutual_society_id: u.mutual_society_id ? String(u.mutual_society_id) : '',
+    is_dependent: u.is_dependent ?? false,
+    responsible_contact_id: u.responsible_contact_id || null,
+    doctor_id: u.doctor_id || null,
+    sex: u.sex ?? null,
+  };
+}
+
+/** Datos del alta que se pueden pasar a una ficha existente (el nombre queda el de la ficha). */
+export const MERGEABLE_PATIENT_FIELDS = [
+  'identity_document', 'phone', 'email', 'birth_date', 'sex', 'address', 'mutual_society_id', 'doctor_id', 'notes',
+] as const;
+export type MergeablePatientField = typeof MERGEABLE_PATIENT_FIELDS[number];
+
+/** Campos que se comparan por id: si difieren no se muestra el valor (no dice nada). */
+const ID_FIELDS: readonly MergeablePatientField[] = ['sex', 'mutual_society_id', 'doctor_id'];
+
+function isBlankValue(value: unknown): boolean {
+  return value === null || value === undefined || String(value).trim() === '' || value === 'none';
+}
+
+function isSameFieldValue(field: MergeablePatientField, a: unknown, b: unknown): boolean {
+  if (field === 'identity_document') return normalizeIdentityDocument(String(a)) === normalizeIdentityDocument(String(b));
+  if (field === 'phone') return (phoneMatchKey(String(a)) ?? String(a)) === (phoneMatchKey(String(b)) ?? String(b));
+  if (field === 'email') return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  return String(a).trim() === String(b).trim();
+}
+
+export interface PatientMergeResult {
+  values: UserFormValues;
+  /** Campos vacíos en la ficha que se completaron con lo escrito en el alta. */
+  added: MergeablePatientField[];
+  /** Escritos en el alta con otro valor que el de la ficha: se mantiene el de la ficha. */
+  differing: { field: MergeablePatientField | 'name'; typed: string | null; existing: string | null }[];
+}
+
+/**
+ * Pasa lo escrito en un alta a la ficha existente elegida en su lugar: solo completa lo que
+ * la ficha no tiene. Lo que ya tiene no se pisa (puede ser un error de tipeo del alta);
+ * las diferencias se devuelven para mostrarlas.
+ */
+export function mergeTypedIntoExisting(existing: UserFormValues, typed: UserFormValues): PatientMergeResult {
+  const values: UserFormValues = { ...existing };
+  const added: MergeablePatientField[] = [];
+  const differing: PatientMergeResult['differing'] = [];
+  // El nombre nunca se reemplaza (la ficha elegida es la persona), pero si se escribió otro
+  // se avisa: puede ser la persona equivocada o un nombre a corregir a mano.
+  const typedName = normalizePersonName(typed.name ?? '');
+  const existingName = normalizePersonName(existing.name ?? '');
+  if (typedName && existingName && typedName.toLocaleLowerCase() !== existingName.toLocaleLowerCase()) {
+    differing.push({ field: 'name', typed: typedName, existing: existingName });
+  }
+  for (const field of MERGEABLE_PATIENT_FIELDS) {
+    const typedValue = typed[field];
+    if (isBlankValue(typedValue)) continue;
+    const existingValue = existing[field];
+    if (isBlankValue(existingValue)) {
+      (values as Record<string, unknown>)[field] = typedValue;
+      if (field === 'identity_document') values.identity_document_type = typed.identity_document_type;
+      added.push(field);
+    } else if (!isSameFieldValue(field, existingValue, typedValue)) {
+      const showValues = !ID_FIELDS.includes(field);
+      differing.push({
+        field,
+        typed: showValues ? String(typedValue) : null,
+        existing: showValues ? String(existingValue) : null,
+      });
+    }
+  }
+  return { values, added, differing };
+}
+
+/** Ficha mínima a partir de un dueño, si no se pudo traer la completa. */
+export function matchOwnerToUser(owner: DuplicateContactOwner): User {
+  return {
+    id: String(owner.id),
+    name: owner.name,
+    email: '',
+    phone_number: owner.phone_number || '',
+    is_active: owner.is_active,
+    avatar: '',
+    identity_document: owner.document || '',
+    birth_date: owner.birth_date || '',
+    is_dependent: owner.is_dependent ?? false,
+    responsible_contact_name: owner.responsible_name || undefined,
+  };
+}
+
 /** Fetches a single patient's full record by id (used to prefill the form). */
 export async function fetchPatientById(userId: string): Promise<User | null> {
   try {
@@ -418,7 +638,7 @@ export async function fetchPatientById(userId: string): Promise<User | null> {
 }
 
 /** Finds a patient by exact name — used to resolve a just-created patient's id
- *  (the upsert response doesn't return the record). Falls back to the first match.
+ *  when the upsert response has none (n8n flow not yet updated). Falls back to the first match.
  *  Normaliza el nombre como `upsertUser` al guardarlo: con el nombre crudo
  *  ("Ana  Pérez ") el ILIKE no encuentra la ficha recién creada. */
 export async function findPatientByName(name: string): Promise<User | null> {

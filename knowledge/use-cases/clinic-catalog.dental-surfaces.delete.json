@@ -1,0 +1,56 @@
+{
+  "id": "clinic-catalog.dental-surfaces.delete",
+  "title": "Eliminar la superficie dental",
+  "module": "Catálogo de la Clínica",
+  "summary": "Borrarlo del catálogo (pide confirmación).",
+  "screens": [
+    "clinic-catalog.dental-surfaces"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar superficie dental",
+    "borrar superficie dental"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/dental-surfaces",
+      "title": "Menú → Catálogo de la Clínica → Superficies Dentales",
+      "details": "Las caras de cada pieza (oclusal, mesial, distal…) que se eligen en el odontograma."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "clinic-catalog.dental-surfaces.filter.search",
+      "title": "Buscá la superficie dental",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "clinic-catalog.dental-surfaces.section.first-row",
+      "title": "Elegí la superficie dental",
+      "until": "clinic-catalog.dental-surfaces.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "clinic-catalog.dental-surfaces.btn.delete",
+      "title": "Eliminar",
+      "until": "clinic-catalog.dental-surfaces.btn.delete-confirm"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "clinic-catalog.dental-surfaces.btn.delete-confirm",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

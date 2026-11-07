@@ -529,7 +529,7 @@
             "id": "={{ $('Get payment').first().json.id }}",
             "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
             "amount": "={{ (Number($('Get payment').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) }}",
-            "converted_amount": "={{ (Number($('Get payment').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) * Number($('Get payment').first().json.exchange_rate || 1) }}",
+            "converted_amount": "={{ (() => { const p = $('Get payment').first().json; const oldAmount = Math.abs(Number(p.amount)); const ratio = oldAmount > 0 && p.converted_amount != null ? Math.abs(Number(p.converted_amount)) / oldAmount : 1; return (Number(p.amount) < 0 ? -1 : 1) * Math.round(Number($('Detectar cambios').first().json.new_amount) * ratio * 100) / 100; })() }}",
             "created_at": "={{ $('Detectar cambios').first().json.new_payment_date }}",
             "notes": "={{ $('Detectar cambios').first().json.new_notes }}",
             "is_historical": "={{ $('Detectar cambios').first().json.new_is_historical }}"

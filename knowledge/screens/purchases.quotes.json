@@ -1,0 +1,96 @@
+{
+  "id": "purchases.quotes",
+  "status": "draft",
+  "summary": "Presupuestos de compra.",
+  "purpose": "La cotización de un proveedor: qué productos o servicios, a qué precio. Confirmada, se factura al recibirla.",
+  "prerequisites": [
+    "purchases.providers"
+  ],
+  "useCases": [
+    "purchases.quotes.overview",
+    "purchases.quotes.create",
+    "purchases.quotes.edit",
+    "purchases.quotes.confirm",
+    "purchases.quotes.invoice",
+    "purchases.quotes.send",
+    "purchases.quotes.delete",
+    "purchases.quotes.items",
+    "purchases.quotes.export"
+  ],
+  "elements": {
+    "purchases.quotes.section.detail-header": {
+      "label": "Resumen del documento"
+    },
+    "purchases.quotes.section.first-row": {
+      "label": "Primer documento de la lista"
+    },
+    "purchases.quotes.section.row": {
+      "label": "Documento"
+    },
+    "purchases.quotes.btn.row-actions": {
+      "label": "Acciones de la fila"
+    },
+    "purchases.quotes.btn.export": {
+      "label": "Exportar",
+      "description": "Excel o CSV."
+    },
+    "purchases.quotes.section.export": {
+      "label": "Formato de exportación"
+    },
+    "purchases.quotes.btn.export-run": {
+      "label": "Descargar"
+    },
+    "purchases.quotes.field.doc-email-to": {
+      "label": "Destinatarios",
+      "description": "Correos separados por coma."
+    },
+    "purchases.quotes.btn.doc-email-send": {
+      "label": "Enviar por correo"
+    },
+    "purchases.quotes.detail.section.first-row": {
+      "label": "Primera línea"
+    },
+    "purchases.quotes.detail.section.row": {
+      "label": "Línea"
+    },
+    "purchases.quotes.detail.btn.new": {
+      "label": "Agregar"
+    },
+    "purchases.quotes.btn.filters": {
+      "label": "Filtros"
+    },
+    "purchases.quotes.section.filters": {
+      "label": "Opciones de filtro"
+    },
+    "purchases.quotes.btn.row-print": {
+      "label": "Imprimir"
+    },
+    "purchases.quotes.btn.row-email": {
+      "label": "Enviar por correo"
+    },
+    "purchases.quotes.btn.row-edit": {
+      "label": "Editar"
+    },
+    "purchases.quotes.btn.row-confirm": {
+      "label": "Confirmar"
+    },
+    "purchases.quotes.btn.row-reject": {
+      "label": "Rechazar"
+    },
+    "purchases.quotes.btn.row-delete": {
+      "label": "Eliminar"
+    },
+    "purchases.quotes.section.billing": {
+      "label": "Qué facturar"
+    },
+    "purchases.quotes.btn.billing-add-item": {
+      "label": "Agregar línea"
+    },
+    "purchases.quotes.btn.billing-submit": {
+      "label": "Crear factura"
+    },
+    "purchases.quotes.field.user_id": {
+      "label": "Proveedor"
+    }
+  }
+}

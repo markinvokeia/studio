@@ -1,0 +1,32 @@
+{
+  "id": "cashier.misc-category-edit",
+  "title": "Edit or delete a category",
+  "summary": "Rename or deactivate a category, or delete it if it has no movements.",
+  "module": "Cash register",
+  "keywords": [
+    "edit category",
+    "deactivate category",
+    "delete category"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Product and Services Categories"
+    },
+    {
+      "id": "row",
+      "title": "A category",
+      "details": "The categories in the list with their type and status."
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "details": "Change the name, the description or deactivate it so it's no longer offered."
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation. If it already has movements, better deactivate it."
+    }
+  ]
+}

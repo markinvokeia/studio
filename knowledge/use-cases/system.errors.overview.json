@@ -1,0 +1,52 @@
+{
+  "id": "system.errors.overview",
+  "title": "Consultar Registro de Errores",
+  "module": "Sistema",
+  "summary": "Errores del sistema, para soporte.",
+  "screens": [
+    "system.errors"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "errores",
+    "fallas",
+    "soporte"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/errors",
+      "title": "Menú → Sistema → Registro de Errores",
+      "details": "Errores del sistema, para soporte."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.errors.filter.search",
+      "title": "Buscar",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.errors.section.first-row",
+      "title": "El más reciente",
+      "details": "Tocalo para ver el detalle.",
+      "until": "system.errors.section.detail",
+      "autoClick": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.errors.section.detail",
+      "title": "Detalle",
+      "skipIfMissing": true
+    }
+  ]
+}

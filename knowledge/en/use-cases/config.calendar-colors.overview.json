@@ -1,0 +1,33 @@
+{
+  "id": "config.calendar-colors.overview",
+  "title": "Set up Calendar Colors",
+  "summary": "Appointment colors by status, in general or per calendar.",
+  "module": "Business Setup",
+  "keywords": [
+    "colors",
+    "calendar colors",
+    "color by status"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Calendar Colors",
+      "details": "Appointment colors by status, in general or per calendar."
+    },
+    {
+      "id": "scopes",
+      "title": "General or per calendar",
+      "details": "«General» applies to the whole calendar; each calendar can have its own."
+    },
+    {
+      "id": "restore",
+      "title": "Restore",
+      "details": "Goes back to the default colors."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Changes don't apply until you save."
+    }
+  ]
+}

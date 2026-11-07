@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
@@ -66,6 +67,8 @@ export function StepItemsEditor({
   documentDiscount,
   onDocumentDiscountChange,
 }: StepItemsEditorProps) {
+  const t = useTranslations('BillingWizard');
+  const tSelectors = useTranslations('EntitySelectors');
   const [showSelector, setShowSelector] = React.useState(false);
   const discounts = useDiscountSettings();
   // Monedas que la clínica ofrece, más la del documento si se guardó en otra.
@@ -168,7 +171,7 @@ export function StepItemsEditor({
       {/* Currency + sede selectors */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Moneda:</span>
+          <span className="text-xs text-muted-foreground font-medium">{t('items.currency')}</span>
           <div className="flex rounded-md border overflow-hidden">
             {currencyOptions.map((c) => (
               <button
@@ -188,13 +191,13 @@ export function StepItemsEditor({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Sede:</span>
+          <span className="text-xs text-muted-foreground font-medium">{t('items.sede')}</span>
           <SedeSelector
             value={sedeId}
             onValueChange={onSedeChange}
             className="h-7 w-48 text-xs"
-            placeholder="Buscar sede..."
-            triggerText="Seleccionar sede..."
+            placeholder={tSelectors('searchSede')}
+            triggerText={tSelectors('selectSede')}
           />
         </div>
       </div>
@@ -203,22 +206,22 @@ export function StepItemsEditor({
       {items.length > 0 ? (
         <div className="space-y-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Servicios a facturar
+            {t('items.title')}
           </p>
 
           {/* Column headers */}
           <div
             className={cn(
-              'grid gap-2 px-3 py-1 text-xs font-medium text-muted-foreground',
+              'grid gap-2 px-3 py-1 text-xs font-medium text-muted-foreground max-sm:hidden',
               discounts.showLineDiscount
                 ? 'grid-cols-[1fr_56px_88px_76px_auto_32px]'
                 : 'grid-cols-[1fr_64px_96px_80px_32px]',
             )}
           >
-            <span>Servicio</span>
-            <span className="text-center">Cant.</span>
-            <span className="text-center">Precio unit.</span>
-            <span className="text-right">Total</span>
+            <span>{t('items.service')}</span>
+            <span className="text-center">{t('items.quantity')}</span>
+            <span className="text-center">{t('items.unitPrice')}</span>
+            <span className="text-right">{t('items.total')}</span>
             {discounts.showLineDiscount && <span />}
             <span />
           </div>
@@ -230,12 +233,12 @@ export function StepItemsEditor({
                 className={cn(
                   'grid gap-2 items-center px-3 py-2 bg-background',
                   discounts.showLineDiscount
-                    ? 'grid-cols-[1fr_56px_88px_76px_auto_32px]'
-                    : 'grid-cols-[1fr_64px_96px_80px_32px]',
+                    ? 'grid-cols-[1fr_56px_88px_76px_auto_32px] max-sm:grid-cols-[56px_minmax(64px,1fr)_auto_auto_32px]'
+                    : 'grid-cols-[1fr_64px_96px_80px_32px] max-sm:grid-cols-[64px_minmax(72px,1fr)_auto_32px]',
                 )}
               >
                 {/* Service name */}
-                <span className="text-sm truncate min-w-0">{item.service_name}</span>
+                <span className="text-sm truncate min-w-0 max-sm:col-span-full">{item.service_name}</span>
 
                 {/* Quantity */}
                 <Input
@@ -285,7 +288,7 @@ export function StepItemsEditor({
                   onClick={() => handleDelete(item.tempId)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  <span className="sr-only">Eliminar</span>
+                  <span className="sr-only">{t('items.delete')}</span>
                 </Button>
               </div>
             ))}
@@ -318,7 +321,7 @@ export function StepItemsEditor({
       ) : (
         <div className="rounded-lg border border-dashed px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No hay servicios. Agrega al menos uno para continuar.
+            {t('items.empty')}
           </p>
         </div>
       )}
@@ -330,8 +333,8 @@ export function StepItemsEditor({
             <ServiceSelector
               isSales={isSales}
               onValueChange={handleServiceSelect}
-              placeholder="Buscar servicio..."
-              triggerText="Seleccionar servicio"
+              placeholder={tSelectors('searchService')}
+              triggerText={tSelectors('selectService')}
             />
             <Button
               type="button"
@@ -340,7 +343,7 @@ export function StepItemsEditor({
               className="text-muted-foreground"
               onClick={() => setShowSelector(false)}
             >
-              Cancelar
+              {t('actions.cancel')}
             </Button>
           </div>
         ) : (
@@ -352,7 +355,7 @@ export function StepItemsEditor({
             className="gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            Agregar servicio
+            {t('items.add')}
           </Button>
         )}
       </div>

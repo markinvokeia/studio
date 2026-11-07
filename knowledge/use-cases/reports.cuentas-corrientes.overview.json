@@ -1,0 +1,98 @@
+{
+  "id": "reports.cuentas-corrientes.overview",
+  "title": "Usar el reporte Cuentas Corrientes",
+  "module": "Reportes",
+  "summary": "El saldo de cada paciente: lo facturado, lo cobrado y lo que debe.",
+  "screens": [
+    "reports.cuentas-corrientes"
+  ],
+  "keywords": [
+    "cuentas corrientes",
+    "saldos de pacientes",
+    "estado de cuenta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/cuentas-corrientes",
+      "title": "Menú → Reportes → Cuentas Corrientes",
+      "details": "El saldo de cada paciente: lo facturado, lo cobrado y lo que debe."
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.section.filters",
+      "title": "Filtros",
+      "details": "Moneda y estado (con deuda, al día, a favor)."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.cuentas-corrientes.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.cuentas-corrientes.section.results",
+        "reports.cuentas-corrientes.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.cuentas-corrientes.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.section.kpi",
+      "title": "Indicadores",
+      "details": "Total facturado, total cobrado, saldo neto y cuántos pacientes tienen deuda.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.section.results",
+      "title": "Resultados",
+      "details": "Una fila por paciente con su saldo; tocá el nombre para ir a su ficha.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.cuentas-corrientes.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

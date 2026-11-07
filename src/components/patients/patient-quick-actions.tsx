@@ -44,6 +44,7 @@ interface PatientQuickActionsProps {
   onPatientChanged?: () => void;
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
+  onCreateAestheticSession?: () => void;
   onCreateMedicalInstruction?: () => void;
   onCreatePrescription?: () => void;
   onCreateDocument?: () => void;
@@ -54,7 +55,7 @@ interface PatientQuickActionsProps {
  * PatientActionsMenu and hosts every dialog it triggers. Open from anywhere with
  * only the patient's identity.
  */
-export function PatientQuickActions({ userId, userName, userEmail, userPhone, onPatientChanged, onCreateClinicalSession, onCreateOdontogram, onCreateMedicalInstruction, onCreatePrescription, onCreateDocument }: PatientQuickActionsProps) {
+export function PatientQuickActions({ userId, userName, userEmail, userPhone, onPatientChanged, onCreateClinicalSession, onCreateOdontogram, onCreateAestheticSession, onCreateMedicalInstruction, onCreatePrescription, onCreateDocument }: PatientQuickActionsProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -178,6 +179,7 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
         isBusy={isSubmittingDischarge}
         onCreateClinicalSession={onCreateClinicalSession}
         onCreateOdontogram={onCreateOdontogram}
+        onCreateAestheticSession={onCreateAestheticSession}
         onCreateMedicalInstruction={onCreateMedicalInstruction}
         onCreatePrescription={onCreatePrescription}
         onCreateDocument={onCreateDocument}

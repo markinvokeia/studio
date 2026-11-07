@@ -1,0 +1,52 @@
+{
+  "id": "config.doctor-availability",
+  "summary": "Each doctor's availability rules.",
+  "purpose": "Without availability a doctor offers no slots on the calendar or the patient portal. Exceptions (vacations, leave) are entered separately.",
+  "tips": [
+    "One rule can cover several days with the same hours.",
+    "Biweekly alternates weeks starting from a reference date."
+  ],
+  "elements": {
+    "config.doctor-availability.field.user_id": {
+      "description": "Doctor the rule applies to."
+    },
+    "config.doctor-availability.field.recurrence": {
+      "description": "Weekly, biweekly or monthly."
+    },
+    "config.doctor-availability.field.days_of_week": {
+      "description": "Days of the week (Monday=1 … Sunday=7)."
+    },
+    "config.doctor-availability.field.start_time": {
+      "description": "From what time they see patients."
+    },
+    "config.doctor-availability.field.end_time": {
+      "description": "Until what time they see patients."
+    },
+    "config.doctor-availability.field.start_date": {
+      "description": "From when the rule applies."
+    },
+    "config.doctor-availability.field.end_date": {
+      "description": "Optional: until when it applies."
+    },
+    "config.doctor-availability.section.first-row": {
+      "label": "First record in the list"
+    },
+    "config.doctor-availability.section.row": {
+      "label": "Record"
+    },
+    "config.doctor-availability.section.detail": {
+      "label": "Details"
+    },
+    "config.doctor-availability.btn.edit": {
+      "label": "Edit"
+    },
+    "config.doctor-availability.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "config.doctor-availability.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "This can't be undone."
+    }
+  }
+}

@@ -355,13 +355,13 @@ export default function WhatsAppAgentConfigPage() {
                 </CardHeader>
             </Card>
 
-            <Card>
+            <Card data-help-id="system.whatsapp-agent.section.agent">
                 <CardHeader>
                     <CardTitle>{t('agent.title')}</CardTitle>
                     <CardDescription>{t('agent.description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex items-center justify-between rounded-lg border p-4" data-help-id="system.whatsapp-agent.field.agent-enabled">
                         <div className="space-y-0.5">
                             <Label htmlFor="agent-enabled">{t('agent.enable')}</Label>
                             <p className="text-sm text-muted-foreground">{t('agent.enableDescription')}</p>
@@ -371,13 +371,13 @@ export default function WhatsAppAgentConfigPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card data-help-id="system.whatsapp-agent.section.hours">
                 <CardHeader>
                     <CardTitle>{t('hours.title')}</CardTitle>
                     <CardDescription>{t('hours.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex items-center justify-between rounded-lg border p-4" data-help-id="system.whatsapp-agent.field.hours-enabled">
                         <div className="space-y-0.5">
                             <Label htmlFor="hours-enabled">{t('hours.enable')}</Label>
                             <p className="text-sm text-muted-foreground">{t('hours.enableDescription')}</p>
@@ -545,7 +545,7 @@ export default function WhatsAppAgentConfigPage() {
 
             <div className="flex justify-end">
                 {canUpdate && (
-                    <Button onClick={() => save.run({ agentEnabled, hours: businessHours })} loading={save.isPending}>
+                    <Button data-help-id="system.whatsapp-agent.btn.save" onClick={() => save.run({ agentEnabled, hours: businessHours })} loading={save.isPending}>
                         {t('saveChanges')}
                     </Button>
                 )}

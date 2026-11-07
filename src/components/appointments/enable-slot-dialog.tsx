@@ -25,6 +25,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { minutesToTimeString, planSlotEnable, type ClosureChange, type Interval } from '@/components/calendar/calendar-gaps';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
@@ -68,19 +69,19 @@ interface EnableSlotDialogProps {
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function hhmmToMinutes(value: string): number | null {
+export function hhmmToMinutes(value: string): number | null {
     if (!TIME_RE.test(value)) return null;
     const [h, m] = value.split(':').map(Number);
     return h * 60 + m;
 }
 
-function formatIntervals(intervals: Interval[]): string {
+export function formatIntervals(intervals: Interval[]): string {
     return intervals
         .map((i) => `${minutesToTimeString(i.startMin)}–${i.endMin >= 24 * 60 ? '24:00' : minutesToTimeString(i.endMin)}`)
         .join(', ');
 }
 
-const enableSlotSchema = (t: (key: string) => string) => z.object({
+export const enableSlotSchema = (t: (key: string) => string) => z.object({
     start_time: z.string().regex(TIME_RE, t('validation.time')),
     end_time: z.string().regex(TIME_RE, t('validation.time')),
     notes: z.string().max(200).optional(),
@@ -208,6 +209,7 @@ export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled 
                     </DialogTitle>
                     <DialogDescription>{t('description', { date: dateLabel, scope: scopeLabel })}</DialogDescription>
                 </DialogHeader>
+                <HelpScopeProvider scope="appointments.enable-slot">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(() => save.run())}>
                         <DialogBody className="space-y-4 px-6 py-4">
@@ -308,6 +310,7 @@ export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled 
                         </DialogFooter>
                     </form>
                 </Form>
+                </HelpScopeProvider>
             </DialogContent>
         </Dialog>
     );

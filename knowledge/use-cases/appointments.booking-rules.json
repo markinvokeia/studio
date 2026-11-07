@@ -1,0 +1,72 @@
+{
+  "id": "appointments.booking-rules",
+  "title": "Configurar las reglas al agendar",
+  "module": "Agenda",
+  "summary": "Verificar disponibilidad, bloquear horarios fuera de atención, filtrar doctores por servicio y crear la cita directo en la agenda.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "disponibilidad",
+    "bloquear horarios",
+    "fuera de horario",
+    "filtrar doctores",
+    "crear en el calendario",
+    "sin modal",
+    "tarjeta",
+    "previsualizar",
+    "reglas de agenda"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas"
+    },
+    {
+      "id": "settings",
+      "action": "click",
+      "target": "appointments.btn.settings",
+      "title": "Ajustes de la agenda",
+      "details": "Son preferencias de cada usuario: se guardan solas al cambiarlas y se aplican al instante."
+    },
+    {
+      "id": "availability",
+      "action": "highlight",
+      "target": "appointments.field.check-availability",
+      "title": "Verificar disponibilidad",
+      "details": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido."
+    },
+    {
+      "id": "block",
+      "action": "highlight",
+      "target": "appointments.field.block-unavailable",
+      "title": "Bloquear fuera de atención",
+      "details": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí."
+    },
+    {
+      "id": "filter",
+      "action": "highlight",
+      "target": "appointments.field.filter-doctors-by-service",
+      "title": "Filtrar doctores por servicio",
+      "details": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado."
+    },
+    {
+      "id": "inline",
+      "action": "highlight",
+      "target": "appointments.field.inline-appointment-creation",
+      "title": "Crear la cita en el calendario",
+      "details": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "preview",
+      "action": "highlight",
+      "target": "appointments.field.inline-draft-live-preview",
+      "title": "Previsualizar la cita al crearla",
+      "details": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
+      "skipIfMissing": true
+    }
+  ]
+}

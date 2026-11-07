@@ -1,0 +1,44 @@
+{
+  "id": "purchases.quotes.export",
+  "title": "Exportar presupuestos",
+  "module": "Compras",
+  "summary": "Bajar el listado (con los filtros que tengas) a Excel o CSV.",
+  "screens": [
+    "purchases.quotes"
+  ],
+  "keywords": [
+    "exportar presupuestos",
+    "excel",
+    "csv",
+    "descargar listado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/quotes",
+      "title": "Menú → Compras → Presupuestos de Compra",
+      "details": "La cotización de un proveedor: qué productos o servicios, a qué precio. Confirmada, se factura al recibirla."
+    },
+    {
+      "id": "export",
+      "action": "click",
+      "target": "purchases.quotes.btn.export",
+      "title": "Exportar",
+      "until": "purchases.quotes.section.export"
+    },
+    {
+      "id": "format",
+      "action": "highlight",
+      "target": "purchases.quotes.section.export",
+      "title": "Formato",
+      "details": "Excel o CSV."
+    },
+    {
+      "id": "run",
+      "action": "confirm",
+      "target": "purchases.quotes.btn.export-run",
+      "title": "Descargar"
+    }
+  ]
+}

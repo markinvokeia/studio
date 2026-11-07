@@ -1,0 +1,81 @@
+{
+  "id": "sales.quotes.items",
+  "title": "Ver y cambiar los ítems de un presupuesto",
+  "module": "Ventas",
+  "summary": "Pestaña Artículos: las líneas del presupuesto; en borrador se agregan, editan o quitan.",
+  "screens": [
+    "sales.quotes"
+  ],
+  "inputs": {
+    "query": "Número o paciente"
+  },
+  "keywords": [
+    "ítems del presupuesto",
+    "artículos",
+    "líneas",
+    "agregar servicio al presupuesto"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/quotes",
+      "title": "Menú → Ventas → Presupuestos",
+      "details": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.quotes.filter.search",
+      "title": "Buscá el presupuesto",
+      "details": "Por número o por paciente.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.quotes.section.first-row",
+      "title": "Abrí el presupuesto",
+      "details": "Tocá el presupuesto en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "sales.quotes.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "sales.quotes.tab.items",
+      "title": "Artículos"
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "sales.quotes.detail.section.first-row",
+      "title": "Un ítem",
+      "details": "Tocalo para editarlo o quitarlo (sólo en borradores).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "sales.quotes.detail.btn.new",
+      "title": "Agregar ítem",
+      "skipIfMissing": true
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "sales.quotes.btn.item-edit",
+      "title": "Editar ítem",
+      "skipIfMissing": true
+    },
+    {
+      "id": "remove",
+      "action": "highlight",
+      "target": "sales.quotes.btn.item-delete",
+      "title": "Quitar ítem",
+      "skipIfMissing": true
+    }
+  ]
+}

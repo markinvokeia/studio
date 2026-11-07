@@ -1,0 +1,44 @@
+{
+  "id": "sales.quotes.export",
+  "title": "Exportar presupuestos",
+  "module": "Ventas",
+  "summary": "Bajar el listado (con los filtros que tengas) a Excel o CSV.",
+  "screens": [
+    "sales.quotes"
+  ],
+  "keywords": [
+    "exportar presupuestos",
+    "excel",
+    "csv",
+    "descargar listado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/quotes",
+      "title": "Menú → Ventas → Presupuestos",
+      "details": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra."
+    },
+    {
+      "id": "export",
+      "action": "click",
+      "target": "sales.quotes.btn.export",
+      "title": "Exportar",
+      "until": "sales.quotes.section.export"
+    },
+    {
+      "id": "format",
+      "action": "highlight",
+      "target": "sales.quotes.section.export",
+      "title": "Formato",
+      "details": "Excel o CSV."
+    },
+    {
+      "id": "run",
+      "action": "confirm",
+      "target": "sales.quotes.btn.export-run",
+      "title": "Descargar"
+    }
+  ]
+}

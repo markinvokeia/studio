@@ -1,0 +1,32 @@
+{
+  "id": "system.alerts-config.overview",
+  "title": "Set up Alerts Configuration",
+  "summary": "Global settings of the alerts system: when the generator runs and how long the history is kept.",
+  "module": "System",
+  "keywords": [
+    "alerts configuration",
+    "when alerts run"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alerts Configuration",
+      "details": "Global settings of the alerts system: when the generator runs and how long the history is kept."
+    },
+    {
+      "id": "scheduler",
+      "title": "Scheduling",
+      "details": "How often and at what time alerts are created."
+    },
+    {
+      "id": "retention",
+      "title": "Retention",
+      "details": "How many days alerts and history are kept before being cleaned up."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Changes don't apply until you save."
+    }
+  ]
+}

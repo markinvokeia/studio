@@ -1,0 +1,147 @@
+{
+  "id": "sales.services",
+  "status": "draft",
+  "summary": "Catálogo de servicios y tratamientos con precio y duración.",
+  "purpose": "Se eligen al agendar, presupuestar y facturar. La duración define el largo del turno; los servicios con flujo tienen pasos (sesiones).",
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "tips": [
+    "Marcá 'Agendable online' para que el paciente lo pueda reservar desde el portal.",
+    "Para usarlo en la ficha estética: elegí la unidad de medida, marcá «Servicio de estética», guardá y completá la pestaña Estética."
+  ],
+  "useCases": [
+    "onboarding.service",
+    "sales.services.overview",
+    "sales.services.create",
+    "sales.services.edit",
+    "sales.services.delete",
+    "sales.services.steps",
+    "sales.services.aesthetic",
+    "sales.services.consent-template"
+  ],
+  "elements": {
+    "sales.services.field.name": {
+      "description": "Nombre del servicio."
+    },
+    "sales.services.field.price": {
+      "description": "Precio de lista."
+    },
+    "sales.services.field.currency": {
+      "description": "Moneda del precio."
+    },
+    "sales.services.field.duration_minutes": {
+      "description": "Duración del turno en minutos."
+    },
+    "sales.services.field.category_id": {
+      "description": "Categoría para agrupar en listados y reportes."
+    },
+    "sales.services.field.bookable_online": {
+      "description": "El paciente lo puede reservar desde el portal."
+    },
+    "sales.services.field.service_type": {
+      "description": "Servicio con flujo: tratamiento en varios pasos/sesiones."
+    },
+    "sales.services.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "sales.services.section.row": {
+      "label": "Registro"
+    },
+    "sales.services.section.detail": {
+      "label": "Ficha"
+    },
+    "sales.services.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "sales.services.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "sales.services.field.color": {
+      "label": "Color",
+      "description": "Color de la cita en la agenda."
+    },
+    "sales.services.field.description": {
+      "label": "Descripción"
+    },
+    "sales.services.field.indications": {
+      "label": "Indicaciones",
+      "description": "Lo que se le avisa al paciente antes de la cita."
+    },
+    "sales.services.field.is_active": {
+      "label": "Activo"
+    },
+    "sales.services.btn.add-step": {
+      "label": "Agregar etapa"
+    },
+    "sales.services.field.unit_id": {
+      "label": "Unidad de medida",
+      "description": "En qué se mide lo que se aplica o se vende (U, ml, mg…). Obligatoria en un servicio de estética."
+    },
+    "sales.services.field.is_aesthetic": {
+      "label": "Servicio de estética",
+      "description": "Lo suma a la ficha estética y habilita la pestaña Estética."
+    },
+    "sales.services.tab.aesthetic": {
+      "label": "Estética",
+      "description": "Cómo se marca en la ficha estética y su consentimiento."
+    },
+    "sales.services.section.aesthetic-config": {
+      "label": "Ficha estética",
+      "description": "Herramienta, dosis, límites, próxima cita e indicaciones. Se guarda aparte del servicio."
+    },
+    "sales.services.section.aesthetic-tool": {
+      "label": "Se marca con",
+      "description": "Puntos, áreas o línea."
+    },
+    "sales.services.field.aesthetic-default-quantity": {
+      "label": "Cantidad inicial por marca"
+    },
+    "sales.services.field.aesthetic-max-per-session": {
+      "label": "Máximo por sesión",
+      "description": "Avisa, no bloquea."
+    },
+    "sales.services.field.aesthetic-min-interval": {
+      "label": "Intervalo mínimo en una zona",
+      "description": "Avisa, no bloquea."
+    },
+    "sales.services.field.aesthetic-follow-up-days": {
+      "label": "Próxima cita sugerida",
+      "description": "Días hasta el control que se ofrece agendar al cerrar."
+    },
+    "sales.services.field.aesthetic-follow-up-label": {
+      "label": "Nombre de la próxima cita"
+    },
+    "sales.services.field.aesthetic-aftercare": {
+      "label": "Indicaciones posteriores",
+      "description": "Se envían por WhatsApp al cerrar la sesión."
+    },
+    "sales.services.btn.aesthetic-save": {
+      "label": "Guardar configuración estética"
+    },
+    "sales.services.section.consent-template": {
+      "label": "Consentimiento",
+      "description": "Texto propio del servicio. Sin texto se usa el genérico; cambiarlo sólo afecta a las firmas nuevas."
+    },
+    "sales.services.field.consent-title": {
+      "label": "Título del documento"
+    },
+    "sales.services.field.consent-body": {
+      "label": "Texto del consentimiento"
+    },
+    "sales.services.btn.consent-from-generic": {
+      "label": "Partir del genérico"
+    },
+    "sales.services.section.consent-variables": {
+      "label": "Variables",
+      "description": "Paciente, profesional, servicio, producto y fecha."
+    },
+    "sales.services.btn.consent-preview": {
+      "label": "Vista previa"
+    },
+    "sales.services.btn.consent-save": {
+      "label": "Guardar consentimiento"
+    }
+  }
+}

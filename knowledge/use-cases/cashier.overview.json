@@ -1,0 +1,91 @@
+{
+  "id": "cashier.overview",
+  "title": "Ver la caja: saldos, movimientos y cajas",
+  "module": "Caja",
+  "summary": "Qué muestra la caja abierta (apertura, efectivo en mano, ingresos, egresos, POS, transacciones) y las cajas físicas.",
+  "screens": [
+    "cashier"
+  ],
+  "keywords": [
+    "saldo",
+    "efectivo en mano",
+    "movimientos de caja",
+    "cuanto hay en caja",
+    "ingresos",
+    "egresos",
+    "pos",
+    "ver caja"
+  ],
+  "steps": [
+    {
+      "id": "go-cashier",
+      "action": "navigate",
+      "route": "/cashier",
+      "title": "Menú → Caja → Caja",
+      "details": "La caja del día: apertura, movimientos y cierre."
+    },
+    {
+      "id": "points",
+      "action": "highlight",
+      "target": "cashier.section.cash-points",
+      "title": "Cajas físicas",
+      "details": "Cada caja con su estado: verde abierta (y quién la abrió), gris cerrada. Sólo podés tener una abierta a la vez.",
+      "onlyIf": "cash-session-closed",
+      "skipIfMissing": true
+    },
+    {
+      "id": "session",
+      "action": "click",
+      "target": "cashier.btn.view-session",
+      "title": "Tu sesión abierta",
+      "skipIfMissing": true
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "cashier.section.active-session",
+      "title": "Sesión activa",
+      "details": "Monto de apertura, efectivo en mano (y lo generado en el día), ingresos, egresos y cobros por POS, por moneda.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "transactions",
+      "action": "highlight",
+      "target": "cashier.tab.transactions",
+      "title": "Transacciones",
+      "details": "Cada cobro, pago y movimiento vario de la sesión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "opening",
+      "action": "highlight",
+      "target": "cashier.tab.opening_details",
+      "title": "Detalles de apertura",
+      "details": "El conteo de billetes y monedas con que se abrió.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "cashier.btn.print-opening",
+      "title": "Imprimir apertura",
+      "skipIfMissing": true
+    },
+    {
+      "id": "all",
+      "action": "highlight",
+      "target": "cashier.btn.all-cash-points",
+      "title": "Ver todas las cajas",
+      "details": "Vuelve al listado de cajas físicas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "close",
+      "action": "highlight",
+      "target": "cashier.btn.start-closing",
+      "title": "Iniciar cierre",
+      "details": "Para cerrar, usá la guía «Cerrar la caja».",
+      "skipIfMissing": true
+    }
+  ]
+}

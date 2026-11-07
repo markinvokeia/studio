@@ -5,6 +5,7 @@ import { Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import type { User } from '@/lib/types';
 
 interface ResponsibleMatchHintProps {
@@ -26,7 +27,7 @@ export function ResponsibleMatchHint({ user, onlyWhenMatched = false, className 
   if (onlyWhenMatched && !user.matched_by_responsible) return null;
 
   const label = user.responsible_phone_number
-    ? t('responsibleMatchWithPhone', { name: user.responsible_contact_name, phone: user.responsible_phone_number })
+    ? t('responsibleMatchWithPhone', { name: user.responsible_contact_name, phone: formatPhoneNumber(user.responsible_phone_number) })
     : t('responsibleMatch', { name: user.responsible_contact_name });
 
   return (

@@ -1,0 +1,62 @@
+{
+  "id": "config.calendars.edit",
+  "title": "Edit the calendar",
+  "summary": "Change the details of an existing calendar.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit calendar",
+    "modify calendar",
+    "change calendar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Calendars",
+      "details": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there."
+    },
+    {
+      "id": "search",
+      "title": "Find the calendar"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the calendar",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "Room 1, Chair A…"
+    },
+    {
+      "id": "sede_id",
+      "title": "Branch",
+      "details": "Branch where it is."
+    },
+    {
+      "id": "color",
+      "title": "Color",
+      "details": "Color it shows with on the calendar."
+    },
+    {
+      "id": "google_calendar_id",
+      "title": "Google Calendar",
+      "details": "Optional: to sync with a Google Calendar."
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

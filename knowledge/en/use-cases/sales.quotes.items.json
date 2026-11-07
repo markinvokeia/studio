@@ -1,0 +1,53 @@
+{
+  "id": "sales.quotes.items",
+  "title": "View and change a quote's items",
+  "summary": "Items tab: the quote's lines; in draft, they're added, edited or removed.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Number or patient"
+  },
+  "keywords": [
+    "quote items",
+    "items",
+    "lines",
+    "add service to quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Quotes",
+      "details": "The treatment plan with prices for the patient to approve; once confirmed it's invoiced, booked and charged."
+    },
+    {
+      "id": "search",
+      "title": "Find the quote",
+      "details": "By number or by patient."
+    },
+    {
+      "id": "pick",
+      "title": "Open the quote",
+      "details": "Tap the quote in the list. The guide continues once its details open."
+    },
+    {
+      "id": "tab",
+      "title": "Items"
+    },
+    {
+      "id": "row",
+      "title": "An item",
+      "details": "Tap it to edit or remove it (drafts only)."
+    },
+    {
+      "id": "add",
+      "title": "Add item"
+    },
+    {
+      "id": "edit",
+      "title": "Edit item"
+    },
+    {
+      "id": "remove",
+      "title": "Remove item"
+    }
+  ]
+}

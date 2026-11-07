@@ -1,0 +1,38 @@
+{
+  "id": "purchases.services.delete",
+  "title": "Delete a product or service",
+  "summary": "Remove it from the list (asks for confirmation). If it's already been used, better deactivate it.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete product or service",
+    "remove product or service"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Provider Products and Services",
+      "details": "What the clinic buys from providers, with its reference price: it's used in purchase quotes and invoices."
+    },
+    {
+      "id": "search",
+      "title": "Find the product or service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the product or service",
+      "details": "Tap it to open their record."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

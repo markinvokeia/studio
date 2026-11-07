@@ -1,0 +1,83 @@
+{
+  "id": "onboarding.availability",
+  "title": "Cargar la disponibilidad de un profesional",
+  "module": "Configuración del negocio",
+  "summary": "Define qué días y horas atiende cada profesional. La agenda ofrece huecos sólo dentro de su disponibilidad y del horario de la sede.",
+  "screens": [
+    "config.doctor-availability"
+  ],
+  "inputs": {
+    "doctor": "Nombre del profesional",
+    "days_of_week": "Lista de días ISO, 1=lunes … 7=domingo (ej. [1,3,5])",
+    "start_time": "Hora de inicio HH:MM",
+    "end_time": "Hora de fin HH:MM"
+  },
+  "keywords": [
+    "disponibilidad",
+    "agenda del doctor",
+    "horario del médico",
+    "días que atiende"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/doctor-availability",
+      "title": "Abro Disponibilidad médica"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.doctor-availability.btn.new",
+      "title": "Nueva regla de disponibilidad",
+      "details": "Abre una regla de disponibilidad nueva."
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "config.doctor-availability.field.user_id",
+      "value": "{{values.doctor}}",
+      "title": "Profesional",
+      "details": "La regla aplica sólo a este profesional."
+    },
+    {
+      "id": "recurrence",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.recurrence",
+      "title": "Cada cuánto se repite",
+      "description": "Lo habitual es semanal. Quincenal sirve para quien atiende una semana sí y otra no.",
+      "details": "Semanal repite todas las semanas; quincenal, una semana sí y otra no; mensual, en días fijos del mes."
+    },
+    {
+      "id": "days",
+      "action": "fill",
+      "target": "config.doctor-availability.field.days_of_week",
+      "value": "{{values.days_of_week}}",
+      "title": "Días que atiende",
+      "details": "Días que atiende con este mismo horario. Para horarios distintos según el día, creá otra regla."
+    },
+    {
+      "id": "start",
+      "action": "fill",
+      "target": "config.doctor-availability.field.start_time",
+      "value": "{{values.start_time}}",
+      "title": "Desde",
+      "details": "La agenda sólo ofrece turnos dentro de este horario y del horario de la sede."
+    },
+    {
+      "id": "end",
+      "action": "fill",
+      "target": "config.doctor-availability.field.end_time",
+      "value": "{{values.end_time}}",
+      "title": "Hasta",
+      "details": "Hasta qué hora atiende. Las vacaciones o licencias se cargan aparte como excepciones."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.doctor-availability.btn.submit",
+      "title": "Crear la regla",
+      "details": "Crea la regla. Desde ese momento aparecen huecos libres para agendarle."
+    }
+  ]
+}

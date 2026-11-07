@@ -14,6 +14,9 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { useAutoHelpId } from "@/components/help/help-scope"
+import { registerHelpField } from "@/lib/help/field-registry"
+import { HELP_ID_ATTR, HELP_ITEM_ATTR } from "@/lib/help/help-id"
 
 const Form = FormProvider
 
@@ -77,10 +80,12 @@ const FormItem = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   const id = React.useId()
+  // Contenedor que resalta el asistente (label + control + mensaje).
+  const helpItemId = useAutoHelpId("field", React.useContext(FormFieldContext).name)
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2 mb-4 px-0.5", className)} {...props} />
+      <div ref={ref} className={cn("space-y-2 mb-4 px-0.5", className)} {...{ [HELP_ITEM_ATTR]: helpItemId }} {...props} />
     </FormItemContext.Provider>
   )
 })
@@ -107,12 +112,25 @@ const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { error, name, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { setValue } = useFormContext()
+  const helpId = useAutoHelpId("field", name, (props as Record<string, unknown>)[HELP_ID_ATTR] as string | undefined)
+
+  // El asistente completa el campo con lo dictado pasando por RHF (valida y marca dirty).
+  // Se registra por id DOM (preciso) y por help id (para controles que no reenvían `id` al DOM).
+  React.useEffect(() => {
+    const set = (value: unknown) =>
+      setValue(name, value as never, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
+    const offDom = registerHelpField(formItemId, set)
+    const offHelp = helpId ? registerHelpField(helpId, set) : undefined
+    return () => { offDom(); offHelp?.() }
+  }, [formItemId, helpId, name, setValue])
 
   return (
     <Slot
       ref={ref}
       id={formItemId}
+      {...{ [HELP_ID_ATTR]: helpId }}
       aria-describedby={
         !error
           ? `${formDescriptionId}`

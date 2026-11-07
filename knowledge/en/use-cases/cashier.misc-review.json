@@ -1,0 +1,43 @@
+{
+  "id": "cashier.misc-review",
+  "title": "View, edit or void a miscellaneous movement",
+  "summary": "Find a movement by payee, open it to edit or delete it (only those in the open cash register).",
+  "module": "Cash register",
+  "inputs": {
+    "query": "Payee"
+  },
+  "keywords": [
+    "edit movement",
+    "void expense",
+    "delete expense",
+    "find expense",
+    "miscellaneous movements",
+    "correct"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Miscellaneous Transactions",
+      "details": "Money in and out that isn't a patient payment: small expenses, withdrawals, contributions."
+    },
+    {
+      "id": "search",
+      "title": "Search by payee"
+    },
+    {
+      "id": "row",
+      "title": "The most recent movement",
+      "details": "Income in green and expenses in red. Tap the row to edit it. Only those in the open cash session can be edited or deleted."
+    },
+    {
+      "id": "actions",
+      "title": "Actions",
+      "details": "Edit or Delete the movement."
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "details": "Opens the form with the details to correct them."
+    }
+  ]
+}

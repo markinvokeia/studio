@@ -9,6 +9,7 @@ import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, File
 import { useTranslations } from 'next-intl';
 import { AppliedDiscountNote, DiscountControl } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { composeHelpId } from '@/lib/help/help-id';
 import { buildLineDiscountFields, computeGrossTotal, computeLineTotals, isDiscountWithinLimit } from '@/lib/discounts';
 import type { DateRange } from 'react-day-picker';
 
@@ -38,6 +39,7 @@ import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
+import { useHelpScope } from '@/components/help/help-scope';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -47,13 +49,23 @@ import { useFinanceSortOrder } from '@/hooks/use-finance-sort-order';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { buildPatientLedger, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
+import { buildPatientLedger, computeLedgerTotals, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
 import type { CreditNote, Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
 import { currencySchema, currencySymbol, formatMoney } from '@/lib/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import {
+  allocationHasConversion,
+  buildAllocationsPayload,
+  distributeFifo as distributeAcrossInvoices,
+  maxPayableAmount,
+  pendingInPaymentCurrency,
+  sortAllocatableInvoices,
+  targetAmountFor,
+  type CurrencyPair,
+} from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 function round2(n: number): number {
@@ -368,6 +380,22 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
 // Powers the small "linked documents" popover on payment/invoice rows: which
 // treatments a payment covered, or which payment(s) covered a treatment.
 
+/**
+ * The payment document behind a ledger row. Direct payments and allocations come from
+ * different tables, so their ids can collide: the type has to match too.
+ */
+function findRowPayment(payments: Payment[] | undefined, row: LedgerRow): Payment | undefined {
+  const paymentId = row.sourcePaymentId ?? row.paymentId;
+  return payments?.find((p) => p.id === paymentId && (p.transaction_type || 'direct_payment') === 'direct_payment');
+}
+
+/** A payment with conversion can't grow: the extra would be a leftover in its own currency. */
+function conversionEditCeiling(payments: Payment[] | undefined, row: LedgerRow): number | undefined {
+  const payment = findRowPayment(payments, row);
+  if (!payment) return undefined;
+  return row.conversion ? Math.abs(payment.source_amount ?? 0) : undefined;
+}
+
 /** One line in the allocations popover — deliberately thin, just enough to show and
  *  cross-reference against `LedgerRow.docNo` for the on-screen highlight. */
 type LiteAllocation = {
@@ -389,7 +417,8 @@ async function fetchPaymentAllocations(paymentId: string): Promise<LiteAllocatio
         key: String(a.allocation_id),
         docNo: a.factura_doc_no || '',
         amount: Math.abs(parseFloat(a.monto_aplicado_a_factura || '0')),
-        currency: a.moneda_allocation || a.moneda_factura || '',
+        // `monto_aplicado_a_factura` is in the invoice's currency, not in the payment's.
+        currency: a.moneda_factura || a.moneda_allocation || '',
         date: a.fecha_aplicacion || '',
       }));
   } catch {
@@ -412,7 +441,8 @@ async function fetchInvoicePaymentsList(invoiceId: string): Promise<LiteAllocati
         key: String(p.transaction_id || p.id || `${invoiceId}-${p.payment_date || Math.random()}`),
         docNo: p.doc_no || String(p.transaction_doc_no || ''),
         amount: Math.abs(parseFloat(p.amount_applied ?? p.amount ?? '0')),
-        currency: p.source_currency || p.invoice_currency || '',
+        // `amount_applied` is in the invoice's currency, not in the payment's.
+        currency: p.invoice_currency || p.source_currency || '',
         date: p.payment_date || p.created_at || '',
       }));
   } catch {
@@ -465,7 +495,7 @@ function RowAllocationsPopover({
       // onto (via `invoice_allocations` at creation time) — the payment's own directly-paid
       // invoice (`row.invoiceId`, every row here being a `direct_payment`) never shows up
       // there, so it has to be prepended from the row itself.
-      const extra = await fetchPaymentAllocations(row.paymentId!);
+      const extra = await fetchPaymentAllocations(row.sourcePaymentId ?? row.paymentId!);
       const direct: LiteAllocation[] = row.invoiceId
         ? [{
           key: `direct-${row.invoiceId}`,
@@ -1177,6 +1207,8 @@ const paymentEditorSchema = z.object({
   payment_method_id: z.string().min(1),
   notes: z.string().optional(),
   is_historical: z.boolean().default(false),
+  /** Only used when the payment is applied to invoices in another currency. */
+  exchange_rate: z.coerce.number().min(0).default(0),
 });
 type PaymentEditorValues = z.infer<typeof paymentEditorSchema>;
 
@@ -1189,6 +1221,12 @@ export type PendingInvoiceLite = {
   currency: string;
 };
 
+/** A pending invoice as offered to one specific payment. */
+type PendingRow = PendingInvoiceLite & {
+  isCross: boolean;
+  pendingInPayment: number;
+};
+
 /**
  * Inline editor for a Nuevo Pago — creates a single payment via `INVOICE_PAYMENT`
  * (`is_prepaid: true`), always sending `invoice_allocations` so the backend books it against
@@ -1199,6 +1237,11 @@ export type PendingInvoiceLite = {
  * payment — the remainder is booked as credit via `is_prepaid: true` — but it can never
  * exceed it.
  *
+ * Invoices in the clinic's other currency can take the payment too, converted at the cash
+ * session's rate (see `@/lib/payment-conversion`). The payment and its cash movement keep
+ * their original amount and currency; the converted figure lives on each allocation. A
+ * payment with conversion must be fully allocated: no leftover is accepted.
+ *
  * In edit mode (`editRow`/`editPayment` set) saving instead calls
  * `PAYMENT_EDIT_WITH_REALLOCATION`: the backend updates the payment row in place (so no
  * duplicate "payment received" email, and the original cash session isn't lost), then
@@ -1207,7 +1250,7 @@ export type PendingInvoiceLite = {
  * pendientes" panel — which is for choosing new allocations — doesn't apply here and is
  * hidden in edit mode.
  */
-function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, onCancel, onSaved }: {
+function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, maxEditAmount, onCancel, onSaved }: {
   userId: string;
   patientName?: string;
   patientEmail?: string;
@@ -1215,15 +1258,23 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   pendingInvoices: PendingInvoiceLite[];
   editRow?: LedgerRow;
   editPayment?: Payment;
+  /** Ceiling on the edited amount: raising a payment with conversion would leave a leftover. */
+  maxEditAmount?: number;
   onCancel: () => void;
   onSaved: () => Promise<void> | void;
 }) {
   const t = useTranslations('PatientLedger');
+  const tCommon = useTranslations('Common');
+  const helpScope = useHelpScope();
   const { toast } = useToast();
-  const { user: operator, checkActiveSession } = useAuth();
+  const { user: operator, checkActiveSession, activeCashSession } = useAuth();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const { code: primaryCurrency, secondaryCode } = useCurrencySettings();
   const isEdit = !!editRow;
   const [submitting, setSubmitting] = React.useState(false);
+  // Synchronous lock: `submitting` only takes effect on the next render.
+  const submitLockRef = React.useRef(false);
+  const sessionRate = Number(activeCashSession?.data?.opening_details?.date_rate) || 0;
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
 
   const form = useForm<PaymentEditorValues>({
@@ -1231,10 +1282,12 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     defaultValues: {
       created_at: editPayment?.payment_date ? new Date(editPayment.payment_date) : new Date(),
       currency: editPayment?.source_currency || currency,
-      payment_amount: editPayment ? Math.abs(editPayment.amount_applied ?? editPayment.source_amount ?? 0) : 0,
+      // What was actually paid, in its own currency — never the amount converted to the invoice's.
+      payment_amount: editPayment ? Math.abs(editPayment.source_amount ?? editPayment.amount_applied ?? 0) : 0,
       payment_method_id: editPayment?.payment_method_id || '',
       notes: editPayment?.notes || '',
       is_historical: editPayment?.is_historical || false,
+      exchange_rate: sessionRate,
     },
   });
 
@@ -1259,29 +1312,57 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   const amount = form.watch('payment_amount') || 0;
   const selectedCurrency = form.watch('currency');
 
-  // Pending invoices in this payment's currency, oldest first (FIFO distribution order).
-  const sortedPending = React.useMemo(
-    () => pendingInvoices
-      .filter((p) => p.currency === selectedCurrency)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [pendingInvoices, selectedCurrency],
+  const exchangeRate = form.watch('exchange_rate') || 0;
+  const rateTouchedRef = React.useRef(false);
+
+  // The rate follows the open session until someone types one. A historical payment isn't
+  // at today's rate, so it starts empty and has to be typed in.
+  React.useEffect(() => {
+    rateTouchedRef.current = false;
+  }, [isHistorical]);
+  React.useEffect(() => {
+    if (rateTouchedRef.current) return;
+    form.setValue('exchange_rate', isHistorical ? 0 : sessionRate);
+  }, [form, isHistorical, sessionRate]);
+
+  const pair = React.useMemo<CurrencyPair>(
+    () => ({ primary: primaryCurrency, secondary: secondaryCode, rate: exchangeRate }),
+    [primaryCurrency, secondaryCode, exchangeRate],
   );
 
-  // Allocation state: `alloc[invoiceId] = amount`. Presence = the invoice is included.
+  // Pending invoices this payment can reach, in FIFO order: its own currency first, then
+  // the clinic's other currency. `pendingInPayment` is what each one owes in the payment's
+  // currency, which is the unit every allocation below is typed and compared in.
+  const sortedPending = React.useMemo<PendingRow[]>(
+    () => sortAllocatableInvoices(pendingInvoices, selectedCurrency, pair)
+      .map((inv) => ({
+        ...inv,
+        isCross: inv.currency !== selectedCurrency,
+        pendingInPayment: pendingInPaymentCurrency(inv, selectedCurrency, pair),
+      })),
+    [pendingInvoices, selectedCurrency, pair],
+  );
+  const hasCrossPending = sortedPending.some((inv) => inv.isCross);
+
+  // Allocation state: `alloc[invoiceId] = amount`, in the payment's currency. Presence = the
+  // invoice is included.
   const [showAllocations, setShowAllocations] = React.useState(false);
   const [alloc, setAlloc] = React.useState<Record<string, number>>({});
   const [allocManual, setAllocManual] = React.useState(false);
 
-  const distributeFifo = React.useCallback((total: number): Record<string, number> => {
-    let remaining = round2(total);
-    const result: Record<string, number> = {};
-    for (const inv of sortedPending) {
-      if (remaining <= 0.005) break;
-      const take = round2(Math.min(inv.pending, remaining));
-      if (take > 0.005) { result[inv.id] = take; remaining = round2(remaining - take); }
-    }
-    return result;
-  }, [sortedPending]);
+  const distributeFifo = React.useCallback(
+    (total: number): Record<string, number> => distributeAcrossInvoices(total, sortedPending, selectedCurrency, pair),
+    [sortedPending, selectedCurrency, pair],
+  );
+
+  // The amount goes past what its own currency owes, so part of it would be converted. That
+  // can't happen out of sight: the panel stays open while this holds.
+  const samePendingTotal = round2(sortedPending.filter((inv) => !inv.isCross).reduce((sum, inv) => sum + inv.pending, 0));
+  const needsConversion = !isEdit && hasCrossPending && round2(amount - samePendingTotal) > 0.005;
+
+  React.useEffect(() => {
+    if (needsConversion) setShowAllocations(true);
+  }, [needsConversion]);
 
   // Auto-redistribute (oldest first) whenever the total changes, until the user edits.
   React.useEffect(() => {
@@ -1296,34 +1377,39 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
 
   const allocated = round2(Object.values(alloc).reduce((s, a) => s + a, 0));
   // Positive `difference` = leftover (amount > allocated) — goes to the patient's credit,
-  // not an error. Negative = over-allocation (allocated > amount) — that's invalid, the
-  // payment can't cover more than what's being paid.
+  // unless the payment involves a conversion, which must be fully allocated. Negative =
+  // over-allocation (allocated > amount) — that's invalid, the payment can't cover more than
+  // what's being paid.
   const difference = round2(amount - allocated);
   const allocOverage = showAllocations && difference < -0.005;
   const allocLeftover = showAllocations && difference > 0.005;
+  const allocHasConversion = allocationHasConversion(alloc, sortedPending, selectedCurrency);
+  const conversionLeftover = allocLeftover && (allocHasConversion || (needsConversion && !allocManual));
+  const rateMissing = (needsConversion && !allocManual || allocHasConversion) && !(exchangeRate > 0);
+  const maxPayable = maxPayableAmount(sortedPending, selectedCurrency, pair);
   // Per-row: an allocation can never exceed what that treatment actually still owes,
   // regardless of how the total payment compares — flagged inline, not silently clamped,
   // so the user sees exactly which row is the problem.
   const rowExceedsPending = React.useCallback(
-    (inv: PendingInvoiceLite) => (alloc[inv.id] ?? 0) > inv.pending + 0.005,
+    (inv: PendingRow) => (alloc[inv.id] ?? 0) > inv.pendingInPayment + 0.005,
     [alloc],
   );
-  const hasInvalidAllocation = showAllocations && (allocOverage || sortedPending.some(rowExceedsPending));
+  const hasInvalidAllocation = showAllocations && (allocOverage || conversionLeftover || rateMissing || sortedPending.some(rowExceedsPending));
 
-  const toggleInvoice = (inv: PendingInvoiceLite) => {
+  const toggleInvoice = (inv: PendingRow) => {
     setAllocManual(true);
     setAlloc((prev) => {
       const next = { ...prev };
       if (inv.id in next) { delete next[inv.id]; return next; }
       const others = round2(Object.values(next).reduce((s, a) => s + a, 0));
-      next[inv.id] = round2(Math.min(inv.pending, Math.max(0, amount - others)));
+      next[inv.id] = round2(Math.min(inv.pendingInPayment, Math.max(0, amount - others)));
       return next;
     });
   };
 
   // Not clamped to `inv.pending`/`amount` here — an over-limit value is kept as typed so
   // the row can show a visible error instead of silently rewriting what the user entered.
-  const setInvoiceAmount = (inv: PendingInvoiceLite, value: number) => {
+  const setInvoiceAmount = (inv: PendingRow, value: number) => {
     setAllocManual(true);
     setAlloc((prev) => ({ ...prev, [inv.id]: round2(Math.max(0, value || 0)) }));
   };
@@ -1340,9 +1426,14 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   };
 
   const onSubmit = async (values: PaymentEditorValues) => {
-    if (submitting || !operator) return;
+    if (submitLockRef.current || !operator) return;
     if (isEdit) {
       if (!editRow?.paymentId) return;
+      if (maxEditAmount != null && values.payment_amount > maxEditAmount + 0.005) {
+        toast({ title: t('conversion.editExceeds', { amount: fmtAmountZero(maxEditAmount, values.currency) }), variant: 'destructive' });
+        return;
+      }
+      submitLockRef.current = true;
       setSubmitting(true);
       try {
         const res = await api.post(API_ROUTES.SALES.PAYMENT_EDIT_WITH_REALLOCATION, {
@@ -1358,15 +1449,17 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           throw new Error(result?.message);
         }
         const released = Number(result?.released_amount) || 0;
+        // A smaller payment takes money off its invoices, it doesn't free any: that part is owed again.
         toast({
           title: t('toasts.paymentUpdated'),
-          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, values.currency) }) : undefined,
+          description: released > 0.005 ? t('toasts.releasedPending', { amount: fmtAmountZero(released, values.currency) }) : undefined,
         });
         await checkActiveSession();
         await onSaved();
       } catch (e: any) {
         toast({ title: e?.message || t('toasts.paymentUpdateError'), variant: 'destructive' });
       } finally {
+        submitLockRef.current = false;
         setSubmitting(false);
       }
       return;
@@ -1375,9 +1468,15 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     // fall back to a silent FIFO distribution over the pending invoices — same default the
     // manual panel itself starts from, just applied without the user opening it.
     const allocSource = showAllocations ? alloc : distributeFifo(values.payment_amount);
-    const invoiceAllocations = Object.entries(allocSource)
-      .filter(([, a]) => a > 0.005)
-      .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
+    const invoiceAllocations = buildAllocationsPayload(allocSource, sortedPending, values.currency, pair);
+    if (rateMissing) {
+      toast({ title: t('conversion.rateRequired'), variant: 'destructive' });
+      return;
+    }
+    if (conversionLeftover) {
+      toast({ title: t('conversion.leftoverBlocked', { amount: fmtAmountZero(difference, values.currency) }), variant: 'destructive' });
+      return;
+    }
     if (showAllocations) {
       if (invoiceAllocations.length === 0) {
         toast({ title: t('allocations.noneSelected'), variant: 'destructive' });
@@ -1394,6 +1493,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
         return;
       }
     }
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       let sessionId: string | null = null;
@@ -1423,19 +1523,28 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           is_prepaid: true,
           invoice_currency: values.currency,
           payment_currency: values.currency,
+          // Always 1 on the payment: it stays in its own currency. Each allocation carries
+          // the rate it was converted at.
           exchange_rate: 1,
           notes: values.notes || '',
           is_historical: values.is_historical,
         },
-      });
+      }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
       if (res?.error && res?.code >= 400) throw new Error(res.message);
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
       toast({ title: t('toasts.paymentCreated') });
       await checkActiveSession();
       await onSaved();
     } catch (e: any) {
-      toast({ title: e?.message || t('toasts.paymentCreateError'), variant: 'destructive' });
+      if (isTimeoutError(e)) {
+        // It may have gone through on the backend: reload so nobody charges it twice.
+        toast({ title: tCommon('timeoutError'), variant: 'destructive' });
+        await onSaved();
+      } else {
+        toast({ title: e?.message || t('toasts.paymentCreateError'), variant: 'destructive' });
+      }
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };
@@ -1468,9 +1577,44 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
                 {allocOverage && ` · ${t('allocations.exceeds', { amount: fmtAmountZero(Math.abs(difference), selectedCurrency) })}`}
               </span>
             </div>
-            {allocLeftover && (
+            {hasCrossPending && (
+              <label data-help-id={composeHelpId(helpScope, 'field', 'payment_exchange_rate')} className="mb-2 flex items-center justify-between gap-2 text-xs">
+                <span className="min-w-0">
+                  <span className="font-medium">{t('conversion.rate')}</span>
+                  <span className="block text-muted-foreground">{t('conversion.rateHint', { primary: primaryCurrency, secondary: secondaryCode ?? '' })}</span>
+                </span>
+                <FormattedNumberInput
+                  value={exchangeRate}
+                  onChange={(v) => { rateTouchedRef.current = true; form.setValue('exchange_rate', v, { shouldValidate: true }); }}
+                  placeholder="0.00"
+                  aria-label={t('conversion.rate')}
+                  aria-invalid={rateMissing || undefined}
+                  className={cn('h-7 w-24 shrink-0 text-right text-xs', rateMissing && 'border-destructive text-destructive focus-visible:ring-destructive')}
+                />
+              </label>
+            )}
+            {rateMissing && (
+              <div className="mb-2 text-xs text-destructive">{t('conversion.rateRequired')}</div>
+            )}
+            {allocLeftover && !conversionLeftover && (
               <div className="mb-2 text-xs text-muted-foreground">
                 {t('allocations.leftoverCredit', { amount: fmtAmountZero(difference, selectedCurrency) })}
+              </div>
+            )}
+            {conversionLeftover && !rateMissing && (
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-destructive">
+                <span className="min-w-0 flex-1">{t('conversion.leftoverBlocked', { amount: fmtAmountZero(difference, selectedCurrency) })}</span>
+                {!allocManual && maxPayable > 0.005 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 text-xs"
+                    onClick={() => form.setValue('payment_amount', maxPayable, { shouldValidate: true })}
+                  >
+                    {t('conversion.useMax', { amount: fmtAmountZero(maxPayable, selectedCurrency) })}
+                  </Button>
+                )}
               </div>
             )}
             {sortedPending.length === 0 ? (
@@ -1483,17 +1627,23 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
                   return (
                     <div key={inv.id} className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2 text-xs">
-                        <Checkbox checked={included} onCheckedChange={() => toggleInvoice(inv)} />
+                        <Checkbox checked={included} onCheckedChange={() => toggleInvoice(inv)} disabled={inv.isCross && !(exchangeRate > 0)} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{t('docLine.treatment')}: {inv.docNo}</div>
                           <div className="truncate text-muted-foreground">
                             {formatDisplayDate(inv.date)} · {t('allocations.pending')}: {fmtAmountZero(inv.pending, inv.currency)}
                           </div>
+                          {inv.isCross && included && (alloc[inv.id] ?? 0) > 0.005 && !rowInvalid && (
+                            <div className="truncate text-muted-foreground">
+                              {t('conversion.equivalent', { amount: fmtAmountZero(targetAmountFor(alloc[inv.id], inv, selectedCurrency, pair), inv.currency) })}
+                            </div>
+                          )}
                         </div>
                         <FormattedNumberInput
                           value={included ? alloc[inv.id] : 0}
                           onChange={(v) => setInvoiceAmount(inv, v)}
                           placeholder="0.00"
+                          disabled={inv.isCross && !(exchangeRate > 0)}
                           className={cn(
                             'h-7 w-24 shrink-0 text-right text-xs',
                             !included && 'opacity-50',
@@ -1568,7 +1718,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
             variant={showAllocations ? 'secondary' : 'outline'}
             className="h-8 w-full gap-1.5 text-xs [grid-area:pend]"
             onClick={toggleAllocationsPanel}
-            disabled={sortedPending.length === 0}
+            disabled={sortedPending.length === 0 || needsConversion}
             title={t('inline.selectPending')}
           >
             <ListChecks className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{t('inline.selectPending')}</span>
@@ -1701,6 +1851,7 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
 
 export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp, dateRange: dateRangeProp, onDateRangeChange }: PatientLedgerProps, ref) {
   const t = useTranslations('PatientLedger');
+  const helpScope = useHelpScope();
   const { toast } = useToast();
   const { user: operator } = useAuth();
   const clinicInfo = useClinicInfo();
@@ -2253,7 +2404,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     setPrintingRowId(row.id);
     try {
       if (row.kind === 'payment') {
-        const payment = ledgerData?.payments.find((p) => p.id === row.paymentId);
+        const payment = findRowPayment(ledgerData?.payments, row);
         if (!payment) throw new Error('not_found');
         await printPayment(payment, true);
       } else if (row.status === 'presupuestado') {
@@ -2284,7 +2435,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const handleEmailRow = React.useCallback((row: LedgerRow) => {
     let target: EmailDocumentTarget | null = null;
     if (row.kind === 'payment') {
-      const payment = ledgerData?.payments.find((p) => p.id === row.paymentId);
+      const payment = findRowPayment(ledgerData?.payments, row);
       if (payment) {
         target = {
           request: { type: 'payment', payment, isSales: true },
@@ -2344,9 +2495,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       (isInvoiceItem && canEditInvoice);
     // Payments with allocations now edit through PAYMENT_EDIT_WITH_REALLOCATION (which
     // releases and re-applies them FIFO), same as pure prepayments/credit — see
-    // PaymentInlineEditor's editKind. Credit-note-derived rows stay excluded: they're
-    // auto-derived bookkeeping, not something the user created directly.
-    const showEditPayment = isPayment && row.transactionType !== 'credit_note_allocation' && canCreatePaymentPerm;
+    // PaymentInlineEditor's editKind. Allocation rows stay excluded: they're derived
+    // bookkeeping, and the payment they come from is edited from its own row.
+    const showEditPayment = isPayment && row.transactionType === 'direct_payment' && canCreatePaymentPerm;
     // Only structured credit notes (with their own itemId/serviceId) carry enough
     // information to be resent on edit; the rare lump-sum ones stay delete-only.
     const showEditCreditNote = isCreditNote && !!row.itemId && !!row.serviceId && canCreateCreditNote;
@@ -2448,17 +2599,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     [filteredRows, sortOrder],
   );
 
-  // Column totals for the footer, scoped to the active period. A presupuesto with no
-  // invoice behind it isn't a debt yet, so its Debe is shown in the row but excluded from
-  // Total Debe (same rule the running balance uses); the synthetic opening-balance row is
-  // a starting point, not a movement, so it's excluded from both sides too. The final
-  // balance is the last running balance (positive = debt, negative = credit in favour) —
-  // already the account's true balance as of the period end, not a period-only delta.
-  const totals = React.useMemo(() => ({
-    totalDebe: round2(rowsInRange.reduce((s, r) => s + (r.kind === 'balance' || r.status === 'presupuestado' ? 0 : r.debe), 0)),
-    totalHaber: round2(rowsInRange.reduce((s, r) => s + (r.kind === 'balance' ? 0 : r.haber), 0)),
-    finalBalance: rowsInRange.length > 0 ? rowsInRange[rowsInRange.length - 1].runningBalance : 0,
-  }), [rowsInRange]);
+  // Column totals for the footer, scoped to the active period. The final balance is the last
+  // running balance (positive = debt, negative = credit in favour) — already the account's
+  // true balance as of the period end, not a period-only delta.
+  const totals = React.useMemo(() => computeLedgerTotals(rowsInRange), [rowsInRange]);
 
   // `invoiceId -> doc_no`, used to label a direct payment's own invoice in the allocations
   // popover (see `RowAllocationsPopover`).
@@ -2517,7 +2661,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   }, [isLoading, displayRows, sortOrder]);
 
   const toolbar = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div data-help-id={composeHelpId(helpScope, 'section', 'ledger-toolbar')} className="flex flex-wrap items-center gap-2">
       {!isDateRangeControlled && <DateRangePresets value={dateRange} onChange={setDateRange} allowAllTime />}
       {!isSearchControlled && (
         <div className="flex items-center">
@@ -2545,7 +2689,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </div>
       )}
       {onViewStatement && (
-        <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={onViewStatement}>
+        <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-statement')} size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={onViewStatement}>
           <ScrollText className="h-3.5 w-3.5" />{t('viewStatement')}
         </Button>
       )}
@@ -2561,7 +2705,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           {onPrintSummary && (
             /* Hand the host the on-screen snapshot so the PDF honours the active period
                filter instead of re-fetching the whole statement. */
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onPrintSummary(visibleLedger)}>
+            <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-print')} size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onPrintSummary(visibleLedger)}>
               <Printer className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -2596,7 +2740,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               header and the columns' fixed min-width only kick in above that. While the
               create editor is open the list keeps a minimum height, so the editor (which
               scrolls instead) can't squeeze it out of view on a short panel. */}
-          <div ref={scrollContainerRef} className={cn('min-h-0 flex-1 overflow-auto', createDoc !== null && 'min-h-[7.5rem]')}>
+          <div ref={scrollContainerRef} data-help-id={composeHelpId(helpScope, 'section', 'ledger')} className={cn('min-h-0 flex-1 overflow-auto', createDoc !== null && 'min-h-[7.5rem]')}>
             {/* px-2 gives the selected-row ring room so it isn't clipped by the scroll
                 container's edges; header and rows share the padding so columns stay aligned. */}
             <div className="patient-ledger-row-min-w w-full px-2">
@@ -2609,7 +2753,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               </div>
 
               {displayRows.length === 0 ? (
-                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty')}</div>
+                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty', { currency: currency || getClinicCurrency() })}</div>
               ) : (
                 <div className="space-y-2 py-1">
                   {displayRows.map((row) => {
@@ -2653,7 +2797,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             currency={row.currency}
                             pendingInvoices={pendingInvoices}
                             editRow={row}
-                            editPayment={ledgerData?.payments.find((p) => p.id === row.paymentId)}
+                            editPayment={findRowPayment(ledgerData?.payments, row)}
+                            maxEditAmount={conversionEditCeiling(ledgerData?.payments, row)}
                             onCancel={() => setEditingPaymentRowId(null)}
                             onSaved={async () => { setEditingPaymentRowId(null); await load(true); }}
                           />
@@ -2742,6 +2887,16 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                                   )}
                                   {row.dueDate && (
                                     <span className="truncate text-xs text-muted-foreground">{t('docLine.dueDate')}: {formatDisplayDate(row.dueDate)}</span>
+                                  )}
+                                  {row.conversion && (
+                                    <span className="truncate text-xs text-muted-foreground">
+                                      {t(row.conversion.side === 'source' ? 'conversion.rowSource' : 'conversion.rowTarget', {
+                                        source: fmtAmountZero(row.conversion.sourceAmount, row.conversion.sourceCurrency),
+                                        target: fmtAmountZero(row.conversion.targetAmount, row.conversion.targetCurrency),
+                                        rate: fmtNumber2(row.conversion.rate),
+                                        doc: row.conversion.invoiceDocNo || '—',
+                                      })}
+                                    </span>
                                   )}
                                   {row.notes && (
                                     <span className="truncate text-[11px] italic text-muted-foreground/80">{row.notes}</span>
@@ -2834,17 +2989,17 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <div className="patient-ledger-footer flex shrink-0 gap-3 border-t pl-1 pr-5 pt-3">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               {canCreateQuote && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
+                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-quote')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
                   <Plus className="h-3.5 w-3.5" /><FileText className="h-3.5 w-3.5" />{t('inline.addQuote')}
                 </Button>
               )}
               {canCreateTreatment && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('invoice'); }}>
+                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-treatment')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('invoice'); }}>
                   <Plus className="h-3.5 w-3.5" /><Receipt className="h-3.5 w-3.5" />{t('inline.addTreatment')}
                 </Button>
               )}
               {canCreatePaymentPerm && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('payment'); }}>
+                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-payment')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('payment'); }}>
                   <Plus className="h-3.5 w-3.5" /><Banknote className="h-3.5 w-3.5" />{t('inline.addPayment')}
                 </Button>
               )}

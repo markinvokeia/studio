@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useHelpScope } from '@/components/help/help-scope';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { composeHelpId } from '@/lib/help/help-id';
 import { Payment, PaymentMethod } from '@/lib/types';
 import api from '@/services/api';
 import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
@@ -83,7 +85,8 @@ function mapUpdatedPaymentResponse(response: unknown): Payment | undefined {
 
 export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: PaymentEditDialogProps) {
     const t = useTranslations('PaymentsPage');
-    const { toast } = useToast();
+    const helpScope = useHelpScope();
+  const { toast } = useToast();
     const { checkActiveSession } = useAuth();
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [paymentMethodId, setPaymentMethodId] = React.useState('');
@@ -210,7 +213,7 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div data-help-id={composeHelpId(helpScope, 'field', 'payment-edit-method')} className="space-y-1.5">
                         <Label>{t('editDialog.paymentMethod')}</Label>
                         <Select
                             value={paymentMethodId}
@@ -241,7 +244,7 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                     <DialogCancelButton variant="outline" disabled={isSaving}>
                         {t('editDialog.cancel')}
                     </DialogCancelButton>
-                    <Button type="button" onClick={handleSave} disabled={!isPaymentEditable(payment) || !paymentMethodId || isLoadingMethods || isSaving}>
+                    <Button data-help-id={composeHelpId(helpScope, 'btn', 'payment-edit-save')} type="button" onClick={handleSave} disabled={!isPaymentEditable(payment) || !paymentMethodId || isLoadingMethods || isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('editDialog.save')}
                     </Button>

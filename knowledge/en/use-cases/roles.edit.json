@@ -1,0 +1,40 @@
+{
+  "id": "roles.edit",
+  "title": "Edit a role",
+  "summary": "Details tab of the record.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit role",
+    "modify role"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Roles",
+      "details": "The access profiles (Front desk, Doctor, Administration…): each one groups permissions."
+    },
+    {
+      "id": "search",
+      "title": "Find the role"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the role"
+    },
+    {
+      "id": "tab",
+      "title": "Details"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

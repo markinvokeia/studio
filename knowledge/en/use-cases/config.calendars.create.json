@@ -1,0 +1,55 @@
+{
+  "id": "config.calendars.create",
+  "title": "Create a calendar",
+  "summary": "New calendar.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name",
+    "sede": "Branch name"
+  },
+  "keywords": [
+    "new calendar",
+    "new calendar",
+    "create calendar",
+    "add calendar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Calendars",
+      "details": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "Room 1, Chair A…"
+    },
+    {
+      "id": "sede_id",
+      "title": "Branch",
+      "details": "Required: the room is only offered during its branch's hours."
+    },
+    {
+      "id": "color",
+      "title": "Color",
+      "details": "Color it shows with on the calendar."
+    },
+    {
+      "id": "google_calendar_id",
+      "title": "Google Calendar",
+      "details": "Optional: to sync with a Google Calendar."
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

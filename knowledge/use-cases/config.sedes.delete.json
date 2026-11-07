@@ -1,0 +1,59 @@
+{
+  "id": "config.sedes.delete",
+  "title": "Eliminar la sede",
+  "module": "Configuración de Negocio",
+  "summary": "Borrar una sede (pide confirmación).",
+  "screens": [
+    "config.sedes"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar sede",
+    "borrar sede",
+    "quitar sede"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/sedes",
+      "title": "Menú → Configuración de Negocio → Sedes",
+      "details": "Los lugares físicos donde atiende la clínica: cada consultorio, horario y caja pertenece a una sede."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.sedes.filter.search",
+      "title": "Buscá la sede",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.sedes.section.first-row",
+      "title": "Elegí la sede",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.sedes.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "config.sedes.btn.delete",
+      "title": "Eliminar",
+      "until": "config.sedes.btn.confirm-action"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "config.sedes.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

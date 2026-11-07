@@ -1,0 +1,91 @@
+{
+  "id": "config.sequences.edit",
+  "title": "Editar la secuencia",
+  "module": "Configuración de Negocio",
+  "summary": "Cambiar los datos de una secuencia existente.",
+  "screens": [
+    "config.sequences"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar secuencia",
+    "modificar secuencia",
+    "cambiar secuencia"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/sequences",
+      "title": "Menú → Configuración de Negocio → Secuencias",
+      "details": "La numeración de facturas, presupuestos, órdenes y pagos: patrón con variables y cada cuánto se reinicia el contador."
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.sequences.section.first-row",
+      "title": "Elegí la secuencia",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.sequences.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "config.sequences.btn.edit",
+      "title": "Editar",
+      "until": "config.sequences.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "config.sequences.field.name",
+      "title": "Nombre"
+    },
+    {
+      "id": "document_type",
+      "action": "highlight",
+      "target": "config.sequences.field.document_type",
+      "title": "Tipo de documento",
+      "details": "Factura, presupuesto, orden o pago."
+    },
+    {
+      "id": "pattern",
+      "action": "highlight",
+      "target": "config.sequences.field.pattern",
+      "title": "Patrón",
+      "details": "Ej.: FAC-{YYYY}-{MM}-{COUNTER:4}. Tocá una variable para agregarla."
+    },
+    {
+      "id": "reset_period",
+      "action": "highlight",
+      "target": "config.sequences.field.reset_period",
+      "title": "Reinicio",
+      "details": "Nunca, anual, mensual o diario."
+    },
+    {
+      "id": "current_counter",
+      "action": "highlight",
+      "target": "config.sequences.field.current_counter",
+      "title": "Contador actual",
+      "details": "El último número usado; el próximo documento usa el siguiente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.sequences.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.sequences.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

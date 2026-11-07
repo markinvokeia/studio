@@ -1,0 +1,48 @@
+{
+  "id": "permissions.delete",
+  "title": "Eliminar un permiso",
+  "module": "Sistema",
+  "summary": "Desde el listado (pide confirmación).",
+  "screens": [
+    "permissions"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar permiso",
+    "borrar permiso"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/permissions",
+      "title": "Menú → Sistema → Permisos",
+      "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "permissions.filter.search",
+      "title": "Buscá el permiso",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "row",
+      "action": "click",
+      "target": "permissions.btn.row-delete",
+      "title": "Eliminar",
+      "until": "permissions.btn.delete-confirm"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "permissions.btn.delete-confirm",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

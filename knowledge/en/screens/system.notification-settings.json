@@ -1,0 +1,10 @@
+{
+  "id": "system.notification-settings",
+  "summary": "Team notifications.",
+  "purpose": "Which internal notifications each person gets and through which channel.",
+  "elements": {
+    "system.notification-settings.btn.save": {
+      "label": "Save"
+    }
+  }
+}

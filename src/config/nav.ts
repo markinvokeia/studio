@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CALENDAR_DISPLAY_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, HELP_PERMISSIONS, CALENDAR_DISPLAY_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -40,6 +40,7 @@ import {
   History,
   Home,
   KeyRound,
+  LifeBuoy,
   LayoutDashboard,
   Layers,
   List,
@@ -49,6 +50,7 @@ import {
   Pill,
   Radiation,
   Receipt,
+  Ruler,
   Scale,
   Settings,
   Share2,
@@ -198,12 +200,14 @@ export const navItems: NavItem[] = [
       CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_LIST,
       CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_VIEW_LIST,
       CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_VIEW_LIST,
+      CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST,
     ],
     items: [
       { title: 'Ailments', href: '/clinic-catalog/ailments', icon: HeartPulse, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.CONDITIONS_VIEW_LIST },
       { title: 'Medications', href: '/clinic-catalog/medications', icon: Pill, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_LIST },
       { title: 'DentalConditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_VIEW_LIST },
       { title: 'DentalSurfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_VIEW_LIST },
+      { title: 'MeasurementUnits', href: '/clinic-catalog/measurement-units', icon: Ruler, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST },
     ],
   },
   {
@@ -272,6 +276,7 @@ export const navItems: NavItem[] = [
       { title: 'AlertHistory', href: '/system/communication-history', icon: Mails, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ALERT_HISTORY_VIEW_MENU },
       { title: 'AlertExecutions', href: '/system/execution-history', icon: FileClock, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_MENU },
       { title: 'WhatsAppAgent', href: '/system/whatsapp-agent', icon: BotMessageSquare, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.WHATSAPP_AGENT_CONFIG_VIEW_MENU },
+      { title: 'HelpInsights', href: '/system/help-insights', icon: LifeBuoy, isChidren: true, requiredPermission: HELP_PERMISSIONS.INSIGHTS_VIEW },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.SYS_CONFIG_VIEW_MENU },
       { title: 'NotificationSettings', href: '/system/notification-settings', icon: Mails, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.NOTIFICATION_SETTINGS_VIEW_MENU },

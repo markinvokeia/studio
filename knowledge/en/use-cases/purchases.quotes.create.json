@@ -1,0 +1,82 @@
+{
+  "id": "purchases.quotes.create",
+  "title": "Create a purchase quote",
+  "summary": "New quote: provider, date, currency, branch and the items with quantity and price. It stays as a draft.",
+  "module": "Purchases",
+  "inputs": {
+    "party": "Provider",
+    "service": "Service or product",
+    "quantity": "Quantity",
+    "notes": "Notes"
+  },
+  "keywords": [
+    "new purchase quote",
+    "enter quotation",
+    "provider quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Quotes",
+      "details": "A provider's quote: which products or services, at what price. Once confirmed, it's invoiced when received."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Opens the quote form."
+    },
+    {
+      "id": "party",
+      "title": "Provider",
+      "details": "Choose the provider. If they don't show up, register them first."
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "currency",
+      "title": "Currency",
+      "details": "If you choose a currency other than the clinic's, the exchange rate shows up."
+    },
+    {
+      "id": "rate",
+      "title": "Exchange rate"
+    },
+    {
+      "id": "sede",
+      "title": "Branch"
+    },
+    {
+      "id": "items",
+      "title": "Items",
+      "details": "Each line is a service or product with quantity, price and total."
+    },
+    {
+      "id": "add",
+      "title": "Add item"
+    },
+    {
+      "id": "service",
+      "title": "Product or service",
+      "details": "The price is filled in from the list; you can change it."
+    },
+    {
+      "id": "qty",
+      "title": "Quantity"
+    },
+    {
+      "id": "price",
+      "title": "Unit price"
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It stays as a draft: you can review, send and confirm it later."
+    }
+  ]
+}

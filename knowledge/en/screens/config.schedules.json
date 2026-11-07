@@ -1,0 +1,43 @@
+{
+  "id": "config.schedules",
+  "summary": "Each branch's office hours.",
+  "purpose": "Limits on which days and times appointments can be given at the branch. It's combined with each doctor's availability.",
+  "tips": [
+    "When creating you can mark several days at once: one time range is saved per day.",
+    "To break at midday, enter two time ranges on the same day."
+  ],
+  "elements": {
+    "config.schedules.field.days_of_week": {
+      "description": "Days with the same hours (Sunday=0 … Saturday=6)."
+    },
+    "config.schedules.field.day_of_week": {
+      "description": "Day of the time range (when editing, one day is edited at a time)."
+    },
+    "config.schedules.field.start_time": {
+      "description": "Opening time."
+    },
+    "config.schedules.field.end_time": {
+      "description": "Closing time."
+    },
+    "config.schedules.section.first-row": {
+      "label": "First record in the list"
+    },
+    "config.schedules.section.row": {
+      "label": "Record"
+    },
+    "config.schedules.section.detail": {
+      "label": "Details"
+    },
+    "config.schedules.btn.edit": {
+      "label": "Edit"
+    },
+    "config.schedules.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "config.schedules.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "This can't be undone."
+    }
+  }
+}

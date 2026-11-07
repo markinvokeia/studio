@@ -1,0 +1,73 @@
+{
+  "id": "reports.ingresos-periodo.overview",
+  "title": "Use the Income by Period report",
+  "summary": "Trend of what was collected by day, week or month.",
+  "module": "Reports",
+  "keywords": [
+    "income by period",
+    "income trend",
+    "collected per month"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Reports → Income by Period",
+      "details": "Trend of what was collected by day, week or month."
+    },
+    {
+      "id": "period",
+      "title": "Period",
+      "details": "Today, this week, this month, last month, this year or your own range."
+    },
+    {
+      "id": "currency",
+      "title": "Currency",
+      "details": "Shows the amounts in the chosen currency."
+    },
+    {
+      "id": "currency-filter",
+      "title": "Currency",
+      "details": "Only if the clinic works with two currencies: all or one."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "«Group by» (day, week, month) and currency."
+    },
+    {
+      "id": "generate",
+      "title": "Generate",
+      "details": "Calculates the report with the chosen filters."
+    },
+    {
+      "id": "empty",
+      "title": "No data",
+      "details": "There's no data for those filters: try another period."
+    },
+    {
+      "id": "kpis",
+      "title": "Indicators",
+      "details": "Number of payments and the best period."
+    },
+    {
+      "id": "results",
+      "title": "Results",
+      "details": "Trend chart and table per period."
+    },
+    {
+      "id": "table",
+      "title": "Details",
+      "details": "Sort by column by tapping the header."
+    },
+    {
+      "id": "export",
+      "title": "Export",
+      "details": "Excel, CSV or PDF with what you're viewing."
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "details": "With the clinic's letterhead."
+    }
+  ]
+}

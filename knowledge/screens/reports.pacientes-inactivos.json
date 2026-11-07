@@ -1,0 +1,67 @@
+{
+  "id": "reports.pacientes-inactivos",
+  "status": "draft",
+  "summary": "Pacientes inactivos.",
+  "purpose": "Pacientes que no vienen hace tiempo, para campañas de recaptación.",
+  "useCases": [
+    "reports.pacientes-inactivos.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.pacientes-inactivos.section.filters": {
+      "label": "Filtros",
+      "description": "«Sin actividad hace más de» (meses) y «Sólo alta médica»."
+    },
+    "reports.pacientes-inactivos.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.pacientes-inactivos.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.pacientes-inactivos.section.kpi": {
+      "label": "Indicadores",
+      "description": "Total inactivos, cuántos por alta médica, cuántos por inactividad y cuántos con deuda."
+    },
+    "reports.pacientes-inactivos.section.results": {
+      "label": "Resultados",
+      "description": "Cada paciente con su última visita; desde acá se los puede contactar."
+    },
+    "reports.pacientes-inactivos.section.table": {
+      "label": "Detalle"
+    },
+    "reports.pacientes-inactivos.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.pacientes-inactivos.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.pacientes-inactivos.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.pacientes-inactivos.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.pacientes-inactivos.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.pacientes-inactivos.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.pacientes-inactivos.filter.period": {
+      "label": "Período"
+    },
+    "reports.pacientes-inactivos.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.pacientes-inactivos.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.pacientes-inactivos.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

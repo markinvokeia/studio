@@ -35,7 +35,7 @@ export const WorkingSedeSelector = () => {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button data-help-id="rail.btn.sede"
           variant="ghost"
           size="icon"
           className={cn(
@@ -49,7 +49,7 @@ export const WorkingSedeSelector = () => {
           {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="left" align="center" className="w-64 p-0 rounded-xl">
+      <PopoverContent data-help-id="rail.section.sede-list" side="left" align="center" className="w-64 p-0 rounded-xl">
         <div className="px-3 pt-3 pb-1">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             {t('title')}

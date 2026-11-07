@@ -1,0 +1,81 @@
+{
+  "id": "purchases.quotes",
+  "summary": "Purchase quotes.",
+  "purpose": "A provider's quote: which products or services, at what price. Once confirmed, it's invoiced when received.",
+  "elements": {
+    "purchases.quotes.section.detail-header": {
+      "label": "Document summary"
+    },
+    "purchases.quotes.section.first-row": {
+      "label": "First document in the list"
+    },
+    "purchases.quotes.section.row": {
+      "label": "ID"
+    },
+    "purchases.quotes.btn.row-actions": {
+      "label": "Row actions"
+    },
+    "purchases.quotes.btn.export": {
+      "label": "Export",
+      "description": "Excel or CSV."
+    },
+    "purchases.quotes.section.export": {
+      "label": "Export format"
+    },
+    "purchases.quotes.btn.export-run": {
+      "label": "Download"
+    },
+    "purchases.quotes.field.doc-email-to": {
+      "label": "Recipients",
+      "description": "Emails separated by commas."
+    },
+    "purchases.quotes.btn.doc-email-send": {
+      "label": "Send by email"
+    },
+    "purchases.quotes.detail.section.first-row": {
+      "label": "First line"
+    },
+    "purchases.quotes.detail.section.row": {
+      "label": "Line"
+    },
+    "purchases.quotes.detail.btn.new": {
+      "label": "Add"
+    },
+    "purchases.quotes.btn.filters": {
+      "label": "Filters"
+    },
+    "purchases.quotes.section.filters": {
+      "label": "Filter options"
+    },
+    "purchases.quotes.btn.row-print": {
+      "label": "Print"
+    },
+    "purchases.quotes.btn.row-email": {
+      "label": "Send by email"
+    },
+    "purchases.quotes.btn.row-edit": {
+      "label": "Edit"
+    },
+    "purchases.quotes.btn.row-confirm": {
+      "label": "Confirm"
+    },
+    "purchases.quotes.btn.row-reject": {
+      "label": "Reject"
+    },
+    "purchases.quotes.btn.row-delete": {
+      "label": "Delete"
+    },
+    "purchases.quotes.section.billing": {
+      "label": "What to invoice"
+    },
+    "purchases.quotes.btn.billing-add-item": {
+      "label": "Add line"
+    },
+    "purchases.quotes.btn.billing-submit": {
+      "label": "Create invoice"
+    },
+    "purchases.quotes.field.user_id": {
+      "label": "Provider"
+    }
+  }
+}

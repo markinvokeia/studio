@@ -4,48 +4,6 @@ import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 export { fetchDoctorById, fetchDoctors } from '@/services/doctors';
 export type { DoctorOption } from '@/services/doctors';
 
-// ──── Periodontogram (localStorage mock — unchanged) ────
-import type { DentalRecordSession } from '@/lib/types';
-
-const PERIO_STORAGE_KEY = (patientId: string) => `dental_record_${patientId}`;
-
-export function getSessions(patientId: string): DentalRecordSession[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(PERIO_STORAGE_KEY(patientId));
-    return raw ? (JSON.parse(raw) as DentalRecordSession[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveSession(session: DentalRecordSession): void {
-  const sessions = getSessions(session.patient_id);
-  const idx = sessions.findIndex((s) => s.id === session.id);
-  if (idx >= 0) sessions[idx] = session;
-  else sessions.push(session);
-  localStorage.setItem(PERIO_STORAGE_KEY(session.patient_id), JSON.stringify(sessions));
-}
-
-export function createSession(patientId: string, label?: string): DentalRecordSession {
-  const prev = getSessions(patientId);
-  const last = prev[prev.length - 1];
-  return {
-    id: `dr_${Date.now()}`,
-    patient_id: patientId,
-    date: new Date().toISOString().split('T')[0],
-    label: label ?? `Evaluación ${prev.length + 1}`,
-    odontogram: last?.odontogram ?? [],
-    periodontogram: [],
-    created_at: new Date().toISOString(),
-  };
-}
-
-export function deleteSession(patientId: string, sessionId: string): void {
-  const sessions = getSessions(patientId).filter((s) => s.id !== sessionId);
-  localStorage.setItem(PERIO_STORAGE_KEY(patientId), JSON.stringify(sessions));
-}
-
 // ──── Odontogram (real API) ────
 
 function mapApiItemToSnapshot(item: any): OdontogramSnapshot {

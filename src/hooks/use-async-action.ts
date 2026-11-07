@@ -16,6 +16,8 @@ export interface UseAsyncActionOptions<TResult> {
   showErrorToast?: boolean;
   /** Title for the default error toast. Defaults to `Common.errorTitle`. */
   errorTitle?: string;
+  /** Text of the default error toast, for backends whose messages aren't meant for users. Timeouts keep `Common.timeoutError`. */
+  describeError?: (error: unknown) => string;
 }
 
 function useLatest<T>(value: T) {
@@ -36,7 +38,7 @@ function useActionErrorReporter() {
       toast({
         variant: 'destructive',
         title: options.errorTitle ?? t('errorTitle'),
-        description: isTimeoutError(error) ? t('timeoutError') : getErrorMessage(error) || t('genericError'),
+        description: isTimeoutError(error) ? t('timeoutError') : options.describeError?.(error) ?? (getErrorMessage(error) || t('genericError')),
       });
     },
     [t]

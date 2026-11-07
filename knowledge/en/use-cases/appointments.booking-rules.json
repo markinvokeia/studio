@@ -1,0 +1,53 @@
+{
+  "id": "appointments.booking-rules",
+  "title": "Set up the booking rules",
+  "summary": "Check availability, block times outside office hours, filter doctors by service and create the appointment right on the calendar.",
+  "module": "Calendar",
+  "keywords": [
+    "availability",
+    "block times",
+    "outside office hours",
+    "filter doctors",
+    "create on the calendar",
+    "no dialog",
+    "card",
+    "preview",
+    "booking rules"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments"
+    },
+    {
+      "id": "settings",
+      "title": "Calendar settings",
+      "details": "They're each user's preferences: they save automatically when changed and apply right away."
+    },
+    {
+      "id": "availability",
+      "title": "Check availability",
+      "details": "When creating/editing an appointment, checks that the time is available for the chosen doctor or room."
+    },
+    {
+      "id": "block",
+      "title": "Block outside office hours",
+      "details": "Dims and blocks the times outside office hours on the calendar (according to schedules and exceptions), so appointments can't be created there."
+    },
+    {
+      "id": "filter",
+      "title": "Filter doctors by service",
+      "details": "When creating an appointment, filters the doctor list to show only those who provide the selected service."
+    },
+    {
+      "id": "inline",
+      "title": "Create the appointment on the calendar",
+      "details": "Clicking a slot creates the appointment right on the calendar with a card, without opening the dialog. The Create button always opens the dialog."
+    },
+    {
+      "id": "preview",
+      "title": "Preview the appointment while creating it",
+      "details": "The inline appointment card opens next to the appointment, which shows on the calendar while you fill it in, so you can see how it fits in the gaps. Changing the date moves the calendar to that day. Tablet and desktop only."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "onboarding.calendar",
+  "title": "Create a room",
+  "summary": "Each room (or chair) is a column on the calendar. It belongs to a branch.",
+  "module": "Business setup",
+  "inputs": {
+    "name": "Room name (e.g. Room 1)",
+    "sede": "Name of the branch it belongs to"
+  },
+  "keywords": [
+    "room",
+    "calendar",
+    "chair",
+    "box",
+    "calendar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "I'm opening Rooms"
+    },
+    {
+      "id": "new",
+      "title": "New room",
+      "details": "Opens the new room form."
+    },
+    {
+      "id": "name",
+      "title": "Room name",
+      "details": "Each room is a column on the calendar. A short name (\"Room 1\", \"Chair A\") reads better."
+    },
+    {
+      "id": "sede",
+      "title": "Branch",
+      "details": "Required: the room is only offered during its branch's hours.",
+      "description": "Choose which branch this room is in."
+    },
+    {
+      "id": "color",
+      "title": "Color on the calendar",
+      "details": "Visual only: helps tell the rooms apart on the calendar.",
+      "description": "Helps tell the rooms apart at a glance."
+    },
+    {
+      "id": "save",
+      "title": "Create the room",
+      "details": "Creates the room as active. Later you can choose which doctors use it in the access tab."
+    }
+  ]
+}

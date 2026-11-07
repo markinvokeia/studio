@@ -1,0 +1,59 @@
+{
+  "id": "config.holidays.delete",
+  "title": "Eliminar el horario de excepción",
+  "module": "Configuración de Negocio",
+  "summary": "Borrar un horario de excepción (pide confirmación).",
+  "screens": [
+    "config.holidays"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar horario de excepción",
+    "borrar horario de excepción",
+    "quitar horario de excepción"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/holidays",
+      "title": "Menú → Configuración de Negocio → Horarios de Excepción",
+      "details": "Feriados, cierres puntuales o recurrentes, o días con horario distinto. Ganan sobre el horario normal."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.holidays.filter.search",
+      "title": "Buscá el horario de excepción",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.holidays.section.first-row",
+      "title": "Elegí el horario de excepción",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.holidays.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "config.holidays.btn.delete",
+      "title": "Eliminar",
+      "until": "config.holidays.btn.confirm-action"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "config.holidays.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

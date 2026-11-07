@@ -1,0 +1,26 @@
+{
+  "id": "system.licenses",
+  "status": "draft",
+  "summary": "Licencia de Invoke.",
+  "purpose": "El plan contratado, sus límites (profesionales, usuarios, pacientes nuevos por mes) y su vencimiento.",
+  "prerequisites": [
+    "subscriptions"
+  ],
+  "useCases": [
+    "system.licenses.overview"
+  ],
+  "elements": {
+    "system.licenses.section.master-key": {
+      "label": "Clave maestra",
+      "description": "La gestión de licencias está protegida: primero se ingresa la clave maestra de Invoke IA. Sin ella no se ven ni se generan licencias."
+    },
+    "system.licenses.section.generate-new": {
+      "label": "Generar licencia",
+      "description": "Tipo, fechas, límites y acceso a IA."
+    },
+    "system.licenses.section.generated-key": {
+      "label": "Licencia actual",
+      "description": "La clave vigente."
+    }
+  }
+}

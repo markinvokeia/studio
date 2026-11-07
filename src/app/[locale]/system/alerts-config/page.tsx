@@ -153,7 +153,7 @@ export default function AlertsConfigPage() {
 
       <Accordion type="single" collapsible defaultValue="item-1" className="w-full space-y-4">
         <AccordionItem value="item-1">
-          <Card>
+          <Card data-help-id="system.alerts-config.section.scheduler">
             <AccordionTrigger className="p-6">
               <CardHeader className="p-0 text-left">
                 <CardTitle>{t('scheduler.title')}</CardTitle>
@@ -221,7 +221,7 @@ export default function AlertsConfigPage() {
         </AccordionItem>
 
         <AccordionItem value="item-4">
-          <Card>
+          <Card data-help-id="system.alerts-config.section.retention">
             <AccordionTrigger className="p-6">
               <CardHeader className="p-0 text-left">
                 <CardTitle>{t('retention.title')}</CardTitle>
@@ -279,7 +279,7 @@ export default function AlertsConfigPage() {
       </Accordion>
 
       <div className="flex justify-end">
-        {canUpdate && <Button onClick={() => save.run(config)} loading={save.isPending}>{t('saveChanges')}</Button>}
+        {canUpdate && <Button data-help-id="system.alerts-config.btn.save" onClick={() => save.run(config)} loading={save.isPending}>{t('saveChanges')}</Button>}
       </div>
 
       <ConfirmActionDialog

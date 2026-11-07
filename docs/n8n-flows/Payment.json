@@ -9,13 +9,13 @@
           "queryReplacement": "={{ [$json.invoice_id] }}"
         }
       },
-      "id": "22658695-75fb-4981-8063-ccaad2575a4c",
+      "id": "670307c8-97d6-4f58-a062-f99187c5298d",
       "name": "Obtener Info Factura",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -672,
-        944
+        -2352,
+        1376
       ],
       "credentials": {
         "postgres": {
@@ -28,13 +28,13 @@
       "parameters": {
         "jsCode": "// Validar si el pago es válido\nconst invoice = $('Obtener Info Factura').first().json;\nconst input = $('Validar Entrada').first().json;\nconst conversion = input.conversion; \nconst paymentAmount = Number(conversion ? input.converted_amount: input.payment_amount);\nconst totalPaid = Number(input.total_paid);\nconst remainingAmount = Number(invoice.total) - Number(invoice.paid_amount);\n\nif (totalPaid <= 0) {\n  return [{\n    json: {\n      error: true,\n      message: \"El monto del pago debe ser mayor a 0\"\n    }\n  }];\n}\n\n// if (totalPaid > remainingAmount) {\n//   return [{\n//     json: {\n//       error: true,\n//       message: `El pago ($${totalPaid}) excede el monto pendiente ($${remainingAmount})`\n//     }\n//   }];\n// }\n\nif (invoice.payment_state === 'paid') {\n  return [{\n    json: {\n      error: true,\n      message: \"Esta factura ya está completamente pagada\"\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    invoice: invoice,\n    payment_amount: totalPaid,\n    total_paid: Number(invoice.paid_amount) + Number(totalPaid), \n    remainingAmount: remainingAmount,\n    remaining_after_payment: remainingAmount - totalPaid,\n    will_be_fully_paid: (Number(remainingAmount) - Number(totalPaid)) <= 0.01\n  }\n}];"
       },
-      "id": "a75e19e5-7b0a-4392-b4c2-ee587a1141dc",
+      "id": "00911f31-dd8b-490d-8c40-314066857ae8",
       "name": "Validar Pago",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -496,
-        944
+        -2176,
+        1376
       ]
     },
     {
@@ -71,13 +71,13 @@
         },
         "options": {}
       },
-      "id": "b3a0e468-3c71-440c-b840-8ecf5cf13010",
+      "id": "ed950827-f0e5-4b46-85ee-c9fdd16da080",
       "name": "¿Pago Válido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -336,
-        944
+        -2016,
+        1376
       ]
     },
     {
@@ -319,13 +319,13 @@
         },
         "options": {}
       },
-      "id": "86bb5202-c6ae-46f5-b429-093899c3332d",
+      "id": "fdf4fffb-b15a-426e-a693-926869850efa",
       "name": "Registrar Pago",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1056,
-        1440
+        -624,
+        1872
       ],
       "alwaysOutputData": false,
       "credentials": {
@@ -383,23 +383,23 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1744,
-        1344
+        -3424,
+        1776
       ],
-      "id": "df220452-49bb-49d1-8251-45453d158623",
+      "id": "cf174859-a9bd-477b-b020-6df1308f5d33",
       "name": "When Executed by Another Workflow"
     },
     {
       "parameters": {
         "jsCode": "const query = $json.query;\n\nconst input = $input.first().json;\n// Validar datos de entrada desde el trigger\nconst invoice_id = input.invoice_id || query?.invoice_id || '';\nconst cash_session_id = input.cash_session_id || query?.cash_session_id || null;\nconst payment_date = query?.payment_date || input.payment_date  || '';\nconst payment_amount = input.amount || query?.amount || query?.paid_amount || query?.payment_amount || 0;\nconst payment_method = query?.method || input.method  || '';\nconst payment_method_id = query?.payment_method_id || input.payment_method_id || null;\nconst user = input.user || query?.user || {};\nconst currency = input.payment_currency || query?.payment_currency || 'UYU';\nconst invoice_currency = input.invoice_currency || query?.invoice_currency || 'UYU';\nconst exchange_rate = input?.exchange_rate || query?.exchange_rate  || 1 ;\nconst converted_amount = input.converted_amount || query?.converted_amount || payment_amount;\nconst credit_payment = input.credit_payment\nconst prepaid = !invoice_id || invoice_id === '' ? true : false\nconst total_paid = query?.total_paid || payment_amount;\nconst notes = query?.notes || '';\nconst is_historical = query?.is_historical\nconst is_sales = query?.is_sales\n\n// Validaciones básicas\n// if (!invoice_id || invoice_id === '') {\n//   return [{ json: { error: true, message: 'Numero de factura es requerido' } }];\n// }\n\nif (!payment_date || payment_date === '') {\n  return [{ json: { error: true, message: 'La fecha del pago es requerida' } }];\n}\n\nif ((!total_paid || total_paid === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El monto del pago es requerido' } }];\n}\n\nif ((!payment_method || payment_method === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El método de pago es requerido' } }];\n}\n\n// Un pago con monto (no solo créditos) necesita su método de pago. Antes se asumía\n// el id 1 (Efectivo) y el cobro entraba en caja como efectivo sin que nadie lo eligiera.\n// Se lanza (no se retorna { error }) para que salga por la salida de error del nodo.\nif (Number(payment_amount) !== 0 && !payment_method_id) {\n  throw new Error('El método de pago es requerido');\n}\n\nreturn [{\n  json: {\n    invoice_id,\n    payment_date,\n    payment_amount,\n    payment_method,\n    payment_method_id,\n    cash_session_id,    \n    user: user,\n    currency,\n    invoice_currency,\n    exchange_rate,\n    converted_amount,\n    conversion: currency !== invoice_currency,\n    credit_payment,\n    prepaid,\n    total_paid,\n    notes,\n    is_historical,\n    is_sales\n  }\n}];"
       },
-      "id": "d417aeec-c6ed-4793-98aa-65e0fd71689f",
+      "id": "03e89334-ef5e-477b-8557-8852748e8e3d",
       "name": "Validar Entrada",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1504,
-        1344
+        -3184,
+        1776
       ],
       "onError": "continueErrorOutput"
     },
@@ -412,10 +412,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        32,
-        1360
+        -1648,
+        1792
       ],
-      "id": "f9964b48-08c1-4b23-bb3d-cea8728cc12b",
+      "id": "74ad9d0d-b705-4cec-9f14-98550bb2092d",
       "name": "Pago No pudo ser creado"
     },
     {
@@ -426,13 +426,13 @@
           "queryReplacement": "={{ $('Obtener Info Factura').first().json.user_id }}"
         }
       },
-      "id": "da9e4750-e286-4f30-a3a5-200e06d387d6",
+      "id": "34dbf35f-3ea2-4c98-873c-d43cdb169ef2",
       "name": "Obtener Info Paciente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2704,
-        928
+        1024,
+        1360
       ],
       "credentials": {
         "postgres": {
@@ -450,10 +450,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3424,
-        1120
+        1744,
+        1552
       ],
-      "id": "ff23c3c4-665f-4753-8eff-f83656544f63",
+      "id": "7ffa28a2-431f-4599-9af9-c04884e09410",
       "name": "Pago Confirmado"
     },
     {
@@ -653,13 +653,13 @@
         },
         "options": {}
       },
-      "id": "b00bf43b-410c-4b3b-b168-24cdd5433dda",
+      "id": "17c6844b-8572-46fd-afc7-eae9a53b718d",
       "name": "Registrar Movimiento Caja",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1808,
-        1312
+        128,
+        1744
       ],
       "alwaysOutputData": false,
       "credentials": {
@@ -722,10 +722,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2928,
-        928
+        1248,
+        1360
       ],
-      "id": "46e36ac5-3d31-4328-bfb6-e3c894a27c37",
+      "id": "323f75c3-9049-4495-8c9c-98e450925a2a",
       "name": "Set data"
     },
     {
@@ -736,13 +736,13 @@
           "queryReplacement": "={{ [$('Obtener Info Factura').first().json.id] }}"
         }
       },
-      "id": "a294945a-8a1f-42bf-ba40-704daac18f04",
+      "id": "ad86e43f-eff5-40ca-b260-12becf196cab",
       "name": "Get invoice status",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2304,
-        928
+        624,
+        1360
       ],
       "credentials": {
         "postgres": {
@@ -788,10 +788,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -96,
-        928
+        -1776,
+        1360
       ],
-      "id": "a754cb84-9567-4dd2-b6ba-cfafc0785398",
+      "id": "394852e4-f15b-475d-9e06-1d726a9b7929",
       "name": "¿Pago con credito?"
     },
     {
@@ -811,10 +811,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        304,
-        208
+        -1376,
+        640
       ],
-      "id": "17f0ed58-490e-4e31-8c55-31b2b73e3a05",
+      "id": "4c226445-fea0-45f9-825a-adee788f1403",
       "name": "Set credit_payments"
     },
     {
@@ -844,10 +844,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1280,
-        224
+        -400,
+        656
       ],
-      "id": "2591f686-f4f7-4f00-ac87-ddba4f6602ab",
+      "id": "f81e178f-50d6-4902-b23b-19638c168465",
       "name": "If"
     },
     {
@@ -858,10 +858,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        512,
-        208
+        -1168,
+        640
       ],
-      "id": "537f68df-f842-47e5-867a-b3d0c35182f1",
+      "id": "4dddcea0-aae3-4630-b47d-877bab609fd2",
       "name": "Split Out credit_payments"
     },
     {
@@ -871,10 +871,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        800,
-        208
+        -880,
+        640
       ],
-      "id": "8a971db7-c0bc-4a03-8acf-8d689ce1fed2",
+      "id": "fd31a9ba-86ce-40d6-b3f1-0a405def3f49",
       "name": "Loop Over payment Items"
     },
     {
@@ -915,10 +915,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1088,
-        1104
+        -2768,
+        1536
       ],
-      "id": "419fa913-7efa-4408-840c-b91f2e247c91",
+      "id": "0a267169-fe62-492c-9437-0a935a87b389",
       "name": "If not prepaid"
     },
     {
@@ -929,10 +929,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1536,
-        1312
+        -144,
+        1744
       ],
-      "id": "3d0aa832-a985-4045-a990-1f52f25e4854",
+      "id": "1a162bee-728f-402d-b0fd-d0bba9e4979a",
       "name": "mov_description"
     },
     {
@@ -963,10 +963,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2080,
-        1456
+        400,
+        1888
       ],
-      "id": "eb0ff850-d27a-4a10-ae24-9c15eeacca3a",
+      "id": "9f22c10a-2612-4244-8485-951ae416b07f",
       "name": "If credit_note"
     },
     {
@@ -990,7 +990,7 @@
             "amount": "={{ $('Validar Entrada').first().json.payment_amount }}",
             "payment_id": "={{ $('Registrar Pago').first().json.id }}",
             "allocated_currency": "={{ $('Validar Entrada').first().json.currency }}",
-            "target_amount": "={{ $('Validar Entrada').first().json.payment_amount / $('Validar Entrada').first().json.exchange_rate }}",
+            "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $('Validar Entrada').first().json.currency ? $('Validar Entrada').first().json.payment_amount : Math.abs(Number($('Registrar Pago').first().json.converted_amount)) }}",
             "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
             "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
@@ -1106,10 +1106,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2320,
-        1440
+        640,
+        1872
       ],
-      "id": "97301f08-c12b-40ac-b434-7323337f80ec",
+      "id": "fa1dcffd-f096-4353-8e3c-773744c5e940",
       "name": "Insert payment allocations1",
       "credentials": {
         "postgres": {
@@ -1146,10 +1146,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1760,
-        1104
+        80,
+        1536
       ],
-      "id": "c8c026e3-6b6b-4405-8473-1b5291325dd6",
+      "id": "c705b518-9dad-486f-b6c8-95ef7a070a1a",
       "name": "If not prepaid1"
     },
     {
@@ -1189,23 +1189,23 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1520,
-        720
+        -160,
+        1152
       ],
-      "id": "0cf9a98d-f985-475c-b6e0-f5bfe47a58be",
+      "id": "fc9218f5-a51d-4f6a-a67d-3c2c9f55d337",
       "name": "only_credit_payment"
     },
     {
       "parameters": {
-        "jsCode": "const inputData = $('Validar Entrada').first().json;\n\n// Datos base de la entrada\nconst is_sales = inputData.is_sales;\nconst exchangeRate = inputData.exchange_rate || 1;\nconst currency = inputData.currency;\nlet invoiceId = inputData.invoice_id;\nlet paidAmount = inputData.payment_amount;\nlet totalPaid = inputData.total_paid;\n\nlet outputs = [];\n\n// 1. SI NO HAY INVOICE_ID, ES TRATADO COMO PRE-PAGO DIRECTO\nif (!invoiceId) {\n  // Según pto 2: La moneda de la factura es la del pago\n  let invoiceCurrency = currency;\n  // Según pto 4: Recalcular monto convertido\n  let convertedAmount = paidAmount * exchangeRate;\n\n  // Según pto 3: Lógica de signos (is_sales = false es compra/egreso, invertimos)\n  if (is_sales === false) {\n    paidAmount = -Math.abs(paidAmount);\n    convertedAmount = -Math.abs(convertedAmount);\n  }\n\n  outputs.push({\n    invoice_id: null,\n    payment_amount: paidAmount,\n    invoice_currency: invoiceCurrency,\n    converted_amount: convertedAmount,\n    prepaid: true,\n    invoice_type: ''\n  });\n\n} else {\n  // 2. CASO CON FACTURA (Se obtienen datos de nodos externos)\n  const remainingAmount = $('Validar Pago').first().json.remainingAmount;\n  const invoiceData = $('Obtener Info Factura').first().json;\n  const invoiceCurrency = invoiceData.currency || 'UYU';\n  const invoiceType = invoiceData.type;\n  \n  let convertedAmount = 0;\n\n  // Cálculo de conversión estándar para el pago\n  if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n    convertedAmount = paidAmount / exchangeRate;\n  } else {\n    convertedAmount = paidAmount * exchangeRate;\n  }\n\n  // A. SI HAY EXCEDENTE (Pago > Deuda) se genera un pago y un prepago\n  if (totalPaid > remainingAmount) {\n    let convertedAmountInfavor = totalPaid - remainingAmount;\n    let amountInfavor = 0;\n\n    // Ajustar el \"monto a favor\" según moneda\n    if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n      amountInfavor = convertedAmountInfavor * exchangeRate;\n    } else {\n      amountInfavor = convertedAmountInfavor / exchangeRate;\n    }\n\n    // El pago real a la factura es el total menos el excedente\n    paidAmount = paidAmount - amountInfavor;\n\n    // Aplicar lógica de signos (Facturas de compra o Notas de crédito de venta)\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      amountInfavor = -Math.abs(amountInfavor);\n      convertedAmount = -Math.abs(convertedAmount);\n      convertedAmountInfavor = -Math.abs(convertedAmountInfavor);\n    }\n\n    // Salida 1: El pago aplicado a la factura\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount - convertedAmountInfavor,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n\n    // Salida 2: El excedente como nuevo Prepago\n    outputs.push({\n      invoice_id: null,\n      payment_amount: amountInfavor,\n      invoice_currency: null,\n      converted_amount: convertedAmountInfavor,\n      prepaid: true,\n      invoice_type: ''\n    });\n\n  } else {\n    // B. PAGO NORMAL O MENOR A LA DEUDA\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      convertedAmount = -Math.abs(convertedAmount);\n    }\n\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n  }\n}\n\nreturn {\n  outputs: outputs\n};"
+        "jsCode": "const inputData = $('Validar Entrada').first().json;\n\n// Datos base de la entrada\nconst is_sales = inputData.is_sales;\nconst exchangeRate = inputData.exchange_rate || 1;\nconst currency = inputData.currency;\nlet invoiceId = inputData.invoice_id;\nlet paidAmount = inputData.payment_amount;\nlet totalPaid = inputData.total_paid;\n\nlet outputs = [];\n\n// 1. SI NO HAY INVOICE_ID, ES TRATADO COMO PRE-PAGO DIRECTO\nif (!invoiceId) {\n  // Según pto 2: La moneda de la factura es la del pago\n  let invoiceCurrency = currency;\n  // Según pto 4: Recalcular monto convertido\n  let convertedAmount = paidAmount * exchangeRate;\n\n  // Según pto 3: Lógica de signos (is_sales = false es compra/egreso, invertimos)\n  if (is_sales === false) {\n    paidAmount = -Math.abs(paidAmount);\n    convertedAmount = -Math.abs(convertedAmount);\n  }\n\n  outputs.push({\n    invoice_id: null,\n    payment_amount: paidAmount,\n    invoice_currency: invoiceCurrency,\n    converted_amount: convertedAmount,\n    prepaid: true,\n    invoice_type: ''\n  });\n\n} else {\n  // 2. CASO CON FACTURA (Se obtienen datos de nodos externos)\n  const remainingAmount = $('Validar Pago').first().json.remainingAmount;\n  const invoiceData = $('Obtener Info Factura').first().json;\n  const invoiceCurrency = invoiceData.currency || 'UYU';\n  const invoiceType = invoiceData.type;\n  \n  let convertedAmount = 0;\n\n  // Cálculo de conversión estándar para el pago\n  if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n    convertedAmount = paidAmount / exchangeRate;\n  } else {\n    convertedAmount = paidAmount * exchangeRate;\n  }\n\n  // A. SI HAY EXCEDENTE (Pago > Deuda) se genera un pago y un prepago\n  if (totalPaid > remainingAmount) {\n    let convertedAmountInfavor = totalPaid - remainingAmount;\n    let amountInfavor = 0;\n\n    // Ajustar el \"monto a favor\" según moneda\n    if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n      amountInfavor = convertedAmountInfavor * exchangeRate;\n    } else {\n      amountInfavor = convertedAmountInfavor / exchangeRate;\n    }\n\n    // El pago real a la factura es el total menos el excedente\n    paidAmount = paidAmount - amountInfavor;\n\n    // Aplicar lógica de signos (Facturas de compra o Notas de crédito de venta)\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      amountInfavor = -Math.abs(amountInfavor);\n      convertedAmount = -Math.abs(convertedAmount);\n      convertedAmountInfavor = -Math.abs(convertedAmountInfavor);\n    }\n\n    // Salida 1: El pago aplicado a la factura\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount - convertedAmountInfavor,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n\n    // Salida 2: El excedente como nuevo Prepago\n    outputs.push({\n      invoice_id: null,\n      payment_amount: amountInfavor,\n      invoice_currency: null,\n      converted_amount: convertedAmountInfavor,\n      prepaid: true,\n      invoice_type: ''\n    });\n\n  } else {\n    // B. PAGO NORMAL O MENOR A LA DEUDA\n    // Si el pago en otra moneda cubre el pendiente, el frontend manda lo convertido exacto:\n    // monto * tasa puede pasarse o quedarse corto por el redondeo a centavos del monto.\n    const sentConverted = Number(inputData.converted_amount);\n    if (invoiceCurrency !== currency && sentConverted > 0 && Math.abs(sentConverted - convertedAmount) <= 0.01 * Math.max(exchangeRate, 1)) {\n      convertedAmount = sentConverted;\n    }\n\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      convertedAmount = -Math.abs(convertedAmount);\n    }\n\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n  }\n}\n\nreturn {\n  outputs: outputs\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        272,
-        1120
+        -1408,
+        1552
       ],
-      "id": "ec3448e6-4c31-4381-85c6-44cef5f93001",
+      "id": "81d34157-459b-42f8-9892-8bae8649dc33",
       "name": "list_payments"
     },
     {
@@ -1215,10 +1215,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        848,
-        1120
+        -832,
+        1552
       ],
-      "id": "ef4b3921-4248-4b1d-8fa6-9453375f9a4f",
+      "id": "16b91da6-b477-4baa-8de4-7f7aa2fcc84d",
       "name": "Loop Over Items"
     },
     {
@@ -1229,10 +1229,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        544,
-        1120
+        -1136,
+        1552
       ],
-      "id": "97a9cc0c-c328-476a-956f-c9d7a5745e27",
+      "id": "a9fc77c6-c30e-489e-8527-8061eebe6165",
       "name": "payment_values"
     },
     {
@@ -1243,13 +1243,13 @@
           "queryReplacement": "={{ [$('Obtener Info Factura').first().json.id] }}"
         }
       },
-      "id": "9dc26f34-e723-4828-9673-e386e2ab9dc2",
+      "id": "e03d8225-fbe7-49c7-841c-62bc2e8e46af",
       "name": "get_quotes_status",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2496,
-        928
+        816,
+        1360
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1377,10 +1377,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        3136,
-        928
+        1456,
+        1360
       ],
-      "id": "e0431111-d216-438c-ba5c-8523e9169789",
+      "id": "e026f2fe-2a98-4f0d-ad0d-1faffce0b428",
       "name": "Send email1",
       "disabled": true
     },
@@ -1412,10 +1412,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1264,
-        1440
+        -416,
+        1872
       ],
-      "id": "7d626e0e-c24c-4e32-ba59-0499def249d7",
+      "id": "b5e71abd-44e4-4486-b6bf-5cee5616c3aa",
       "name": "NOT is historical?"
     },
     {
@@ -1555,10 +1555,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1552,
-        128
+        -128,
+        560
       ],
-      "id": "4753fa9d-5889-470b-99c8-5d2cb7f107a1",
+      "id": "225fe5b1-edde-4067-a3f5-be8e387aece6",
       "name": "Insert payment allocations",
       "credentials": {
         "postgres": {
@@ -1705,10 +1705,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1568,
-        368
+        -112,
+        800
       ],
-      "id": "995c498d-6d65-48ad-ae73-fd46804618b3",
+      "id": "4faf8c0b-cc95-4a87-9674-a8f8784b569e",
       "name": "Insert invoice allocations",
       "credentials": {
         "postgres": {
@@ -2188,7 +2188,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "3264f4f1-9157-47e3-a364-16db2412b10a",
+  "versionId": "cfb21538-083a-4c8b-99f2-5b656a39eb56",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

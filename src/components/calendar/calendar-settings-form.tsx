@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import {
+  AlarmClock,
   AlertTriangle,
   Ban,
   Building2,
@@ -26,13 +27,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { useHelpScope } from '@/components/help/help-scope';
 import { getErrorMessage } from '@/lib/error-utils';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api, { isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
-import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_END, DEFAULT_VISIBLE_HOURS_MODE, DEFAULT_VISIBLE_HOURS_START, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS, VISIBLE_HOURS_MODES, VISIBLE_HOURS_STEP_MINUTES } from './calendar-constants';
+import { DEFAULT_CALENDAR_SETTINGS, minutesToVisibleHour, normalizeCalendarSettings, visibleHourToMinutes } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
@@ -49,6 +52,12 @@ interface CalendarSettingsFormProps {
 }
 
 const ALL_SEDES_VALUE = '__all__';
+
+/** Opciones de los selectores del rango personalizado: 00:00…24:00 cada 30 min. */
+const VISIBLE_HOUR_OPTIONS = Array.from(
+  { length: (24 * 60) / VISIBLE_HOURS_STEP_MINUTES + 1 },
+  (_, i) => minutesToVisibleHour(i * VISIBLE_HOURS_STEP_MINUTES),
+);
 
 /** Label row with a representative icon and a clickable "?" help hint. */
 function SettingHeader({
@@ -93,6 +102,9 @@ function SettingHeader({
 
 export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value, userId }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
+  // Help ids con el scope de la pantalla (en la agenda: appointments.field.default-view…).
+  const helpScope = useHelpScope();
+  const helpId = (name: string) => composeHelpId(helpScope, 'field', name);
   const tCommon = useTranslations('Common');
   const controlled = value !== undefined;
   const [settings, setSettings] = React.useState<CalendarSettings>(value ?? DEFAULT_CALENDAR_SETTINGS);
@@ -234,6 +246,31 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     if (next.length >= 7) return;
     updateSettings({ hidden_weekdays: next });
   };
+  // Franja visible. El rango personalizado se edita como borrador y solo se guarda
+  // con "Aplicar" cuando el fin es posterior al inicio; el modo se guarda al elegirlo.
+  const visibleHoursMode = settings.visible_hours_mode ?? DEFAULT_VISIBLE_HOURS_MODE;
+  const savedStart = settings.visible_hours_start ?? DEFAULT_VISIBLE_HOURS_START;
+  const savedEnd = settings.visible_hours_end ?? DEFAULT_VISIBLE_HOURS_END;
+  const [rangeDraft, setRangeDraft] = React.useState({ start: savedStart, end: savedEnd });
+  React.useEffect(() => {
+    setRangeDraft({ start: savedStart, end: savedEnd });
+  }, [savedStart, savedEnd]);
+  const draftStartMin = visibleHourToMinutes(rangeDraft.start) ?? 0;
+  const draftEndMin = visibleHourToMinutes(rangeDraft.end) ?? 0;
+  const isRangeValid = draftEndMin > draftStartMin;
+  const isRangeDirty = rangeDraft.start !== settings.visible_hours_start || rangeDraft.end !== settings.visible_hours_end;
+  const changeVisibleHoursMode = (mode: string) => {
+    // Al pasar a "personalizado" se guarda también el rango (el último del usuario
+    // o 09:00–17:00), así la agenda se recorta en el acto.
+    updateSettings(mode === 'custom'
+      ? { visible_hours_mode: mode, visible_hours_start: savedStart, visible_hours_end: savedEnd }
+      : { visible_hours_mode: mode });
+  };
+  const applyVisibleRange = () => {
+    if (!isRangeValid) return;
+    updateSettings({ visible_hours_start: rangeDraft.start, visible_hours_end: rangeDraft.end });
+  };
+
   // Custom mode forces calendar grouping (one agenda at a time) and the default
   // event label, so only those selectors are hidden. Sede remains configurable.
   const isCustomMode = (settings.mode ?? DEFAULT_CALENDAR_MODE) === 'custom';
@@ -264,7 +301,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             onValueChange={(val) => updateSettings({ mode: val })}
             disabled={isLocked}
           >
-            <SelectTrigger id="calendar-mode" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+            <SelectTrigger id="calendar-mode" data-help-id={helpId('calendar-mode')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -284,7 +321,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             onValueChange={(val) => updateSettings({ default_view: val })}
             disabled={isLocked}
           >
-            <SelectTrigger id="default-view" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+            <SelectTrigger id="default-view" data-help-id={helpId('default-view')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -305,7 +342,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               onValueChange={(val) => updateSettings({ grouped_by: val })}
               disabled={isLocked}
             >
-              <SelectTrigger id="grouped-by" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectTrigger id="grouped-by" data-help-id={helpId('grouped-by')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -326,7 +363,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             onValueChange={(val) => updateHourHeight(Number(val))}
             disabled={isLocked}
           >
-            <SelectTrigger id="hour-height" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+            <SelectTrigger id="hour-height" data-help-id={helpId('hour-height')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -346,7 +383,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             onValueChange={(val) => updateSettings({ slot_duration: Number(val) })}
             disabled={isLocked}
           >
-            <SelectTrigger id="slot-duration" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+            <SelectTrigger id="slot-duration" data-help-id={helpId('slot-duration')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -367,7 +404,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               onValueChange={(val) => updateSettings({ default_sede: val === ALL_SEDES_VALUE ? '' : val })}
               disabled={isLocked}
             >
-              <SelectTrigger id="default-sede" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectTrigger id="default-sede" data-help-id={helpId('default-sede')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -391,7 +428,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             onValueChange={(val) => updateSettings({ event_label_format: val })}
             disabled={isLocked}
           >
-            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+            <SelectTrigger id="event-label-format" data-help-id={helpId('event-label-format')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -406,7 +443,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
         <div className="space-y-1.5">
           <SettingHeader icon={CalendarOff} label={t('hiddenWeekdays')} help={t('help.hiddenWeekdays')} />
-          <div className="flex gap-1">
+          <div data-help-id={helpId('hidden-weekdays')} className="flex gap-1">
             {WEEKDAYS.map((day) => (
               <button
                 key={day}
@@ -426,12 +463,83 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             ))}
           </div>
         </div>
+
+        <div className="space-y-1.5">
+          <SettingHeader icon={AlarmClock} label={t('visibleHours')} help={t('help.visibleHours')} htmlFor="visible-hours-mode" />
+          <Select
+            value={visibleHoursMode}
+            onValueChange={changeVisibleHoursMode}
+            disabled={isLocked}
+          >
+            <SelectTrigger id="visible-hours-mode" data-help-id={helpId('visible-hours-mode')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VISIBLE_HOURS_MODES.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`visibleHoursOptions.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {visibleHoursMode === 'custom' && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={rangeDraft.start}
+                  onValueChange={(val) => setRangeDraft((r) => ({ ...r, start: val }))}
+                  disabled={isLocked}
+                >
+                  <SelectTrigger aria-label={t('visibleHoursStart')} data-help-id={helpId('visible-hours-start')} className="h-8 text-xs bg-card border-border/50 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBLE_HOUR_OPTIONS.slice(0, -1).map((opt) => (
+                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">–</span>
+                <Select
+                  value={rangeDraft.end}
+                  onValueChange={(val) => setRangeDraft((r) => ({ ...r, end: val }))}
+                  disabled={isLocked}
+                >
+                  <SelectTrigger aria-label={t('visibleHoursEnd')} data-help-id={helpId('visible-hours-end')} className="h-8 text-xs bg-card border-border/50 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBLE_HOUR_OPTIONS.slice(1).map((opt) => (
+                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 shrink-0 px-2.5 text-xs"
+                  data-help-id={composeHelpId(helpScope, 'btn', 'visible-hours-apply')}
+                  onClick={applyVisibleRange}
+                  disabled={isLocked || !isRangeValid || !isRangeDirty}
+                  loading={save.isPending}
+                >
+                  {t('visibleHoursApply')}
+                </Button>
+              </div>
+              {!isRangeValid && (
+                <p className="text-[11px] text-destructive" role="alert">{t('visibleHoursInvalid')}</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
         <SettingHeader icon={Palette} label={t('colorByStatus')} help={t('help.colorByStatus')} htmlFor="color-by-status" variant="toggle" />
         <Switch
           id="color-by-status"
+
+          data-help-id={helpId('color-by-status')}
           checked={settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS}
           onCheckedChange={(checked) => updateSettings({ color_by_status: checked })}
           disabled={isLocked}
@@ -443,6 +551,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         <SettingHeader icon={CalendarCheck} label={t('checkAvailability')} help={t('help.checkAvailability')} htmlFor="check-availability" variant="toggle" />
         <Switch
           id="check-availability"
+
+          data-help-id={helpId('check-availability')}
           checked={settings.check_availability}
           onCheckedChange={(checked) => updateSettings({ check_availability: checked })}
           disabled={isLocked}
@@ -454,6 +564,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         <SettingHeader icon={Ban} label={t('blockUnavailable')} help={t('help.blockUnavailable')} htmlFor="block-unavailable" variant="toggle" />
         <Switch
           id="block-unavailable"
+
+          data-help-id={helpId('block-unavailable')}
           checked={settings.block_unavailable ?? false}
           onCheckedChange={(checked) => updateSettings({ block_unavailable: checked })}
           disabled={isLocked}
@@ -465,6 +577,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         <SettingHeader icon={Stethoscope} label={t('filterDoctorsByService')} help={t('help.filterDoctorsByService')} htmlFor="filter-doctors-by-service" variant="toggle" />
         <Switch
           id="filter-doctors-by-service"
+
+          data-help-id={helpId('filter-doctors-by-service')}
           checked={settings.filter_doctors_by_service}
           onCheckedChange={(checked) => updateSettings({ filter_doctors_by_service: checked })}
           disabled={isLocked}
@@ -476,6 +590,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         <SettingHeader icon={MousePointerClick} label={t('inlineAppointmentCreation')} help={t('help.inlineAppointmentCreation')} htmlFor="inline-appointment-creation" variant="toggle" />
         <Switch
           id="inline-appointment-creation"
+
+          data-help-id={helpId('inline-appointment-creation')}
           checked={settings.inline_appointment_creation ?? false}
           onCheckedChange={(checked) => updateSettings({ inline_appointment_creation: checked })}
           disabled={isLocked}
@@ -487,6 +603,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         <SettingHeader icon={ScanEye} label={t('inlineDraftLivePreview')} help={t('help.inlineDraftLivePreview')} htmlFor="inline-draft-live-preview" variant="toggle" />
         <Switch
           id="inline-draft-live-preview"
+
+          data-help-id={helpId('inline-draft-live-preview')}
           checked={settings.inline_draft_live_preview ?? false}
           onCheckedChange={(checked) => updateSettings({ inline_draft_live_preview: checked })}
           disabled={isLocked}

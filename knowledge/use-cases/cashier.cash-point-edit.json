@@ -1,0 +1,66 @@
+{
+  "id": "cashier.cash-point-edit",
+  "title": "Editar o desactivar una caja física",
+  "module": "Caja",
+  "summary": "Renombrar una caja, cambiarla de sede o desactivarla.",
+  "screens": [
+    "cashier.cash-points"
+  ],
+  "inputs": {
+    "name": "Nombre de la caja"
+  },
+  "keywords": [
+    "editar caja",
+    "desactivar caja",
+    "eliminar caja",
+    "renombrar caja"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/cashier/cash-points",
+      "title": "Menú → Caja → Cajas Registradoras Físicas"
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "cashier.cash-points.section.first-row",
+      "title": "Una caja",
+      "details": "Cada caja con su sede y estado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "cashier.cash-points.btn.row-edit",
+      "title": "Editar",
+      "details": "Cambiá el nombre, la sede o desactivala.",
+      "until": "cashier.cash-points.field.name",
+      "autoClick": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "cashier.cash-points.field.name",
+      "value": "{{values.name}}",
+      "optional": true,
+      "ask": true,
+      "title": "Nombre"
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "cashier.cash-points.field.is_active",
+      "title": "Activa",
+      "details": "Desactivala si ya no se usa: no se borra su historial."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "cashier.cash-points.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

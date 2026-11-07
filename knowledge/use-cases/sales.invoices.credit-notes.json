@@ -1,0 +1,61 @@
+{
+  "id": "sales.invoices.credit-notes",
+  "title": "Ver las notas de crédito de una factura",
+  "module": "Ventas",
+  "summary": "Pestaña Notas de crédito: devoluciones o descuentos aplicados después de confirmar.",
+  "screens": [
+    "sales.invoices"
+  ],
+  "inputs": {
+    "query": "Número de factura"
+  },
+  "keywords": [
+    "nota de crédito",
+    "devolución",
+    "descuento posterior",
+    "anular factura"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/invoices",
+      "title": "Menú → Ventas → Facturas",
+      "details": "Lo que se le cobra al paciente: sale de un presupuesto confirmado, de un cobro rápido o se carga directo."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.invoices.filter.search",
+      "title": "Buscá la factura",
+      "details": "Por número de documento.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.invoices.section.first-row",
+      "title": "Abrí la factura",
+      "details": "Tocala en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "sales.invoices.section.summary",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "sales.invoices.tab.creditNotes",
+      "title": "Notas de crédito",
+      "skipIfMissing": true
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "sales.invoices.detail.section.first-row",
+      "title": "Nota de crédito",
+      "details": "Número, fecha y monto. Para crear una, usá la cuenta del paciente.",
+      "skipIfMissing": true
+    }
+  ]
+}

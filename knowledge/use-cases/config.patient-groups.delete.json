@@ -1,0 +1,59 @@
+{
+  "id": "config.patient-groups.delete",
+  "title": "Eliminar el grupo de pacientes",
+  "module": "Configuración de Negocio",
+  "summary": "Borrar un grupo de pacientes (pide confirmación).",
+  "screens": [
+    "config.patient-groups"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar grupo de pacientes",
+    "borrar grupo de pacientes",
+    "quitar grupo de pacientes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/patient-groups",
+      "title": "Menú → Configuración de Negocio → Grupos de Pacientes",
+      "details": "Agrupaciones de pacientes (Ortodoncia, Convenio X) con sus servicios, para reportar lo producido y cobrado por grupo."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.patient-groups.filter.search",
+      "title": "Buscá el grupo de pacientes",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.patient-groups.section.first-row",
+      "title": "Elegí el grupo de pacientes",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.patient-groups.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "config.patient-groups.btn.delete",
+      "title": "Eliminar",
+      "until": "config.patient-groups.btn.confirm-action"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "config.patient-groups.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

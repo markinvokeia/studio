@@ -1,0 +1,39 @@
+{
+  "id": "config.currencies.overview",
+  "title": "Ver el tipo de cambio",
+  "module": "Configuración de Negocio",
+  "summary": "Historial de cotizaciones del dólar (compra, venta y promedio) por fecha.",
+  "screens": [
+    "config.currencies"
+  ],
+  "keywords": [
+    "tipo de cambio",
+    "cotización",
+    "dólar",
+    "monedas"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/currencies",
+      "title": "Menú → Configuración de Negocio → Monedas y Tipos de Cambio",
+      "details": "La cotización con la que se convierten montos entre monedas."
+    },
+    {
+      "id": "history",
+      "action": "highlight",
+      "target": "config.currencies.section.rates",
+      "title": "Historial de cotizaciones",
+      "details": "Compra, venta y promedio del dólar por fecha. Filtrá con Desde / Hasta y «Aplicar».",
+      "skipIfMissing": true
+    },
+    {
+      "id": "refresh",
+      "action": "highlight",
+      "target": "config.currencies.btn.refresh",
+      "title": "Actualizar",
+      "skipIfMissing": true
+    }
+  ]
+}
