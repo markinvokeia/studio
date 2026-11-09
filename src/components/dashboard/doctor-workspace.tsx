@@ -798,7 +798,7 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
               name: service.name || '',
               price: Number(service.price || 0),
               category: '',
-              duration_minutes: 30,
+              duration_minutes: Number(service.duration_minutes) || 0,
               is_active: true,
             }))
           : [],

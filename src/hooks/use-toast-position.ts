@@ -4,7 +4,8 @@ import * as React from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import type { ToastPosition, UserPreferences, UserPreferencesResponse } from '@/lib/types';
+import { fetchMyPreferences } from '@/services/user-preferences';
+import type { ToastPosition, UserPreferences } from '@/lib/types';
 
 const CACHE_KEY_PREFIX = 'toast-position';
 
@@ -75,12 +76,11 @@ let inFlight: { userId: string; promise: Promise<void> } | null = null;
 function fetchPosition(userId: string): Promise<void> {
   if (inFlight?.userId === userId) return inFlight.promise;
 
-  const promise = api
-    .get(API_ROUTES.USER_PREFERENCES)
-    .then((res: unknown) => {
+  const promise = fetchMyPreferences()
+    .then((prefs) => {
       // The user switched (or logged out) while this was in flight — drop it.
       if (loadedUserId !== userId) return;
-      const parsed = parsePosition((res as UserPreferencesResponse | null)?.preferences?.toast_position);
+      const parsed = parsePosition(prefs?.toast_position);
       if (parsed) {
         setStorePosition(parsed);
         writeCachedPosition(userId, parsed);

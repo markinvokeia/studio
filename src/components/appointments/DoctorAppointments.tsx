@@ -94,7 +94,7 @@ async function getAppointmentsForDoctor(
         start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
         end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
         services: Array.isArray(a.services)
-          ? a.services.map((s: any) => ({ id: String(s.id), name: s.name || '', price: Number(s.price || 0), category: '', duration_minutes: 30, is_active: true }))
+          ? a.services.map((s: any) => ({ id: String(s.id), name: s.name || '', price: Number(s.price || 0), category: '', duration_minutes: Number(s.duration_minutes) || 0, is_active: true }))
           : [],
         quote_id: a.quote_id || a.quoteId || undefined,
         quote_doc_no: a.quote_doc_no || a.quoteDocNo || undefined,

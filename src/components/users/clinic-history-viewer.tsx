@@ -248,7 +248,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                         name: s.name || '',
                         price: Number(s.price || 0),
                         category: '',
-                        duration_minutes: 30,
+                        duration_minutes: Number(s.duration_minutes) || 0,
                         is_active: true,
                     })) : [],
                     quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,

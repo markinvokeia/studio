@@ -4,7 +4,8 @@ import * as React from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import type { PatientFinanceView, UserPreferences, UserPreferencesResponse } from '@/lib/types';
+import { fetchMyPreferences } from '@/services/user-preferences';
+import type { PatientFinanceView, UserPreferences } from '@/lib/types';
 
 const CACHE_KEY_PREFIX = 'patient-finance-view';
 
@@ -33,9 +34,8 @@ export function useFinanceViewPreference(userId?: string | number): [PatientFina
 
   React.useEffect(() => {
     if (!userId) return;
-    api.get(API_ROUTES.USER_PREFERENCES)
-      .then((res: unknown) => {
-        const prefs = (res as UserPreferencesResponse | null)?.preferences;
+    fetchMyPreferences()
+      .then((prefs) => {
         if (prefs?.finance_view === 'unified' || prefs?.finance_view === 'tabs') {
           setFinanceViewState(prefs.finance_view);
           writeCachedView(userId, prefs.finance_view);

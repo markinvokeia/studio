@@ -72,6 +72,7 @@ import { parseClinicExceptions } from '@/lib/clinic-exceptions';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { getDateFnsLocale } from '@/lib/locale';
 import { cn, toLocalISOString } from '@/lib/utils';
+import { sumServicesDuration, withServiceDurations } from '@/lib/appointment-duration';
 import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
@@ -81,7 +82,7 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { addMinutes, differenceInMinutes, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { AlarmClock, AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -610,7 +611,7 @@ function mapApiAppointmentRow(
                     name: s.name || '',
                     price: Number(s.price || 0),
                     category: '',
-                    duration_minutes: 30,
+                    duration_minutes: Number(s.duration_minutes) || 0,
                     is_active: true
                 } as Service)) : [],
                 quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
@@ -1880,6 +1881,25 @@ export default function AppointmentsPage() {
         closeInlineDraft();
     };
 
+    // Duración del borrador inline al cambiar sus servicios: la suma de sus
+    // duraciones (con la propia del doctor si la tiene). Sin servicios vuelve a la
+    // duración de partida: la guardada al editar, la del slot al crear. Si los
+    // servicios no tienen duración conocida se mantiene la actual.
+    const getDurationForServices = (draft: InlineAppointmentDraftState, nextServices: Service[]): number => {
+        if (nextServices.length === 0) {
+            const startStr = draft.editing?.start?.dateTime;
+            const endStr = draft.editing?.end?.dateTime;
+            if (startStr && endStr) {
+                const original = differenceInMinutes(parseISO(endStr.replace(/Z$/, '')), parseISO(startStr.replace(/Z$/, '')));
+                if (Number.isFinite(original) && original > 0) return original;
+            }
+            return slotDuration;
+        }
+        const doctorServices = draft.doctor?.id ? doctorServiceMap.get(String(draft.doctor.id)) : undefined;
+        const total = sumServicesDuration(nextServices, doctorServices, services);
+        return total > 0 ? total : draft.durationMin;
+    };
+
     const renderInlineDraft = () => {
         if (!inlineDraft) return null;
         const overlap = inlineDraftOverlaps(inlineDraft, appointments);
@@ -1917,10 +1937,7 @@ export default function AppointmentsPage() {
                 services={inlineDraft.services}
                 onServicesChange={(s) => setInlineDraft((d) => {
                     if (!d) return d;
-                    // Selecting a service sets the duration to the service's time
-                    // (sum when several); falls back to the current value otherwise.
-                    const total = s.reduce((acc, svc) => acc + ((svc as any).duration_minutes || 0), 0);
-                    return { ...d, services: s, durationMin: total > 0 ? total : d.durationMin };
+                    return { ...d, services: s, durationMin: getDurationForServices(d, s) };
                 })}
                 notes={inlineDraft.notes}
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
@@ -2026,8 +2043,10 @@ export default function AppointmentsPage() {
                 phone_number: appointment.patientPhone,
             } as UserType)
             : null;
-        const services: Service[] = Array.isArray(appointment.services)
-            ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
+        // La duración de cada servicio se conserva: sin ella, agregar o quitar uno
+        // recalcularía el total como si los que ya tenía la cita duraran 0.
+        const draftServices: Service[] = Array.isArray(appointment.services)
+            ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color, duration_minutes: Number(s.duration_minutes) || 0 } as Service))
             : [];
         // In custom mode the grid is a single calendar column, so the inline
         // draft must carry the calendar context to render in that column.
@@ -2043,7 +2062,7 @@ export default function AppointmentsPage() {
             context,
             durationMin,
             patient,
-            services,
+            services: draftServices,
             doctor,
             calendar,
             notes: appointment.notes || '',
@@ -2055,8 +2074,24 @@ export default function AppointmentsPage() {
             editing: appointment,
             rescheduling,
         }));
+        // El listado de citas no siempre trae la duración de los servicios: se
+        // completa del catálogo (o del backend) sin tocar la duración guardada.
+        if (draftServices.some((s) => !s.duration_minutes)) {
+            withServiceDurations(draftServices, services).then((enriched) => {
+                const durations = new Map(enriched.map((s) => [String(s.id), s.duration_minutes]));
+                setInlineDraft((d) => (d && d.editing?.id === appointment.id
+                    ? {
+                        ...d,
+                        services: d.services.map((s) => {
+                            const duration = durations.get(String(s.id));
+                            return !s.duration_minutes && duration ? { ...s, duration_minutes: duration } : s;
+                        }),
+                    }
+                    : d));
+            });
+        }
         return true;
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode, t]);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, services, groupBy, calendarMode, isCustomMode, t]);
 
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.

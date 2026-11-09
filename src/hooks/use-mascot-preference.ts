@@ -5,11 +5,12 @@ import { create } from 'zustand';
 
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
+import { fetchMyPreferences } from '@/services/user-preferences';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { API_ROUTES } from '@/constants/routes';
 import type { MascotHome } from '@/components/invoke-mascot';
-import type { UserPreferences, UserPreferencesResponse } from '@/lib/types';
+import type { UserPreferences } from '@/lib/types';
 
 const CACHE_KEY_PREFIX = 'show-mascot';
 
@@ -48,9 +49,9 @@ export function useMascotPreference(userId?: string | number): [boolean, (value:
     if (!id || loadedFor === id) return;
     const cached = readCached(id);
     useMascotPrefStore.getState().setLoaded(id, cached ?? true);
-    api.get(API_ROUTES.USER_PREFERENCES)
-      .then((res: unknown) => {
-        const pref = (res as UserPreferencesResponse | null)?.preferences?.show_mascot;
+    fetchMyPreferences()
+      .then((prefs) => {
+        const pref = prefs?.show_mascot;
         if (typeof pref === 'boolean') {
           useMascotPrefStore.getState().set(pref);
           writeCached(id, pref);

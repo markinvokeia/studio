@@ -45,9 +45,9 @@ export interface PhoneEdit {
 }
 
 /**
- * Desde esta cantidad de dígitos ya no parece un número local a medio escribir, así que se
- * puede pasar a otro país sin esperar a que salga del campo. No alcanza con mirar las
- * longitudes del país: Uruguay, por ejemplo, admite hasta 13 dígitos.
+ * Desde esta cantidad de dígitos ya no parece un número local a medio escribir (ni uno local con
+ * un dígito de más), así que se puede pasar a otro país: mientras se escribe, al pegar y al salir
+ * del campo. No alcanza con mirar las longitudes del país: Uruguay, por ejemplo, admite hasta 13.
  */
 const MIN_DIGITS_TO_SWITCH_COUNTRY_WHILE_TYPING = 10;
 
@@ -123,9 +123,12 @@ export const parsePhoneText = (
 
   // Sólo dígitos (con separadores) y sin 0 troncal: puede ser un internacional sin el "+".
   if (detectCallingCode && /^[1-9][\d\s().-]*$/.test(trimmed)) {
-    const international = parseWith(`+${trimmed.replace(/\D/g, '')}`);
+    const digits = trimmed.replace(/\D/g, '');
+    const international = parseWith(`+${digits}`);
     if (international?.isValid()) {
-      if (!number?.isValid()) {
+      // Con pocos dígitos lo más probable es un número del país con un dígito de más o de menos
+      // ("4362 12345" de Uruguay sería Austria): se deja inválido y el otro país sólo se sugiere.
+      if (!number || (!number.isValid() && digits.length >= MIN_DIGITS_TO_SWITCH_COUNTRY_WHILE_TYPING)) {
         number = international;
       } else if (international.number !== number.number) {
         alternative = international;
@@ -182,6 +185,22 @@ const canStartNationalNumber = (digits: string, country: CountryCode): boolean =
   });
 };
 
+/**
+ * El campo precarga el código de área ("+1 787"), pero en esos países se acostumbra marcar los 10
+ * dígitos: "787 123 4567" escrito detrás queda "+1 787 787 123 4567". Si así sobran dígitos y sin
+ * el área precargada es un número válido, el área ya venía en lo escrito (la misma u otra: "809…"
+ * pasa a República Dominicana). Mientras no se completa el número no se toca: "787 1234" es local.
+ */
+const dropPrefilledArea = (canonical: string, country: CountryCode): string | undefined => {
+  const prefix = `+${getCountryCallingCode(country)}`;
+  if (!canonical.startsWith(prefix)) return undefined;
+  const national = canonical.slice(prefix.length);
+  const area = getAreaCodes(country).find((code) => national.startsWith(code));
+  if (!area || validatePhoneNumberLength(canonical) !== 'TOO_LONG') return undefined;
+  const candidate = `${prefix}${national.slice(area.length)}`;
+  return parseWith(candidate)?.isValid() ? candidate : undefined;
+};
+
 /** Convierte lo que quedó en el input tras una tecla en el texto a mostrar y el valor a entregar. */
 export const applyPhoneEdit = (
   text: string,
@@ -212,6 +231,8 @@ export const applyPhoneEdit = (
       isAssumed = !countryPicked;
     }
   }
+
+  canonical = dropPrefilledArea(canonical, country) ?? canonical;
 
   const callingCode = callingCodeOf(canonical);
   if (!callingCode) return { ...describeCanonical(canonical, country), assumed: isAssumed };
@@ -259,8 +280,15 @@ export const applyPhonePaste = (pasted: string, country: CountryCode): PhoneEdit
   }
   if (!parsed.number) return applyPhoneEdit(chars, { country, previousText: '', assumed: !chars.startsWith('+') });
 
+  // "+598 099 123 456": el 0 troncal sobra detrás del código (al escribir ya se quita).
+  const { nationalNumber, countryCallingCode } = parsed.number;
+  const withoutTrunk = dropTrunkPrefix(nationalNumber, parsed.number.country);
+  const canonical = withoutTrunk !== nationalNumber
+    ? `+${countryCallingCode}${withoutTrunk}`
+    : parsed.number.format('E.164');
+
   return {
-    ...describeCanonical(parsed.number.format('E.164'), country),
+    ...describeCanonical(canonical, country),
     assumed: false,
     alternative: parsed.alternative,
   };
@@ -268,7 +296,8 @@ export const applyPhonePaste = (pasted: string, country: CountryCode): PhoneEdit
 
 /**
  * Al salir del campo: si el prefijo lo puso el campo, los dígitos pueden ser un internacional
- * escrito sin "+" (se cambia de país) o admitir las dos lecturas (se avisa, no se decide).
+ * escrito sin "+" (se cambia de país, desde `MIN_DIGITS_TO_SWITCH_COUNTRY_WHILE_TYPING` dígitos)
+ * o admitir las dos lecturas (se avisa, no se decide).
  */
 export const finishPhoneEdit = (text: string, country: CountryCode | undefined, assumed: boolean): PhoneEdit => {
   const canonical = toCanonical(text);

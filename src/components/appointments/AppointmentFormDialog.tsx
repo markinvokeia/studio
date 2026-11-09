@@ -39,6 +39,7 @@ import { getErrorMessage } from '@/lib/error-utils';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { getSalesServices } from '@/services/services';
+import { sumServicesDuration, withServiceDurations } from '@/lib/appointment-duration';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
@@ -111,6 +112,11 @@ interface AppointmentFormDialogProps {
     onRequestRefresh?: () => void;
 }
 
+/** Firma de un conjunto de servicios (ids ordenados) para saber si cambió. */
+function getServicesSignature(services: Pick<Service, 'id'>[]): string {
+    return services.map(s => String(s.id)).sort().join(',');
+}
+
 export function AppointmentFormDialog({
     open,
     onOpenChange,
@@ -162,6 +168,10 @@ export function AppointmentFormDialog({
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
     const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
+    // Al editar: servicios con los que se abrió la cita y si la hora de fin ya
+    // pasó a seguir a los servicios (ver el efecto de `calculatedEndTime`).
+    const editServicesBaselineRef = React.useRef('');
+    const followServicesDurationRef = React.useRef(false);
 
     // Outstanding-debt indicator for the selected patient (per currency).
     const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
@@ -437,6 +447,26 @@ export function AppointmentFormDialog({
                     foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
                 }
 
+                const initialServices = editingAppointment.services || [];
+                // La duración guardada se respeta hasta que el usuario cambie los
+                // servicios; desde ahí la hora de fin sigue a los servicios.
+                editServicesBaselineRef.current = getServicesSignature(initialServices);
+                followServicesDurationRef.current = false;
+                // El listado de citas no siempre trae la duración de cada servicio:
+                // sin ella, agregar o quitar uno calcularía mal el total.
+                if (initialServices.some(s => !s.duration_minutes)) {
+                    withServiceDurations(initialServices).then(enriched => {
+                        const durations = new Map(enriched.map(s => [String(s.id), s.duration_minutes]));
+                        setAppointment(prev => ({
+                            ...prev,
+                            services: prev.services.map(s => {
+                                const duration = durations.get(String(s.id));
+                                return !s.duration_minutes && duration ? { ...s, duration_minutes: duration } : s;
+                            }),
+                        }));
+                    });
+                }
+
                 setAppointment({
                     // Sin paciente asignado (típico de las citas importadas de Google) el
                     // selector tiene que verse vacío, no con el 'N/A' que deja el mapeo.
@@ -449,7 +479,7 @@ export function AppointmentFormDialog({
                             is_active: true, avatar: ''
                         }
                         : null,
-                    services: editingAppointment.services || [],
+                    services: initialServices,
                     doctor: editingAppointment.doctorId ? {
                         id: editingAppointment.doctorId,
                         name: editingAppointment.doctorName || '',
@@ -628,17 +658,8 @@ export function AppointmentFormDialog({
         if (endTime) {
             endDateTime = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
         } else {
-            let totalDuration = 0;
             const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && services.length > 0 && doctorServices && doctorServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
-            endDateTime = addMinutes(startDateTime, totalDuration);
+            endDateTime = addMinutes(startDateTime, sumServicesDuration(services, doctorServices));
         }
 
         const attendeeEmails = [];
@@ -706,16 +727,8 @@ export function AppointmentFormDialog({
             const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
             if (!isValid(startDateTime)) return null;
 
-            let totalDuration = 0;
             const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && doctor.id && services.length > 0 && doctorServices && doctorServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
+            let totalDuration = sumServicesDuration(services, doctorServices);
 
             if (editingAppointment && totalDuration === 0) {
                 const start = parseISO(editingAppointment.start.dateTime);
@@ -738,11 +751,17 @@ export function AppointmentFormDialog({
         }
     }, [appointment.date, appointment.time, appointment.doctor, appointment.services, doctorServiceMap, editingAppointment]);
 
+    // Al crear, la hora de fin sale siempre de los servicios. Al editar se respeta
+    // la guardada hasta que el usuario cambia los servicios; desde ese momento (y
+    // mientras el diálogo siga abierto) la sigue igual que al crear.
     React.useEffect(() => {
-        if (calculatedEndTime && !editingAppointment) {
-            setAppointment(prev => ({ ...prev, endTime: calculatedEndTime }));
+        if (!calculatedEndTime) return;
+        if (editingAppointment && !followServicesDurationRef.current) {
+            if (getServicesSignature(appointment.services) === editServicesBaselineRef.current) return;
+            followServicesDurationRef.current = true;
         }
-    }, [calculatedEndTime, editingAppointment]);
+        setAppointment(prev => (prev.endTime === calculatedEndTime ? prev : { ...prev, endTime: calculatedEndTime }));
+    }, [calculatedEndTime, editingAppointment, appointment.services]);
 
     // Current appointment duration in minutes (derived from start/end). Allows 0
     // (end == start); a save-time validation blocks zero-length appointments.
@@ -871,16 +890,8 @@ export function AppointmentFormDialog({
                 return;
             }
         } else {
-            let totalDuration = 0;
             const docServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && doctor.id && services.length > 0 && docServices && docServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const ds = docServices.find(s => String(s.id) === String(service.id));
-                    return acc + (ds?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
+            let totalDuration = sumServicesDuration(services, docServices);
             if (isEditing && totalDuration === 0) totalDuration = 30;
             endDateTime = addMinutes(startDateTime, totalDuration);
         }

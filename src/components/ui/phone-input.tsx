@@ -137,7 +137,8 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(({
     if (valueProp) {
       const display = formatPhoneForDisplay(valueProp, defaultCountry);
       assumedRef.current = false;
-      if (display.country) setCountry(display.country);
+      // Lo que no se puede leer como teléfono no deja la bandera del registro anterior.
+      setCountry(display.country ?? defaultCountry);
       setInputValue(display.text);
     } else {
       const focused = !!inputRef.current && document.activeElement === inputRef.current;
@@ -193,8 +194,13 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(({
     const input = e.target;
     const typed = input.value;
     const caret = input.selectionStart ?? typed.length;
+    // Sin "+" ya no queda el prefijo del número anterior (se reemplazó todo): los dígitos se leen
+    // con el país elegido a mano o el de por defecto, no con el del número que se está pisando.
+    const readCountry = typed.includes('+')
+      ? country ?? defaultCountry
+      : pickedCountryRef.current ?? defaultCountry;
     const edit = applyPhoneEdit(typed, {
-      country: country ?? defaultCountry,
+      country: readCountry,
       previousText: inputValue,
       assumed: assumedRef.current,
       countryPicked: !!pickedCountryRef.current,
