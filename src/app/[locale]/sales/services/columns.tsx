@@ -110,6 +110,17 @@ export const ServicesColumnsWrapper = ({ onDelete }: ServicesColumnsProps): Colu
             ),
         },
         {
+            accessorKey: 'is_lab',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title={t('isLab')} />
+            ),
+            cell: ({ row }) => (
+                row.original.is_lab
+                    ? <Badge variant="secondary">{t('isLabYes')}</Badge>
+                    : <span className="text-muted-foreground">—</span>
+            ),
+        },
+        {
             id: 'actions',
             cell: ({ row }) => {
                 const service = row.original;

@@ -1,0 +1,3450 @@
+{
+  "name": "Patient Portal — Public Bookable Services",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CRUD CATALOGO SERVICIOS\n",
+        "height": 1440,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -256
+      ],
+      "id": "e7c8bf29-fcab-4023-a3ce-8fd4df3b06ca",
+      "name": "Sticky Note27"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "128ee44d-ec55-4396-925f-52935cd1dcf0",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -80
+      ],
+      "id": "9eb52ddf-6ff9-4b6c-ba88-58af9d70d37a",
+      "name": "If14"
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "service_catalog",
+          "mode": "list",
+          "cachedResultName": "service_catalog"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "combineConditions": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "4f0284da-aa21-487f-bcab-fddcc6bd03fe",
+      "name": "Delete rows in a table5",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catalogoservicios/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -432,
+        -64
+      ],
+      "id": "1cd63fe3-802a-4bac-9fcc-5a5288f54002",
+      "name": "catalogoservicios/upsert",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "catalogoservicios/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        176
+      ],
+      "id": "a6f275ef-9ff6-4050-87fd-561cf1bb7348",
+      "name": "catalogoservicios/delete",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "service_catalog",
+          "mode": "list",
+          "cachedResultName": "service_catalog"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": true,
+            "name": "={{ $json.body.name}}",
+            "description": "={{ $json.body.description}}",
+            "category": "={{ $json.body.category}}",
+            "duration_minutes": "={{ $json.body.duration_minutes}}",
+            "price": "={{ $json.body.price}}",
+            "created_at": "={{ $now }}",
+            "indications": "={{ $json.body.indications}}",
+            "currency": "={{ $json.body.currency || 'UYU' }}",
+            "is_sales": "={{ $json.body.is_sales }}",
+            "color": "={{ $json.body.color || null }}",
+            "category_id": "={{ $json.body.category_id || 0 }}",
+            "estimated_total_days": "={{  $json.body.estimated_total_days || 0 }}",
+            "service_type": "={{ $json.body.service_type || 'single' }}",
+            "specialty": "={{ $json.body.specialty || '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_minutes",
+              "displayName": "duration_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "indications",
+              "displayName": "indications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_sales",
+              "displayName": "is_sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "color",
+              "displayName": "color",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "specialty",
+              "displayName": "specialty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estimated_total_days",
+              "displayName": "estimated_total_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -192,
+        400
+      ],
+      "id": "c7398674-9175-41ee-997e-cbefe326ea91",
+      "name": "INSERT Servicios",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        400
+      ],
+      "id": "f53d1b43-8192-45f7-97f5-900046a80186",
+      "name": "/webhook/services",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "service_catalog",
+          "mode": "list",
+          "cachedResultName": "service_catalog"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.body.id }}",
+            "price": "={{ $json.body.price }}",
+            "duration_minutes": "={{ $json.body.duration_minutes }}",
+            "name": "={{ $json.body.name }}",
+            "description": "={{ $json.body.description }}",
+            "category": "={{ $json.body.category }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "indications": "={{ $json.body.indications }}",
+            "created_at": "={{ $now.toISO() }}",
+            "currency": "={{ $json.body.currency || 'UYU' }}",
+            "is_sales": "={{ $json.body.is_sales }}",
+            "color": "={{ $json.body.color || null }}",
+            "category_id": "={{ $json.body.category_id }}",
+            "estimated_total_days": "={{ $json.body.estimated_total_days || 0 }}",
+            "specialty": "={{ $json.body.specialty || '' }}",
+            "service_type": "={{ $json.body.service_type || 'single' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "duration_minutes",
+              "displayName": "duration_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "indications",
+              "displayName": "indications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_sales",
+              "displayName": "is_sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "color",
+              "displayName": "color",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "specialty",
+              "displayName": "specialty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estimated_total_days",
+              "displayName": "estimated_total_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        -160
+      ],
+      "id": "44c8c731-fa39-4d61-a0b3-0d52ec100874",
+      "name": "Update2",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "service_catalog",
+          "mode": "list",
+          "cachedResultName": "service_catalog"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "price": "={{ $json.body.price }}",
+            "duration_minutes": "={{ $json.body.duration_minutes }}",
+            "name": "={{ $json.body.name }}",
+            "description": "={{ $json.body.description || '' }}",
+            "category": "={{ $json.body.category }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "indications": "={{ $json.body.indications || '' }}",
+            "created_at": "={{ $now.toISO() }}",
+            "is_sales": "={{ $json.body.is_sales }}",
+            "color": "={{ $json.body.color || null }}",
+            "category_id": "={{ $json.body.category_id }}",
+            "currency": "={{ $json.body.currency }}",
+            "estimated_total_days": "={{ $json.body.estimated_total_days || 0 }}",
+            "service_type": "={{ $json.body.service_type || 'single' }}",
+            "specialty": "={{ $json.body.specialty || '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "duration_minutes",
+              "displayName": "duration_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "indications",
+              "displayName": "indications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_sales",
+              "displayName": "is_sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "color",
+              "displayName": "color",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "specialty",
+              "displayName": "specialty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estimated_total_days",
+              "displayName": "estimated_total_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        16
+      ],
+      "id": "aeae6428-d9da-4866-aae9-8d97f580bbb2",
+      "name": "Insert2",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "services",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        624
+      ],
+      "id": "b11b73aa-d2fe-4a9b-be4b-502daa7c1648",
+      "name": "/services",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    s.*, \n    c.name AS category_name,\n    COUNT(*) OVER() AS total_count\nFROM service_catalog s \nLEFT JOIN miscellaneous_categories c ON s.category_id = c.id\nWHERE \n    s.is_sales = $1\n    AND (\n        $2 IS NULL\n        OR $2 = ''\n        OR unaccent(s.name) ILIKE unaccent('%' || $2 || '%')\n    )\n    AND (\n        $5::boolean IS NULL\n        OR COALESCE(s.is_active, true) = $5::boolean\n    )\n    -- is_lab (script 167): 'true' / 'false' filtran; ausente o vacío = todos.\n    AND (\n        $6::text IS NULL\n        OR $6::text NOT IN ('true', 'false')\n        OR COALESCE(s.is_lab, false) = ($6::text = 'true')\n    )\nORDER BY s.created_at DESC\nLIMIT $3\nOFFSET (($4 - 1) * $3);",
+        "options": {
+          "queryReplacement": "={{ [$json.query.is_sales ? $json.query.is_sales : true, $json.query.search, $json.query.limit || 10, $json.query.page || 1, $json.query.is_active, $json.query.is_lab ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -192,
+        624
+      ],
+      "id": "7611e22c-399c-4118-8128-ebe6b998c723",
+      "name": "Select SERVICES.",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        256,
+        224
+      ],
+      "id": "0507acd6-b984-46ad-a52f-238dd8fa1e39",
+      "name": "Success"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        256,
+        400
+      ],
+      "id": "df3199e9-e750-4b9e-8c40-96a02b6f816e",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all()\nconst limit = $(\"/services\").first().json.query.limit || 10\n\nif (items.length === 0) {\n  return {\n    items: [],\n    total: 0,\n    total_pages: 0\n  }\n}\n\nconst total = parseInt(items[0].json.total_count) || 0;\nconst totalPages = Math.ceil(total / limit);\n\nconst cleanItems = items.map(item => {\n  const { total_count, ...rest } = item.json;\n  return rest;\n});\n\nreturn {\n  items: cleanItems,\n  total,\n  total_pages: totalPages\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        608
+      ],
+      "id": "e25ee3f5-5020-42ac-8ce6-5a0e9d18d5ab",
+      "name": "Format response"
+    },
+    {
+      "parameters": {
+        "path": "services_noauth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        784
+      ],
+      "id": "320ed7d6-f570-4423-9582-5092cd0aa31c",
+      "name": "/services_noauth",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "## CRUD STEPS SERVICIOS DE TIPO FLUJOS\n",
+        "height": 1120,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -256
+      ],
+      "id": "4339d287-b0ba-4fb8-ab76-2f49ade61676",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "128ee44d-ec55-4396-925f-52935cd1dcf0",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -96
+      ],
+      "id": "52e72e43-f5ed-448c-b8f2-053b79cf30ad",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "treatment_steps",
+          "mode": "list",
+          "cachedResultName": "treatment_steps"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "combineConditions": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        768,
+        160
+      ],
+      "id": "bd707bc3-f3a0-4ef8-9660-5fcc8f57328d",
+      "name": "Delete rows in a table",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "treatment_steps",
+          "mode": "list",
+          "cachedResultName": "treatment_steps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.body.id }}",
+            "offset_max_days": "={{ $json.body.offset_max_days || 0 }}",
+            "offset_min_days": "={{ $json.body.offset_min_days || 0 }}",
+            "position": "={{ $json.body.position || 0 }}",
+            "service_id": "={{ $json.body.service_id || 0 }}",
+            "step_name": "={{ $json.body.step_name || 'Paso' }}",
+            "required_role": "=null",
+            "is_lab_dependent": "={{ $json.body.is_lab_dependent || false }}",
+            "notes": "={{ $json.body.notes || '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_id",
+              "displayName": "service_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "offset_min_days",
+              "displayName": "offset_min_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "offset_max_days",
+              "displayName": "offset_max_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "required_role",
+              "displayName": "required_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_lab_dependent",
+              "displayName": "is_lab_dependent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        992,
+        -176
+      ],
+      "id": "fb412a3c-20e8-4313-9bd2-fd11aaa27fb5",
+      "name": "Update",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1232,
+        208
+      ],
+      "id": "f05f0c9c-3165-46d0-9205-46b794bcf4b9",
+      "name": "Success1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1232,
+        384
+      ],
+      "id": "285afb66-c80e-4178-a381-444cdc03031d",
+      "name": "Error1"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "treatment_steps",
+          "mode": "list",
+          "cachedResultName": "treatment_steps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "offset_max_days": "={{ $json.body.offset_max_days || 0 }}",
+            "offset_min_days": "={{ $json.body.offset_min_days || 0 }}",
+            "position": "={{ $json.body.position || 0 }}",
+            "service_id": "={{ $json.body.service_id || 0 }}",
+            "step_name": "={{ $json.body.step_name || 'Paso' }}",
+            "required_role": "=null",
+            "is_lab_dependent": "={{ $json.body.is_lab_dependent || false }}",
+            "notes": "={{ $json.body.notes || '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "service_id",
+              "displayName": "service_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "offset_min_days",
+              "displayName": "offset_min_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "offset_max_days",
+              "displayName": "offset_max_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "required_role",
+              "displayName": "required_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_lab_dependent",
+              "displayName": "is_lab_dependent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        992,
+        -16
+      ],
+      "id": "2ff3a5e8-13a3-452a-b111-0fb14ab6f454",
+      "name": "Insert",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "services/steps",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        448
+      ],
+      "id": "af3071f4-c6ff-4f0f-8648-3d13ca93d1d5",
+      "name": "/services/steps",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "/services/steps_noauth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        608
+      ],
+      "id": "d308a8ff-ebe7-4d59-8503-313c73a9d9a5",
+      "name": "/services/steps_noauth",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "treatment_steps",
+          "mode": "list",
+          "cachedResultName": "treatment_steps"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "service_id",
+              "value": "={{ $json.query.service_id || $json.body.service_id}}"
+            }
+          ]
+        },
+        "combineConditions": "OR",
+        "sort": {
+          "values": [
+            {
+              "column": "position",
+              "direction": "DESC"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        448
+      ],
+      "id": "9bfab870-d772-4b36-ae36-fee731ce0d2b",
+      "name": "Select STEPS",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "services/steps/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        160
+      ],
+      "id": "0c01adae-89d8-453c-957b-c0fe60fb9488",
+      "name": "services/steps/delete",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/steps/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        -80
+      ],
+      "id": "171a30f1-a9aa-4bbb-b456-9149eebab222",
+      "name": "services/steps/upsert",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "service",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        976
+      ],
+      "id": "c5307f44-c249-459d-b8d2-bff245a040e0",
+      "name": "/service",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    s.*, \n    c.name AS category_name\nFROM service_catalog s \nLEFT JOIN miscellaneous_categories c ON s.category_id = c.id\nWHERE s.id = $1",
+        "options": {
+          "queryReplacement": "={{ [$json.query.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -192,
+        976
+      ],
+      "id": "dfb7bac7-f8f8-4a97-8dd7-dedd7f6db1b2",
+      "name": "Select SERVICE",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Sólo el subconjunto que la clínica publicó para auto-agenda. El catálogo\n-- entero NO es ofrecible al paciente: una cirugía existe como servicio pero\n-- nadie la reserva solo desde una landing.\n--\n-- `show_pricing` viaja con cada fila para que el nodo siguiente decida si\n-- incluye los precios: si la clínica eligió no mostrarlos, tampoco tienen que\n-- salir por un endpoint sin token.\nSELECT\n    s.id,\n    s.name,\n    s.description,\n    COALESCE(s.duration_minutes, 0) AS duration_minutes,\n    s.price,\n    s.currency,\n    s.image_updated_at::text        AS image_updated_at,\n    -- Fuente de verdad de \"tiene imagen\": el archivo en Drive. La UI usa esto\n    -- para no pedir una imagen que no existe.\n    (s.image_drive_file_id IS NOT NULL) AS has_image,\n    (\n      SELECT COALESCE(c.patient_portal_show_pricing, FALSE)\n      FROM public.clinic c\n      WHERE c.is_active IS NOT FALSE\n      ORDER BY c.id\n      LIMIT 1\n    ) AS show_pricing\nFROM public.service_catalog s\nWHERE s.bookable_online IS TRUE\n  AND s.is_active IS NOT FALSE\n  AND s.is_sales IS NOT FALSE\nORDER BY s.name",
+        "options": {}
+      },
+      "id": "75aeb763-f17a-4fd1-ac99-12cedeb47c1e",
+      "name": "Buscar Servicios Agendables",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -208,
+        1392
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Payload público: este endpoint lo consume la landing /patient-login sin\n// token. NUNCA agregar costos internos, categorías internas ni ids ajenos al\n// servicio.\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.id != null && !r.error);\n\n// Si la clínica no muestra precios, `price` y `currency` no se devuelven —\n// omitirlos es más seguro que mandarlos y confiar en que la UI los esconda.\nconst showPricing = rows.length > 0 && rows[0].show_pricing === true;\n\nconst services = rows.map((s) => {\n  const service = {\n    id: String(s.id),\n    name: s.name,\n    description: s.description || null,\n    duration_minutes: Number(s.duration_minutes) || 0,\n    // La URL la arma el cliente a partir del id (la base del webhook es\n    // configuración de entorno). Acá sólo se dice si vale la pena pedirla.\n    has_image: s.has_image === true,\n    image_updated_at: s.image_updated_at || null,\n  };\n  if (showPricing) {\n    service.price = s.price == null ? null : Number(s.price);\n    service.currency = s.currency || null;\n  }\n  // Redundantes —la consulta ya garantiza las dos cosas— pero explícitos:\n  // dejan el payload legible cuando se inspecciona a mano y evitan que quien\n  // lo consuma tenga que inferirlo.\n  service.bookable_online = true;\n  service.is_active = true;\n  return service;\n});\n\nreturn [{ json: { statusCode: 200, body: services } }];\n"
+      },
+      "id": "bc20508c-24fc-4d05-b684-91e5ab8a9bd1",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        1392
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "948441dd-244b-4752-a615-7ac030821f40",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "path": "services_noauth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "04983c16-07bc-4516-ba67-f1c86b7f644a",
+      "name": "GET /services_noauth",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        1392
+      ],
+      "webhookId": "d68a8c09-d1c9-4377-8d85-9199481a3980"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        1600
+      ],
+      "id": "8122a5fb-d911-4b95-bea3-b4eb39200344",
+      "name": "Error2"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst input = $input.first().json;\nconst body = input.body ?? input;\nreturn [{ json: { service_id: assertServiceId(body.service_id) } }];\n"
+      },
+      "id": "8494c08c-7476-4f59-8352-5edb033fcac3",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.service_catalog\nSET image_filename      = NULL,\n    image_mimetype      = NULL,\n    image_drive_file_id = NULL,\n    image_web_view_link = NULL,\n    image_updated_at    = NULL\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          image_drive_file_id AS previous_drive_file_id",
+        "options": {
+          "queryReplacement": "={{ $('Validar Entrada').item.json.service_id}}"
+        }
+      },
+      "id": "3aeaf2ce-8362-4dae-8434-6a6a1d5a3da1",
+      "name": "Limpiar en service_catalog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -240,
+        1680
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.image_drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "0c5ef3f9-a788-440a-b6dd-84f5f0ae4b99",
+      "name": "Borrar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -464,
+        1680
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// El borrado en Drive es best-effort: la fila ya quedó limpia, que es lo que\n// ve el usuario. Un archivo huérfano en Drive no justifica devolver un error.\nconst cleared = $('Limpiar en service_catalog').first().json;\n\nif (!cleared || cleared.error || !cleared.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo quitar la imagen.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: { success: true, service_id: cleared.id } } }];\n"
+      },
+      "id": "57cad472-ea74-42d0-a2b1-9e9149d24332",
+      "name": "Formatear Respuesta1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        1664
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "e0715a87-ecf3-4cb9-bc9d-1ef1e8a5be4b",
+      "name": "Responder1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        336,
+        1776
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/image/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ceaa9cf0-6f1a-4523-bc10-35ed5f0728e9",
+      "name": "POST services/image/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        1680
+      ],
+      "webhookId": "c8545a08-3c4b-4fb9-8591-b58513c492d7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT image_drive_file_id,\n       image_mimetype\nFROM public.service_catalog\nWHERE id = $1::integer\n  AND is_active IS NOT FALSE",
+        "options": {
+          "queryReplacement": "={{ $json.service_id }}"
+        }
+      },
+      "id": "3cf1b1b8-81b1-4457-8568-86e2311142e0",
+      "name": "Leer Imagen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -160,
+        2096
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-file",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.image_drive_file_id }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7acfecf9-1f29-49a2-8126-e91f160e6402",
+      "name": "¿Tiene Imagen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.image_drive_file_id }}"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "8529279f-b382-413e-802c-59af02830242",
+      "name": "Descargar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        272,
+        2016
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "8dc6da3b-6a85-40bf-8c5c-390753cc503d",
+      "name": "Responder Binario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        496,
+        2016
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 204
+        }
+      },
+      "id": "298202a2-dbd0-443b-ba21-1328ad17f57a",
+      "name": "Responder Sin Imagen",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        272,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst input = $input.first().json;\nconst query = input.query ?? input;\nreturn [{ json: { service_id: assertServiceId(query.service_id) } }];\n"
+      },
+      "id": "bab74690-56a9-430b-a040-05d064de76c3",
+      "name": "Validar Entrada1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "path": "services/image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f0d6a6c5-176d-46f0-bc8a-5fc714879ba8",
+      "name": "GET services/image",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        2096
+      ],
+      "webhookId": "1d2b0c0d-69ec-4f0c-b08b-150ac50d5f84"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        832,
+        2320
+      ],
+      "id": "374b65ae-c299-41e9-b963-2442eaf88027",
+      "name": "Error3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT image_drive_file_id\nFROM public.service_catalog\nWHERE id = $1::integer",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Entrada2').item.json.service_id ] }}"
+        }
+      },
+      "id": "75b98cec-b521-4c9b-9c52-72866a429f5c",
+      "name": "Leer Imagen Anterior",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -48,
+        2512
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "data0",
+        "name": "={{ $('Validar Entrada2').item.binary.data0.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list",
+          "cachedResultName": "/ (Root folder)",
+          "cachedResultUrl": "https://drive.google.com/drive"
+        },
+        "options": {}
+      },
+      "id": "bbbc835d-b3b8-465a-bcd1-e17360403c69",
+      "name": "Subir a Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -288,
+        2528
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.service_catalog\nSET image_filename      = $2,\n    image_mimetype      = $3,\n    image_drive_file_id = $4,\n    image_web_view_link = $5,\n    image_updated_at    = NOW()\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          image_filename,\n          image_mimetype,\n          image_drive_file_id,\n          image_updated_at::text AS image_updated_at",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Entrada2').first().json.service_id, $('Validar Entrada2').first().json.filename, $('Validar Entrada2').first().json.mimetype, $('Subir a Drive').first().json.id, $('Subir a Drive').first().json.webViewLink ] }}  "
+        }
+      },
+      "id": "dcdac22e-f5f3-4b5e-9b2c-b9727b003def",
+      "name": "Guardar en service_catalog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        160,
+        2528
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Leer Imagen Anterior').first().json.image_drive_file_id }}"
+        },
+        "options": {}
+      },
+      "id": "d4c0d30d-dd10-42c8-a015-f770a74116f9",
+      "name": "Borrar Imagen Anterior de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        384,
+        2528
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst item = $input.first();\nconst body = item.json.body ?? item.json ?? {};\n\nconst serviceId = assertServiceId(body.service_id);\n\n// El archivo llega en la propiedad binaria `data` (el front hace\n// formData.append('data', file), igual que el logo de clínica y la firma).\nconst binary = item.binary?.data0 || item.binary?.data;\nif (!binary) throw new Error('image file is required (binary property \"data\")');\n\nconst allowed = ['image/png', 'image/jpeg', 'image/webp'];\nif (!allowed.includes(binary.mimeType)) {\n  throw new Error(`Unsupported image type: ${binary.mimeType}`);\n}\n\n// 1 MB, el mismo límite que valida el front.\nif (binary.fileSize && Number(String(binary.fileSize).replace(/[^0-9]/g, '')) > 1024 * 1024) {\n  throw new Error('Image file exceeds 1 MB');\n}\n\nconst extension = binary.mimeType === 'image/webp' ? 'webp'\n  : binary.mimeType === 'image/jpeg' ? 'jpg' : 'png';\n\nreturn [{\n  json: {\n    service_id: serviceId,\n    filename: binary.fileName || `service-${serviceId}.${extension}`,\n    mimetype: binary.mimeType,\n  },\n  binary: item.binary,\n}];\n"
+      },
+      "id": "01a31ed9-95bc-47e8-a234-ba22d59bfdae",
+      "name": "Validar Entrada2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        2528
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// El borrado del archivo anterior es best-effort: si falla, la imagen nueva ya\n// quedó guardada y no hay razón para devolver un error al usuario.\nconst saved = $('Guardar en service_catalog').first().json;\n\nif (!saved || saved.error || !saved.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la imagen.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: saved.id,\n  filename: saved.image_filename,\n  mimetype: saved.image_mimetype,\n  image_updated_at: saved.image_updated_at,\n} } }];\n"
+      },
+      "id": "cc571837-1c1e-47a2-962b-b119a4e5c244",
+      "name": "Formatear Respuesta2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        2528
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "43c2f22b-c40b-4bd2-aa48-df0c7bd49dc7",
+      "name": "Responder2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        832,
+        2528
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/image/upload",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": false
+        }
+      },
+      "id": "25847fd7-f487-443c-86a9-75c878a3d52c",
+      "name": "POS services/image/upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        2528
+      ],
+      "webhookId": "3278ef1b-2a36-48e4-bb82-3c44ae60885a",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT image_drive_file_id\nFROM public.service_catalog\nWHERE id = $1::integer",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Entrada').item.json.service_id ] }}"
+        }
+      },
+      "id": "4cd0b963-ca10-426a-86a5-f09408896bc6",
+      "name": "Leer Imagen Anterior1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -688,
+        1680
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UPDATE de una sola columna. Nada más.\nUPDATE public.service_catalog\nSET bookable_online = $2\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          name,\n          bookable_online",
+        "options": {
+          "queryReplacement": "={{ [ $json.service_id, $json.bookable_online ] }}"
+        }
+      },
+      "id": "0db50e90-36c2-467e-bcca-76c91d24bbd3",
+      "name": "Actualizar Flag",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1392,
+        1360
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Este flujo hace UNA sola cosa: prender o apagar `bookable_online`. No toca\n// nombre, precio, duración ni nada más del servicio — de eso se encarga\n// /catalogoservicios/upsert. Mantenerlo mínimo es el punto: es el único\n// escritor de esa columna.\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst serviceId = String(body.service_id ?? '').trim();\nif (!/^[0-9]+$/.test(serviceId)) {\n  throw new Error(`Invalid service_id: ${body.service_id}`);\n}\n\n// Se exige un booleano explícito. Un valor ausente o raro NO se interpreta\n// como `false`: apagar la agenda online de un servicio por un payload mal\n// armado sería peor que rechazar la llamada.\nconst raw = body.bookable_online;\nconst isTrue = raw === true || raw === 'true';\nconst isFalse = raw === false || raw === 'false';\nif (!isTrue && !isFalse) {\n  throw new Error(`Invalid bookable_online: ${raw}`);\n}\n\nreturn [{ json: { service_id: serviceId, bookable_online: isTrue } }];\n"
+      },
+      "id": "3c58aa6c-db9f-4f34-8de4-c0e591816d58",
+      "name": "Validar Entrada3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 404, body: { message: 'No se encontró el servicio.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: row.id,\n  name: row.name,\n  bookable_online: row.bookable_online === true,\n} } }];\n"
+      },
+      "id": "2a38f925-ffb4-42fe-a8ba-28c05dcdab93",
+      "name": "Formatear Respuesta3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "77705462-2312-4242-96c9-0309ff397984",
+      "name": "Responder3",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/bookable-online",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a56e630b-1ecc-466c-a891-2328d159fc33",
+      "name": "POSt services/bookable-online",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        944,
+        1360
+      ],
+      "webhookId": "1d50ddd2-fd6f-4a06-b7b7-a3413028d8c9",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/lab-work",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c708c6d5-99c2-46c3-a653-68fb60683fc3",
+      "name": "POST services/lab-work",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        944,
+        1584
+      ],
+      "webhookId": "3a279f4b-bff2-4bd5-a16d-d2be3b4189c2",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Este flujo hace UNA sola cosa: marcar o desmarcar un servicio como trabajo de\n// laboratorio (service_catalog.is_lab, script 167). Es el único escritor de esa\n// columna: /catalogoservicios/upsert no la toca, así una edición que no la\n// mande no la apaga.\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst serviceId = String(body.service_id ?? '').trim();\nif (!/^[0-9]+$/.test(serviceId)) {\n  throw new Error(`Invalid service_id: ${body.service_id}`);\n}\n\n// Se exige un booleano explícito: un valor ausente o raro no se toma como false.\nconst raw = body.is_lab;\nconst isTrue = raw === true || raw === 'true';\nconst isFalse = raw === false || raw === 'false';\nif (!isTrue && !isFalse) {\n  throw new Error(`Invalid is_lab: ${raw}`);\n}\n\nreturn [{ json: { service_id: serviceId, is_lab: isTrue } }];\n"
+      },
+      "id": "11720c82-937a-4d7f-a95a-679000030e88",
+      "name": "Validar Entrada Lab",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UPDATE de una sola columna. Nada más.\nUPDATE public.service_catalog\nSET is_lab = $2\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          name,\n          is_lab",
+        "options": {
+          "queryReplacement": "={{ [ $json.service_id, $json.is_lab ] }}"
+        }
+      },
+      "id": "9608b75e-e986-4015-b96f-e1d4abd3ea8c",
+      "name": "Actualizar Flag Lab",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1392,
+        1584
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: row?.error ? 400 : 404, body: { message: row?.error ? 'No se pudo actualizar el servicio.' : 'No se encontró el servicio.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: row.id,\n  name: row.name,\n  is_lab: row.is_lab === true,\n} } }];\n"
+      },
+      "id": "5600fc50-9126-4320-be85-424bcfd2e10b",
+      "name": "Formatear Respuesta Lab",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "0128b838-07c3-4b42-8197-62b9e82a4dec",
+      "name": "Responder Lab",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        1584
+      ]
+    }
+  ],
+  "pinData": {
+    "/services": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3Njk4OTY4NjV9.8LdT30HFA-oLdun8SbjBSyAaGyh2e22_WnXn-tFswtI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/invoices",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.135.188.246",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "190.135.188.246"
+          },
+          "params": {},
+          "query": {
+            "is_sales": "true"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1769896865
+          }
+        }
+      }
+    ],
+    "/services_noauth": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3Njk4OTY4NjV9.8LdT30HFA-oLdun8SbjBSyAaGyh2e22_WnXn-tFswtI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/invoices",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.135.188.246",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "190.135.188.246"
+          },
+          "params": {},
+          "query": {
+            "is_sales": "true"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1769896865
+          }
+        }
+      }
+    ],
+    "/services/steps": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3Njk4OTY4NjV9.8LdT30HFA-oLdun8SbjBSyAaGyh2e22_WnXn-tFswtI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/invoices",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.135.188.246",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "190.135.188.246"
+          },
+          "params": {},
+          "query": {
+            "is_sales": "true"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1769896865
+          }
+        }
+      }
+    ],
+    "/services/steps_noauth": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3Njk4OTY4NjV9.8LdT30HFA-oLdun8SbjBSyAaGyh2e22_WnXn-tFswtI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/invoices",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.135.188.246",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "190.135.188.246"
+          },
+          "params": {},
+          "query": {
+            "is_sales": "true"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1769896865
+          }
+        }
+      }
+    ],
+    "/service": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3Njk4OTY4NjV9.8LdT30HFA-oLdun8SbjBSyAaGyh2e22_WnXn-tFswtI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/invoices",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.135.188.246",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "190.135.188.246"
+          },
+          "params": {},
+          "query": {
+            "id": "123"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1769896865
+          }
+        }
+      }
+    ],
+    "POS services/image/upload": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "content-length": "119612",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODg5NTUxNjF9.gR-Rv6_Aa8ldtsgHSGQ4jBiSFJ99XGbLWfgtvljhy64",
+            "cache-control": "no-cache",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary4BCpka6Q4A9VXpqW",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/services",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "167.60.246.22",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "292b596f5d37",
+            "x-real-ip": "167.60.246.22"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "service_id": "1626"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/image/upload",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1788955161
+          }
+        },
+        "binary": {
+          "data0": {
+            "mimeType": "image/jpeg",
+            "fileType": "image",
+            "fileExtension": "jpg",
+            "data": "filesystem-v2",
+            "fileName": "Masaje-relajante.jpg",
+            "id": "filesystem-v2:workflows/mHpK4g9XdtuPRyoW/executions/1657175/binary_data/46c3a293-ee8b-4b9a-95f2-4085f5f356dc",
+            "fileSize": "119 kB",
+            "bytes": 119317
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "GET services/image": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODg5NTUxNjF9.gR-Rv6_Aa8ldtsgHSGQ4jBiSFJ99XGbLWfgtvljhy64",
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/services",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "167.60.246.22",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "292b596f5d37",
+            "x-real-ip": "167.60.246.22"
+          },
+          "params": {},
+          "query": {
+            "service_id": "1626"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/image",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1788955161
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "POST services/image/delete": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "content-length": "21",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODg5NTUxNjF9.gR-Rv6_Aa8ldtsgHSGQ4jBiSFJ99XGbLWfgtvljhy64",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/sales/services",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "167.60.246.22",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "292b596f5d37",
+            "x-real-ip": "167.60.246.22"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "service_id": "1626"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/image/delete",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1788955161
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "If14": {
+      "main": [
+        [
+          {
+            "node": "Update2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete rows in a table5": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "catalogoservicios/upsert": {
+      "main": [
+        [
+          {
+            "node": "If14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "catalogoservicios/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete rows in a table5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT Servicios": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/webhook/services": {
+      "main": [
+        [
+          {
+            "node": "INSERT Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update2": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert2": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/services": {
+      "main": [
+        [
+          {
+            "node": "Select SERVICES.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select SERVICES.": {
+      "main": [
+        [
+          {
+            "node": "Format response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format response": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/services_noauth": {
+      "main": [
+        [
+          {
+            "node": "Select SERVICES.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Success1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update": {
+      "main": [
+        [
+          {
+            "node": "Success1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert": {
+      "main": [
+        [
+          {
+            "node": "Success1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/services/steps": {
+      "main": [
+        [
+          {
+            "node": "Select STEPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/services/steps_noauth": {
+      "main": [
+        [
+          {
+            "node": "Select STEPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select STEPS": {
+      "main": [
+        [
+          {
+            "node": "Success1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "services/steps/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "services/steps/upsert": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/service": {
+      "main": [
+        [
+          {
+            "node": "Select SERVICE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select SERVICE": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Servicios Agendables": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /services_noauth": {
+      "main": [
+        [
+          {
+            "node": "Buscar Servicios Agendables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer Imagen Anterior1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar en service_catalog": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Limpiar en service_catalog",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta1": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/image/delete": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Imagen": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Imagen?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Imagen?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Responder Binario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada1": {
+      "main": [
+        [
+          {
+            "node": "Leer Imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET services/image": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Imagen Anterior": {
+      "main": [
+        [
+          {
+            "node": "Guardar en service_catalog",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir a Drive": {
+      "main": [
+        [
+          {
+            "node": "Leer Imagen Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en service_catalog": {
+      "main": [
+        [
+          {
+            "node": "Borrar Imagen Anterior de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar Imagen Anterior de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada2": {
+      "main": [
+        [
+          {
+            "node": "Subir a Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta2": {
+      "main": [
+        [
+          {
+            "node": "Responder2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POS services/image/upload": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Imagen Anterior1": {
+      "main": [
+        [
+          {
+            "node": "Borrar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Flag": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada3": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta3": {
+      "main": [
+        [
+          {
+            "node": "Responder3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POSt services/bookable-online": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/lab-work": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada Lab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada Lab": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Flag Lab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Flag Lab": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Lab",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Respuesta Lab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta Lab": {
+      "main": [
+        [
+          {
+            "node": "Responder Lab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d0b006c1-4422-4464-a18e-230a0a499a09",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "mHpK4g9XdtuPRyoW",
+  "tags": []
+}

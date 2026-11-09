@@ -1,0 +1,671 @@
+{
+  "name": "Alert Staff Notify",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Alert Staff Notify — avisos de alertas al equipo (script 168)\n\nDespacha las alert_instances que llevan details_json.staff_dispatch (quién recibe y por qué canales). Cualquier flujo que cree una alerta así llama a este al terminar; también el Alert Scheduler al final de cada corrida. No recibe datos: toma TODO lo pendiente.\n\n1. alert_staff_dispatch_claim($now): marca cada alerta una sola vez (staff_dispatched_at), crea las notificaciones del sistema y devuelve destinatarios + plantillas + interruptores.\n2. Un item por destinatario y canal:\n   · en el sistema → Events (push en vivo; la notificación ya existe)\n   · email (Gmail) → respeta alert_email_auto_send_enabled, el modo prueba (alert_email_test_*), emails rebotados y el canal email de la categoría\n   · WhatsApp (YCloud) → plantilla aprobada, modo prueba de WhatsApp y el canal de la categoría\n3. Cada envío queda en alert_actions (SEND_EMAIL / SEND_WHATSAPP, SUCCESS o FAILED con el motivo).\n\nPlantillas: {{clave}} con las claves de staff_dispatch.fields + recipient.name y clinic.name. Sin plantilla de email se arma uno con staff_dispatch.lines.\n\nUsado por: Lab Orders (alertas \"al entrar\") y Alert Scheduler (reglas con generador, p. ej. LAB_STAGE_OVERDUE).",
+        "height": 520,
+        "width": 760
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -600
+      ],
+      "id": "aae73e60-0195-474c-b4d1-43d60dedf1b5",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "triggered_by"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2fbaa06a-9f62-483e-b552-2f9a82061c8a",
+      "name": "When called"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p AS payload FROM public.alert_staff_dispatch_claim($1) p;",
+        "options": {
+          "queryReplacement": "={{ [$now.toISO()] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        0
+      ],
+      "id": "6d961b84-3134-4d2e-a354-cb3801d2e44d",
+      "name": "Claim staff alerts",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item por destinatario y canal. Cada entrada es una alerta tomada por\n// alert_staff_dispatch_claim (columna `payload`).\nconst out = [];\nfor (const item of $input.all()) {\n  const p = item.json.payload;\n  if (!p || !p.alert_instance_id) continue;\n  const channels = p.channels || {};\n  for (const r of p.recipients || []) {\n    const fields = { ...(p.fields || {}), 'recipient.name': r.name || '', 'clinic.name': p.clinic_name || '' };\n    const base = {\n      alert_instance_id: p.alert_instance_id,\n      title: p.title,\n      summary: p.summary,\n      lines: p.lines || [],\n      category_slug: p.category_slug,\n      config: p.config || {},\n      recipient: r,\n      fields,\n    };\n    if (channels.in_app && r.notification) out.push({ json: { ...base, kind: 'in_app', notification_type: p.notification_type } });\n    if (channels.email) out.push({ json: {\n      ...base, kind: 'email', template: p.email_template, template_id: p.email_template_id,\n      channel_enabled: p.email_channel_enabled !== false,\n    } });\n    if (channels.whatsapp) out.push({ json: {\n      ...base, kind: 'whatsapp', template: p.whatsapp_template, template_id: p.whatsapp_template_id,\n      channel_enabled: p.whatsapp_channel_enabled !== false,\n    } });\n  }\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "44e33398-b8ce-44bf-9126-3ec601e6d19c",
+      "name": "Explode recipients"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1746e31b-8c70-472a-b152-46ac11a6739b",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "in_app",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "in_app"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c08811e1-9a03-4787-be46-50c0fb03c25c",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0753f6f5-1409-4006-8fc7-1c2cded46d46",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        0
+      ],
+      "name": "By channel",
+      "id": "2504e7aa-b876-457f-8105-61aaaaffb1bf"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "={{ $json.notification_type }}",
+            "user_ids": "={{ [$json.recipient.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json.recipient.notification }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        -240
+      ],
+      "name": "Push notification",
+      "id": "4a98c0f2-8b1b-421c-a326-b3ae4af57fbe",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el email de un aviso al equipo. Nunca lanza: devuelve ok:false con el\n// motivo para dejarlo en alert_actions. Los mismos interruptores que el envío a\n// pacientes (\"Alert Email Auto-Send\").\nconst j = $json;\nconst cfg = j.config || {};\nconst fail = (reason) => [{ json: { ...j, ok: false, reason } }];\nconst who = j.recipient?.name || j.recipient?.user_id;\n\nif (!cfg.email_auto_send_enabled) {\n  return fail('Los emails automáticos de alertas están apagados (alert_email_auto_send_enabled)');\n}\nif (!j.channel_enabled) {\n  return fail(`El canal email está deshabilitado para la categoría \"${j.category_slug}\"`);\n}\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst to = j.recipient?.email;\nif (!to || !EMAIL_RE.test(to)) return fail(`${who}: sin email válido`);\nif (j.recipient?.email_bounced) return fail(`${who}: el email ${to} rebotó`);\nif (cfg.email_test_mode) {\n  const whitelist = String(cfg.email_test_whitelist || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);\n  if (!whitelist.includes(to.toLowerCase())) return fail(`Modo prueba de email: ${to} no está en la lista permitida`);\n}\nif (j.template_id && !j.template) return fail(`La plantilla de email ${j.template_id} está inactiva o no existe`);\n\nconst esc = (s) => String(s ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst fill = (text, html) => String(text || '').replace(/\\{\\{\\s*([\\w.]+)\\s*\\}\\}/g, (_, k) => (k in j.fields ? (html ? esc(j.fields[k]) : j.fields[k]) : ''));\nlet subject;\nlet html;\nif (j.template && (j.template.body_html || j.template.body_text)) {\n  subject = fill(j.template.subject || j.title, false);\n  html = j.template.body_html ? fill(j.template.body_html, true) : `<p>${esc(fill(j.template.body_text, false))}</p>`;\n} else {\n  const lines = (j.lines || []).filter((l) => l && l.value);\n  subject = j.title;\n  html = [\n    `<p>Hola ${esc(j.fields['recipient.name'])},</p>`,\n    `<p><strong>${esc(j.title)}</strong></p>`,\n    lines.length\n      ? `<p>${lines.map((l) => `${esc(l.label)}: ${esc(l.value)}`).join('<br>')}</p>`\n      : (j.summary ? `<p>${esc(j.summary)}</p>` : ''),\n    `<p>${esc(j.fields['clinic.name'])}</p>`,\n  ].join('');\n}\nreturn [{ json: { ...j, ok: true, to, subject, html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "name": "Build email",
+      "id": "0fda8eec-92e4-4dfa-adb8-21b334f25ac2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "79551580-94f6-4b8d-82ac-2998d73497d0",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ],
+      "name": "Email ready?",
+      "id": "0ad96e8b-50b7-40b2-9294-04b6c619087e"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "={{ $json.fields['clinic.name'] || undefined }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1440,
+        -80
+      ],
+      "name": "Send email",
+      "webhookId": "46e68028-a94e-4106-879f-a1d5eae9857e",
+      "id": "c0d89f2e-d500-4566-b950-bc40c62fc911",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NUeedDpjoyikxk43",
+          "name": "Gmail account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sent = $input.first().json;\nconst req = $('Build email').item.json;\nconst ok = !!(sent && (sent.id || sent.threadId)) && !sent.error;\nreturn [{ json: {\n  alert_instance_id: req.alert_instance_id,\n  action_type: 'SEND_EMAIL',\n  result_status: ok ? 'SUCCESS' : 'FAILED',\n  result_message: ok ? `Email a ${req.to}` : `Email a ${req.to} falló: ${sent?.error?.message || sent?.error || 'sin respuesta de Gmail'}`,\n  action_data: { to: req.to, user_id: req.recipient?.user_id, message_id: sent?.id || null },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -80
+      ],
+      "name": "Check email",
+      "id": "71f521b7-d857-4f90-8c5f-44ce7bfa5240"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nreturn [{ json: {\n  alert_instance_id: j.alert_instance_id,\n  action_type: 'SEND_EMAIL',\n  result_status: 'FAILED',\n  result_message: j.reason,\n  action_data: { user_id: j.recipient?.user_id },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        80
+      ],
+      "name": "Email skipped",
+      "id": "7b453e71-471f-4ea1-afe9-05a85e3ede9e"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Variables de la plantilla WHATSAPP (variables_schema: { variable_meta: clave })\n// con las claves de staff_dispatch.fields. Respeta el modo prueba de WhatsApp\n// (whatsapp_test_mode_enabled / whatsapp_test_phone_whitelist) y el canal de la categoría.\nconst j = $json;\nconst cfg = j.config || {};\nconst fail = (reason) => [{ json: { ...j, ok: false, reason } }];\nif (!j.channel_enabled) return fail(`El canal WhatsApp está deshabilitado para la categoría \"${j.category_slug}\"`);\nconst tpl = j.template;\nif (!tpl || !tpl.code) return fail('Plantilla de WhatsApp inactiva o inexistente');\nconst digits = String(j.recipient?.phone || '').replace(/\\D/g, '');\nif (!digits) return fail(`${j.recipient?.name || j.recipient?.user_id}: sin teléfono`);\nconst phone = '+' + digits;\nif (cfg.whatsapp_test_mode) {\n  const whitelist = String(cfg.whatsapp_test_whitelist || '').split(',').map((p) => '+' + String(p).trim().replace(/\\D/g, '')).filter((p) => p !== '+');\n  if (!whitelist.includes(phone)) return fail(`Modo prueba de WhatsApp: ${phone} no está en la lista permitida`);\n}\nconst schema = tpl.variables_schema || {};\nconst parameters = [];\nfor (const [name, key] of Object.entries(schema)) {\n  if (!(key in j.fields)) return fail(`La plantilla ${tpl.code} usa la clave desconocida \"${key}\"`);\n  parameters.push({ type: 'text', parameter_name: name, text: String(j.fields[key] || '-') });\n}\nreturn [{ json: {\n  ...j, ok: true, phone,\n  body: {\n    from: $env.YCLOUD_WHATSAPP_FROM || '+59894024661',\n    to: phone,\n    type: 'template',\n    template: { name: tpl.code, language: { code: tpl.language || 'es' }, components: parameters.length ? [{ type: 'body', parameters }] : [] },\n  },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        320
+      ],
+      "name": "Build WhatsApp",
+      "id": "91d41625-a669-4079-a541-fafac1f2a975"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b04ba9c9-08dd-46f2-a4a5-731a28eba5d7",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        320
+      ],
+      "name": "WhatsApp ready?",
+      "id": "6ab8a48c-8157-4df5-8491-2f690e86e2e6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ycloud.com/v2/whatsapp/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        240
+      ],
+      "name": "Send WhatsApp",
+      "id": "27675b51-2b0c-44c4-ae26-b5637d7be2d5",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "H5zbiBMT148GZMcX",
+          "name": "YCloud API KEY"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst req = $('Build WhatsApp').item.json;\nconst ok = !!res && !res.error && !!(res.id || res.wamid || res.status);\nreturn [{ json: {\n  alert_instance_id: req.alert_instance_id,\n  action_type: 'SEND_WHATSAPP',\n  result_status: ok ? 'SUCCESS' : 'FAILED',\n  result_message: ok ? `WhatsApp a ${req.phone} (${res.status || 'sent'})` : `WhatsApp a ${req.phone} falló: ${res?.error?.message || JSON.stringify(res?.error || res).slice(0, 300)}`,\n  action_data: { phone: req.phone, user_id: req.recipient?.user_id, template: req.template?.code, message_id: res?.id || null },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        240
+      ],
+      "name": "Check WhatsApp",
+      "id": "3b5f6e91-e724-4118-98aa-c5c7fad113c5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nreturn [{ json: {\n  alert_instance_id: j.alert_instance_id,\n  action_type: 'SEND_WHATSAPP',\n  result_status: 'FAILED',\n  result_message: j.reason,\n  action_data: { user_id: j.recipient?.user_id },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        400
+      ],
+      "name": "WhatsApp skipped",
+      "id": "6ac8ce05-f389-43fd-b02c-d0afce2b6df5"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES ($1::int, $2, $3::jsonb, $4, $5, NULL, now())\nRETURNING alert_instance_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.alert_instance_id, $json.action_type, JSON.stringify($json.action_data || {}), $json.result_status, $json.result_message] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1920,
+        160
+      ],
+      "name": "Record alert action",
+      "id": "63972935-3454-4357-82cc-bce6de2d7fc7",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Claim staff alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim staff alerts": {
+      "main": [
+        [
+          {
+            "node": "Explode recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode recipients": {
+      "main": [
+        [
+          {
+            "node": "By channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "By channel": {
+      "main": [
+        [
+          {
+            "node": "Push notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build email": {
+      "main": [
+        [
+          {
+            "node": "Email ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email ready?": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Check email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check email": {
+      "main": [
+        [
+          {
+            "node": "Record alert action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email skipped": {
+      "main": [
+        [
+          {
+            "node": "Record alert action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp ready?": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Check WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Record alert action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp skipped": {
+      "main": [
+        [
+          {
+            "node": "Record alert action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

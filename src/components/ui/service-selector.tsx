@@ -9,7 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getPurchaseServices, getSalesServices } from '@/services/services';
+import { getPurchaseServices, getSalesServices, setServiceIsLab } from '@/services/services';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -18,6 +18,13 @@ import { getClinicCurrency } from '@/stores/clinic-info-store';
 interface ServiceSelectorProps {
     /** Tipo de servicio: true = sales (clínica), false = purchase (proveedores) */
     isSales?: boolean;
+    /**
+     * Solo trabajos de laboratorio (service_catalog.is_lab). Un servicio creado
+     * desde el selector queda marcado como trabajo de laboratorio.
+     */
+    isLab?: boolean;
+    /** IDs que no se ofrecen (p. ej. los que ya están en la lista). */
+    excludeIds?: string[];
     /** Valor seleccionado (ID del servicio) */
     value?: string;
     /** Nombre del servicio ya resuelto para mostrar el valor seleccionado sin depender del catálogo paginado */
@@ -48,6 +55,8 @@ const DESIRED_POPOVER_HEIGHT = 320;
 
 export function ServiceSelector({
     isSales = true,
+    isLab,
+    excludeIds,
     value,
     selectedServiceName,
     onValueChange,
@@ -105,8 +114,8 @@ export function ServiceSelector({
             setIsLoading(true);
             try {
                 const result = isSales
-                    ? await getSalesServices({ search: searchQuery, limit: 50 })
-                    : await getPurchaseServices({ search: searchQuery, limit: 50 });
+                    ? await getSalesServices({ search: searchQuery, limit: 50, is_lab: isLab })
+                    : await getPurchaseServices({ search: searchQuery, limit: 50, is_lab: isLab });
 
                 setServices(result.items.map((s: any) => ({
                     ...s,
@@ -122,7 +131,13 @@ export function ServiceSelector({
         }, 300);
 
         return () => clearTimeout(handler);
-    }, [searchQuery, isSales]);
+    }, [searchQuery, isSales, isLab]);
+
+    const visibleServices = React.useMemo(() => {
+        if (!excludeIds?.length) return services;
+        const hidden = new Set(excludeIds);
+        return services.filter((s) => !hidden.has(s.id) || s.id === value);
+    }, [excludeIds, services, value]);
 
     const fallbackSelectedService = React.useMemo<Service | undefined>(() => {
         if (!value || !selectedServiceName) return undefined;
@@ -193,6 +208,10 @@ export function ServiceSelector({
             ) || newServices[0];
 
             if (created) {
+                // El alta no persiste is_lab (lo escribe su propio endpoint).
+                if (isLab && await setServiceIsLab(created.id, true)) {
+                    created.is_lab = true;
+                }
                 handleSelect(created);
             }
         } catch (error) {
@@ -235,9 +254,9 @@ export function ServiceSelector({
                         ) : (
                             <>
                                 {/* Results list */}
-                                {services.length > 0 && (
+                                {visibleServices.length > 0 && (
                                     <CommandGroup>
-                                        {services.map((service) => (
+                                        {visibleServices.map((service) => (
                                             <CommandItem
                                                 value={service.name}
                                                 key={service.id}
@@ -258,7 +277,7 @@ export function ServiceSelector({
                                 )}
 
                                 {/* No results message */}
-                                {services.length === 0 && (
+                                {visibleServices.length === 0 && (
                                     <p className="py-5 text-center text-sm text-muted-foreground">
                                         {noResultsMessage}
                                     </p>
@@ -268,7 +287,7 @@ export function ServiceSelector({
                                     Solo para quien puede dar de alta servicios: crear acá es
                                     el mismo alta que desde el catálogo, con otra puerta. */}
                                 {canCreateService && searchQuery.trim() && (
-                                    <div className={cn("border-t", services.length === 0 && "border-t-0")}>
+                                    <div className={cn("border-t", visibleServices.length === 0 && "border-t-0")}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">

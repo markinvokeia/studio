@@ -15,6 +15,8 @@ export interface GetServicesParams {
     search?: string;
     page?: number;
     limit?: number;
+    /** true: solo trabajos de laboratorio; false: solo los que no lo son. */
+    is_lab?: boolean;
 }
 
 /**
@@ -40,6 +42,10 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
 
         if (params.limit) {
             queryParams.limit = String(params.limit);
+        }
+
+        if (params.is_lab !== undefined) {
+            queryParams.is_lab = String(params.is_lab);
         }
 
         // Fuera de los catálogos de Ventas/Compras el resto de la app solo debe ver
@@ -111,6 +117,34 @@ export async function setServiceBookableOnline(serviceId: string, bookableOnline
         return true;
     } catch (error) {
         console.error('Failed to update the online booking flag:', error);
+        return false;
+    }
+}
+
+/**
+ * Marca o desmarca un servicio como trabajo de laboratorio.
+ *
+ * Igual que `setServiceBookableOnline`: endpoint propio porque
+ * `/catalogoservicios/upsert` no persiste `is_lab`. Se llama al crear un
+ * servicio, y al editar **sólo si el flag cambió**.
+ *
+ * Nunca lanza: devuelve `false` si no se pudo aplicar.
+ */
+export async function setServiceIsLab(serviceId: string, isLab: boolean): Promise<boolean> {
+    if (!serviceId) return false;
+    try {
+        const response = await api.post(
+            API_ROUTES.SERVICE_LAB_WORK,
+            { service_id: Number(serviceId), is_lab: isLab },
+            undefined,
+            undefined,
+            { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+        );
+        const result = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+        if (result?.error || (result?.code && result.code >= 400)) return false;
+        return true;
+    } catch (error) {
+        console.error('Failed to update the lab work flag:', error);
         return false;
     }
 }

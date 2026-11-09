@@ -131,6 +131,10 @@
     },
     "sales.services.btn.consent-save": {
       "label": "Save consent"
+    },
+    "sales.services.field.is_lab": {
+      "label": "Lab work",
+      "description": "When checked, the service can be picked in lab orders."
     }
   }
 }

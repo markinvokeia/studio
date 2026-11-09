@@ -33,6 +33,11 @@ export function parseTeeth(text: string): number[] | null {
   return teeth.sort((a, b) => a - b);
 }
 
+/** Texto corto del trabajo: los servicios ("Corona ×2, Férula") o, sin ellos, la descripción. */
+export function labOrderWork(order: Pick<LabOrder, 'work_summary' | 'work_description'>): string {
+  return order.work_summary || order.work_description || '—';
+}
+
 /** Mensaje traducido para un error de las acciones de órdenes. */
 export function useLabOrderErrorText() {
   const t = useTranslations('LabOrdersPage');

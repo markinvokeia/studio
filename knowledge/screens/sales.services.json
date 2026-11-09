@@ -142,6 +142,10 @@
     },
     "sales.services.btn.consent-save": {
       "label": "Guardar consentimiento"
+    },
+    "sales.services.field.is_lab": {
+      "label": "Trabajo de laboratorio",
+      "description": "Si lo marcás, el servicio aparece para elegir en las órdenes de laboratorio."
     }
   }
 }

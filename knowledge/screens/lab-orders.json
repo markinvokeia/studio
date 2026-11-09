@@ -66,6 +66,34 @@
     "lab-orders.btn.filters": {
       "label": "Filtros",
       "description": "Abre el resto de los filtros. El número indica cuántos están aplicados."
+    },
+    "lab-orders.section.services": {
+      "label": "Servicios",
+      "description": "Los trabajos que se piden al laboratorio, elegidos de los servicios marcados como «Trabajo de laboratorio». Se pueden sumar varios; cada uno con cantidad, piezas y nota."
+    },
+    "lab-orders.btn.add-service": {
+      "label": "Agregar servicio",
+      "description": "Busca un servicio de laboratorio y lo suma a la orden. Si no existe, se puede crear desde acá y queda marcado como de laboratorio."
+    },
+    "lab-orders.btn.remove-service": {
+      "label": "Quitar servicio",
+      "description": "Saca ese servicio de la orden."
+    },
+    "lab-orders.field.items.quantity": {
+      "label": "Cantidad",
+      "description": "Cuántas unidades de ese servicio se piden (1 a 99)."
+    },
+    "lab-orders.field.items.teeth": {
+      "label": "Piezas",
+      "description": "Las piezas dentales de ese servicio. Las piezas de la orden son la suma de las de todos sus servicios."
+    },
+    "lab-orders.field.items.notes": {
+      "label": "Nota del servicio",
+      "description": "Indicaciones para ese servicio en particular (color, material…)."
+    },
+    "lab-orders.section.detail-services": {
+      "label": "Servicios de la orden",
+      "description": "Lista de servicios pedidos con cantidad, piezas y nota."
     }
   }
 }

@@ -1,5 +1,5 @@
 {
- "version": "0514422721dd21a9",
+ "version": "2452568e2c78e129",
  "locale": "en",
  "journey": [
   {
@@ -7913,6 +7913,13 @@
   {
    "elements": [
     {
+     "description": "Finds a lab service and adds it to the order. If it does not exist you can create it here, and it is flagged as lab work.",
+     "id": "lab-orders.btn.add-service",
+     "kind": "btn",
+     "label": "Add service",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "description": "Removes the order from the list and the board.",
      "id": "lab-orders.btn.delete",
      "kind": "btn",
@@ -7954,6 +7961,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Removes that service from the order.",
+     "id": "lab-orders.btn.remove-service",
+     "kind": "btn",
+     "label": "Remove service",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "id": "lab-orders.btn.submit",
      "kind": "btn",
      "label": "Save changes",
@@ -7977,6 +7991,27 @@
      "kind": "field",
      "label": "Final columns",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Instructions for that service only (shade, material…).",
+     "id": "lab-orders.field.items.notes",
+     "kind": "field",
+     "label": "Service note",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "How many units of that service are requested (1 to 99).",
+     "id": "lab-orders.field.items.quantity",
+     "kind": "field",
+     "label": "Quantity",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "The teeth for that service. The order’s teeth are all its services’ teeth combined.",
+     "id": "lab-orders.field.items.teeth",
+     "kind": "field",
+     "label": "Teeth",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "id": "lab-orders.field.laboratory_id",
@@ -8012,7 +8047,7 @@
     {
      "id": "lab-orders.field.work_description",
      "kind": "field",
-     "label": "Job",
+     "label": "Additional description (optional)",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
@@ -8027,6 +8062,13 @@
      "id": "lab-orders.section.detail",
      "kind": "section",
      "label": "Order detail",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "The requested services with quantity, teeth and note.",
+     "id": "lab-orders.section.detail-services",
+     "kind": "section",
+     "label": "Order services",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8049,6 +8091,13 @@
      "kind": "section",
      "label": "Stage history",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "The work requested from the lab, picked from services flagged as “Lab work”. You can add several, each with its own quantity, teeth and note.",
+     "id": "lab-orders.section.services",
+     "kind": "section",
+     "label": "Services",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "The list has every filter; the board shows one column per active stage, in the configured order.",
@@ -16305,6 +16354,19 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "When checked, the service can be picked in lab orders.",
+     "id": "sales.services.field.is_lab",
+     "kind": "field",
+     "label": "Lab work",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.is-lab",
+     "kind": "field",
+     "label": "Lab work",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "description": "Service name.",
      "id": "sales.services.field.name",
      "kind": "field",
@@ -16680,6 +16742,13 @@
   },
   {
    "elements": [
+    {
+     "description": "Another module owns this rule (for example, Lab stages) and it is configured there. It cannot be edited, duplicated, tested or deleted here.",
+     "id": "system.alert-rules.badge.managed",
+     "kind": "section",
+     "label": "Managed rule",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
     {
      "id": "system.alert-rules.btn.confirm-action",
      "kind": "btn",

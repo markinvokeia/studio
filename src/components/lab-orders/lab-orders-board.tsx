@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { LabOrderDaysInStage, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderDaysInStage, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -476,7 +476,7 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
         <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{order.patient_name}</p>
-          <p className="truncate text-xs text-muted-foreground">{order.work_description}</p>
+          <p className="truncate text-xs text-muted-foreground">{labOrderWork(order)}</p>
           {order.laboratory_name && <p className="truncate text-xs text-muted-foreground">{order.laboratory_name}</p>}
         </div>
         {children}

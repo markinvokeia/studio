@@ -57,7 +57,7 @@ import {
 } from '@/services/aesthetic-record';
 import type { MeasurementUnit } from '@/lib/types';
 
-import { setServiceBookableOnline } from '@/services/services';
+import { setServiceBookableOnline, setServiceIsLab } from '@/services/services';
 
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { currencySchema } from '@/lib/currency';
@@ -79,6 +79,8 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   color: z.string().optional(),
   is_active: z.boolean().default(true),
   bookable_online: z.boolean().default(false),
+  // Trabajo de laboratorio (script 167): como bookable_online, tiene su propio endpoint.
+  is_lab: z.boolean().default(false),
   service_type: z.enum(['single', 'workflow']).default('single'),
   treatment_steps: z.array(z.object({
     position: z.number(),
@@ -128,6 +130,7 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   // Desmarcado a propósito: el catálogo entero no es auto-agendable. La clínica
   // publica caso por caso lo que un paciente puede reservar sin intermediarios.
   bookable_online: false,
+  is_lab: false,
   service_type: 'single',
   treatment_steps: [],
   unit_id: null,
@@ -160,6 +163,7 @@ async function getServices(params: { page: number; limit: number; search: string
       color: apiService.color || null,
       is_active: apiService.is_active,
       bookable_online: apiService.bookable_online === true,
+      is_lab: apiService.is_lab === true,
       image_updated_at: apiService.image_updated_at || null,
       service_type: apiService.service_type || 'single',
       treatment_steps: apiService.treatment_steps || [],
@@ -188,7 +192,8 @@ async function upsertService(serviceData: ServiceFormValues, categories: Miscell
   // (ver setServiceBookableOnline). Mandarlo acá además crearía dos escritores
   // de la misma columna, y este upsert no lo persiste.
   // unit_id e is_aesthetic tampoco: tienen sus propios endpoints (services/unit/save, aesthetic-config/save).
-  const { bookable_online: _bookableOnline, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
+  // is_lab igual que bookable_online (setServiceIsLab).
+  const { bookable_online: _bookableOnline, is_lab: _isLab, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
   const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...payload, category, is_sales: true });
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -322,6 +327,17 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, 
       {/* La imagen sólo se ve en las tarjetas del portal, así que acompaña al
           flag que las habilita. */}
       {imageSlot}
+      {/* Trabajo de laboratorio: aparece en el selector de servicios de las
+          órdenes de laboratorio. */}
+      <FormField control={form.control} name="is_lab" render={({ field }) => (
+        <FormItem data-help-id="sales.services.field.is-lab" className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <FormLabel className="text-sm">{t('createDialog.isLab.label')}</FormLabel>
+            <p className="text-xs text-muted-foreground">{t('createDialog.isLab.help')}</p>
+          </div>
+          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+        </FormItem>
+      )} />
       {/* Workflow service toggle */}
       <FormField control={form.control} name="service_type" render={({ field }) => (
         <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -972,6 +988,7 @@ export default function ServicesPage() {
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
       bookable_online: selectedService.bookable_online ?? false,
+      is_lab: selectedService.is_lab ?? false,
       service_type: selectedService.service_type || 'single',
       treatment_steps: selectedService.treatment_steps || [],
       unit_id: serviceUnits.get(selectedService.id) ?? null,
@@ -1067,6 +1084,11 @@ export default function ServicesPage() {
         });
       }
 
+      // Trabajo de laboratorio: el default es false, así que solo se escribe si se marcó.
+      if (values.is_lab && !(newId && await setServiceIsLab(newId, true))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
       // Unidad de medida y estética también esperan al id
       if (newId && (values.unit_id || values.is_aesthetic)) {
         await saveServiceExtras(newId, values, { unitId: null, isAesthetic: false });
@@ -1114,6 +1136,11 @@ export default function ServicesPage() {
         });
       }
 
+      const isLabChanged = values.is_lab !== (selectedService?.is_lab ?? false);
+      if (isLabChanged && !(await setServiceIsLab(values.id ?? '', values.is_lab))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
       if (values.id) {
         await saveServiceExtras(values.id, values, {
           unitId: serviceUnits.get(values.id) ?? null,
@@ -1134,6 +1161,7 @@ export default function ServicesPage() {
         color: values.color || null,
         is_active: values.is_active,
         bookable_online: values.bookable_online,
+        is_lab: values.is_lab,
         category_id: values.category_id,
         category: categoryName,
         service_type: values.service_type,

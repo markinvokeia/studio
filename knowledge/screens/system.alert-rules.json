@@ -93,6 +93,10 @@
     },
     "system.alert-rules.btn.row-delete": {
       "label": "Eliminar"
+    },
+    "system.alert-rules.badge.managed": {
+      "label": "Regla gestionada",
+      "description": "La regla la maneja otro módulo (por ejemplo, Etapas de laboratorio) y se configura allá. Acá no se puede editar, duplicar, probar ni eliminar."
     }
   }
 }

@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Can } from '@/components/auth/Can';
 import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
-import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { useToast } from '@/hooks/use-toast';
@@ -116,7 +116,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{order.work_description}</p>
+                    <p className="truncate text-sm font-medium">{labOrderWork(order)}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {[order.laboratory_name, order.teeth.length > 0 ? t('teethShort', { teeth: order.teeth.join(', ') }) : null,
                         order.due_date ? t('dueShort', { date: formatDisplayDate(order.due_date) }) : null]

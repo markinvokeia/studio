@@ -1,5 +1,5 @@
 {
- "version": "30739f81f9ab63da",
+ "version": "7ff6fa5df2b321ed",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8002,6 +8002,13 @@
   {
    "elements": [
     {
+     "description": "Busca un servicio de laboratorio y lo suma a la orden. Si no existe, se puede crear desde acá y queda marcado como de laboratorio.",
+     "id": "lab-orders.btn.add-service",
+     "kind": "btn",
+     "label": "Agregar servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "description": "Quita la orden de la lista y del tablero.",
      "id": "lab-orders.btn.delete",
      "kind": "btn",
@@ -8043,6 +8050,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Saca ese servicio de la orden.",
+     "id": "lab-orders.btn.remove-service",
+     "kind": "btn",
+     "label": "Quitar servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "id": "lab-orders.btn.submit",
      "kind": "btn",
      "label": "Guardar cambios",
@@ -8066,6 +8080,27 @@
      "kind": "field",
      "label": "Columnas finales",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Indicaciones para ese servicio en particular (color, material…).",
+     "id": "lab-orders.field.items.notes",
+     "kind": "field",
+     "label": "Nota del servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Cuántas unidades de ese servicio se piden (1 a 99).",
+     "id": "lab-orders.field.items.quantity",
+     "kind": "field",
+     "label": "Cantidad",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Las piezas dentales de ese servicio. Las piezas de la orden son la suma de las de todos sus servicios.",
+     "id": "lab-orders.field.items.teeth",
+     "kind": "field",
+     "label": "Piezas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "id": "lab-orders.field.laboratory_id",
@@ -8101,7 +8136,7 @@
     {
      "id": "lab-orders.field.work_description",
      "kind": "field",
-     "label": "Trabajo",
+     "label": "Descripción adicional (opcional)",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
@@ -8116,6 +8151,13 @@
      "id": "lab-orders.section.detail",
      "kind": "section",
      "label": "Detalle de la orden",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Lista de servicios pedidos con cantidad, piezas y nota.",
+     "id": "lab-orders.section.detail-services",
+     "kind": "section",
+     "label": "Servicios de la orden",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8138,6 +8180,13 @@
      "kind": "section",
      "label": "Historial de etapas",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Los trabajos que se piden al laboratorio, elegidos de los servicios marcados como «Trabajo de laboratorio». Se pueden sumar varios; cada uno con cantidad, piezas y nota.",
+     "id": "lab-orders.section.services",
+     "kind": "section",
+     "label": "Servicios",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "La lista tiene todos los filtros; el tablero muestra una columna por etapa activa, en el orden configurado.",
@@ -16394,6 +16443,19 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Si lo marcás, el servicio aparece para elegir en las órdenes de laboratorio.",
+     "id": "sales.services.field.is_lab",
+     "kind": "field",
+     "label": "Trabajo de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.is-lab",
+     "kind": "field",
+     "label": "Trabajo de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "description": "Nombre del servicio.",
      "id": "sales.services.field.name",
      "kind": "field",
@@ -16769,6 +16831,13 @@
   },
   {
    "elements": [
+    {
+     "description": "La regla la maneja otro módulo (por ejemplo, Etapas de laboratorio) y se configura allá. Acá no se puede editar, duplicar, probar ni eliminar.",
+     "id": "system.alert-rules.badge.managed",
+     "kind": "section",
+     "label": "Regla gestionada",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
     {
      "id": "system.alert-rules.btn.confirm-action",
      "kind": "btn",

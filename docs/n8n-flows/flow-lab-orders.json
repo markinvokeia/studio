@@ -3,18 +3,18 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, script 149) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (script 150):\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id).\n· Cada hora → lab_stage_alerts_due() (permanencia).\nCada aviso nuevo pasa por \"Explode recipients\" → en el sistema (Events, la notificación ya la insertó la función), email (Gmail) o WhatsApp (YCloud), y queda en alert_actions.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150.",
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167 y 168.",
         "height": 520,
-        "width": 720
+        "width": 900
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -560,
+        -400,
         -700
       ],
-      "name": "Flow Documentation",
-      "id": "688f9b08-6e9e-455e-ad25-dc217bb3ddc6"
+      "id": "f54338a8-029a-4fe1-b3c6-2ecf7ec81348",
+      "name": "Flow Documentation"
     },
     {
       "parameters": {
@@ -23,11 +23,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        240,
-        1300
+        1168,
+        2528
       ],
       "name": "Map error",
-      "id": "b7a19f0a-5b11-4407-9d58-117eea5caaf7"
+      "id": "ad2fb590-ec44-41a5-b134-fe21f2da59cf"
     },
     {
       "parameters": {
@@ -47,15 +47,14 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        480,
-        400
+        1408,
+        1456
       ],
       "name": "OK",
-      "id": "87e53474-96cf-4a04-b943-cbc999264533"
+      "id": "38bbaea4-a56a-4949-8158-7bcace36a773"
     },
     {
       "parameters": {
-        "respondWith": "firstIncomingItem",
         "options": {
           "responseCode": 400
         }
@@ -63,37 +62,37 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        480,
-        1300
+        1408,
+        2528
       ],
       "name": "Error",
-      "id": "c0333913-9147-43b3-b52f-4ea5390cbb83"
+      "id": "edd6161b-44bf-488a-8b48-f01fe7022a9d"
     },
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "lab-orders/search",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
-        },
-        "httpMethod": "POST"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        0
+        608,
+        1056
       ],
       "webhookId": "20916fe8-097b-4432-bb59-2345427dacba",
       "name": "POST /lab-orders/search",
+      "id": "a4c61c7a-56d5-4fed-970e-5728c896fcca",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "fc769b25-6504-436f-9525-00933f5b3728"
+      }
     },
     {
       "parameters": {
@@ -106,45 +105,45 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        0
+        848,
+        1056
       ],
       "name": "Search lab orders",
+      "alwaysOutputData": true,
+      "id": "27285d15-51e5-44f4-b568-0fb0ddb35550",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "bf2406ba-f979-495e-96fd-9f5f7cdea5d3"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "lab-orders/board",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
-        },
-        "httpMethod": "POST"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        200
+        608,
+        1264
       ],
       "webhookId": "1cda82b9-0f72-4009-be6a-9002059b4d69",
       "name": "POST /lab-orders/board",
+      "id": "1f6e4fe3-d09a-491c-9440-8868b0b80248",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "1f001db7-860d-45d9-bf35-abd616c6bdcc"
+      }
     },
     {
       "parameters": {
@@ -157,19 +156,19 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        200
+        848,
+        1264
       ],
       "name": "Lab orders board",
+      "alwaysOutputData": true,
+      "id": "62f39e6a-18b2-48cf-aa5d-9d4387ddaff0",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "805afaf9-a65d-4cb8-9ba1-84d42666e4f1"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -183,18 +182,18 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        400
+        608,
+        1456
       ],
       "webhookId": "8dc3ec65-1992-439d-9e99-c22690b387f0",
       "name": "GET /lab-orders/detail",
+      "id": "6f64e96f-cc11-4025-b7bb-a95d42a030e4",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "3b60f835-ecd5-4f0a-b799-e5c416f6e5bc"
+      }
     },
     {
       "parameters": {
@@ -207,45 +206,45 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        400
+        848,
+        1456
       ],
       "name": "Get lab order detail",
+      "alwaysOutputData": true,
+      "id": "b29ad44e-5d94-4be5-93d3-2e358b277907",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "5e1dc587-09f5-485b-afc5-44577d2faa61"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "lab-orders/save",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
-        },
-        "httpMethod": "POST"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        600
+        608,
+        1712
       ],
       "webhookId": "dc6fe7c0-6748-4828-92ff-4419f08cc693",
       "name": "POST /lab-orders/save",
+      "id": "eb84980f-d616-4f0b-b526-d8254c643385",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "1f4c719c-d320-4cdf-8e43-3293558a6c04"
+      }
     },
     {
       "parameters": {
@@ -258,45 +257,45 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        600
+        848,
+        1712
       ],
       "name": "Save lab order",
+      "alwaysOutputData": true,
+      "id": "b66ca859-e204-4d2f-8716-52c8fbff3725",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "7a3b37ba-2914-450e-b974-a959d2089743"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "lab-orders/change-stage",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
-        },
-        "httpMethod": "POST"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        800
+        608,
+        2064
       ],
       "webhookId": "8466127c-e4c0-4a14-8b65-48a43e0e1848",
       "name": "POST /lab-orders/change-stage",
+      "id": "99eee57c-7ccb-438b-baed-97921226d5f9",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "a5a559d8-36ae-4969-877e-db655deb0043"
+      }
     },
     {
       "parameters": {
@@ -309,45 +308,45 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        800
+        848,
+        2064
       ],
       "name": "Change lab order stage",
+      "alwaysOutputData": true,
+      "id": "53162e8f-9841-4eab-ac4c-ddb30638322b",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "52cccff9-9a1c-4241-8df4-fbaac1ecd174"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "lab-orders/delete",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
-        },
-        "httpMethod": "POST"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        1000
+        608,
+        2432
       ],
       "webhookId": "79640d64-4aea-40da-96d1-a6dd79596bbb",
       "name": "POST /lab-orders/delete",
+      "id": "69e2e664-1025-463c-a4d9-0d8e599cd75c",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "id": "4e703358-5d85-472f-9410-66739c72c39a"
+      }
     },
     {
       "parameters": {
@@ -360,19 +359,19 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        1000
+        848,
+        2432
       ],
       "name": "Delete lab order",
+      "alwaysOutputData": true,
+      "id": "2dcb9df7-fa7e-4768-aa9d-60af7a69e855",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
-      "id": "49c68f0d-9275-442b-b258-eb83557de7ec"
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -440,12 +439,12 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        240,
-        560
+        1168,
+        1616
       ],
       "name": "Push lab_order_changed (saved)",
-      "onError": "continueRegularOutput",
-      "id": "2d551095-2115-48f8-84ca-329c6cf6dbc1"
+      "id": "0ea83fee-3363-4e2d-b2a9-ac5bcda46d44",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -513,12 +512,12 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        240,
-        760
+        1168,
+        1968
       ],
       "name": "Push lab_order_changed (stage_changed)",
-      "onError": "continueRegularOutput",
-      "id": "0b11a456-a0c6-4ae4-877a-a281aa24b37f"
+      "id": "d7084d30-20df-4821-92b5-25d8bc38a98a",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -586,12 +585,12 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        240,
-        960
+        1168,
+        2336
       ],
       "name": "Push lab_order_changed (deleted)",
-      "onError": "continueRegularOutput",
-      "id": "251e6986-37aa-4cd6-9b89-c56eb12bf984"
+      "id": "516e330a-4b19-409e-92ef-82b69d48ee90",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -621,11 +620,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        240,
-        640
+        1168,
+        1808
       ],
       "name": "Created?",
-      "id": "cba9e827-9931-44e7-9e1d-bd988e4af046"
+      "id": "cdf0211b-8f16-41fc-baf9-3e70ea6a86ad"
     },
     {
       "parameters": {
@@ -638,18 +637,18 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        480,
-        640
+        1408,
+        1808
       ],
       "name": "Enter alerts (created)",
+      "id": "ed638812-f28c-4bfd-8fb7-28dddf4c5077",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "onError": "continueRegularOutput",
-      "id": "72fb86cd-647e-44ee-a513-5ec2da7d3d7b"
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -662,480 +661,64 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        240,
-        840
+        1168,
+        2160
       ],
       "name": "Enter alerts (moved)",
+      "id": "1886c462-7d77-4729-9813-84d88eb78404",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
       },
-      "onError": "continueRegularOutput",
-      "id": "4ec5711a-4fdc-4c81-a35b-a90cff7efc6b"
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "hours",
-              "hoursInterval": 1
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        -320,
-        1600
-      ],
-      "name": "Every hour",
-      "id": "15a9c63b-5034-4977-87e8-2a199fe3e556"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT p AS payload FROM public.lab_stage_alerts_due($1) p;",
-        "options": {
-          "queryReplacement": "={{ [$now.toISO()] }}"
-        }
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -80,
-        1600
-      ],
-      "name": "Dwell alerts due",
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "id": "9d4c882b-6702-4f3a-bcd5-ffeadedc5fb0"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Un item por destinatario y canal. Cada entrada es un aviso NUEVO devuelto por\n// lab_stage_alert_on_enter / lab_stage_alerts_due (columna `payload`).\nconst out = [];\nfor (const item of $input.all()) {\n  const p = item.json.payload;\n  if (!p || !p.alert_instance_id) continue;\n  const o = p.order || {};\n  const fmtDate = (d) => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '');\n  for (const r of p.recipients || []) {\n    const fields = {\n      'recipient.name': r.name || '',\n      'patient.name': o.patient_name || '',\n      'clinic.name': p.clinic_name || '',\n      'lab_order.number': String(o.id ?? ''),\n      'lab_order.work': o.work_description || '',\n      'lab_order.laboratory': o.laboratory_name || '',\n      'lab_order.stage': o.stage_name || '',\n      'lab_order.days_in_stage': String(o.days_in_stage ?? ''),\n      'lab_order.doctor': o.doctor_name || '',\n      'lab_order.teeth': (o.teeth || []).join(', '),\n      'lab_order.due_date': fmtDate(o.due_date),\n    };\n    const base = { alert_instance_id: p.alert_instance_id, trigger: p.trigger, title: p.title, summary: p.summary, recipient: r, fields };\n    if (p.channels?.in_app && r.notification) out.push({ json: { ...base, kind: 'in_app' } });\n    if (p.channels?.email) out.push({ json: { ...base, kind: 'email', template: p.email_template } });\n    if (p.channels?.whatsapp) out.push({ json: {\n      ...base, kind: 'whatsapp', template: p.whatsapp_template,\n      test_mode: !!p.whatsapp_test_mode, whitelist: p.whatsapp_test_whitelist || '',\n    } });\n  }\n}\nreturn out;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        760,
-        1600
-      ],
-      "name": "Explode recipients",
-      "id": "321cfc28-8374-4b56-938c-d11d08bbd23f"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "1746e31b-8c70-472a-b152-46ac11a6739b",
-                    "leftValue": "={{ $json.kind }}",
-                    "rightValue": "in_app",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "in_app"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "c08811e1-9a03-4787-be46-50c0fb03c25c",
-                    "leftValue": "={{ $json.kind }}",
-                    "rightValue": "email",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "email"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "0753f6f5-1409-4006-8fc7-1c2cded46d46",
-                    "leftValue": "={{ $json.kind }}",
-                    "rightValue": "whatsapp",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "whatsapp"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        1000,
-        1600
-      ],
-      "name": "By channel",
-      "id": "e0207864-2de5-452d-af07-5cbc86b835d4"
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "W5SZnwkaTigFrHO6",
           "mode": "list",
-          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
-          "cachedResultName": "Events"
+          "value": "",
+          "cachedResultName": "Alert Staff Notify"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "event_type": "lab_order_alert",
-            "user_ids": "={{ [$json.recipient.user_id] }}",
-            "channels": "={{ [] }}",
-            "payload": "={{ $json.recipient.notification }}"
+            "triggered_by": "lab_orders"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "event_type",
-              "displayName": "event_type",
+              "id": "triggered_by",
+              "displayName": "triggered_by",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
               "type": "string"
-            },
-            {
-              "id": "user_ids",
-              "displayName": "user_ids",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "array"
-            },
-            {
-              "id": "channels",
-              "displayName": "channels",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "array"
-            },
-            {
-              "id": "payload",
-              "displayName": "payload",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
             }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
+        "mode": "once",
         "options": {
           "waitForSubWorkflow": false
-        },
-        "mode": "each"
+        }
       },
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1240,
-        1400
+        1696,
+        1904
       ],
-      "name": "Push lab_order_alert",
-      "onError": "continueRegularOutput",
-      "id": "c41697ec-3815-4e0c-8bab-9fb06303149a"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Arma el email: con plantilla EMAIL reemplaza {{clave}} (ver claves en\n// \"Explode recipients\"); sin plantilla usa un texto por defecto. Nunca lanza:\n// devuelve ok:false con el motivo para dejarlo en alert_actions.\nconst j = $json;\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst to = j.recipient?.email;\nif (!to || !EMAIL_RE.test(to)) {\n  return [{ json: { ...j, ok: false, reason: `${j.recipient?.name || j.recipient?.user_id}: sin email válido` } }];\n}\nconst esc = (s) => String(s ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst fill = (text, html) => String(text || '').replace(/\\{\\{\\s*([\\w.]+)\\s*\\}\\}/g, (_, k) => (k in j.fields ? (html ? esc(j.fields[k]) : j.fields[k]) : ''));\nlet subject;\nlet html;\nif (j.template && (j.template.body_html || j.template.body_text)) {\n  subject = fill(j.template.subject || j.title, false);\n  html = j.template.body_html ? fill(j.template.body_html, true) : `<p>${esc(fill(j.template.body_text, false))}</p>`;\n} else {\n  const f = j.fields;\n  subject = j.title;\n  html = [\n    `<p>Hola ${esc(f['recipient.name'])},</p>`,\n    `<p><strong>${esc(j.title)}</strong></p>`,\n    `<p>Paciente: ${esc(f['patient.name'])}<br>Trabajo: ${esc(f['lab_order.work'])}`\n      + (f['lab_order.laboratory'] ? `<br>Laboratorio: ${esc(f['lab_order.laboratory'])}` : '')\n      + `<br>Etapa: ${esc(f['lab_order.stage'])} (${esc(f['lab_order.days_in_stage'])} días)</p>`,\n    `<p>${esc(f['clinic.name'])}</p>`,\n  ].join('');\n}\nreturn [{ json: { ...j, ok: true, to, subject, html } }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1240,
-        1600
-      ],
-      "name": "Build lab email",
-      "id": "7ce32c7c-fcb0-4675-9b6b-a5292c2183be"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "79551580-94f6-4b8d-82ac-2998d73497d0",
-              "leftValue": "={{ $json.ok }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1480,
-        1600
-      ],
-      "name": "Email ready?",
-      "id": "8146f6fe-bae3-47aa-8fde-00caafdd59da"
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $json.to }}",
-        "subject": "={{ $json.subject }}",
-        "message": "={{ $json.html }}",
-        "options": {
-          "appendAttribution": false,
-          "senderName": "={{ $json.fields['clinic.name'] || undefined }}"
-        }
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        1720,
-        1560
-      ],
-      "name": "Send lab email",
-      "webhookId": "46e68028-a94e-4106-879f-a1d5eae9857e",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "NUeedDpjoyikxk43",
-          "name": "Gmail account 2"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "id": "c2d1f4d8-5027-413d-996a-39e168b91696"
-    },
-    {
-      "parameters": {
-        "jsCode": "const sent = $input.first().json;\nconst req = $('Build lab email').item.json;\nconst ok = !!(sent && (sent.id || sent.threadId)) && !sent.error;\nreturn [{ json: {\n  alert_instance_id: req.alert_instance_id,\n  action_type: 'SEND_EMAIL',\n  result_status: ok ? 'SUCCESS' : 'FAILED',\n  result_message: ok ? `Email a ${req.to}` : `Email a ${req.to} falló: ${sent?.error?.message || sent?.error || 'sin respuesta de Gmail'}`,\n  action_data: { to: req.to, user_id: req.recipient?.user_id, message_id: sent?.id || null },\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1960,
-        1560
-      ],
-      "name": "Check lab email",
-      "id": "9dc148ad-546a-4357-afad-6911ca464add"
-    },
-    {
-      "parameters": {
-        "jsCode": "const j = $json;\nreturn [{ json: {\n  alert_instance_id: j.alert_instance_id,\n  action_type: 'SEND_EMAIL',\n  result_status: 'FAILED',\n  result_message: j.reason,\n  action_data: { user_id: j.recipient?.user_id },\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1720,
-        1720
-      ],
-      "name": "Email skipped",
-      "id": "9748eb5f-942a-4761-9de0-ed06023b611c"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Variables de la plantilla WHATSAPP (variables_schema: { variable_meta: clave })\n// con las claves de \"Explode recipients\". Respeta el modo prueba de WhatsApp\n// (whatsapp_test_mode_enabled / whatsapp_test_phone_whitelist).\nconst j = $json;\nconst fail = (reason) => [{ json: { ...j, ok: false, reason } }];\nconst tpl = j.template;\nif (!tpl || !tpl.code) return fail('Plantilla de WhatsApp inactiva o inexistente');\nconst digits = String(j.recipient?.phone || '').replace(/\\D/g, '');\nif (!digits) return fail(`${j.recipient?.name || j.recipient?.user_id}: sin teléfono`);\nconst phone = '+' + digits;\nif (j.test_mode) {\n  const whitelist = String(j.whitelist).split(',').map((p) => '+' + String(p).trim().replace(/\\D/g, '')).filter((p) => p !== '+');\n  if (!whitelist.includes(phone)) return fail(`Modo prueba de WhatsApp: ${phone} no está en la lista permitida`);\n}\nconst schema = tpl.variables_schema || {};\nconst parameters = [];\nfor (const [name, key] of Object.entries(schema)) {\n  if (!(key in j.fields)) return fail(`La plantilla ${tpl.code} usa la clave desconocida \"${key}\"`);\n  parameters.push({ type: 'text', parameter_name: name, text: String(j.fields[key] || '-') });\n}\nreturn [{ json: {\n  ...j, ok: true, phone,\n  body: {\n    from: $env.YCLOUD_WHATSAPP_FROM || '+59894024661',\n    to: phone,\n    type: 'template',\n    template: { name: tpl.code, language: { code: tpl.language || 'es' }, components: parameters.length ? [{ type: 'body', parameters }] : [] },\n  },\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1240,
-        1840
-      ],
-      "name": "Build lab WhatsApp",
-      "id": "6a278d8a-1c1f-4b0d-b667-9314745b3800"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "b04ba9c9-08dd-46f2-a4a5-731a28eba5d7",
-              "leftValue": "={{ $json.ok }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1480,
-        1840
-      ],
-      "name": "WhatsApp ready?",
-      "id": "02e43c51-1263-4493-8ae2-be21122da6a2"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.ycloud.com/v2/whatsapp/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.body) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true,
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1720,
-        1800
-      ],
-      "name": "Send lab WhatsApp",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "H5zbiBMT148GZMcX",
-          "name": "YCloud API KEY"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "id": "f21c1005-21ab-4b10-a371-7bdd38c1a54f"
-    },
-    {
-      "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst req = $('Build lab WhatsApp').item.json;\nconst ok = !!res && !res.error && !!(res.id || res.wamid || res.status);\nreturn [{ json: {\n  alert_instance_id: req.alert_instance_id,\n  action_type: 'SEND_WHATSAPP',\n  result_status: ok ? 'SUCCESS' : 'FAILED',\n  result_message: ok ? `WhatsApp a ${req.phone} (${res.status || 'sent'})` : `WhatsApp a ${req.phone} falló: ${res?.error?.message || JSON.stringify(res?.error || res).slice(0, 300)}`,\n  action_data: { phone: req.phone, user_id: req.recipient?.user_id, template: req.template?.code, message_id: res?.id || null },\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1960,
-        1800
-      ],
-      "name": "Check lab WhatsApp",
-      "id": "80c57dc5-ecf3-4e69-941e-65bb70f1563d"
-    },
-    {
-      "parameters": {
-        "jsCode": "const j = $json;\nreturn [{ json: {\n  alert_instance_id: j.alert_instance_id,\n  action_type: 'SEND_WHATSAPP',\n  result_status: 'FAILED',\n  result_message: j.reason,\n  action_data: { user_id: j.recipient?.user_id },\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1720,
-        1960
-      ],
-      "name": "WhatsApp skipped",
-      "id": "dc852c46-4dc3-4505-9e90-a799cd6cd200"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES ($1::int, $2, $3::jsonb, $4, $5, NULL, now())\nRETURNING alert_instance_id;",
-        "options": {
-          "queryReplacement": "={{ [$json.alert_instance_id, $json.action_type, JSON.stringify($json.action_data || {}), $json.result_status, $json.result_message] }}"
-        }
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        2200,
-        1760
-      ],
-      "name": "Record alert action",
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "id": "a86c6d0e-b295-4aad-b045-15569814fd51"
+      "id": "145759ba-136e-4ec2-9718-6c8aca0e448a",
+      "name": "Notify staff",
+      "onError": "continueRegularOutput"
     }
   ],
+  "pinData": {},
   "connections": {
     "Map error": {
       "main": [
@@ -1358,22 +941,11 @@
         ]
       ]
     },
-    "Every hour": {
-      "main": [
-        [
-          {
-            "node": "Dwell alerts due",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Enter alerts (created)": {
       "main": [
         [
           {
-            "node": "Explode recipients",
+            "node": "Notify staff",
             "type": "main",
             "index": 0
           }
@@ -1384,178 +956,7 @@
       "main": [
         [
           {
-            "node": "Explode recipients",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dwell alerts due": {
-      "main": [
-        [
-          {
-            "node": "Explode recipients",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Explode recipients": {
-      "main": [
-        [
-          {
-            "node": "By channel",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "By channel": {
-      "main": [
-        [
-          {
-            "node": "Push lab_order_alert",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Build lab email",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Build lab WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build lab email": {
-      "main": [
-        [
-          {
-            "node": "Email ready?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Email ready?": {
-      "main": [
-        [
-          {
-            "node": "Send lab email",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Email skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send lab email": {
-      "main": [
-        [
-          {
-            "node": "Check lab email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build lab WhatsApp": {
-      "main": [
-        [
-          {
-            "node": "WhatsApp ready?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WhatsApp ready?": {
-      "main": [
-        [
-          {
-            "node": "Send lab WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "WhatsApp skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send lab WhatsApp": {
-      "main": [
-        [
-          {
-            "node": "Check lab WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check lab email": {
-      "main": [
-        [
-          {
-            "node": "Record alert action",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Email skipped": {
-      "main": [
-        [
-          {
-            "node": "Record alert action",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check lab WhatsApp": {
-      "main": [
-        [
-          {
-            "node": "Record alert action",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WhatsApp skipped": {
-      "main": [
-        [
-          {
-            "node": "Record alert action",
+            "node": "Notify staff",
             "type": "main",
             "index": 0
           }
@@ -1563,8 +964,17 @@
       ]
     }
   },
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
-  "staticData": null
+  "versionId": "1b2c5611-8e33-4dab-9b28-7158b079d992",
+  "meta": {
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "JWeklVm7DpRORBAQ",
+  "tags": []
 }

@@ -36,6 +36,8 @@ export const API_ROUTES = {
      * escritor de esa columna: `/catalogoservicios/upsert` no la toca.
      */
     SERVICE_BOOKABLE_ONLINE: '/services/bookable-online',
+    /** Único escritor de service_catalog.is_lab (trabajo de laboratorio, script 167). */
+    SERVICE_LAB_WORK: '/services/lab-work',
     SERVICE_IMAGE: '/services/image',
     SERVICE_IMAGE_UPLOAD: '/services/image/upload',
     SERVICE_IMAGE_DELETE: '/services/image/delete',

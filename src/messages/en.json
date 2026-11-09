@@ -3916,6 +3916,10 @@
       "bookableOnline": {
         "label": "Patient can book this online",
         "help": "Shows up in the patient portal for self-booking. Leave it off for anything that has to go through the clinic."
+      },
+      "isLab": {
+        "label": "Lab work",
+        "help": "Can be ordered in a lab order (crown, prosthesis, splint…)."
       }
     },
     "serviceType": {
@@ -3969,7 +3973,9 @@
       "bookableOnlineFailedTitle": "Couldn't change online booking",
       "bookableOnlineFailedDescription": "The service was saved, but the patient self-booking option stayed as it was. Please try again.",
       "extrasFailedTitle": "The service was saved, but not its unit or its aesthetic setup",
-      "extrasPendingDescription": "Open the service in the list and pick the unit again, or mark it as an aesthetic service."
+      "extrasPendingDescription": "Open the service in the list and pick the unit again, or mark it as an aesthetic service.",
+      "isLabFailedTitle": "Couldn't change \"Lab work\"",
+      "isLabFailedDescription": "The service was saved, but that option stayed as it was. Please try again."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -4015,7 +4021,9 @@
     "edit": "Edit",
     "delete": "Delete",
     "bookableOnline": "Online",
-    "bookableOnlineYes": "Bookable"
+    "bookableOnlineYes": "Bookable",
+    "isLab": "Lab",
+    "isLabYes": "Lab work"
   },
   "ProvidersPage": {
     "title": "Providers",
@@ -6442,7 +6450,12 @@
       "high": "High",
       "critical": "Critical"
     },
-    "noAccess": "You don't have access to view this section."
+    "noAccess": "You don't have access to view this section.",
+    "managed": {
+      "labStages": "Managed by Lab stages",
+      "generic": "Managed by another module",
+      "hint": "This rule is configured from its module. Here you can only turn it on or off."
+    }
   },
   "CommunicationTemplatesPage": {
     "title": "Communication Templates",
@@ -10606,11 +10619,13 @@
       "NO_INITIAL_STAGE": "There is no initial stage set up. Set it up in Business Setup → Lab Stages.",
       "NOT_FOUND": "The order no longer exists.",
       "MISSING_PATIENT": "Choose the patient.",
-      "MISSING_WORK": "Describe the job.",
+      "MISSING_WORK": "Add at least one service or describe the job.",
       "INVALID_TEETH": "Some teeth are not valid FDI numbers.",
       "INVALID_STAGE": "That stage is no longer active.",
       "STAGE_CONFLICT": "Someone else moved this order in the meantime. The current stage is shown now.",
-      "UNKNOWN": "Something went wrong. Please try again."
+      "UNKNOWN": "Something went wrong. Please try again.",
+      "INVALID_SERVICE": "One of the services no longer exists. Remove it and choose it again.",
+      "INVALID_QUANTITY": "Each service quantity must be between 1 and 99."
     },
     "columns": {
       "id": "#",
@@ -10674,9 +10689,22 @@
       "timeoutMaybeSaved": "The server took too long to respond. The order may have been saved: check the list before trying again.",
       "validation": {
         "patient": "Choose the patient.",
-        "work": "Describe the job.",
-        "teeth": "Use FDI numbers (11–48 or 51–85) separated by commas."
-      }
+        "work": "Add at least one service or describe the job.",
+        "teeth": "Use FDI numbers (11–48 or 51–85) separated by commas.",
+        "quantity": "Between 1 and 99."
+      },
+      "services": "Lab services",
+      "servicesHint": "The jobs being ordered, from the services marked as lab work.",
+      "addService": "Add service",
+      "addAnotherService": "Add another service",
+      "searchService": "Search lab service…",
+      "noLabServices": "No lab services with that name. Mark them in Sales → Services.",
+      "removeService": "Remove {name}",
+      "quantity": "Quantity",
+      "itemNotes": "Note",
+      "itemNotesPlaceholder": "Shade, material…",
+      "workOptional": "Additional description (optional)",
+      "workHint": "If the job is not in the catalog, describe it here."
     },
     "detail": {
       "loading": "Loading…",
@@ -10687,7 +10715,9 @@
       "edit": "Edit",
       "expand": "Expand",
       "restore": "Restore",
-      "close": "Close"
+      "close": "Close",
+      "services": "Services",
+      "description": "Description"
     },
     "deleteDialog": {
       "title": "Delete order",

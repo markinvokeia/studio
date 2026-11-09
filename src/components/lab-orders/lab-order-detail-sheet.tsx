@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { Can } from '@/components/auth/Can';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
-import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
@@ -123,7 +123,7 @@ function LabOrderDetailView({
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
 
   const title = detail ? detail.patient_name : t('detail.loading');
-  const subtitle = detail ? `#${detail.id} · ${detail.work_description}` : ' ';
+  const subtitle = detail ? `#${detail.id} · ${labOrderWork(detail)}` : ' ';
   const busy = move.isPending || remove.isPending;
 
   const body = (
@@ -184,8 +184,35 @@ function LabOrderDetailView({
             <dd className="truncate">{detail.laboratory_name || '—'}</dd>
             <dt className="text-muted-foreground">{t('columns.doctor')}</dt>
             <dd className="truncate">{detail.doctor_name || '—'}</dd>
-            <dt className="text-muted-foreground">{t('columns.work')}</dt>
-            <dd className="whitespace-pre-wrap break-words">{detail.work_description}</dd>
+            {detail.items.length > 0 && (
+              <>
+                <dt className="text-muted-foreground">{t('detail.services')}</dt>
+                <dd>
+                  <ul data-help-id="lab-orders.section.detail-services" className="space-y-1.5">
+                    {detail.items.map((item) => (
+                      <li key={item.id} className="min-w-0">
+                        <p className="break-words font-medium">
+                          {item.service_name}
+                          {item.quantity > 1 && <span className="font-normal text-muted-foreground"> ×{item.quantity}</span>}
+                        </p>
+                        {(item.teeth.length > 0 || item.notes) && (
+                          <p className="break-words text-xs text-muted-foreground">
+                            {[item.teeth.length > 0 ? t('teethShort', { teeth: item.teeth.join(', ') }) : null, item.notes]
+                              .filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </>
+            )}
+            {(detail.work_description || detail.items.length === 0) && (
+              <>
+                <dt className="text-muted-foreground">{detail.items.length > 0 ? t('detail.description') : t('columns.work')}</dt>
+                <dd className="whitespace-pre-wrap break-words">{detail.work_description || '—'}</dd>
+              </>
+            )}
             <dt className="text-muted-foreground">{t('form.teeth')}</dt>
             <dd>{detail.teeth.length > 0 ? detail.teeth.join(', ') : '—'}</dd>
             <dt className="text-muted-foreground">{t('form.dueDate')}</dt>

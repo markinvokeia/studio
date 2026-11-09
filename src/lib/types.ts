@@ -504,6 +504,8 @@ export type Service = {
    * cirugía existe como servicio pero no es algo que un paciente reserve solo.
    */
   bookable_online?: boolean;
+  /** Trabajo de laboratorio: se puede pedir en una orden de laboratorio (script 167). */
+  is_lab?: boolean;
   /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
   image_updated_at?: string | null;
 };
@@ -783,7 +785,19 @@ export interface LabStageSaveItem {
   alerts: LabStageAlerts;
 }
 
-/** Orden de laboratorio tal como la devuelve v_lab_orders (script 148). */
+/** Un servicio (trabajo de laboratorio) de la orden (lab_order_items, script 167). */
+export interface LabOrderItem {
+  id: number;
+  service_id: number;
+  /** Nombre del servicio al guardar la orden. */
+  service_name: string;
+  quantity: number;
+  /** Piezas dentales (FDI) de este servicio. */
+  teeth: number[];
+  notes: string | null;
+}
+
+/** Orden de laboratorio tal como la devuelve v_lab_orders (scripts 148 y 167). */
 export interface LabOrder {
   id: number;
   patient_id: string;
@@ -793,8 +807,13 @@ export interface LabOrder {
   /** Proveedor que hace el trabajo. */
   laboratory_id: string | null;
   laboratory_name: string | null;
-  work_description: string;
-  /** Piezas dentales (FDI). */
+  /** Descripción libre. Opcional si la orden tiene servicios. */
+  work_description: string | null;
+  /** Servicios de laboratorio de la orden. */
+  items: LabOrderItem[];
+  /** Texto corto del trabajo: los servicios ("Corona ×2, Férula") o, sin ellos, la descripción. */
+  work_summary: string | null;
+  /** Piezas dentales (FDI). Con servicios, la unión de las de cada uno. */
   teeth: number[];
   /** Fecha de entrega prometida ('YYYY-MM-DD'). Solo informativa. */
   due_date: string | null;
@@ -846,6 +865,8 @@ export interface LabOrderFilters {
   laboratory_id?: string;
   doctor_id?: string;
   patient_id?: string;
+  /** Órdenes que incluyen este servicio. */
+  service_id?: number;
   search?: string;
   /** 'YYYY-MM-DD', inclusive (fecha de alta). */
   date_from?: string;
@@ -865,6 +886,7 @@ export interface LabOrderBoardFilters {
   search?: string;
   laboratory_id?: string;
   doctor_id?: string;
+  service_id?: number;
   overdue_only?: boolean;
   /** Tarjetas por columna (default 30). */
   per_column?: number;
@@ -885,16 +907,26 @@ export interface LabOrderSavePayload {
   patient_id: string;
   doctor_id: string | null;
   laboratory_id: string | null;
-  work_description: string;
+  work_description: string | null;
+  /** Piezas de la orden. Con servicios las calcula el backend (unión de las de cada servicio). */
   teeth: number[];
   due_date: string | null;
+  notes: string | null;
+  /** Reemplaza los servicios de la orden. */
+  items: LabOrderItemInput[];
+}
+
+export interface LabOrderItemInput {
+  service_id: number;
+  quantity: number;
+  teeth: number[];
   notes: string | null;
 }
 
 /** Códigos de error de las funciones de órdenes (script 148). */
 export type LabOrdersErrorCode =
   | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
-  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'UNKNOWN';
+  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY' | 'UNKNOWN';
 
 /** Códigos de error de lab_stages_save (script 147). */
 export type LabStagesSaveErrorCode =
@@ -2091,6 +2123,9 @@ export type AlertRule = {
   is_active: boolean;
   display_config?: AlertDisplayField[];
   ui_display_config?: { fields: AlertDisplayField[] };
+  /** Raw condition_config. `managed_by` marks a rule owned by another module (e.g. 'lab_stages'):
+   *  the backend rejects edits and deletes, only activation can change. */
+  condition_config?: { managed_by?: string; generator?: string; [key: string]: unknown };
 };
 
 export interface AlertSourceColumn {

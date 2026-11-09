@@ -3916,6 +3916,10 @@
       "bookableOnline": {
         "label": "Agendable online por el paciente",
         "help": "Aparece en el portal del paciente para que lo reserve solo. Dejalo apagado para lo que tiene que pasar por la clínica."
+      },
+      "isLab": {
+        "label": "Trabajo de laboratorio",
+        "help": "Se puede pedir en una orden de laboratorio (corona, prótesis, férula…)."
       }
     },
     "serviceType": {
@@ -3969,7 +3973,9 @@
       "bookableOnlineFailedTitle": "No se pudo cambiar la agenda online",
       "bookableOnlineFailedDescription": "El servicio se guardó, pero la opción de que el paciente lo reserve quedó como estaba. Volvé a intentarlo.",
       "extrasFailedTitle": "El servicio se guardó, pero no su unidad o su configuración estética",
-      "extrasPendingDescription": "Abrí el servicio en el listado y volvé a elegir la unidad o marcalo como servicio de estética."
+      "extrasPendingDescription": "Abrí el servicio en el listado y volvé a elegir la unidad o marcalo como servicio de estética.",
+      "isLabFailedTitle": "No se pudo cambiar \"Trabajo de laboratorio\"",
+      "isLabFailedDescription": "El servicio se guardó, pero esa opción quedó como estaba. Volvé a intentarlo."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -4015,7 +4021,9 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "bookableOnline": "Online",
-    "bookableOnlineYes": "Agendable"
+    "bookableOnlineYes": "Agendable",
+    "isLab": "Laboratorio",
+    "isLabYes": "Laboratorio"
   },
   "ProvidersPage": {
     "title": "Proveedores",
@@ -6442,7 +6450,12 @@
       "high": "Alta",
       "critical": "Crítica"
     },
-    "noAccess": "No tiene acceso para ver esta sección."
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "managed": {
+      "labStages": "Gestionada por Etapas de laboratorio",
+      "generic": "Gestionada por otro módulo",
+      "hint": "Esta regla se configura desde su módulo. Acá solo podés activarla o desactivarla."
+    }
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -10606,11 +10619,13 @@
       "NO_INITIAL_STAGE": "No hay etapa inicial configurada. Configurala en Configuración de Negocio → Etapas de Laboratorio.",
       "NOT_FOUND": "La orden ya no existe.",
       "MISSING_PATIENT": "Elegí el paciente.",
-      "MISSING_WORK": "Describí el trabajo.",
+      "MISSING_WORK": "Agregá al menos un servicio o describí el trabajo.",
       "INVALID_TEETH": "Hay piezas que no son números FDI válidos.",
       "INVALID_STAGE": "Esa etapa ya no está activa.",
       "STAGE_CONFLICT": "Otro usuario movió esta orden mientras tanto. Ahora se muestra la etapa actual.",
-      "UNKNOWN": "Se produjo un error. Intentá de nuevo."
+      "UNKNOWN": "Se produjo un error. Intentá de nuevo.",
+      "INVALID_SERVICE": "Uno de los servicios ya no existe. Quitalo y volvé a elegirlo.",
+      "INVALID_QUANTITY": "La cantidad de cada servicio tiene que estar entre 1 y 99."
     },
     "columns": {
       "id": "#",
@@ -10674,9 +10689,22 @@
       "timeoutMaybeSaved": "El servidor tardó demasiado en responder. La orden pudo haberse guardado: revisá la lista antes de volver a intentar.",
       "validation": {
         "patient": "Elegí el paciente.",
-        "work": "Describí el trabajo.",
-        "teeth": "Usá números FDI (11–48 o 51–85) separados por comas."
-      }
+        "work": "Agregá al menos un servicio o describí el trabajo.",
+        "teeth": "Usá números FDI (11–48 o 51–85) separados por comas.",
+        "quantity": "Entre 1 y 99."
+      },
+      "services": "Servicios de laboratorio",
+      "servicesHint": "Los trabajos que se piden, del catálogo de servicios marcados como trabajo de laboratorio.",
+      "addService": "Agregar servicio",
+      "addAnotherService": "Agregar otro servicio",
+      "searchService": "Buscar servicio de laboratorio…",
+      "noLabServices": "No hay servicios de laboratorio con ese nombre. Marcalos en Ventas → Servicios.",
+      "removeService": "Quitar {name}",
+      "quantity": "Cantidad",
+      "itemNotes": "Nota",
+      "itemNotesPlaceholder": "Color, material…",
+      "workOptional": "Descripción adicional (opcional)",
+      "workHint": "Si el trabajo no está en el catálogo, describilo acá."
     },
     "detail": {
       "loading": "Cargando…",
@@ -10687,7 +10715,9 @@
       "edit": "Editar",
       "expand": "Expandir",
       "restore": "Restaurar",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "services": "Servicios",
+      "description": "Descripción"
     },
     "deleteDialog": {
       "title": "Eliminar orden",

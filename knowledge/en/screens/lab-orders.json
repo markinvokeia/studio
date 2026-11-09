@@ -62,6 +62,34 @@
     "lab-orders.btn.filters": {
       "label": "Filters",
       "description": "Opens the rest of the filters. The number shows how many are applied."
+    },
+    "lab-orders.section.services": {
+      "label": "Services",
+      "description": "The work requested from the lab, picked from services flagged as “Lab work”. You can add several, each with its own quantity, teeth and note."
+    },
+    "lab-orders.btn.add-service": {
+      "label": "Add service",
+      "description": "Finds a lab service and adds it to the order. If it does not exist you can create it here, and it is flagged as lab work."
+    },
+    "lab-orders.btn.remove-service": {
+      "label": "Remove service",
+      "description": "Removes that service from the order."
+    },
+    "lab-orders.field.items.quantity": {
+      "label": "Quantity",
+      "description": "How many units of that service are requested (1 to 99)."
+    },
+    "lab-orders.field.items.teeth": {
+      "label": "Teeth",
+      "description": "The teeth for that service. The order’s teeth are all its services’ teeth combined."
+    },
+    "lab-orders.field.items.notes": {
+      "label": "Service note",
+      "description": "Instructions for that service only (shade, material…)."
+    },
+    "lab-orders.section.detail-services": {
+      "label": "Order services",
+      "description": "The requested services with quantity, teeth and note."
     }
   }
 }

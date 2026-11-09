@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
-  LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry,
+  LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderItem,
   LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
@@ -51,6 +51,17 @@ function toUtcIso(value: unknown): string {
 
 const KINDS: LabStageKind[] = ['initial', 'intermediate', 'final'];
 
+function toItem(raw: any): LabOrderItem {
+  return {
+    id: Number(raw.id),
+    service_id: Number(raw.service_id),
+    service_name: raw.service_name ?? '',
+    quantity: Number(raw.quantity) || 1,
+    teeth: Array.isArray(raw.teeth) ? raw.teeth.map(Number) : [],
+    notes: raw.notes ?? null,
+  };
+}
+
 function toOrder(raw: any): LabOrder | null {
   // alwaysOutputData: sin filas n8n responde [{}].
   if (!raw || raw.id == null) return null;
@@ -62,7 +73,10 @@ function toOrder(raw: any): LabOrder | null {
     doctor_name: raw.doctor_name ?? null,
     laboratory_id: raw.laboratory_id ?? null,
     laboratory_name: raw.laboratory_name ?? null,
-    work_description: raw.work_description ?? '',
+    work_description: raw.work_description || null,
+    // Sin el script 167 no hay items ni work_summary: la orden se ve como antes.
+    items: Array.isArray(raw.items) ? raw.items.map(toItem) : [],
+    work_summary: raw.work_summary || raw.work_description || null,
     teeth: Array.isArray(raw.teeth) ? raw.teeth.map(Number) : [],
     due_date: raw.due_date ? String(raw.due_date).slice(0, 10) : null,
     notes: raw.notes ?? null,

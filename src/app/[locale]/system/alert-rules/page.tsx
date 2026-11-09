@@ -161,6 +161,9 @@ async function getWhatsAppTemplates(): Promise<any[]> {
     }
 }
 
+/** A rule owned by another module: it is configured there and the backend refuses edits and deletes. */
+const isManagedRule = (rule: AlertRule) => !!rule.condition_config?.managed_by;
+
 export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
@@ -539,13 +542,29 @@ export default function AlertRulesPage() {
         setSubmissionError(null);
     };
 
+    const managedLabel = (rule: AlertRule) =>
+        rule.condition_config?.managed_by === 'lab_stages' ? t('managed.labStages') : t('managed.generic');
+    const renderManagedBadge = (rule: AlertRule) => (
+        <Badge data-help-id="system.alert-rules.badge.managed" variant="outline" className="text-[10px] font-normal whitespace-nowrap flex-none" title={t('managed.hint')}>
+            {managedLabel(rule)}
+        </Badge>
+    );
+
     const handleBack = () => {
         setSelectedRule(null);
         setRowSelection({});
     };
 
     const columns: ColumnDef<AlertRule>[] = [
-        { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
+        {
+            accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+            cell: ({ row }) => (
+                <span className="inline-flex items-center gap-2">
+                    {row.original.name}
+                    {isManagedRule(row.original) && renderManagedBadge(row.original)}
+                </span>
+            ),
+        },
         {
             accessorKey: 'category_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
             cell: ({ row }) => categories.find(c => String(c.id) === String(row.original.category_id))?.name || 'N/A'
@@ -573,6 +592,8 @@ export default function AlertRulesPage() {
             id: 'actions',
             cell: ({ row }) => {
                 const rule = row.original;
+                // Rules owned by another module (e.g. lab stage alerts) are configured there.
+                if (isManagedRule(rule)) return null;
                 return (
                     // The menu is portaled but still a React child of the row: without this, clicks on
                     // the trigger or its items bubble up and also toggle the row selection.
@@ -625,7 +646,7 @@ export default function AlertRulesPage() {
                         renderCard={(row: AlertRule, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.name}
-                                subtitle={row.code}
+                                subtitle={isManagedRule(row) ? `${row.code} · ${managedLabel(row)}` : row.code}
                                 badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
                                 showArrow
                             />
@@ -653,7 +674,8 @@ export default function AlertRulesPage() {
                         <CardTitle className="text-base lg:text-lg truncate">{selectedRule?.name}</CardTitle>
                         <p className="text-xs text-muted-foreground truncate">{selectedRule?.code}</p>
                     </div>
-                    {selectedRule && (
+                    {selectedRule && isManagedRule(selectedRule) && renderManagedBadge(selectedRule)}
+                    {selectedRule && !isManagedRule(selectedRule) && (
                         <div className="flex gap-1 flex-none">
                             {canUpdate && (
                                 <Button data-help-id="system.alert-rules.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>

@@ -23,7 +23,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
-import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useDebounce } from '@/hooks/use-debounce';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
@@ -218,11 +218,11 @@ export default function LabOrdersPage() {
       cell: ({ row }) => row.original.laboratory_name || <span className="text-muted-foreground">—</span>,
     },
     {
-      accessorKey: 'work_description',
+      id: 'work',
       header: t('columns.work'),
       cell: ({ row }) => (
         <div className="max-w-[18rem]">
-          <p className="truncate">{row.original.work_description}</p>
+          <p className="truncate">{labOrderWork(row.original)}</p>
           {row.original.teeth.length > 0 && (
             <p className="truncate text-xs text-muted-foreground">{t('teethShort', { teeth: row.original.teeth.join(', ') })}</p>
           )}
@@ -478,7 +478,7 @@ export default function LabOrdersPage() {
               renderCard={(row) => (
                 <DataCard
                   title={row.patient_name}
-                  subtitle={[row.laboratory_name, row.work_description].filter(Boolean).join(' · ')}
+                  subtitle={[row.laboratory_name, labOrderWork(row)].filter(Boolean).join(' · ')}
                   accentColor={row.stage_color}
                   isSelected={row.id === selectedId}
                   showArrow
