@@ -131,10 +131,15 @@ export function getMissingIdentityDocumentError(error: unknown): { patientName: 
  * `updateAppointmentStatusRequest` con el bloqueo por documento faltante: si el
  * backend rechaza el estado porque el paciente no tiene documento de identidad
  * (`identity_document_warn_statuses`), muestra el aviso (que ofrece abrir los
- * datos del paciente para cargarlo) y devuelve false.
+ * datos del paciente para cargarlo) y devuelve false. Si se pasa `onRetry`, se
+ * ejecuta cuando desde ese aviso se guarda el paciente con el documento, para
+ * completar la acción que lo disparó sin que el usuario la repita.
  * Cualquier otro error se propaga igual que antes.
  */
-export async function updateAppointmentStatusWithDocumentCheck(params: UpdateAppointmentStatusParams): Promise<boolean> {
+export async function updateAppointmentStatusWithDocumentCheck(
+  params: UpdateAppointmentStatusParams,
+  { onRetry }: { onRetry?: () => void | Promise<void> } = {},
+): Promise<boolean> {
   try {
     await updateAppointmentStatusRequest(params);
     return true;
@@ -148,6 +153,7 @@ export async function updateAppointmentStatusWithDocumentCheck(params: UpdateApp
       patient: patientId
         ? { id: patientId, name: missing.patientName ?? patientName ?? '', email: patientEmail, phone: patientPhone }
         : undefined,
+      retry: onRetry,
     });
     return false;
   }

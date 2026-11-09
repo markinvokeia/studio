@@ -1,0 +1,103 @@
+{
+  "id": "patients.aesthetic-photos",
+  "title": "Take and compare aesthetic photos",
+  "summary": "Today's photos per view, aligning them with the map and comparing progress against earlier sessions.",
+  "module": "Patients",
+  "group": "Aesthetic record",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "photos",
+    "before and after",
+    "compare photos",
+    "progress",
+    "align photo",
+    "camera"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "tab",
+      "title": "Timeline"
+    },
+    {
+      "id": "session",
+      "title": "Tap the aesthetic session",
+      "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session."
+    },
+    {
+      "id": "open",
+      "title": "Continue session",
+      "details": "Resumes at the first step still missing. A closed or void session opens read-only."
+    },
+    {
+      "id": "photos",
+      "title": "Today's photos",
+      "details": "Step 2. A photo of any view is enough; none is needed if the patient declined photos or if every mark is on the body."
+    },
+    {
+      "id": "views",
+      "title": "Views",
+      "details": "Front, left and right profile, each with today's photo and the earlier ones."
+    },
+    {
+      "id": "take",
+      "title": "Take photo",
+      "details": "Opens the camera with a framing guide and, if there is one, the last photo see-through to repeat pose, distance and light."
+    },
+    {
+      "id": "upload",
+      "title": "Upload",
+      "details": "Choose images from the device, or drag them here."
+    },
+    {
+      "id": "stage",
+      "title": "Photo of the view",
+      "details": "With a photo from today and an earlier one of the same view, this is where they're compared."
+    },
+    {
+      "id": "modes",
+      "title": "Comparison mode",
+      "details": "Slider, side by side or overlaid with opacity. Below you can show each session's marks over the photo."
+    },
+    {
+      "id": "initial",
+      "title": "Compare with the first one",
+      "details": "Goes back to the first session; any other can be chosen in the list of earlier ones."
+    },
+    {
+      "id": "history",
+      "title": "Earlier sessions",
+      "details": "The photos of this view in earlier sessions, with their date and how many days ago."
+    },
+    {
+      "id": "align",
+      "title": "Align",
+      "details": "Fits the photo to the map (eyes, nose, mouth) so the zones match when it is used as a background."
+    },
+    {
+      "id": "continue",
+      "title": "Continue",
+      "details": "Goes to the treatment. Today's photo can also be used as a background for marking."
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
 import { cn } from '@/lib/utils';
 
 export interface WizardStep {
@@ -14,6 +16,7 @@ interface BillingWizardStepperProps {
 }
 
 export function BillingWizardStepper({ steps, currentStep }: BillingWizardStepperProps) {
+  const t = useTranslations('BillingWizard');
   const totalSteps = steps.length;
   const progress = totalSteps > 1 ? Math.round((currentStep / (totalSteps - 1)) * 100) : 100;
 
@@ -23,7 +26,7 @@ export function BillingWizardStepper({ steps, currentStep }: BillingWizardSteppe
       <div className="sm:hidden space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">
-            Paso {currentStep + 1} de {totalSteps}
+            {t('stepProgress', { current: currentStep + 1, total: totalSteps })}
           </span>
           <span className="font-semibold text-primary">{steps[currentStep]?.title}</span>
         </div>

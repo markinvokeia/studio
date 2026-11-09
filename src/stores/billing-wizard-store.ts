@@ -15,6 +15,11 @@ export type BillingTriggerContext = {
   // Optional pre-loaded objects (skip extra fetches when caller already has them)
   quote?: Quote;
   invoice?: Invoice;
+  /**
+   * Runs right after the wizard creates an invoice, before the payment step, and the wizard waits
+   * for it. For a caller that keeps its own link to the invoice; it handles its own errors.
+   */
+  onInvoiceCreated?: (invoiceId: string) => Promise<void>;
   preloadedItems?: Array<{
     tempId: string;
     service_id: string;

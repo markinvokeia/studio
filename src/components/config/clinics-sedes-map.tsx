@@ -6,6 +6,7 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 import * as React from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { Sede } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 // Fix Leaflet default icon paths broken by webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -167,7 +168,7 @@ export default function ClinicsSedesMap({
                             {m.phone && (
                                 <div className="flex items-center gap-1 text-xs text-gray-600">
                                     <Phone className="h-3 w-3 flex-none" />
-                                    <span>{m.phone}</span>
+                                    <span>{formatPhoneNumber(m.phone)}</span>
                                 </div>
                             )}
                             {m.email && (

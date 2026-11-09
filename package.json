@@ -15,7 +15,7 @@
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks',{stdio:'ignore'})}catch{}\"",
     "knowledge:build": "node scripts/knowledge/build-catalog.mjs",
     "knowledge:check": "node scripts/knowledge/build-catalog.mjs --check",
     "knowledge:strict": "node scripts/knowledge/build-catalog.mjs --check --strict",

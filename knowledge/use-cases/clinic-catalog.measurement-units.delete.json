@@ -1,0 +1,39 @@
+{
+  "id": "clinic-catalog.measurement-units.delete",
+  "title": "Eliminar una unidad de medida",
+  "module": "Catálogo de la Clínica",
+  "summary": "Borrarla del catálogo; si está en uso, queda inactiva.",
+  "screens": [
+    "clinic-catalog.measurement-units"
+  ],
+  "inputs": {},
+  "keywords": [
+    "eliminar unidad",
+    "borrar unidad"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/measurement-units",
+      "title": "Menú → Catálogo de la Clínica → Unidades de medida",
+      "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…)."
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.btn.delete",
+      "title": "Eliminar",
+      "details": "Tocá la papelera de la unidad.",
+      "until": "clinic-catalog.measurement-units.btn.delete-confirm",
+      "autoClick": true
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "clinic-catalog.measurement-units.btn.delete-confirm",
+      "title": "Confirmar",
+      "details": "Si la usan servicios o sesiones no se borra: queda inactiva y las sesiones viejas la siguen mostrando."
+    }
+  ]
+}

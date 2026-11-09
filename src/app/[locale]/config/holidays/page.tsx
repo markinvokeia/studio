@@ -92,6 +92,9 @@ async function upsertHoliday(holidayData: ExceptionFormValues) {
 
 async function deleteHoliday(id: string) {
     const responseData = await api.delete(API_ROUTES.HOLIDAYS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+    if (responseData && typeof responseData === 'object' && responseData.error === true) {
+        throw new Error(responseData.message || 'Failed to delete holiday');
+    }
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete holiday');
     }

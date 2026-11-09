@@ -42,7 +42,7 @@
       "action": "highlight",
       "target": "workspace.section.odontogram",
       "title": "Odontograma",
-      "details": "Tocá una pieza para ver y marcar su estado y sus superficies. Lo que marques hoy queda en una sesión de tipo odontograma de esta cita."
+      "details": "Tocá la cara de la pieza y después la condición en el inspector; «Registrar como» define si es indicado, existente o hecho hoy. Lo dictado al agente aparece como propuesta hasta que lo confirmes, y todo queda en la sesión de odontograma de esta cita."
     }
   ]
 }

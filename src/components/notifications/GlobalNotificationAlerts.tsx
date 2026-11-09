@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import type {
   AppointmentReassignedNotification,
@@ -296,9 +297,9 @@ function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
           {t('handoffRequestedTitle')}
         </p>
         <p className="text-xl font-bold leading-tight text-foreground">
-          {item.patientName || item.phone || t('unknownPatient')}
+          {item.patientName || formatPhoneNumber(item.phone) || t('unknownPatient')}
         </p>
-        {item.phone && <p className="text-sm text-muted-foreground">{item.phone}</p>}
+        {item.phone && <p className="text-sm text-muted-foreground">{formatPhoneNumber(item.phone)}</p>}
         {item.lastMessage && (
           <p className="text-sm text-muted-foreground leading-relaxed">{item.lastMessage}</p>
         )}

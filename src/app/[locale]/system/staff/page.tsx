@@ -3,6 +3,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -359,7 +360,7 @@ function StaffTableNarrow({
         <DataCard
           isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -864,6 +865,7 @@ export default function StaffPage() {
       id: 'phone_number',
       accessorKey: 'phone_number',
       header: t('StaffPage.columns.phone'),
+      cell: ({ row }) => formatPhoneNumber(row.original.phone_number),
     },
     {
       id: 'is_active',
@@ -1064,9 +1066,6 @@ export default function StaffPage() {
                                     <PhoneInput
                                       {...field}
                                       defaultCountry="UY"
-                                      placeholder={t(
-                                        'StaffPage.createDialog.phonePlaceholder',
-                                      )}
                                       onChange={field.onChange}
                                       value={field.value}
                                     />
@@ -1283,7 +1282,6 @@ export default function StaffPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('StaffPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

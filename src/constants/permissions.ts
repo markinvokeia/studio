@@ -145,6 +145,15 @@ export const CLINICAL_HISTORY_PERMISSIONS = {
 
 export type ClinicalHistoryPermission = (typeof CLINICAL_HISTORY_PERMISSIONS)[keyof typeof CLINICAL_HISTORY_PERMISSIONS];
 
+// Aesthetic record (face and body map) — database/scripts/151 grants them to the
+// roles that already had the odontogram's.
+export const AESTHETIC_RECORD_PERMISSIONS = {
+  /** Ver las sesiones de estética en la línea de tiempo del paciente y abrirlas en solo lectura. */
+  VIEW: 'AESTHETIC_RECORD_VIEW',
+  /** Crear y completar sesiones de estética: consentimiento, fotos, marcas, cierre, anulación y enmiendas. */
+  REGISTER_SESSION: 'AESTHETIC_RECORD_REGISTER_SESSION',
+} as const;
+
 export const TIMELINE_PERMISSIONS = {
   VIEW: 'TIMELINE_VIEW',
   CREATE: 'CLINICAL_SESSION_CREATE',
@@ -403,6 +412,12 @@ export const CLINIC_CATALOG_PERMISSIONS = {
   DENTAL_SURF_CREATE: 'CATALOG_DENTAL_SURF_CREATE',
   DENTAL_SURF_UPDATE: 'CATALOG_DENTAL_SURF_UPDATE',
   DENTAL_SURF_DELETE: 'CATALOG_DENTAL_SURF_DELETE',
+
+  // Measurement units (Unidades de medida) of the aesthetic services
+  UNITS_VIEW_LIST: 'CATALOG_UNITS_VIEW_LIST',
+  UNITS_CREATE: 'CATALOG_UNITS_CREATE',
+  UNITS_UPDATE: 'CATALOG_UNITS_UPDATE',
+  UNITS_DELETE: 'CATALOG_UNITS_DELETE',
 } as const;
 
 export type ClinicCatalogPermission = (typeof CLINIC_CATALOG_PERMISSIONS)[keyof typeof CLINIC_CATALOG_PERMISSIONS];

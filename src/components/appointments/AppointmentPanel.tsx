@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { addMinutes, differenceInMinutes, format, parseISO, set } from 'date-fns';
 import { getDateFnsLocale } from '@/lib/locale';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import {
   AlertTriangle,
   ArrowRight,
@@ -888,7 +889,7 @@ export function AppointmentPanel({
   const statusColor = colorOf(appointment.status);
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
   const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
-  const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');
+  const patientMeta = [formatPhoneNumber(effectivePatientPhone)].filter(Boolean).join(' · ');
   const invoiceCount = quoteInvoices.length;
   const isCancelled = appointment.status === 'cancelled';
   const cancellationReasonLabel = isCancelled

@@ -10,7 +10,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, parseISO, set } from 'date-fns';
 
-import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
+import { GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarDragMode, CalendarDragResolver, CalendarEvent, CalendarEventDropHandler, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   dateFromDayMinutes,
@@ -35,6 +35,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
+import { firstVisibleHour, useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 /** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
 const EMPTY_EVENTS: CalendarEvent[] = [];
@@ -79,6 +80,8 @@ interface CalendarDayViewGroupedProps {
   onNavigatePeriod?: (direction: -1 | 1) => void;
   /** Days of week (0=Sunday…6=Saturday) to hide as day-blocks. Default []. */
   hiddenWeekdays?: number[];
+  /** Franja horaria visible; null/undefined = el día completo. */
+  visibleHours?: VisibleHoursRange | null;
 }
 
 export function CalendarDayViewGrouped({
@@ -100,7 +103,7 @@ export function CalendarDayViewGrouped({
   onEventContextMenuOpen,
   onSlotClick,
   renderSlotContextMenu,
-  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  hourSlotHeight: baseHourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
   selectedGapKey,
@@ -115,6 +118,7 @@ export function CalendarDayViewGrouped({
   onEventResize,
   onNavigatePeriod,
   hiddenWeekdays,
+  visibleHours,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
@@ -164,24 +168,23 @@ export function CalendarDayViewGrouped({
     return map;
   }, [days, columns, events, groupBy]);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  // Con una franja activa la hora se estira para que la rejilla llene el alto libre.
+  const hourSlotHeight = useFittedHourSlotHeight({
+    scrollRef: scrollContainerRef,
+    headerRef,
+    hourSlotHeight: baseHourSlotHeight,
+    range: visibleHours,
+  });
+
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const didInitialScrollRef = React.useRef(false);
-  const prevHourRef = React.useRef(hourSlotHeight);
-  React.useLayoutEffect(() => {
-    const c = scrollContainerRef.current;
-    if (!c) return;
-    if (!didInitialScrollRef.current) {
-      c.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
-      didInitialScrollRef.current = true;
-    } else if (prevHourRef.current && prevHourRef.current !== hourSlotHeight) {
-      const topTimeMin = (c.scrollTop / prevHourRef.current) * 60;
-      c.scrollTop = (topTimeMin / 60) * hourSlotHeight;
-    }
-    prevHourRef.current = hourSlotHeight;
-  }, [hourSlotHeight]);
+  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours);
+  // Topes del arrastre: la cita no puede terminar fuera de la franja visible.
+  const windowStartMin = visibleHours?.startMin ?? 0;
+  const windowEndMin = visibleHours?.endMin ?? MINUTES_IN_DAY;
 
   // ── Arrastre y redimensionado ───────────────────────────────────────────
   const bodyRef = React.useRef<HTMLDivElement>(null);
@@ -210,16 +213,16 @@ export function CalendarDayViewGrouped({
       // bajo el cursor. El tope deja la cita entera dentro del día: cruzar
       // medianoche la dibujaría cortada y desaparecería del día siguiente.
       startMin = snapMinutesFromOffset(offsetY - gesture.grabOffsetY, hourSlotHeight, slotForSnap);
-      startMin = Math.min(startMin, MINUTES_IN_DAY - durationMin);
+      startMin = Math.max(windowStartMin, Math.min(startMin, windowEndMin - durationMin));
       endMin = startMin + durationMin;
     } else if (gesture.mode === 'resize-end') {
       startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
       endMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
-      endMin = Math.max(startMin + slotForSnap, Math.min(endMin, MINUTES_IN_DAY));
+      endMin = Math.max(startMin + slotForSnap, Math.min(endMin, windowEndMin));
     } else {
       endMin = gesture.originalEnd.getHours() * 60 + gesture.originalEnd.getMinutes();
       startMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
-      startMin = Math.min(Math.max(0, startMin), endMin - slotForSnap);
+      startMin = Math.min(Math.max(windowStartMin, startMin), endMin - slotForSnap);
     }
 
     const start = dateFromDayMinutes(day, startMin);
@@ -234,7 +237,7 @@ export function CalendarDayViewGrouped({
       target: isResize ? gesture.sourceTarget : target,
       candidate: { start, end, invalid: enforcesBlocked && isRangeBlocked(blockedRanges, start, end, groupValue) },
     };
-  }, [blockedRanges, hourSlotHeight, slotForSnap]);
+  }, [blockedRanges, hourSlotHeight, slotForSnap, windowStartMin, windowEndMin]);
 
   const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
     if (result.mode === 'move') onEventDrop?.(result);
@@ -314,7 +317,7 @@ export function CalendarDayViewGrouped({
         style={{ minWidth: contentMinWidth }}
       >
         {/* Header: date row */}
-        <div className="day-view-header-wrapper">
+        <div className="day-view-header-wrapper" ref={headerRef}>
           <div
             className="day-view-header-dates-grouped"
             style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
@@ -383,12 +386,13 @@ export function CalendarDayViewGrouped({
         </div>
 
         {/* Body: time grid with grouped columns */}
+        <VisibleHoursClip range={visibleHours} hourSlotHeight={hourSlotHeight}>
         <div
           ref={bodyRef}
           className="day-view-body-grouped"
           style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
-          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} />}
+          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} firstHour={firstVisibleHour(visibleHours)} />}
           {days.map((day) => (
             <div
               key={`day-block-${format(day, 'yyyy-MM-dd')}`}
@@ -479,6 +483,7 @@ export function CalendarDayViewGrouped({
             </div>
           )}
         </div>
+        </VisibleHoursClip>
       </div>
     </div>
   );

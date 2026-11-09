@@ -114,7 +114,9 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
         <section>
           <SectionToggle icon={PlayCircle} label={t('guides')} count={useCases.length} open={guidesOpen} onToggle={() => setGuidesOpen((v) => !v)} />
           {guidesOpen && (
-          <div className="flex flex-col gap-1.5">
+          // Scroll propio: con muchas guías (o un grupo abierto con varias) se ven todas sin
+          // depender del scroll de la ficha; la rueda no se escapa a la ficha ni a la página.
+          <div className="flex max-h-[min(340px,45dvh)] flex-col gap-1.5 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
             {useCaseGroups.map((group, i) => {
               const isOpen = !group.name || openGroups.has(group.name);
               return (

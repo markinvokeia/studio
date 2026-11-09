@@ -292,6 +292,12 @@
   overflow: auto;
   height: 100%;
   scrollbar-gutter: stable;
+  /* Sin scroll anchoring: la posición vertical la maneja `useTimeGridScroll`. Con
+     anchoring, si la cabecera sticky crece (fila de consultorios, banda de todo el
+     día) estando scrolleado, el navegador corre el scroll para "mantener" la rejilla
+     y la cabecera más alta termina tapando las primeras filas; esa corrida además
+     se arrastraba al aplicar la franja visible y escondía su primera hora. */
+  overflow-anchor: none;
 }
 
 .day-view-scroll-content {
@@ -566,6 +572,26 @@
   display: grid;
   overflow: visible;
   position: relative;
+}
+
+/* Franja horaria visible: recorta la rejilla de 24 h (ver calendar-visible-hours.tsx).
+   `clip` y no `hidden`: no crea contenedor de scroll, así la columna de horas sigue
+   pegada (sticky) al scroll horizontal de la vista.
+   `display: flow-root` le da contexto de formato propio. Sin él, el `margin-top`
+   negativo con el que el componente sube la rejilla antes del recorte colapsa a
+   través de este contenedor (`overflow: clip` no establece BFC): la franja entera
+   se desplaza hacia arriba fuera de la vista y la rejilla queda vacía. Pasaba en
+   mobile, donde el clip cuelga de un bloque normal en vez de un flex. */
+.visible-hours-clip {
+  display: flow-root;
+  flex-shrink: 0;
+  overflow: clip;
+}
+
+/* Con una franja corta la rejilla no llena el alto: el resto queda del color de la
+   tarjeta y no del marco (en modo personalizado, el color de la agenda). */
+.day-view-container:has(> .day-view-scroll-content > .visible-hours-clip) {
+  background-color: hsl(var(--card));
 }
 
 .time-column {

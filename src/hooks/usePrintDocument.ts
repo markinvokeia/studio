@@ -20,7 +20,7 @@ import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
 import { fetchClinicHistoryPrintData } from '@/services/clinic-history-print-data';
 import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
-import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { getClinicCurrency, useClinicInfoStore } from '@/stores/clinic-info-store';
 import { elementToPdfBase64 } from '@/lib/document-pdf';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
@@ -249,8 +249,9 @@ function triggerPrint(deactivate: () => void): void {
 export function usePrintDocument() {
   const { activate, deactivate, customTemplatesLoaded } = usePrintDocumentStore();
 
-  // Preload clinic info so PrintReportHeader has data ready when print fires.
-  useEffect(() => { fetchClinicInfo(); }, []);
+  // Preload clinic info so PrintReportHeader has data ready when print fires. Through the
+  // store, which loads it once per session: a direct fetch here ran once per hook instance.
+  useEffect(() => { void useClinicInfoStore.getState().fetchInfo(); }, []);
 
   // Load custom templates once per session (store persists across hook instances).
   useEffect(() => {

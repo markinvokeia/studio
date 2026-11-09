@@ -22,6 +22,18 @@
       "label": "Servicios de la reserva",
       "description": "Qué servicios se pueden reservar en línea."
     },
+    "config.patients-portal.section.booking-window": {
+      "label": "Hasta cuándo puede reservar el paciente",
+      "description": "Última fecha que el paciente puede elegir en el portal. No limita al personal de la clínica."
+    },
+    "config.patients-portal.field.booking-window-value": {
+      "label": "Cantidad",
+      "description": "Cuántos días o meses, según la unidad elegida."
+    },
+    "config.patients-portal.field.booking-window-unit": {
+      "label": "Unidad",
+      "description": "Días cuenta desde hoy. Meses cuenta meses calendario: con 1 sólo se puede reservar en el mes en curso."
+    },
     "config.patients-portal.section.presentation": {
       "label": "Presentación",
       "description": "Textos y datos que ve el paciente."

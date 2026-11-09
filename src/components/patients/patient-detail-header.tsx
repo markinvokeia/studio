@@ -10,6 +10,7 @@ import { CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDisplayDate } from '@/lib/utils'
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { usePatientView } from '@/stores/patient-view-store'
 import type { PatientDischarge, User } from '@/lib/types'
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
@@ -211,7 +212,7 @@ export function PatientDetailHeader({
         {effectivePatientPhone ? (
           <span className="flex items-center gap-1">
             <WhatsAppIcon className="h-3 w-3" />
-            {effectivePatientPhone}
+            {formatPhoneNumber(effectivePatientPhone)}
           </span>
         ) : null}
         {currentDischarge && (

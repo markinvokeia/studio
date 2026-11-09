@@ -1,16 +1,19 @@
 'use client';
 
-import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle, CircleDot, ListOrdered, LocateFixed, RotateCcw, SkipForward, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle, CircleDot, ListOrdered, LocateFixed, PlayCircle, RotateCcw, SkipForward, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
+import { useMascot } from '@/components/invoke-mascot';
+
 import { useMascotOnStage } from '@/hooks/use-mascot-preference';
 import { findHelpTarget, isMissingOrInvalid } from '@/lib/help/guide-engine';
-import { goToStep, isBlockingStep, lastStep, nextStep, previousStep, retryStep, revealGuide, skipStep, stopGuide } from '@/lib/help/guide-runner';
-import { intersects, MASCOT_SIZE, menuRectOf, pickPlacement, placeGuideMascot, placeGuideMascotBesideMenu, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
+import { cancelGuide, goToStep, isBlockingStep, lastStep, nextStep, previousStep, retryStep, revealGuide, skipStep, stopGuide } from '@/lib/help/guide-runner';
+import { intersects, MASCOT_SIZE, menuRectOf, openDropdownRects, pickPlacement, placeGuideMascot, placeGuideMascotBesideMenu, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
 import { cn } from '@/lib/utils';
 import { useHelpAssistant, type GuideRun, type GuideStepStatus } from '@/stores/help-assistant-store';
+import { useGuideVideo, useHelpVideo } from '@/stores/help-video-store';
 
 /** Por encima de diálogos y sheets de Radix (z-50). La mascota va encima (MascotHost). */
 const Z_TOP = 2147483600;
@@ -37,6 +40,10 @@ function sameBox(a: Rect | null, b: Rect | null) {
     && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5;
 }
 
+function sameBoxes(a: Rect[], b: Rect[]) {
+  return a.length === b.length && a.every((r, i) => sameBox(r, b[i]));
+}
+
 /** Dónde va a pararse la mascota para señalar `box` (al costado del menú si es una opción de menú). */
 function mascotRectFor(box: Rect, menu: Rect | null): Rect {
   const spot = menu ? placeGuideMascotBesideMenu(box, menu, MASCOT_SIZE) : placeGuideMascot(box, MASCOT_SIZE, []);
@@ -55,9 +62,9 @@ function overlapArea(a: Rect, b: Rect): number {
  * de la mascota, nunca debajo de ella; si no, al costado del menú o arriba; como último
  * recurso abajo al centro. Si ninguno queda libre, el que menos tapa. Usa el lugar al
  * que va a ir la mascota (el mismo cálculo que MascotHost, que después la ubica
- * esquivando esta barra, así que queda en ese lugar).
+ * esquivando esta barra, así que queda en ese lugar). Tampoco tapa un desplegable abierto.
  */
-function placeToolbar(anchor: Rect, box: Rect, mascot: Rect | null): Rect {
+function placeToolbar(anchor: Rect, box: Rect, mascot: Rect | null, dropdowns: Rect[] = []): Rect {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const size = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT };
@@ -79,7 +86,7 @@ function placeToolbar(anchor: Rect, box: Rect, mascot: Rect | null): Rect {
     { ...size, top: anchor.top - TOOLBAR_GAP - TOOLBAR_HEIGHT, left: clampLeft(anchor.left) },
     { ...size, top: vh - TOOLBAR_HEIGHT - 16, left: vw / 2 - TOOLBAR_WIDTH / 2 },
   );
-  const avoid = mascot ? [anchor, box, mascot] : [anchor, box];
+  const avoid = [anchor, box, ...(mascot ? [mascot] : []), ...dropdowns];
   const inside = candidates.filter((c) => c.left >= VIEWPORT_MARGIN && c.top >= VIEWPORT_MARGIN && c.left + c.width <= vw - VIEWPORT_MARGIN && c.top + c.height <= vh - VIEWPORT_MARGIN);
   if (!inside.length) return pickPlacement(candidates.map((rect) => ({ rect })), avoid).rect;
   const covered = (c: Rect) => avoid.reduce((sum, o) => sum + overlapArea(c, o), 0);
@@ -232,7 +239,7 @@ function StepsList({ guide, shown, blocked, rect }: { guide: GuideRun; shown: nu
 }
 
 /** Sin mascota en pantalla, el texto del paso va en un globo propio junto al elemento. */
-function StepBubble({ box, obstacles, text }: { box: Rect; obstacles: Rect[]; text: string }) {
+function StepBubble({ box, obstacles, text, heading }: { box: Rect; obstacles: Rect[]; text: string; heading?: string }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [size, setSize] = React.useState<{ width: number; height: number } | null>(null);
 
@@ -241,7 +248,7 @@ function StepBubble({ box, obstacles, text }: { box: Rect; obstacles: Rect[]; te
     if (!el) return;
     const next = { width: el.offsetWidth, height: el.offsetHeight };
     setSize((prev) => (prev && prev.width === next.width && prev.height === next.height ? prev : next));
-  }, [text]);
+  }, [text, heading]);
 
   const rect = size ? placeBubble(box, size, obstacles) : null;
   return (
@@ -261,9 +268,20 @@ function StepBubble({ box, obstacles, text }: { box: Rect; obstacles: Rect[]; te
         pointerEvents: 'none',
       }}
     >
+      {heading && <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-white/75">{heading}</span>}
       {text}
     </div>
   );
+}
+
+/** Dónde estaría la mascota (abajo a la derecha, junto al riel): ahí habla el globo propio cuando no está. */
+function mascotDockRect(): Rect {
+  const mobile = window.innerWidth < 640;
+  const rail = document.querySelector('[data-help-rail]')?.getBoundingClientRect();
+  const right = mobile ? 0 : rail && rail.width > 0 ? rail.width : 0;
+  const bottom = mobile ? 24 : 0;
+  // Franja sobre la que se apoya el globo: termina antes del riel y queda pegada abajo.
+  return { width: BUBBLE_MAX_WIDTH, height: 0, left: window.innerWidth - right - BUBBLE_MAX_WIDTH - 16, top: window.innerHeight - bottom - 16 };
 }
 
 /** Texto del paso: título, descripción y detalle (lo mismo que dice la mascota en su globo). */
@@ -281,17 +299,27 @@ export function stepSpeechText(spot: { title: string; description?: string; deta
  */
 export function GuideSpotlight() {
   const t = useTranslations('HelpAssistant.toolbar');
+  const tMascot = useTranslations('HelpAssistant.mascot');
   const spotlight = useHelpAssistant((s) => s.spotlight);
   const guide = useHelpAssistant((s) => s.guide);
   const listOpen = useHelpAssistant((s) => s.stepsListOpen);
   const setListOpen = useHelpAssistant((s) => s.setStepsListOpen);
   const mascotOnStage = useMascotOnStage();
+  // La mascota realmente a la vista (no dormida ni escondida tras el riel).
+  const mascotPhase = useMascot().phase;
+  const mascotVisible = mascotOnStage && mascotPhase !== 'sleeping' && mascotPhase !== 'peeking';
+  // Sin permiso para seguir, el video de la guía es la alternativa.
+  const video = useGuideVideo(guide?.useCaseId);
+  const openVideo = useHelpVideo((s) => s.open);
   const [box, setBox] = React.useState<Rect | null>(null);
   // Si lo señalado es una opción de un menú o una lista, la barra y la lista de pasos se
   // ubican respecto del menú entero: no tapan las otras opciones.
   const [menuBox, setMenuBox] = React.useState<Rect | null>(null);
   // Diálogo que contiene lo señalado: la lista de pasos no tapa sus otros campos.
   const [dialogBox, setDialogBox] = React.useState<Rect | null>(null);
+  // Desplegables abiertos (el combobox que la persona está usando): la lista de pasos sube
+  // por encima de la barra o, si igual los tapa, se oculta mientras estén abiertos.
+  const [dropdowns, setDropdowns] = React.useState<Rect[]>([]);
   const [alert, setAlert] = React.useState(false);
   const [level, setLevel] = React.useState(1);
   // Globo de la mascota: si la lista de pasos lo tapa, la lista se esconde en ese paso.
@@ -341,6 +369,8 @@ export function GuideSpotlight() {
         const dlg = target.highlight.closest('[role="dialog"], [role="alertdialog"]')?.getBoundingClientRect();
         const nextDialog = dlg && !nextMenu ? { top: dlg.top, left: dlg.left, width: dlg.width, height: dlg.height } : null;
         if (!sameBox(lastDialog, nextDialog)) { lastDialog = nextDialog; setDialogBox(nextDialog); }
+        const nextDropdowns = openDropdownRects(target.highlight);
+        setDropdowns((prev) => (sameBoxes(prev, nextDropdowns) ? prev : nextDropdowns));
       } else if (last) {
         last = null;
         setBox(null);
@@ -348,7 +378,7 @@ export function GuideSpotlight() {
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(frame); setAlert(false); };
+    return () => { cancelAnimationFrame(frame); setAlert(false); setDropdowns([]); };
   }, [targetId, spotlight?.required, spotlight?.mode]);
 
   // Si lo señalado ya no está, la guía no puede quedar invisible: la barra pasa abajo al centro
@@ -386,11 +416,29 @@ export function GuideSpotlight() {
   // Sin nada que resaltar (cambiando de pantalla, o un paso que no se pudo hacer): la
   // barra queda abajo al centro, con reintentar y saltar si falló; la mascota explica por qué.
   const failed = !!guide && !guide.finished && guide.statuses[guide.current] === 'failed';
+  const offerVideo = failed && guide?.error === 'noPermission' && !!video;
   if (guide && !guide.finished && (!spotlight || lost)) {
     const vw = window.innerWidth;
     const toolbar = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT, top: window.innerHeight - TOOLBAR_HEIGHT - 20, left: vw / 2 - TOOLBAR_WIDTH / 2 };
+    const watchVideo = () => {
+      if (!video) return;
+      const title = guide.title;
+      cancelGuide();
+      openVideo({ ...video, title });
+    };
+    const list = listOpen && total > 1 ? placeList(toolbar, listHeight, []) : null;
+    // Sin la mascota a la vista (apagada en la clínica, escondida o dormida), lo que ella diría
+    // (el paso actual y por qué falló —"no tenés permisos"— o que está cargando) sale en un
+    // globo propio donde estaría ella, sin tapar la barra ni la lista de pasos.
+    const say = mascotVisible
+      ? null
+      : failed
+        ? tMascot(`guideError.${offerVideo ? 'noPermissionVideo' : guide.error ?? 'targetNotFound'}`)
+        : guide.notice ? tMascot(`loading.${guide.notice}`) : null;
+    const sayHeading = say ? `${t('step', { current: stepPosition(guide, guide.current).current, total })} · ${guide.steps[guide.current]?.title ?? ''}` : undefined;
     return createPortal(
       <div data-help-ignore onPointerDown={stopPointer}>
+        {say && <StepBubble box={mascotDockRect()} obstacles={[toolbar, ...(list ? [list] : [])]} text={say} heading={sayHeading} />}
         <div
           data-help-bubble
           role="toolbar"
@@ -403,13 +451,22 @@ export function GuideSpotlight() {
           </span>
           {listToggle}
           {!failed && lost && <ToolbarButton label={t('showAgain')} onClick={() => { revealGuide(); }} primary><LocateFixed className="h-4 w-4" /></ToolbarButton>}
-          {failed && <ToolbarButton label={t('retry')} onClick={retryStep} primary><RotateCcw className="h-4 w-4" /></ToolbarButton>}
+          {offerVideo && (
+            <button
+              type="button"
+              onClick={watchVideo}
+              onMouseDown={(e) => e.preventDefault()}
+              className="flex h-7 items-center gap-1 rounded-full bg-[#7C3AED] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#6D28D9]"
+            >
+              <PlayCircle className="h-4 w-4" />
+              {t('watchVideo')}
+            </button>
+          )}
+          {failed && <ToolbarButton label={t('retry')} onClick={retryStep} primary={!offerVideo}><RotateCcw className="h-4 w-4" /></ToolbarButton>}
           {failed && <ToolbarButton label={t('skip')} onClick={() => nextStep('single')}><SkipForward className="h-4 w-4" /></ToolbarButton>}
           <ToolbarButton label={t('close')} onClick={stopGuide}><X className="h-4 w-4" /></ToolbarButton>
         </div>
-        {listOpen && total > 1 && (
-          <StepsList guide={guide} shown={guide.current} blocked={blocked} rect={placeList(toolbar, listHeight, [])} />
-        )}
+        {list && <StepsList guide={guide} shown={guide.current} blocked={blocked} rect={list} />}
       </div>,
       document.body,
     );
@@ -420,18 +477,20 @@ export function GuideSpotlight() {
   const mascot = mascotOnStage ? mascotRectFor(box, menuBox) : null;
   // Dentro de un menú, la barra se ubica respecto del menú entero (debajo o al costado).
   const anchor = menuBox ?? box;
-  const toolbar = placeToolbar(anchor, box, mascot);
+  const toolbar = placeToolbar(anchor, box, mascot, dropdowns);
   // Un campo ya completado queda señalado mientras `current` apunta al paso siguiente.
   const shown = guide ? (spotlight.mode === 'filled' ? guide.current - 1 : guide.current) : 0;
   const running = !!guide && guide.statuses[guide.current] === 'running';
   const doing = spotlight.mode === 'action' || running;
   const waitingConfirm = spotlight.mode === 'confirm';
   const position = guide ? stepPosition(guide, shown) : { current: 0, total: 0 };
-  const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, mascot ? [anchor, mascot] : [anchor], dialogBox) : null;
+  const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, [anchor, ...(mascot ? [mascot] : []), ...dropdowns], dialogBox) : null;
   // Si la lista no entra sin pisar el elemento (o su menú), o taparía el globo con la
-  // descripción, no se muestra en este paso (queda el botón para abrirla otra vez).
+  // descripción, no se muestra en este paso (queda el botón para abrirla otra vez). Si
+  // taparía un desplegable abierto, se oculta hasta que se cierre.
   const coversBubble = !!list && !!bubbleBox && intersects(list, bubbleBox, 2);
-  const showList = !!list && !intersects(list, anchor, 2) && !coversBubble && !listYields;
+  const coversDropdown = !!list && dropdowns.some((d) => intersects(list, d, 2));
+  const showList = !!list && !intersects(list, anchor, 2) && !coversBubble && !coversDropdown && !listYields;
 
   return createPortal(
     <div data-help-ignore onPointerDown={stopPointer}>
@@ -441,7 +500,7 @@ export function GuideSpotlight() {
         style={{ top: box.top, left: box.left, width: box.width, height: box.height, zIndex: Z_TOP, ['--help-level' as string]: level }}
       />
       {!mascotOnStage && (
-        <StepBubble box={box} obstacles={[toolbar, ...(menuBox ? [menuBox] : []), ...(list && showList ? [list] : [])]} text={stepSpeechText(spotlight)} />
+        <StepBubble box={box} obstacles={[toolbar, ...(menuBox ? [menuBox] : []), ...(list && showList ? [list] : []), ...dropdowns]} text={stepSpeechText(spotlight)} />
       )}
       <div
         data-help-bubble

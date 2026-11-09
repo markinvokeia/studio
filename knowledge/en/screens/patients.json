@@ -1,16 +1,29 @@
 {
   "id": "patients",
   "summary": "Patient list and their full record: details, clinical history and finances.",
-  "purpose": "Find, register and edit patients. The record gathers everything about the patient: details and notes, medical history, clinical timeline, treatment plans, instructions and prescriptions, documents, and their account (quotes, invoices and payments). From «Create» and «More actions» you log sessions, take payments, book and message them.",
+  "purpose": "Find, register and edit patients. The record gathers everything about the patient: details and notes, medical history, clinical timeline (including aesthetic sessions), treatment plans, instructions and prescriptions, documents, and their account (quotes, invoices and payments). From «Create» and «More actions» you log sessions, take payments, book and message them.",
   "tips": [
     "A phone with country code enables WhatsApp reminders.",
     "A dependent patient (minor) has a responsible contact: email and WhatsApp go to that contact.",
+    "If the guardian's phone or email is already on the record of a relative in their care when you save, choose «is a dependent of this person»: the contact moves to their record and the relative gets linked, with no temporary numbers.",
     "Allergies and ailments from the medical history show as an alert in the record's header.",
     "The Finance section shows as an account ledger (Custom) or in tabs (Normal), depending on your Preferences.",
     "Quick payment, prepayment and payments need an open cash register.",
-    "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first."
+    "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first.",
+    "The aesthetic session saves on its own and resumes at the first step still missing. Once closed it is read-only and only accepts amendments.",
+    "In aesthetics, a service can't be marked without a signature. Without clinical photo authorization the camera locks and the session can close without photos.",
+    "The maximum per session, minimum interval and expired lot warnings inform you, but don't block.",
+    "A payment can cover invoices in the clinic's other currency at the cash register's exchange rate: the register keeps the original amount and currency, and the invoice gets the converted amount. A payment with conversion can't leave a leftover."
   ],
   "elements": {
+    "patients.section.adopt-dependents": {
+      "label": "Relative in this person's care",
+      "description": "Appears when the phone or email being saved belongs to a record that can become a dependent of this person."
+    },
+    "patients.btn.adopt-dependents": {
+      "label": "Is a dependent of this person",
+      "description": "Saves, moves the repeated phone or email to this record and links the relative as a dependent."
+    },
     "patients.btn.new": {
       "label": "Create",
       "description": "Registers a new patient."
@@ -551,6 +564,258 @@
     "patients.btn.prepaid-confirm": {
       "label": "Confirm pre-payment",
       "description": "Second confirmation of the pre-payment: accepting it records the credit balance."
+    },
+    "patients.section.odontogram-dictation": {
+      "label": "Dictate findings",
+      "description": "Bar to dictate or type what you see (“caries OM en 16, corona indicada en 14”). Invoke proposes it on the teeth and nothing is recorded until you confirm."
+    },
+    "patients.field.odontogram-dictation": {
+      "label": "Dictated text",
+      "description": "Tooth, condition, surfaces and status: “indicada”, “existente” or “hoy”. Accepts ranges for bridges (“del 24 al 26”)."
+    },
+    "patients.btn.odontogram-propose": {
+      "label": "Propose",
+      "description": "Turns the text into dashed proposals on the teeth; anything already recorded is dropped automatically."
+    },
+    "patients.btn.odontogram-confirm-proposals": {
+      "label": "Confirm all",
+      "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything."
+    },
+    "patients.section.odontogram-inspector": {
+      "label": "Tooth inspector",
+      "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has (change a mark's status from its menu). With no tooth, the conditions to activate and the state of the whole mouth."
+    },
+    "patients.field.odontogram-record-as": {
+      "label": "Record as",
+      "description": "Indicated (red, to do), Existing (blue, already there) or Done today (green, done in this session). Sets the color and status of what you mark."
+    },
+    "patients.section.odontogram-tiles": {
+      "label": "Frequent conditions",
+      "description": "Tapping a condition makes it active: every tooth or surface you tap on the odontogram gets it, until you release it with Esc or by tapping it again. If a tooth was already selected, it is recorded there too."
+    },
+    "patients.field.odontogram-search": {
+      "label": "Search condition",
+      "description": "The whole condition catalog, by name or code, filtered by category."
+    },
+    "patients.btn.new-aesthetic": {
+      "label": "Aesthetic session",
+      "description": "Creates an aesthetic session: consent, photos, treatment and closing."
+    },
+    "patients.btn.timeline-add-aesthetic": {
+      "label": "Aesthetics",
+      "description": "New aesthetic session from the timeline."
+    },
+    "patients.btn.timeline-open-aesthetic": {
+      "label": "Continue session",
+      "description": "Opens the aesthetic session; a closed or void one, read-only."
+    },
+    "aesthetic-session.section.header": {
+      "label": "Aesthetic session",
+      "description": "Session header: patient, session number and the four steps."
+    },
+    "aesthetic-session.btn.step-consent": {
+      "label": "Consent step",
+      "description": "Today's services and signature."
+    },
+    "aesthetic-session.btn.step-photos": {
+      "label": "Today's photos step",
+      "description": "Photos per view and comparison."
+    },
+    "aesthetic-session.btn.step-treatment": {
+      "label": "Treatment step",
+      "description": "Map with the marks. Locked until a consent is signed."
+    },
+    "aesthetic-session.btn.step-close": {
+      "label": "Closing step",
+      "description": "What was applied, charge, next appointment and closing."
+    },
+    "aesthetic-session.section.progress": {
+      "label": "Status and progress",
+      "description": "Session status, percentage (25% per step), last save and what is missing."
+    },
+    "aesthetic-session.section.session-data": {
+      "label": "Date and doctor",
+      "description": "Session date (not in the future) and who performs it."
+    },
+    "aesthetic-session.section.services": {
+      "label": "Today's services",
+      "description": "Aesthetic services to perform and the status of their consents."
+    },
+    "aesthetic-session.btn.from-last-session": {
+      "label": "Last session",
+      "description": "Adds the services from the previous session."
+    },
+    "aesthetic-session.btn.reuse": {
+      "label": "Use earlier signature",
+      "description": "Reuses an already signed consent for that service."
+    },
+    "aesthetic-session.section.consent-text": {
+      "label": "Consent text",
+      "description": "The service's text with the patient details. What was signed is stored as is, with a SHA-256 fingerprint."
+    },
+    "aesthetic-session.section.signature": {
+      "label": "Signature",
+      "description": "Authorizations, who signs and the signature."
+    },
+    "aesthetic-session.field.risksExplained": {
+      "label": "Risks explained",
+      "description": "Required to sign."
+    },
+    "aesthetic-session.field.allowsClinicalPhotos": {
+      "label": "Photos for the clinical record",
+      "description": "Without this authorization the camera stays locked and the session can close without photos."
+    },
+    "aesthetic-session.field.allowsMarketingPhotos": {
+      "label": "Marketing photos",
+      "description": "Optional."
+    },
+    "aesthetic-session.field.signerName": {
+      "label": "Who signs",
+      "description": "The patient or their guardian."
+    },
+    "aesthetic-session.section.signature-pad": {
+      "label": "Signature area",
+      "description": "With a finger, stylus or mouse."
+    },
+    "aesthetic-session.btn.sign": {
+      "label": "Sign",
+      "description": "Signs all pending services at once."
+    },
+    "aesthetic-session.btn.treat-signed": {
+      "label": "Mark the signed ones",
+      "description": "Goes to the treatment of the signed services, even if others are unsigned."
+    },
+    "aesthetic-session.btn.to-photos": {
+      "label": "Continue to photos",
+      "description": "Enabled once every service is signed."
+    },
+    "aesthetic-session.section.photo-views": {
+      "label": "Photo views",
+      "description": "Front, left and right profile."
+    },
+    "aesthetic-session.section.photo-stage": {
+      "label": "Photo of the view",
+      "description": "Today's photo and the comparison with another session."
+    },
+    "aesthetic-session.btn.photo-take": {
+      "label": "Take photo",
+      "description": "Camera with a framing guide and the last photo see-through."
+    },
+    "aesthetic-session.btn.photo-upload": {
+      "label": "Upload photo",
+      "description": "From the device."
+    },
+    "aesthetic-session.btn.photo-align": {
+      "label": "Align photo",
+      "description": "Fits the photo to the map so the zones match."
+    },
+    "aesthetic-session.section.compare-modes": {
+      "label": "Comparison mode",
+      "description": "Slider, side by side or overlaid."
+    },
+    "aesthetic-session.btn.compare-initial": {
+      "label": "Compare with the first one",
+      "description": "Compares with the first session."
+    },
+    "aesthetic-session.section.photo-history": {
+      "label": "Earlier sessions",
+      "description": "Photos of this view in other sessions."
+    },
+    "aesthetic-session.btn.to-treatment": {
+      "label": "Continue to treatment"
+    },
+    "aesthetic-session.section.views": {
+      "label": "Region, view and background",
+      "description": "Face or body, the view and the background (model or today's photo)."
+    },
+    "aesthetic-session.section.tools": {
+      "label": "Tools",
+      "description": "Select, point, area, line, undo, redo, zones and the previous session's marks."
+    },
+    "aesthetic-session.section.map": {
+      "label": "Map",
+      "description": "Where what was applied is marked; the zone is detected on its own."
+    },
+    "aesthetic-session.section.layers": {
+      "label": "Services",
+      "description": "Active service, total and visibility. Locked without a signature."
+    },
+    "aesthetic-session.section.mark-editor": {
+      "label": "Mark details",
+      "description": "Quantity, zone, depth, technique, note, mirror and its own product or lot. The maximum, interval and expired lot warnings don't block."
+    },
+    "aesthetic-session.section.panel": {
+      "label": "Side panel",
+      "description": "Summary, notes and per-zone history."
+    },
+    "aesthetic-session.tab.summary": {
+      "label": "Summary",
+      "description": "Each service with its total, marks, product and lot."
+    },
+    "aesthetic-session.tab.notes": {
+      "label": "Notes",
+      "description": "Timestamped notes, with dictation and frequent phrases."
+    },
+    "aesthetic-session.tab.history": {
+      "label": "History",
+      "description": "What was applied to each zone in earlier sessions."
+    },
+    "aesthetic-session.section.layer-supply": {
+      "label": "Product and lot",
+      "description": "Entered once per service and apply to all its marks."
+    },
+    "aesthetic-session.btn.to-close": {
+      "label": "Go to closing"
+    },
+    "aesthetic-session.section.missing": {
+      "label": "What is missing",
+      "description": "Notices that lead to the step that solves them."
+    },
+    "aesthetic-session.section.applied": {
+      "label": "Treatment applied",
+      "description": "Services, zones, totals, lots used and today's photos."
+    },
+    "aesthetic-session.section.session-summary": {
+      "label": "Session summary",
+      "description": "Text kept on the timeline."
+    },
+    "aesthetic-session.section.billing": {
+      "label": "Charge",
+      "description": "Charge the session; then, the linked invoice with its balance and payments."
+    },
+    "aesthetic-session.section.follow-up": {
+      "label": "Aftercare and next appointment",
+      "description": "Send the aftercare by WhatsApp and schedule the suggested follow-up."
+    },
+    "aesthetic-session.btn.activity": {
+      "label": "Activity",
+      "description": "Who did what and when in the session."
+    },
+    "aesthetic-session.btn.void": {
+      "label": "Void session",
+      "description": "With a reason; it stays read-only, nothing is deleted."
+    },
+    "aesthetic-session.field.void-reason": {
+      "label": "Reason for voiding"
+    },
+    "aesthetic-session.btn.void-confirm": {
+      "label": "Confirm voiding"
+    },
+    "aesthetic-session.btn.close-session": {
+      "label": "Close session",
+      "description": "Enabled with everything signed, the photo and complete marks."
+    },
+    "aesthetic-session.btn.close-confirm": {
+      "label": "Confirm closing",
+      "description": "It becomes read-only."
+    },
+    "aesthetic-session.section.amendments": {
+      "label": "Amendments",
+      "description": "Corrections to a closed session, without erasing the original."
+    },
+    "patients.field.payment_exchange_rate": {
+      "label": "Exchange rate",
+      "description": "Units of the primary currency per unit of the secondary one. It comes from the open cash register and can be changed; on a historical payment it has to be typed in."
     }
   }
 }

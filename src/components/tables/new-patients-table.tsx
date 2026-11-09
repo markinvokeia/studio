@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import {
   Card,
@@ -115,7 +116,7 @@ export function NewPatientsTable({
           renderCard={(patient: User, _isSelected: boolean) => (
             <DataCard isSelected={_isSelected}
               title={patient.name}
-              subtitle={patient.email || patient.phone_number || patient.identity_document || ''}
+              subtitle={patient.email || formatPhoneNumber(patient.phone_number) || patient.identity_document || ''}
               badge={<Badge variant={patient.is_active ? 'default' : 'outline'}>{patient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge>}
               showArrow={!!onRowClick}
             />

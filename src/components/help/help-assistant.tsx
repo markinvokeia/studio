@@ -26,6 +26,7 @@ import { cancelGuide, configureGuideRunner, nextStep, registerGuideCondition, st
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
 import { pickPlacement, rectOf, type Rect } from '@/lib/help/placement';
+import { isNavItemAllowed } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { getHelpSettings, getOnboardingStatus, getPublishedCatalogVersion, publishCatalog } from '@/services/help-assistant';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
@@ -205,7 +206,7 @@ function HelpAssistantRoot() {
   const router = useRouter();
   const locale = useLocale();
   const { route, scope } = useCurrentHelpRoute();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, permissions, roles } = usePermissions();
   const { isOpen, tab, guide, close, setTab } = useHelpAssistant();
   const mascot = useMascot();
   const mascotRef = React.useRef(mascot);
@@ -222,11 +223,15 @@ function HelpAssistantRoot() {
   const canSeeOnboarding = hasPermission(HELP_PERMISSIONS.ONBOARDING_VIEW);
   const canSync = hasPermission(HELP_PERMISSIONS.CATALOG_SYNC);
 
-  // Runner de guías: necesita el router de Next y el locale.
+  // Runner de guías: necesita el router de Next, el locale y los permisos (para avisar que
+  // falta un permiso en vez de quedarse buscando una pantalla que el menú no muestra).
+  const accessRef = React.useRef({ permissions, roles });
+  React.useLayoutEffect(() => { accessRef.current = { permissions, roles }; });
   React.useEffect(() => {
     configureGuideRunner({
       navigate: (target) => router.push(`/${locale}${target === '/' ? '' : target}`),
       currentPath: () => stripLocale(window.location.pathname, locale),
+      canSeeNavItem: (item) => isNavItemAllowed(item, accessRef.current.permissions, accessRef.current.roles),
     });
     return () => configureGuideRunner(null);
   }, [router, locale]);

@@ -1,5 +1,6 @@
 import type {
   OdontogramCondition,
+  OdontogramMarkStatus,
   OdontogramProcedure,
   OdontogramProcedureCategory,
   OdontogramSurface,
@@ -123,20 +124,8 @@ export interface ProcedureCategoryMeta {
   icon: string;
 }
 
-/** Mobile grid order: 4 columns x 2 rows */
-export const MOBILE_CATEGORY_ORDER: ProcedureCategoryMeta[] = [
-  { id: 'restorations', icon: '🦷' },
-  { id: 'fixed-prosthesis', icon: '👑' },
-  { id: 'endodontics', icon: '↕️' },
-  { id: 'implants', icon: '🔩' },
-  { id: 'periodontics', icon: '🩺' },
-  { id: 'oral-surgery', icon: '🪚' },
-  { id: 'orthodontics', icon: '⛓️' },
-  { id: 'pathologies', icon: '⚡' },
-];
-
-/** Desktop sidebar order: 2 columns */
-export const DESKTOP_CATEGORY_ORDER: ProcedureCategoryMeta[] = [
+/** Category chips of the inspector */
+export const CATEGORY_ORDER: ProcedureCategoryMeta[] = [
   { id: 'restorations', icon: '🦷' },
   { id: 'implants', icon: '🔩' },
   { id: 'fixed-prosthesis', icon: '👑' },
@@ -183,30 +172,180 @@ export const SURFACE_ABBR: Record<OdontogramSurface, string> = {
 
 export const SURFACE_ORDER: OdontogramSurface[] = ['top', 'left', 'center', 'right', 'bottom'];
 
-/** Positions (in %) of each tooth inside its anatomical arch box */
-export const ANATOMICAL_COORDS: Record<number, { left: number; top: number }> = {
-  // Upper arch permanent
-  18: { left: 11.7, top: 96.0 }, 17: { left: 12.2, top: 82.8 }, 16: { left: 13.5, top: 69.7 },
-  15: { left: 15.9, top: 56.7 }, 14: { left: 19.7, top: 44.1 }, 13: { left: 25.5, top: 32.3 },
-  12: { left: 33.5, top: 21.8 }, 11: { left: 43.4, top: 13.0 }, 21: { left: 56.6, top: 13.0 },
-  22: { left: 66.5, top: 21.8 }, 23: { left: 74.5, top: 32.3 }, 24: { left: 80.3, top: 44.1 },
-  25: { left: 84.1, top: 56.7 }, 26: { left: 86.5, top: 69.7 }, 27: { left: 87.8, top: 82.8 },
-  28: { left: 88.3, top: 96.0 },
-  // Upper arch temporal
-  55: { left: 20.0, top: 80.0 }, 54: { left: 22.0, top: 67.0 }, 53: { left: 25.5, top: 53.0 },
-  52: { left: 33.0, top: 40.0 }, 51: { left: 44.0, top: 32.0 }, 61: { left: 56.0, top: 32.0 },
-  62: { left: 67.0, top: 40.0 }, 63: { left: 74.5, top: 53.0 }, 64: { left: 78.0, top: 67.0 },
-  65: { left: 80.0, top: 80.0 },
-  // Lower arch permanent
-  48: { left: 11.7, top: 4.0 }, 47: { left: 12.2, top: 17.2 }, 46: { left: 13.5, top: 30.3 },
-  45: { left: 15.9, top: 43.3 }, 44: { left: 19.7, top: 55.9 }, 43: { left: 25.5, top: 67.7 },
-  42: { left: 33.5, top: 78.2 }, 41: { left: 43.4, top: 87.0 }, 31: { left: 56.6, top: 87.0 },
-  32: { left: 66.5, top: 78.2 }, 33: { left: 74.5, top: 67.7 }, 34: { left: 80.3, top: 55.9 },
-  35: { left: 84.1, top: 43.3 }, 36: { left: 86.5, top: 30.3 }, 37: { left: 87.8, top: 17.2 },
-  38: { left: 88.3, top: 4.0 },
-  // Lower arch temporal
-  85: { left: 20.0, top: 20.0 }, 84: { left: 22.0, top: 33.0 }, 83: { left: 25.5, top: 47.0 },
-  82: { left: 33.0, top: 60.0 }, 81: { left: 44.0, top: 68.0 }, 71: { left: 56.0, top: 68.0 },
-  72: { left: 67.0, top: 60.0 }, 73: { left: 74.5, top: 47.0 }, 74: { left: 78.0, top: 33.0 },
-  75: { left: 80.0, top: 20.0 },
+// ── Mark status (indicado · existente · hecho hoy) ──
+//
+// Many ids already carry their status (crown / crown-indicated…). A mark is stored with the id
+// that matches its status, so readers that only know the ids keep understanding it; the status
+// itself and who recorded it go in `meta`. Marks without `meta` take the default of their id.
+
+export const isAnteriorTooth = (tooth: number) => tooth % 10 <= 3;
+
+/** Same concept in each status, when the catalog has a dedicated id for it */
+/** Concepts with an id per status; named once in the inspector (`inspector.concepts.<key>`) */
+export type OdontogramConcept = 'crown' | 'endo' | 'implant' | 'extraction' | 'bridge';
+
+interface TwinGroup {
+  key: OdontogramConcept;
+  indicated: OdontogramCondition;
+  existing: OdontogramCondition;
+  /** Older or broader ids of the same concept, read as `existing` */
+  also?: OdontogramCondition[];
+}
+
+const TWIN_GROUPS: TwinGroup[] = [
+  { key: 'crown', indicated: 'crown-indicated', existing: 'crown' },
+  { key: 'endo', indicated: 'endo-indicated', existing: 'endo-done', also: ['endodontics'] },
+  { key: 'implant', indicated: 'implant-planned', existing: 'implant-osseo', also: ['implant'] },
+  { key: 'extraction', indicated: 'extraction-indicated', existing: 'missing' },
+  { key: 'bridge', indicated: 'bridge-in-progress', existing: 'fixed-prosth' },
+];
+
+/** Ids that mean something still to treat (red) when the mark has no explicit status */
+const INDICATED_BY_DEFAULT = new Set<OdontogramCondition>([
+  'caries', 'caries-incipient', 'restoration-required', 'bridge-defective', 'root-remnant',
+  'periapical-lesion', 'root-resorption', 'crown-fracture', 'root-fracture', 'fracture', 'ortho-fracture',
+  'perio-pocket',
+  ...TWIN_GROUPS.map((g) => g.indicated),
+]);
+
+function twinGroupOf(id: OdontogramCondition): TwinGroup | undefined {
+  return TWIN_GROUPS.find((g) => g.indicated === id || g.existing === id || g.also?.includes(id));
+}
+
+export function conceptOf(id: OdontogramCondition): OdontogramConcept | null {
+  return twinGroupOf(id)?.key ?? null;
+}
+
+/** The catalog to pick from: one entry per twin concept (its indicated id), legacy ids left out */
+export const PICKABLE_PROCEDURES = SELECTABLE_PROCEDURES.filter((p) => {
+  const group = twinGroupOf(p.id);
+  return !group || group.indicated === p.id;
+});
+
+export function defaultStatus(id: OdontogramCondition): OdontogramMarkStatus {
+  return INDICATED_BY_DEFAULT.has(id) ? 'indicated' : 'existing';
+}
+
+/** The id to store for a condition recorded with `status` (its twin when there is one) */
+export function conditionForStatus(id: OdontogramCondition, status: OdontogramMarkStatus): OdontogramCondition {
+  const group = twinGroupOf(id);
+  if (!group) return id;
+  if (status === 'indicated') return group.indicated;
+  return id === group.indicated ? group.existing : id;
+}
+
+/** Two ids are the same concept (a status change, not a different condition) */
+export function sameConcept(a: OdontogramCondition, b: OdontogramCondition): boolean {
+  if (a === b) return true;
+  const group = twinGroupOf(a);
+  return !!group && group === twinGroupOf(b);
+}
+
+/** How a condition is drawn on the tooth silhouette and its 5-surface diagram */
+export type ToothRender =
+  | 'surface' | 'incipient' | 'sealant'
+  | 'crown' | 'crown-tmp' | 'canals' | 'post' | 'implant' | 'cross' | 'bridge' | 'removable'
+  | 'fracture' | 'root-fracture' | 'apex' | 'resorption' | 'root-remnant'
+  | 'recession' | 'enlargement' | 'pocket' | 'furcation' | 'mobility' | 'bracket' | 'wire'
+  | 'badge';
+
+const RENDERS: Partial<Record<OdontogramCondition, ToothRender>> = {
+  'caries-incipient': 'incipient',
+  sealant: 'sealant',
+  crown: 'crown', 'crown-indicated': 'crown', prosthesis: 'crown',
+  'crown-tmp': 'crown-tmp',
+  'endo-done': 'canals', 'endo-indicated': 'canals', endodontics: 'canals',
+  post: 'post', 'post-fiber': 'post', 'root-post': 'post',
+  'implant-osseo': 'implant', 'implant-planned': 'implant', implant: 'implant',
+  missing: 'cross', 'extraction-indicated': 'cross', edentulism: 'cross',
+  'fixed-prosth': 'bridge', 'bridge-in-progress': 'bridge', 'bridge-defective': 'bridge',
+  'rem-prost': 'removable',
+  fracture: 'fracture', 'crown-fracture': 'fracture', 'ortho-fracture': 'fracture',
+  'root-fracture': 'root-fracture',
+  'periapical-lesion': 'apex',
+  'root-resorption': 'resorption',
+  'root-remnant': 'root-remnant',
+  'gingival-recession': 'recession',
+  'gingival-enlargement': 'enlargement',
+  'perio-pocket': 'pocket',
+  furcation: 'furcation',
+  'mobility-1': 'mobility', 'mobility-2': 'mobility', 'mobility-3': 'mobility',
+  bracket: 'bracket', 'fixed-ortho': 'bracket',
+  'fixed-retainer': 'wire',
 };
+
+export function getRender(id: OdontogramCondition): ToothRender {
+  const render = RENDERS[id];
+  if (render) return render;
+  return getProcedure(id)?.appliesTo === 'surface' ? 'surface' : 'badge';
+}
+
+/** Bridges span several teeth of one arch */
+export const isRangeCondition = (id: OdontogramCondition) => getRender(id) === 'bridge';
+
+/** Condition with no physical tooth left (the silhouette is dimmed) */
+export const isAbsenceCondition = (id: OdontogramCondition) => id === 'missing' || id === 'edentulism';
+
+/** The eight tiles at hand in the inspector; the rest is in the search and the categories */
+export interface FrequentTile {
+  id: OdontogramCondition;
+  /** Always recorded with this status, whatever "Registrar como" says */
+  fixedStatus?: OdontogramMarkStatus;
+}
+
+export const FREQUENT_TILES: FrequentTile[] = [
+  { id: 'caries' },
+  { id: 'resin' },
+  { id: 'endo-indicated' },
+  { id: 'crown-indicated' },
+  { id: 'extraction-indicated' },
+  { id: 'missing', fixedStatus: 'existing' },
+  { id: 'implant-planned' },
+  { id: 'bridge-in-progress' },
+];
+
+/** Screen letter of a surface for this tooth (V, M, D, P/L, O/I) */
+export function surfaceLetter(tooth: number, surface: OdontogramSurface): string {
+  if (surface === 'center') return isAnteriorTooth(tooth) ? 'I' : 'O';
+  if (surface === 'bottom') return isUpperTooth(tooth) ? 'P' : 'L';
+  return SURFACE_ABBR[surface];
+}
+
+/** Surface for a letter typed or dictated for this tooth (`O`/`I` and `P`/`L` are the same face) */
+export function surfaceFromLetter(letter: string): OdontogramSurface | null {
+  switch (letter.toUpperCase()) {
+    case 'V': case 'B': return 'top';
+    case 'P': case 'L': return 'bottom';
+    case 'M': return 'left';
+    case 'D': return 'right';
+    case 'O': case 'I': return 'center';
+    default: return null;
+  }
+}
+
+export function isValidTooth(tooth: number): boolean {
+  const q = Math.floor(tooth / 10);
+  const d = tooth % 10;
+  return (q >= 1 && q <= 4 && d >= 1 && d <= 8) || (q >= 5 && q <= 8 && d >= 1 && d <= 5);
+}
+
+/** Teeth of an arch in screen order (patient's right → left) */
+export const UPPER_PERMANENT = [...PERMANENT_UPPER_RIGHT, ...PERMANENT_UPPER_LEFT];
+export const LOWER_PERMANENT = [...PERMANENT_LOWER_RIGHT, ...PERMANENT_LOWER_LEFT];
+export const UPPER_TEMPORAL = [...TEMPORAL_UPPER_RIGHT, ...TEMPORAL_UPPER_LEFT];
+export const LOWER_TEMPORAL = [...TEMPORAL_LOWER_RIGHT, ...TEMPORAL_LOWER_LEFT];
+
+/** The arch (in screen order) a tooth belongs to */
+export function archOf(tooth: number): number[] {
+  if (isTemporalTooth(tooth)) return isUpperTooth(tooth) ? UPPER_TEMPORAL : LOWER_TEMPORAL;
+  return isUpperTooth(tooth) ? UPPER_PERMANENT : LOWER_PERMANENT;
+}
+
+/** Teeth from `a` to `b` (inclusive) along their arch; empty when they are in different arches */
+export function teethBetween(a: number, b: number): number[] {
+  const arch = archOf(a);
+  const i = arch.indexOf(a);
+  const j = arch.indexOf(b);
+  if (i < 0 || j < 0) return [];
+  return arch.slice(Math.min(i, j), Math.max(i, j) + 1);
+}

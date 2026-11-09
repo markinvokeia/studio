@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import { CheckCircle2, Loader2, Printer } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
@@ -59,6 +60,7 @@ export function StepConfirmation({
   isSales,
   onClose,
 }: StepConfirmationProps) {
+  const t = useTranslations('BillingWizard.confirmation');
   const { toast } = useToast();
   const { printInvoice, printPayment } = usePrintDocument();
 
@@ -88,7 +90,7 @@ export function StepConfirmation({
 
   const handlePrintPayment = (payment: CreatedPayment) => {
     if (!payment.transactionId) {
-      toast({ title: 'No se encontró el recibo del pago', variant: 'destructive' });
+      toast({ title: t('receiptNotFound'), variant: 'destructive' });
       return;
     }
     const p: Payment = {
@@ -140,7 +142,7 @@ export function StepConfirmation({
         </div>
         <div className="text-center space-y-0.5">
           <h3 className="text-base font-semibold">
-            {hasPayments ? '¡Cobro registrado!' : '¡Factura creada!'}
+            {hasPayments ? t('paymentTitle') : t('invoiceTitle')}
           </h3>
           {patientName && <p className="text-sm text-muted-foreground">{patientName}</p>}
         </div>
@@ -152,7 +154,7 @@ export function StepConfirmation({
         {invoices && invoices.length > 0 ? (
           invoices.map((inv) => (
             <div key={inv.id} className="flex justify-between items-center px-4 py-2.5">
-              <span className="text-muted-foreground shrink-0">Factura</span>
+              <span className="text-muted-foreground shrink-0">{t('invoice')}</span>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-medium truncate">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
                 <span className="tabular-nums whitespace-nowrap font-semibold text-emerald-600">
@@ -162,7 +164,7 @@ export function StepConfirmation({
                   type="button"
                   onClick={() => handlePrintInvoice(inv)}
                   className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Imprimir factura"
+                  title={t('printInvoice')}
                 >
                   <Printer className="h-3.5 w-3.5" />
                 </button>
@@ -171,7 +173,7 @@ export function StepConfirmation({
           ))
         ) : invoiceDocNo ? (
           <div className="flex justify-between items-center px-4 py-2.5">
-            <span className="text-muted-foreground shrink-0">Factura</span>
+            <span className="text-muted-foreground shrink-0">{t('invoice')}</span>
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-medium truncate">#{invoiceDocNo}</span>
               {total !== undefined && (
@@ -184,7 +186,7 @@ export function StepConfirmation({
                   type="button"
                   onClick={() => handlePrintInvoiceById(invoiceId!, invoiceDocNo)}
                   className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Imprimir factura"
+                  title={t('printInvoice')}
                 >
                   <Printer className="h-3.5 w-3.5" />
                 </button>
@@ -202,9 +204,9 @@ export function StepConfirmation({
             >
               {/* Left: label */}
               <span className="text-muted-foreground shrink-0 flex items-center gap-1.5 pt-0.5">
-                {payments.length > 1 ? `Pago ${paymentNumberByIndex.get(i) ?? i + 1}` : 'Pago'}
+                {payments.length > 1 ? t('paymentNumber', { number: paymentNumberByIndex.get(i) ?? i + 1 }) : t('payment')}
                 {p.isNew && (
-                  <span className="text-[10px] text-muted-foreground">(en esta sesión)</span>
+                  <span className="text-[10px] text-muted-foreground">{t('thisSession')}</span>
                 )}
               </span>
 
@@ -216,10 +218,10 @@ export function StepConfirmation({
                     <span className="truncate">
                       {p.docNo
                         ? `#${p.docNo}`
-                        : (p.transactionType === 'payment_allocation' || p.transactionType === 'credit_note_allocation' || p.methodName === 'Crédito')
-                          ? 'Crédito aplicado'
+                        : (p.transactionType === 'payment_allocation' || p.transactionType === 'credit_note_allocation' || p.methodName === t('credit'))
+                          ? t('creditApplied')
                           : p.transactionId
-                            ? `Ref. #${p.transactionId}`
+                            ? t('reference', { id: p.transactionId })
                             : '—'}
                     </span>
                     {p.amount != null && p.currency && (
@@ -243,7 +245,7 @@ export function StepConfirmation({
                     type="button"
                     onClick={() => handlePrintPayment(p)}
                     className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5"
-                    title="Imprimir recibo"
+                    title={t('printReceipt')}
                   >
                     <Printer className="h-3.5 w-3.5" />
                   </button>
@@ -259,18 +261,18 @@ export function StepConfirmation({
             {appliedCredits.map((c) => (
               <div key={c.source_id} className="flex justify-between items-center px-4 py-2.5 text-sm">
                 <span className="text-muted-foreground shrink-0">
-                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Crédito'} #{c.source_id}
+                  {c.type === 'credit_note' ? t('creditNote') : t('credit')} #{c.source_id}
                 </span>
                 <span className="tabular-nums font-medium text-emerald-600">
-                  − {new Intl.NumberFormat('es-UY', { style: 'currency', currency: c.currency }).format(c.amount)}
+                  − {fmtCurrency(c.amount, c.currency)}
                 </span>
               </div>
             ))}
             {creditsTotal !== undefined && creditsTotal > 0 && (
               <div className="flex justify-between px-4 py-2.5 text-sm font-semibold">
-                <span>Total créditos aplicados</span>
+                <span>{t('totalCredits')}</span>
                 <span className="tabular-nums text-emerald-600">
-                  − {new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(creditsTotal)}
+                  − {fmtCurrency(creditsTotal, currency)}
                 </span>
               </div>
             )}
@@ -280,7 +282,7 @@ export function StepConfirmation({
         {/* Total pendiente */}
         {pendingAfter !== undefined && (
           <div className="flex justify-between px-4 py-2.5 font-semibold">
-            <span>Total pendiente</span>
+            <span>{t('totalPending')}</span>
             <span className={`tabular-nums ${pendingAfter > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
               {fmtCurrency(pendingAfter, currency)}
             </span>

@@ -602,4 +602,32 @@ export const API_ROUTES = {
         /** Ajustes del asistente que fija la clínica (mascota visible). */
         SETTINGS:            '/help/settings',
     },
+    // Ficha estética — flujo n8n "Aesthetic Record" (database/scripts/151)
+    AESTHETIC_RECORD: {
+        SESSIONS:         '/aesthetic/sessions',
+        SESSION_SAVE:     '/aesthetic/sessions/save',
+        SESSION_DELETE:   '/aesthetic/sessions/delete',
+        SESSION_CLOSE:    '/aesthetic/sessions/close',
+        SESSION_VOID:     '/aesthetic/sessions/void',
+        SESSION_LINK_INVOICE: '/aesthetic/sessions/link_invoice',
+        NOTE_ADD:         '/aesthetic/notes/add',
+        PHOTO_UPLOAD:     '/aesthetic/photos/upload',
+        PHOTO_DELETE:     '/aesthetic/photos/delete',
+        PHOTO_ALIGNMENT:  '/aesthetic/photos/alignment',
+        CONSENTS_SIGN:    '/aesthetic/consents/sign',
+        CONSENTS_REUSE:   '/aesthetic/consents/reuse',
+        FILE:             '/aesthetic/file',
+        SERVICE_CONFIGS:  '/services/aesthetic-config',
+        SERVICE_CONFIG_SAVE: '/services/aesthetic-config/save',
+        CONSENT_TEMPLATES:   '/services/consent-templates',
+        CONSENT_TEMPLATE_SAVE: '/services/consent-templates/save',
+    },
+    MEASUREMENT_UNITS: {
+        LIST:   '/measurement-units',
+        SAVE:   '/measurement-units/save',
+        DELETE: '/measurement-units/delete',
+        /** Unit of each service (service_catalog.unit_id) */
+        SERVICE_UNITS: '/services/units',
+        SERVICE_UNIT_SAVE: '/services/unit/save',
+    },
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { addDays, format, isSameDay, startOfDay } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, isSameDay, startOfDay } from 'date-fns';
 import {
   ArrowLeft,
   CalendarCheck,
@@ -28,6 +28,12 @@ import { useToast } from '@/hooks/use-toast';
 import { formatMoney } from '@/lib/currency';
 import type { Appointment, BookableService, ClinicSchedule, User } from '@/lib/types';
 import { getDateFnsLocale } from '@/lib/locale';
+import {
+  DEFAULT_BOOKING_WINDOW_UNIT,
+  DEFAULT_BOOKING_WINDOW_VALUE,
+  getBookingLimitDate,
+  getBookingWindowRejection,
+} from '@/lib/patient-booking-window';
 import { cn } from '@/lib/utils';
 import {
   createPatientAppointment,
@@ -47,8 +53,6 @@ import {
 } from '@/services/patient-services';
 import { fetchPublicClinicInfo, fetchPublicSedeSchedules } from '@/services/public-clinic';
 
-/** Cuántos días hacia adelante puede elegir el paciente. */
-const DAYS_AHEAD = 30;
 /** Días visibles a la vez en la tira de fechas. */
 const DAYS_PER_PAGE = 7;
 
@@ -113,6 +117,10 @@ export function PatientBookingPanel({
   const [services, setServices] = React.useState<BookableService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = React.useState<string[]>([]);
   const [servicesFailed, setServicesFailed] = React.useState(false);
+  const [bookingWindow, setBookingWindow] = React.useState({
+    unit: DEFAULT_BOOKING_WINDOW_UNIT,
+    value: DEFAULT_BOOKING_WINDOW_VALUE,
+  });
   const [pageStart, setPageStart] = React.useState(0);
   const [selectedDate, setSelectedDate] = React.useState<Date>(today);
   const [slots, setSlots] = React.useState<BookingSlot[]>([]);
@@ -138,6 +146,9 @@ export function PatientBookingPanel({
       setServiceSelectionEnabled(selectionEnabled);
       setShowPricing(clinic?.show_pricing === true);
       setDefaultService(clinic?.default_service ?? null);
+      if (clinic) {
+        setBookingWindow({ unit: clinic.booking_window_unit, value: clinic.booking_window_value });
+      }
 
       // El catálogo se pide siempre que la clínica habilitó elegir, también al
       // reagendar: mover una cita es la ocasión típica para corregir lo que se
@@ -290,9 +301,22 @@ export function PatientBookingPanel({
     loadSlots(selectedDate, schedules, selectedSede?.calendarIds ?? [], slotMinutes);
   }, [isLoadingSetup, step, selectedDate, schedules, selectedSede, slotMinutes, loadSlots]);
 
+  const limitDate = React.useMemo(
+    () => getBookingLimitDate(today, bookingWindow.unit, bookingWindow.value),
+    [today, bookingWindow],
+  );
+  /** Días que se pueden elegir, hoy y la fecha límite incluidos. */
+  const totalDays = differenceInCalendarDays(limitDate, today) + 1;
+  const limitLabel = format(limitDate, 'PPP', { locale: dateLocale });
+
+  // La tira se corta en la fecha límite: la última página puede tener menos de
+  // siete días, y no se puede ofrecer uno que el backend después va a rechazar.
   const days = React.useMemo(
-    () => Array.from({ length: DAYS_PER_PAGE }, (_, i) => addDays(today, pageStart + i)),
-    [today, pageStart],
+    () =>
+      Array.from({ length: Math.min(DAYS_PER_PAGE, totalDays - pageStart) }, (_, i) =>
+        addDays(today, pageStart + i),
+      ),
+    [today, pageStart, totalDays],
   );
 
   const availableCount = slots.filter((s) => s.isAvailable).length;
@@ -361,10 +385,15 @@ export function PatientBookingPanel({
       }
       onBooked({ date: bookedDate, time: selectedSlot.time });
     } catch (error) {
+      const rejectedLimit = getBookingWindowRejection(error);
       toast({
         variant: 'destructive',
         title: t('errorTitle'),
-        description: error instanceof Error ? error.message : undefined,
+        description: rejectedLimit
+          ? t('windowExceeded', { date: format(rejectedLimit, 'PPP', { locale: dateLocale }) })
+          : error instanceof Error
+            ? error.message
+            : undefined,
       });
     } finally {
       setIsSubmitting(false);
@@ -516,13 +545,14 @@ export function PatientBookingPanel({
                   variant="ghost"
                   size="icon"
                   className="h-11 w-8 shrink-0"
-                  disabled={pageStart + DAYS_PER_PAGE >= DAYS_AHEAD}
+                  disabled={pageStart + DAYS_PER_PAGE >= totalDays}
                   onClick={() => setPageStart((p) => p + DAYS_PER_PAGE)}
                   aria-label={t('nextDays')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">{t('windowLimit', { date: limitLabel })}</p>
             </div>
 
             <div className="space-y-2">
@@ -543,7 +573,8 @@ export function PatientBookingPanel({
                 </div>
               ) : slots.length === 0 ? (
                 <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                  {t('closedDay')}
+                  {/* Sin otro día al cual ir, "probá con otro" sería un callejón sin salida. */}
+                  {totalDays === 1 ? t('windowLastDay') : t('closedDay')}
                 </p>
               ) : (
                 <>

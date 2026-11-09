@@ -17,6 +17,7 @@ import { findHelpTarget, waitForHelpTarget } from '@/lib/help/guide-engine';
 import { revealGuide, stopGuide } from '@/lib/help/guide-runner';
 import { MASCOT_SIZE, menuRectOf, placeGuideMascot, placeGuideMascotBesideMenu, rectOf } from '@/lib/help/placement';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
+import { useGuideVideo } from '@/stores/help-video-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 
@@ -41,6 +42,19 @@ const GUIDE_SPEECH_ID = 'guide-step';
 /** Lo señalado desapareció (mismo plazo que la barra en GuideSpotlight): deja de señalar y avisa. */
 const LOST_AFTER_MS = 1200;
 
+
+/**
+ * La mascota (o su ícono en el riel) es la puerta de entrada al asistente: despierta o sale
+ * del escondite y, con una guía en curso, la vuelve a mostrar (la repite si se perdió); si
+ * no, abre el chat. Nunca queda un clic sin respuesta.
+ */
+export function activateAssistant(m: MascotController) {
+  m.notifyRequest();
+  if (m.enabled && m.phase === 'sleeping') void m.wake();
+  else if (m.phase === 'peeking') void m.show();
+  if (revealGuide()) return;
+  useHelpAssistant.getState().open();
+}
 
 /** Márgenes para el anclaje: el riel derecho (si está expandido) y el sidebar. */
 function useMascotInsets() {
@@ -82,23 +96,13 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
   const setHome = useMascotHome((s) => s.setHome);
   const insets = useMascotInsets();
   const canUse = !isLoading && hasPermission(HELP_PERMISSIONS.ASSISTANT_USE);
+  const hidden = !canUse || !showMascot || !clinicVisible;
   // Sólo mueve la boca si la voz está prendida (control junto a la mascota); si no, señala callada.
   const voiceMuted = useAssistantVoice((s) => s.muted);
   const [canSpeak, setCanSpeak] = React.useState(false);
   React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
   // Parada encima de lo que señala (un calendario entero): deja pasar los clics a la pantalla.
   const [overTarget, setOverTarget] = React.useState(false);
-
-  // La mascota es la puerta de entrada al asistente: despierta o sale del escondite y, con
-  // una guía en curso, la vuelve a mostrar (la repite si se perdió); si no, abre el chat.
-  // Nunca queda un clic sin respuesta.
-  const handleClick = React.useCallback((m: MascotController) => {
-    m.notifyRequest();
-    if (m.enabled && m.phase === 'sleeping') void m.wake();
-    else if (m.phase === 'peeking') void m.show();
-    if (revealGuide()) return;
-    useHelpAssistant.getState().open();
-  }, []);
 
   return (
     <MascotProvider
@@ -107,11 +111,13 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       insets={insets}
       idleAfterMs={IDLE_AFTER_MS}
       sleepAfterMs={SLEEP_AFTER_MS}
-      enabled={showMascot}
+      // Sin mascota en la clínica (o sin acceso al asistente) queda apagada: dormida, nunca
+      // se asoma por el riel. Mientras cargan los permisos no se apaga (despertaría festejando).
+      enabled={showMascot && clinicVisible && (isLoading || canUse)}
       // Escondida desde sus iconos (o apagada en Preferencias): queda dormida en el riel.
-      hidden={!canUse || !showMascot || !clinicVisible}
+      hidden={hidden}
       zIndex={guiding ? MASCOT_Z_GUIDING : MASCOT_Z}
-      onMascotClick={handleClick}
+      onMascotClick={activateAssistant}
       label={t('label')}
       // Arrastrándola elige su lugar: a la derecha se esconde tras el riel, a la izquierda
       // tras el menú, arriba o abajo tras el panel del contenido (zonas en header, sidebar y layout).
@@ -126,13 +132,13 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       canTalk={canSpeak && !voiceMuted}
     >
       {children}
-      {canUse && <MascotBridge onOverTargetChange={setOverTarget} />}
+      {canUse && <MascotBridge hidden={hidden} onOverTargetChange={setOverTarget} />}
     </MascotProvider>
   );
 }
 
 /** Conecta la mascota con el asistente: rutas, panel, guías y resultados. */
-function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boolean) => void }) {
+function MascotBridge({ hidden, onOverTargetChange }: { hidden: boolean; onOverTargetChange: (over: boolean) => void }) {
   const t = useTranslations('HelpAssistant.mascot');
   const locale = useLocale();
   const { toasts } = useToast();
@@ -147,8 +153,15 @@ function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boole
   const guideFinishedKey = useHelpAssistant((s) => (s.guide?.finished ? s.guide.key : null));
   const guideFailedError = useHelpAssistant((s) => (s.guide && s.guide.statuses[s.guide.current] === 'failed' ? s.guide.error ?? 'targetNotFound' : null));
   const guideTitle = useHelpAssistant((s) => s.guide?.title ?? '');
+  const guideUseCaseId = useHelpAssistant((s) => s.guide?.useCaseId);
   const isOpen = useHelpAssistant((s) => s.isOpen);
   const guideLoading = useHelpAssistant((s) => s.guide?.notice ?? null);
+
+  // Escondida (tras el riel, dormida o apagada) no habla: la voz se corta y no lee nada
+  // hasta que vuelve a escena. La preferencia de voz de la persona no cambia.
+  const offStage = hidden || m.phase === 'sleeping' || m.phase === 'peeking';
+  React.useEffect(() => { useAssistantVoice.getState().setSuppressed(offStage); }, [offStage]);
+  React.useEffect(() => () => useAssistantVoice.getState().setSuppressed(true), []);
 
   // Al cambiar de página cruza al otro lado, salvo mientras guía (hasta que termina de
   // festejar) o acompaña al chat: ahí la ruta la maneja la guía o el panel.
@@ -288,12 +301,14 @@ function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boole
   }, [guideFinishedKey, guideTitle, t, locale]);
 
   // Un paso que no se pudo hacer: triste y explica por qué (la barra queda para reintentar o saltar).
+  // Sin permiso, si la guía tiene video lo ofrece como alternativa (botón en la barra).
+  const hasVideo = !!useGuideVideo(guideUseCaseId);
   React.useEffect(() => {
     if (!guideFailedError) return;
-    const why = t(`guideError.${guideFailedError}`);
+    const why = t(`guideError.${guideFailedError === 'noPermission' && hasVideo ? 'noPermissionVideo' : guideFailedError}`);
     void speakAssistant(GUIDE_SPEECH_ID, why, locale);
-    void mRef.current.say(why, { mood: 'sad', duration: 6000 });
-  }, [guideFailedError, t, locale]);
+    void mRef.current.say(why, { mood: 'sad', duration: 8000 });
+  }, [guideFailedError, hasVideo, t, locale]);
 
   // Cualquier error de la app (un guardado que falló, un timeout): triste, con una frase corta.
   const seenToasts = React.useRef(new Set<string>());

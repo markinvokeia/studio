@@ -32,18 +32,29 @@ function readMuted(): boolean {
 
 interface AssistantVoiceState {
   muted: boolean;
+  /**
+   * La mascota no está a la vista (escondida, dormida o apagada): no habla, sin tocar la
+   * preferencia `muted`. Al volver a escena habla otra vez si la voz estaba prendida.
+   */
+  suppressed: boolean;
   /** Id del mensaje que se está leyendo. */
   speakingId: string | null;
   setMuted: (muted: boolean) => void;
+  setSuppressed: (suppressed: boolean) => void;
 }
 
 export const useAssistantVoice = create<AssistantVoiceState>((set) => ({
   muted: readMuted(),
+  suppressed: false,
   speakingId: null,
   setMuted: (muted) => {
     try { window.localStorage.setItem(MUTED_KEY, muted ? '1' : '0'); } catch { /* sin storage queda en memoria */ }
     if (muted) stopAssistantSpeech();
     set({ muted });
+  },
+  setSuppressed: (suppressed) => {
+    if (suppressed) stopAssistantSpeech();
+    set({ suppressed });
   },
 }));
 
@@ -104,12 +115,12 @@ export function stopAssistantSpeech() {
 
 /**
  * Lee el texto en voz alta (cortando lo que se estuviera leyendo). Resuelve al
- * terminar o al cortarse; resuelve `false` si no se leyó (silenciado o sin soporte).
+ * terminar o al cortarse; resuelve `false` si no se leyó (silenciado, mascota escondida o sin soporte).
  */
 export function speakAssistant(id: string, text: string, locale: string): Promise<boolean> {
-  const { muted } = useAssistantVoice.getState();
+  const { muted, suppressed } = useAssistantVoice.getState();
   const speech = toSpeechText(text);
-  if (muted || !speech || !isSpeechSupported()) return Promise.resolve(false);
+  if (muted || suppressed || !speech || !isSpeechSupported()) return Promise.resolve(false);
   stopAssistantSpeech();
   const mine = ++session;
   const synth = window.speechSynthesis;

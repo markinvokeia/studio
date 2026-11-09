@@ -3,6 +3,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -343,7 +344,7 @@ function ProvidersTableNarrow({
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -934,13 +935,13 @@ function ProvidersPageContent() {
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
                     >
                       <WhatsAppIcon className="h-3 w-3" />
-                      {selectedProvider.phone_number}
+                      {formatPhoneNumber(selectedProvider.phone_number)}
                     </button>
                   )}
                   {isValidString(selectedProvider.alternative_phone) && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
-                      {selectedProvider.alternative_phone}
+                      {formatPhoneNumber(selectedProvider.alternative_phone)}
                     </span>
                   )}
                   {isValidString(selectedProvider.identity_document) && (
@@ -1018,7 +1019,7 @@ function ProvidersPageContent() {
                               )} />
                               <FormField control={detailForm.control} name="phone" render={({ field }) => (
                                 <FormItem><FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel><FormControl>
-                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                                 </FormControl><FormMessage /></FormItem>
                               )} />
                               <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -1029,7 +1030,7 @@ function ProvidersPageContent() {
                               )} />
                               <FormField control={detailForm.control} name="alternative_phone" render={({ field }) => (
                                 <FormItem><FormLabel>{t('ProvidersPage.createDialog.alternative_phone')}</FormLabel><FormControl>
-                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                                 </FormControl><FormMessage /></FormItem>
                               )} />
                               <FormField control={detailForm.control} name="bank_account" render={({ field }) => (
@@ -1208,7 +1209,6 @@ function ProvidersPageContent() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />
@@ -1253,7 +1253,6 @@ function ProvidersPageContent() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

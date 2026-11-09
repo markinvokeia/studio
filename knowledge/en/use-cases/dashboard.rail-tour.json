@@ -69,7 +69,7 @@
     {
       "id": "assistant",
       "title": "Assistant",
-      "details": "If you hid the mascot, it's asleep here."
+      "details": "Opens the assistant. If you hid the mascot, it waves at you from here now and then: tap it and it comes back."
     },
     {
       "id": "collapse",

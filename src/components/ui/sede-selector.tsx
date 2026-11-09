@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface SedeSelectorProps {
     value?: string;
@@ -23,13 +24,17 @@ interface SedeSelectorProps {
 export function SedeSelector({
     value,
     onValueChange,
-    placeholder = 'Buscar sede...',
-    triggerText = 'Seleccionar sede...',
-    emptyText = 'No hay resultados.',
+    placeholder: placeholderProp,
+    triggerText: triggerTextProp,
+    emptyText: emptyTextProp,
     className,
     disabled = false,
     'aria-invalid': ariaInvalid,
 }: SedeSelectorProps) {
+    const t = useTranslations('EntitySelectors');
+    const placeholder = placeholderProp ?? t('searchSede');
+    const triggerText = triggerTextProp ?? t('selectSede');
+    const emptyText = emptyTextProp ?? t('noResults');
     const { sedes } = useAuth();
     const [open, setOpen] = React.useState(false);
 

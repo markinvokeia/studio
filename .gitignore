@@ -58,6 +58,14 @@ database/drivers/*.jar
 # MCP local config (contains DB credentials) — commit .mcp.json.example instead
 .mcp.json
 
+.mcp.json
+
+# Conexión local a la DB de DEV vía psql (contiene credenciales) — versionar .devdb.env.example
+.devdb.env
+
+# Variables de entorno locales (contienen credenciales) — versionar .env.example
+.env.local
+
 # Videos demo del asistente (scripts/videos): se publican en GCS, no se versionan
 /videos/
 /public/help-videos/

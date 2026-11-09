@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
@@ -72,7 +73,7 @@ export function DoctorDetailSheet({
                 {doctorPhone && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Phone className="h-3 w-3" />
-                    {doctorPhone}
+                    {formatPhoneNumber(doctorPhone)}
                   </span>
                 )}
               </div>

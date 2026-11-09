@@ -31,13 +31,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
-import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
+import { useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
@@ -798,7 +798,7 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
               name: service.name || '',
               price: Number(service.price || 0),
               category: '',
-              duration_minutes: 30,
+              duration_minutes: Number(service.duration_minutes) || 0,
               is_active: true,
             }))
           : [],
@@ -832,6 +832,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
   // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
   const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
+  const canCreateAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -879,6 +880,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
+  // Opens the aesthetic session sheet of the timeline, linked to the selected appointment
+  const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
   // Each agent request gets its own key so the odontogram applies it even when it is already open
   const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const odontogramPrefillKeyRef = React.useRef(0);
@@ -1164,6 +1167,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
   }, [loadAppointments]);
 
+  const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
+
+  // Pasa la cita a "completada" al guardar su sesión. Si el paciente no tiene el
+  // documento que exige ese estado, la sesión queda guardada y la cita conserva su
+  // estado hasta que se cargue el documento desde el aviso (ahí se completa sola).
+  const completeSelectedAppointment = React.useCallback(async (appointment: Appointment) => {
+    const userId = String(user?.id ?? '');
+    markAppointmentLocallyUpdated(userId, appointment.id);
+    const completed = await completeAppointmentWithDocumentCheck(appointment, () => {
+      markAppointmentLocallyUpdated(userId, appointment.id);
+      updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+      void loadAppointments(true);
+    });
+    if (completed) updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+  }, [completeAppointmentWithDocumentCheck, loadAppointments, user?.id]);
+
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
@@ -1184,23 +1203,16 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      // Si el paciente no tiene el documento que exige ese estado, la sesión queda
-      // guardada y la cita conserva su estado.
-      const completed = await updateAppointmentStatusWithDocumentCheck({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
-      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
+      await completeSelectedAppointment(selectedAppointment);
     }
 
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
+    completeSelectedAppointment,
     createSession,
     isSessionEditingBlockedByDate,
-    linkedSession?.archivos_adjuntos,
-    linkedSession?.sesion_id,
+    linkedSession,
     loadAppointments,
     loadLinkedSession,
     selectedAppointment,
@@ -1338,15 +1350,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      const completed = await updateAppointmentStatusWithDocumentCheck({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
-      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
+      await completeSelectedAppointment(selectedAppointment);
     }
     await loadAppointments(true);
-  }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
+  }, [completeSelectedAppointment, isSessionEditingBlockedByDate, loadAppointments, selectedAppointment]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
@@ -1574,6 +1581,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <span className="hidden sm:inline">{t('focus.prescribe')}</span>
                 </Button>
               )}
+              {activePanel === 'sessions' && canCreateAesthetic && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
+                  <Sparkles className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.aestheticSession')}</span>
+                </Button>
+              )}
             </div>
 
             {/* Content */}
@@ -1598,6 +1611,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     onRefreshAll={handleRefreshSessions}
                     onLoadSessionAttachment={getSessionAttachment}
                     linkedAppointmentId={selectedAppointment.id}
+                    createAestheticTrigger={createAestheticTrigger}
+                    onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
+                    aestheticDefaults={{ doctorId: sessionDoctorId || undefined, doctorName: sessionDoctorName || undefined, appointmentId: selectedAppointment.id }}
                     isDoctorMode
                     hideToolbar
                     readOnly={!canManageSessions}
@@ -1612,6 +1628,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <Button variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="flex-1">
                       <Pill className="mr-2 h-4 w-4" />
                       {t('focus.prescribe')}
+                    </Button>
+                  )}
+                  {canCreateAesthetic && (
+                    <Button variant="outline" size="icon" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.aestheticSession')} title={t('focus.aestheticSession')}>
+                      <Sparkles className="h-4 w-4" />
                     </Button>
                   )}
                 </div>

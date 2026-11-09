@@ -1,3 +1,5 @@
+import { useLocale } from 'next-intl';
+import * as React from 'react';
 import { create } from 'zustand';
 
 import { getHelpVideos } from '@/services/help-assistant';
@@ -40,3 +42,12 @@ export const useHelpVideoList = create<HelpVideoListStore>((set, get) => ({
       .finally(() => pending.delete(locale));
   },
 }));
+
+/** Video grabado de una guía en el idioma de la app (lo pide si todavía no se cargó). */
+export function useGuideVideo(useCaseId: string | undefined): HelpVideo | undefined {
+  const locale = useLocale();
+  const video = useHelpVideoList((s) => (useCaseId ? s.byLocale[locale]?.[useCaseId] : undefined));
+  const load = useHelpVideoList((s) => s.load);
+  React.useEffect(() => { if (useCaseId) load(locale); }, [load, locale, useCaseId]);
+  return video;
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, ExternalLink, Link2, Loader2, Phone, RefreshCw, Unlink, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, Phone, RefreshCw, Unlink, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -16,10 +16,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataCard } from '@/components/ui/data-card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PatientDependentLinkPicker } from '@/components/patients/patient-dependent-link-picker';
 import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
@@ -31,12 +30,11 @@ import {
   fetchPatientById,
   fetchPatientDependents,
   resolveDependencyErrorCode,
-  searchDependentCandidates,
   setPatientResponsible,
 } from '@/components/patients/patient-form-utils';
 import { getErrorMessage } from '@/lib/error-utils';
 import { computeAge } from '@/lib/prescription-render';
-import { isAbortError, isTimeoutError } from '@/services/api';
+import { isTimeoutError } from '@/services/api';
 import { usePatientView } from '@/stores/patient-view-store';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import type { PatientDependent, User } from '@/lib/types';
@@ -48,6 +46,12 @@ interface PatientDependentsTabProps {
   responsible?: { id: string; name: string } | null;
   /** Avisa que cambió quién depende de este paciente (para refrescar listados del host). */
   onDependentsChanged?: () => void;
+  /**
+   * Dentro de una ventana de paciente (alta o edición desde la cita): lista más chica y sin
+   * abrir la ficha del dependiente. Esa ficha usa la vista global del paciente, que reemplaza
+   * a la ventana abierta y perdería lo que se está editando.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -56,7 +60,7 @@ interface PatientDependentsTabProps {
  * paciente dependiente muestra, de solo lectura, a su tutor y a los otros a cargo de él:
  * el tutor se cambia desde "Detalles".
  */
-export function PatientDependentsTab({ patient, responsible, onDependentsChanged }: PatientDependentsTabProps) {
+export function PatientDependentsTab({ patient, responsible, onDependentsChanged, compact = false }: PatientDependentsTabProps) {
   const t = useTranslations('UsersPage.dependents');
   const tRoot = useTranslations();
   const { toast } = useToast();
@@ -124,32 +128,8 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
 
   // ── Vincular un paciente existente ─────────────────────────────────────────
   const [isLinkOpen, setLinkOpen] = React.useState(false);
-  const [query, setQuery] = React.useState('');
-  const [results, setResults] = React.useState<User[]>([]);
-  const [isSearching, setIsSearching] = React.useState(false);
-  const [searchError, setSearchError] = React.useState<string | null>(null);
   // Paciente que ya depende de otro tutor: se pide confirmar antes de reasignarlo.
   const [reassigning, setReassigning] = React.useState<User | null>(null);
-
-  React.useEffect(() => {
-    if (!isLinkOpen) return;
-    const term = query.trim();
-    if (!term) { setResults([]); setSearchError(null); setIsSearching(false); return; }
-    const controller = new AbortController();
-    const handler = setTimeout(async () => {
-      setIsSearching(true);
-      setSearchError(null);
-      try {
-        const found = await searchDependentCandidates(term, patient.id, controller.signal);
-        if (!controller.signal.aborted) setResults(found);
-      } catch (error) {
-        if (!controller.signal.aborted && !isAbortError(error)) setSearchError(getErrorMessage(error));
-      } finally {
-        if (!controller.signal.aborted) setIsSearching(false);
-      }
-    }, 300);
-    return () => { clearTimeout(handler); controller.abort(); };
-  }, [query, isLinkOpen, patient.id]);
 
   // Un vínculo a la vez: guarda el elegido para marcar su fila mientras se guarda.
   const [linkingId, setLinkingId] = React.useState<string | null>(null);
@@ -166,8 +146,6 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
       toast({ title: t('linkSuccess', { name: candidate.name }) });
       setReassigning(null);
       setLinkOpen(false);
-      setQuery('');
-      setResults([]);
       await afterChange(candidate.id);
     },
     onError: (error) => {
@@ -216,21 +194,25 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
             )}
           </div>
         )}
-        onClick={() => openPatient(dependent)}
+        onClick={compact ? undefined : () => openPatient(dependent)}
         actions={(
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => openPatient(dependent)}
-              aria-label={t('openProfile')}
-              title={t('openProfile')}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
+            {!compact && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => openPatient(dependent)}
+                aria-label={t('openProfile')}
+                title={t('openProfile')}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
             {manageable && (
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
@@ -257,14 +239,18 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-destructive/40 px-4 py-8 text-center">
       <AlertTriangle className="h-5 w-5 text-destructive" />
       <p className="text-sm text-muted-foreground">{loadError}</p>
-      <Button size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>{t('retry')}</Button>
+      <Button type="button" size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>{t('retry')}</Button>
     </div>
   ) : dependents.length === 0 ? (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-10 text-center">
-      <Users className="h-6 w-6 text-muted-foreground/60" />
-      <p className="text-sm font-medium">{isDependent ? t('noSiblings') : t('empty')}</p>
-      {!isDependent && <p className="max-w-sm text-xs text-muted-foreground">{t('emptyHint')}</p>}
-    </div>
+    compact ? (
+      <p className="text-xs text-muted-foreground">{t('empty')}</p>
+    ) : (
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-10 text-center">
+        <Users className="h-6 w-6 text-muted-foreground/60" />
+        <p className="text-sm font-medium">{isDependent ? t('noSiblings') : t('empty')}</p>
+        {!isDependent && <p className="max-w-sm text-xs text-muted-foreground">{t('emptyHint')}</p>}
+      </div>
+    )
   ) : (
     <div className="space-y-2">{dependents.map((d) => renderDependentCard(d, canManage))}</div>
   );
@@ -306,6 +292,7 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
           <h3 className="text-sm font-semibold">{t('title')}</h3>
           {!isLoading && !loadError && <Badge variant="secondary" className="text-[10px]">{dependents.length}</Badge>}
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground"
@@ -319,67 +306,16 @@ export function PatientDependentsTab({ patient, responsible, onDependentsChanged
         </div>
         {canManage && (
           <div className="flex items-center gap-2">
-            <Popover
+            <PatientDependentLinkPicker
               open={isLinkOpen}
-              onOpenChange={(open) => {
-                if (!open && link.isPending) return;
-                setLinkOpen(open);
-                if (!open) { setQuery(''); setResults([]); setSearchError(null); }
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button size="sm" variant="outline" className="gap-1.5">
-                  <Link2 className="h-4 w-4" />
-                  {t('linkExisting')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end" collisionPadding={12}>
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder={t('searchPlaceholder')} value={query} onValueChange={setQuery} />
-                  <CommandList className="max-h-64">
-                    {isSearching ? (
-                      <div className="flex items-center justify-center py-6 text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      </div>
-                    ) : searchError ? (
-                      <p className="px-3 py-6 text-center text-sm text-destructive">{searchError}</p>
-                    ) : results.length === 0 ? (
-                      <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        {query.trim() ? t('noResults') : t('searchHint')}
-                      </p>
-                    ) : (
-                      <CommandGroup>
-                        {results.map((candidate) => {
-                          const alreadyLinked = linkedIds.has(candidate.id);
-                          return (
-                            <CommandItem
-                              key={candidate.id}
-                              value={candidate.id}
-                              disabled={alreadyLinked || link.isPending}
-                              onSelect={() => handlePickCandidate(candidate)}
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate">{candidate.name}</div>
-                                <div className="truncate text-xs text-muted-foreground">
-                                  {alreadyLinked
-                                    ? t('alreadyLinked')
-                                    : candidate.is_dependent
-                                      ? t('hasOtherResponsible')
-                                      : candidate.identity_document || candidate.phone_number || candidate.email}
-                                </div>
-                              </div>
-                              {linkingId === candidate.id && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+              onOpenChange={setLinkOpen}
+              guardianId={patient.id}
+              linkedIds={linkedIds}
+              linkingId={linkingId}
+              onPick={handlePickCandidate}
+            />
             {canCreate && (
-              <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+              <Button type="button" size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
                 <UserPlus className="h-4 w-4" />
                 {t('addNew')}
               </Button>

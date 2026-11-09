@@ -8,6 +8,7 @@
     "Click a free slot to create an appointment right there, or right-click to create a reminder or a note.",
     "Canceling is not deleting: a cancellation with its reason stays in the history and in the reports; deleting is for appointments entered by mistake.",
     "Bulk operations reassign many appointments to another doctor at once (vacations, leave).",
+    "When you create a patient from the appointment you can add their dependents in the same form: Save stores them all. When you edit the patient, each change to their dependents is saved right away.",
     "The default view, grouping, hour size and booking rules are set in Calendar settings (gear); they are per user and save automatically."
   ],
   "elements": {
@@ -332,6 +333,30 @@
       "label": "Hide days",
       "description": "Hides the chosen days as columns in the day and week views. It's only visual, to save space: it doesn't affect availability or the days appointments can be booked."
     },
+    "appointments.field.visible-hours-mode": {
+      "label": "Visible hours",
+      "description": "Chooses which hours the day and week views show: Full view (the whole day, the initial option), Custom range (only the hours you pick) or Clinic working hours (the hours set in Setup → Schedules for the days on screen, with holidays and exceptions; booked appointments and free slots both show). It's only visual and saved per user: it doesn't change appointments or opening hours."
+    },
+    "appointments.field.visible-hours-start": {
+      "label": "Visible hours start",
+      "description": "First hour the calendar shows with Custom range."
+    },
+    "appointments.field.visible-hours-end": {
+      "label": "Visible hours end",
+      "description": "Last hour the calendar shows with Custom range. It must be later than the start time."
+    },
+    "appointments.btn.visible-hours-apply": {
+      "label": "Apply range",
+      "description": "Saves the custom range and trims the calendar right away. Only enabled when the end time is later than the start time."
+    },
+    "appointments.section.visible-hours-notice": {
+      "label": "Appointments outside the visible hours notice",
+      "description": "Shows at the bottom of the calendar when some appointments fall outside the visible hours. \"Show all hours\" shows the whole day for a moment (without changing the preference) and \"Back to visible hours\" undoes it."
+    },
+    "appointments.btn.visible-hours-toggle": {
+      "label": "Show all hours / Back to visible hours",
+      "description": "Temporarily switches between your visible hours and the whole day. Not saved: reopening the calendar applies the preference."
+    },
     "appointments.field.color-by-status": {
       "label": "Color by status",
       "description": "Appointments show their status with color. If the appointment has its own color label or its service's color, it keeps it and the status shows as a strip on the left edge. If it only inherits the doctor's or room's color, the whole appointment is painted with the status color. Some statuses are set to always paint the appointment regardless of this preference — see Setup → Calendar Colors."
@@ -380,6 +405,30 @@
       "label": "Enable",
       "description": "Saves that day's exception schedule."
     },
+    "appointments.btn.slot-block": {
+      "label": "Block hours…",
+      "description": "In the right-click menu of an open time: closes that range for that day only, for the whole branch, as an exception schedule. It doesn't show up in doctor columns."
+    },
+    "appointments.block-slot.field.start_time": {
+      "label": "From",
+      "description": "Start of the hours to block."
+    },
+    "appointments.block-slot.field.end_time": {
+      "label": "To",
+      "description": "End of the hours to block; it must be after the start."
+    },
+    "appointments.block-slot.field.notes": {
+      "label": "Reason",
+      "description": "Optional: the closure's note, shown on the calendar's red band."
+    },
+    "appointments.block-slot.section.affected-appointments": {
+      "label": "Appointments at that time",
+      "description": "The branch's appointments within the range. Blocking doesn't cancel or move them."
+    },
+    "appointments.block-slot.btn.submit": {
+      "label": "Block",
+      "description": "Saves that day's closure."
+    },
     "appointments.btn.missing-document-open": {
       "label": "Got it (missing document)",
       "description": "Notice when the appointment can't move to a status because the patient has no document: opens their details to add it."
@@ -388,6 +437,42 @@
       "label": "Close",
       "description": "Dismisses the missing document notice without opening the patient's details."
     },
+    "appointments.section.existing-patient-hint": {
+      "label": "Existing record notice",
+      "description": "Shown when creating a patient from the appointment if records with the same ID or phone already exist. Lists each record once, with what matched, its ID and its phone."
+    },
+    "appointments.btn.review-patient-matches": {
+      "label": "View matches",
+      "description": "Opens the matching records so you can pick the right one instead of creating a duplicate."
+    },
+    "appointments.btn.use-existing-patient": {
+      "label": "Use this patient",
+      "description": "Uses the existing record for the appointment. If the details entered add something to it, the form switches to completing that record; otherwise it is linked right away."
+    },
+    "appointments.section.completing-existing": {
+      "label": "Completing the existing record",
+      "description": "Summarizes which entered details were added to the chosen record (marked \"Added\") and which don't match: for those the record's value is kept. \"Save and use for appointment\" updates that same record without creating another."
+    },
+    "appointments.section.patient-dependents": {
+      "label": "Patients in their care",
+      "description": "The people in this patient's care. When creating a patient they stay unsaved until you press Save; if one fails, the patient stays saved and the row shows the reason so you can fix it and try again. Hidden if the patient is a dependent."
+    },
+    "appointments.btn.add-dependent": {
+      "label": "New dependent",
+      "description": "Opens the dependent's form. If their ID or phone already belongs to another record, you can link that record instead of creating another."
+    },
+    "appointments.btn.use-existing-without-changes": {
+      "label": "Use without saving changes",
+      "description": "Links the chosen record to the appointment as it is, discarding what was entered."
+    },
+    "appointments.btn.back-to-new-patient": {
+      "label": "Back to new patient",
+      "description": "Discards the chosen record and goes back to the new patient form with the details entered."
+    },
+    "appointments.section.patient-matches": {
+      "label": "Matching records",
+      "description": "Patients who already have the same ID, email or phone, with ID, birth date and guardian to tell the person apart from a relative. Opens when reviewing matches or when saving a duplicate."
+    },
     "appointments.field.identity_document": {
       "label": "ID document",
       "description": "In the patient's details opened from the appointment."
@@ -395,6 +480,7 @@
   },
   "useCases": [
     "appointments.enable-slot",
+    "appointments.block-slot",
     "appointments.missing-identity-document"
   ]
 }

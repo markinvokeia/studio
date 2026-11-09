@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMinutes, format, parseISO } from 'date-fns';
+import { addMinutes, differenceInMinutes, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -23,6 +23,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { useToast } from '@/hooks/use-toast';
 import { toLocalISOString } from '@/lib/utils';
+import { sumServicesDuration, withServiceDurations } from '@/lib/appointment-duration';
 import api from '@/services/api';
 import { fetchAppointmentCalendars, fetchAppointmentDoctors } from '@/services/appointments';
 
@@ -162,6 +163,23 @@ export function InlineAppointmentDraftHost({
         color: appointment.colorId ?? undefined,
         editing: appointment,
       });
+      // El listado de citas no siempre trae la duración de los servicios: sin ella,
+      // agregar o quitar uno recalcularía el total como si los demás duraran 0.
+      const initialServices = appointment.services ?? [];
+      if (initialServices.some((s) => !s.duration_minutes)) {
+        withServiceDurations(initialServices).then((enriched) => {
+          const durations = new Map(enriched.map((s) => [String(s.id), s.duration_minutes]));
+          setDraft((d) => (d && d.editing?.id === appointment.id
+            ? {
+              ...d,
+              services: d.services.map((s) => {
+                const duration = durations.get(String(s.id));
+                return !s.duration_minutes && duration ? { ...s, duration_minutes: duration } : s;
+              }),
+            }
+            : d));
+        });
+      }
       return;
     }
 
@@ -304,7 +322,17 @@ export function InlineAppointmentDraftHost({
           services={draft.services}
           onServicesChange={(s) => setDraft((d) => {
             if (!d) return d;
-            const total = s.reduce((acc, svc) => acc + ((svc as { duration_minutes?: number }).duration_minutes || 0), 0);
+            // Sin servicios vuelve a la duración de partida (la guardada al editar);
+            // con servicios de duración desconocida se mantiene la actual.
+            if (s.length === 0) {
+              const startStr = d.editing?.start?.dateTime;
+              const endStr = d.editing?.end?.dateTime;
+              const original = startStr && endStr
+                ? differenceInMinutes(parseISO(endStr.replace(/Z$/, '')), parseISO(startStr.replace(/Z$/, '')))
+                : 0;
+              return { ...d, services: s, durationMin: original > 0 ? original : DEFAULT_DURATION_MINUTES };
+            }
+            const total = sumServicesDuration(s);
             return { ...d, services: s, durationMin: total > 0 ? total : d.durationMin };
           })}
           notes={draft.notes}

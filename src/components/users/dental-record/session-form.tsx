@@ -40,7 +40,8 @@ interface SessionFormProps {
   nextSessionPlan?: string;
   onNextSessionPlanChange?: (v: string) => void;
   onSave: (values: SessionFormValues) => Promise<void>;
-  onCancel: () => void;
+  /** Without it there is no Cancel button (the host already has one) */
+  onCancel?: () => void;
   lockDoctorId?: string;
   lockDoctorName?: string;
   isEdit?: boolean;
@@ -365,9 +366,11 @@ export function SessionForm({
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       <div className="flex gap-2 justify-end border-t pt-4">
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
-          {t('session.cancel')}
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
+            {t('session.cancel')}
+          </Button>
+        )}
         <Button type="submit" size="sm" loading={isSaving} className="gap-1.5">
           {!isSaving && <Save className="h-3.5 w-3.5" />}
           {t('session.save')}

@@ -3,6 +3,7 @@
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -230,7 +231,7 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -721,7 +722,7 @@ export default function SystemUsersPage() {
                             )} />
                             <FormField control={detailForm.control} name="phone" render={({ field }) => (
                               <FormItem><FormLabel>{t('SystemUsersPage.createDialog.phone')}</FormLabel><FormControl>
-                                <PhoneInput {...field} defaultCountry="UY" placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                               </FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -846,7 +847,6 @@ export default function SystemUsersPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />
