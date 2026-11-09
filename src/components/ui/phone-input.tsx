@@ -60,8 +60,10 @@ const CountryPicker = ({ selected, onSelect }: { selected?: CountryCode; onSelec
   const locale = useLocale();
   const options = React.useMemo(() => getCountryOptions(locale), [locale]);
 
+  // `defaultValue` deja resaltado el país actual y cmdk lo lleva a la vista al montar; sin él
+  // resalta el primero de la lista (Afganistán) y el elegido queda fuera de la vista.
   return (
-    <Command filter={filterCountry}>
+    <Command filter={filterCountry} defaultValue={selected}>
       <CommandInput placeholder={t('searchCountry')} />
       <CommandList>
         <ScrollArea className="h-56">
