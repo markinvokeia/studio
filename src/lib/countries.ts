@@ -235,6 +235,7 @@ export const countries: Country[] = [
     { "value": "AE", "label": "United Arab Emirates" },
     { "value": "GB", "label": "United Kingdom" },
     { "value": "US", "label": "United States" },
+    { "value": "VI", "label": "U.S. Virgin Islands" },
     { "value": "UY", "label": "Uruguay" },
     { "value": "UZ", "label": "Uzbekistan" },
     { "value": "VU", "label": "Vanuatu" },

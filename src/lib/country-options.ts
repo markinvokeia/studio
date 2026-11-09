@@ -1,11 +1,14 @@
 import { CountryCode, getCountryCallingCode } from 'libphonenumber-js/min';
 
 import { countries } from '@/lib/countries';
+import { getAreaCodes } from '@/lib/phone-area-codes';
 
 export interface CountryOption {
   code: CountryCode;
   name: string;
   callingCode: string;
+  /** Lo que se muestra a la derecha: "+598", o "+1 809, 829, 849" si el código lo comparten varios. */
+  dialLabel: string;
   /** Nombres ya normalizados por los que se encuentra el país. */
   searchNames: string[];
 }
@@ -34,10 +37,13 @@ export const getCountryOptions = (locale: string): CountryOption[] => {
   return countries
     .map(({ value: code, label }) => {
       const names = [display?.of(code), label, ...searchDisplays.map((d) => d?.of(code))];
+      const callingCode = getCountryCallingCode(code);
+      const areaCodes = getAreaCodes(code);
       return {
         code,
         name: display?.of(code) ?? label,
-        callingCode: getCountryCallingCode(code),
+        callingCode,
+        dialLabel: areaCodes.length ? `+${callingCode} ${areaCodes.join(', ')}` : `+${callingCode}`,
         searchNames: [...new Set(names.filter((n): n is string => !!n).map(normalize))],
       };
     })
@@ -54,11 +60,20 @@ export const filterCountry = (code: string, search: string, searchNames: string[
   const query = normalize(search);
   if (!query) return 1;
 
-  if (/^\+?\d+$/.test(query)) {
-    const digits = query.replace('+', '');
+  // "+1 787", "1-787" o "+1787": el código internacional con o sin el de área.
+  if (/^\+?[\d\s()-]+$/.test(query)) {
+    const digits = query.replace(/\D/g, '');
     const callingCode = getCountryCallingCode(code as CountryCode);
     if (callingCode === digits) return 1;
-    return callingCode.startsWith(digits) ? 0.7 : 0;
+    // Con el área ya escrita sólo quedan los países de esa área: "+1 787" no trae EE. UU.
+    let score = callingCode.startsWith(digits) ? 0.7 : 0;
+    for (const area of getAreaCodes(code as CountryCode)) {
+      const dial = `${callingCode}${area}`;
+      if (dial === digits) return 1;
+      if (dial.startsWith(digits)) score = Math.max(score, 0.8);
+      else if (digits.startsWith(dial)) score = Math.max(score, 0.9);
+    }
+    return score;
   }
 
   let score = 0;

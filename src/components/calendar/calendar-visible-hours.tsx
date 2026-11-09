@@ -24,12 +24,25 @@ export interface VisibleHoursRange {
   endMin: number;
 }
 
+/**
+ * Lleva la franja a horas completas hacia afuera (8:10–19:40 => 8:00–20:00). La
+ * columna de horas marca horas en punto: si el recorte empieza a las 8:10, la
+ * línea y la etiqueta de las 8 quedan arriba del recorte y la primera hora no se
+ * rotula. El tramo agregado se ve como "no disponible" con las bandas de siempre.
+ */
+export function snapVisibleHoursRange(range: VisibleHoursRange): VisibleHoursRange {
+  return {
+    startMin: Math.max(0, Math.floor(range.startMin / 60) * 60),
+    endMin: Math.min(MINUTES_IN_DAY, Math.ceil(range.endMin / 60) * 60),
+  };
+}
+
 /** Rango personalizado guardado; null si falta o no es válido (fin <= inicio). */
 export function customVisibleHoursRange(start?: string | null, end?: string | null): VisibleHoursRange | null {
   const startMin = visibleHourToMinutes(start);
   const endMin = visibleHourToMinutes(end);
   if (startMin === null || endMin === null || endMin <= startMin) return null;
-  return { startMin, endMin };
+  return snapVisibleHoursRange({ startMin, endMin });
 }
 
 /** Horarios y excepciones de una columna/sede a considerar. */
@@ -43,7 +56,8 @@ export interface ClinicHoursScope {
  * hasta el cierre más tardío de todos los días y sedes (con excepciones). La rejilla
  * es una sola para todos los días, así que un día con menos horas muestra el resto
  * como cerrado (bandas de "no disponible"). Null si ningún día abre: la agenda cae
- * a la vista completa en vez de quedarse sin horas.
+ * a la vista completa en vez de quedarse sin horas. Se redondea a horas completas
+ * (`snapVisibleHoursRange`).
  */
 export function clinicVisibleHoursRange(days: Date[], scopes: ClinicHoursScope[]): VisibleHoursRange | null {
   let startMin = Infinity;
@@ -58,16 +72,16 @@ export function clinicVisibleHoursRange(days: Date[], scopes: ClinicHoursScope[]
     }
   }
   if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || endMin <= startMin) return null;
-  return { startMin: Math.max(0, startMin), endMin: Math.min(MINUTES_IN_DAY, endMin) };
+  return snapVisibleHoursRange({ startMin, endMin });
 }
 
-/** Amplía `range` para que entre [startMin, endMin) (p. ej. el borrador inline). */
+/** Amplía `range` (a horas completas) para que entre [startMin, endMin) (p. ej. el borrador inline). */
 export function expandVisibleHoursRange(range: VisibleHoursRange, startMin: number, endMin: number): VisibleHoursRange {
   if (startMin >= range.startMin && endMin <= range.endMin) return range;
-  return {
-    startMin: Math.max(0, Math.min(range.startMin, startMin)),
-    endMin: Math.min(MINUTES_IN_DAY, Math.max(range.endMin, endMin)),
-  };
+  return snapVisibleHoursRange({
+    startMin: Math.min(range.startMin, startMin),
+    endMin: Math.max(range.endMin, endMin),
+  });
 }
 
 /**

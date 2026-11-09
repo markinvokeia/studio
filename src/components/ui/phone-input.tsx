@@ -66,15 +66,17 @@ const CountryPicker = ({ selected, onSelect }: { selected?: CountryCode; onSelec
     <Command filter={filterCountry} defaultValue={selected}>
       <CommandInput placeholder={t('searchCountry')} />
       <CommandList>
-        <ScrollArea className="h-56">
+        {/* Radix envuelve el contenido en un `display: table` que crece con el nombre más largo y
+            dejaba el prefijo fuera de la vista: así las filas miden lo que el selector. */}
+        <ScrollArea className="h-56 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <CommandEmpty>{t('noCountryFound')}</CommandEmpty>
           <CommandGroup>
             {options.map((c) => (
               <CommandItem key={c.code} value={c.code} keywords={c.searchNames} onSelect={() => onSelect(c.code)}>
                 <Check className={cn('mr-2 h-4 w-4', selected === c.code ? 'opacity-100' : 'opacity-0')} />
                 <CountryFlag country={c.code} className="mr-2" />
-                {c.name}
-                <span className="ml-auto text-gray-400">{`+${c.callingCode}`}</span>
+                <span className="min-w-0 truncate" title={c.name}>{c.name}</span>
+                <span className="ml-auto shrink-0 pl-2 text-gray-400">{c.dialLabel}</span>
               </CommandItem>
             ))}
           </CommandGroup>

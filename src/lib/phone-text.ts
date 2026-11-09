@@ -1,6 +1,14 @@
-import { AsYouType, getCountryCallingCode, Metadata, type CountryCode, type PhoneNumber } from 'libphonenumber-js/min';
+import {
+  AsYouType,
+  getCountryCallingCode,
+  Metadata,
+  validatePhoneNumberLength,
+  type CountryCode,
+  type PhoneNumber,
+} from 'libphonenumber-js/min';
 
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { getAreaCodes, getDialDigits, isAreaDialDigits } from '@/lib/phone-area-codes';
 
 export interface ParsedPhoneText {
   /** Valor que el campo entrega al formulario: E.164 si se pudo interpretar, si no el texto tal cual ('' si está vacío). */
@@ -64,14 +72,20 @@ const callingCodeOf = (canonical: string): string | undefined => {
   return asYouType.getCallingCode();
 };
 
-/** Vacío, un "+" o sólo el prefijo: todavía no hay un teléfono que guardar. */
+/** Vacío, un "+" o sólo el prefijo (con o sin código de área): todavía no hay un teléfono que guardar. */
 export const isBarePhoneText = (text: string): boolean => {
   const canonical = toCanonical(text);
   if (!canonical || canonical === '+') return true;
-  return canonical.startsWith('+') && callingCodeOf(canonical) === canonical.slice(1);
+  if (!canonical.startsWith('+')) return false;
+  const digits = canonical.slice(1);
+  return callingCodeOf(canonical) === digits || isAreaDialDigits(digits);
 };
 
-export const getPhonePrefix = (country: CountryCode): string => `+${getCountryCallingCode(country)}`;
+/**
+ * Lo que se precarga en el campo: "+598", o con el código de área si el código internacional lo
+ * comparten varios países ("+1 787" para Puerto Rico), para que se escriba sólo el número local.
+ */
+export const getPhonePrefix = (country: CountryCode): string => new AsYouType().input(`+${getDialDigits(country)}`);
 
 const describeCanonical = (canonical: string, fallback?: CountryCode): Omit<PhoneEdit, 'assumed'> => {
   const asYouType = new AsYouType();
@@ -81,7 +95,7 @@ const describeCanonical = (canonical: string, fallback?: CountryCode): Omit<Phon
   const country = asYouType.getCountry()
     ?? (fallback && callingCode === getCountryCallingCode(fallback) ? fallback : undefined);
   const number = asYouType.getNumber();
-  const value = number ? number.format('E.164') : isBarePhoneText(canonical) ? '' : canonical;
+  const value = isBarePhoneText(canonical) ? '' : number ? number.format('E.164') : canonical;
   return { text, value, country };
 };
 
@@ -194,7 +208,7 @@ export const applyPhoneEdit = (
     if (`+${digits}` === previous) {
       canonical = previous;
     } else {
-      canonical = `${getPhonePrefix(country)}${digits}`;
+      canonical = `${toCanonical(getPhonePrefix(country))}${digits}`;
       isAssumed = !countryPicked;
     }
   }
@@ -237,7 +251,12 @@ export const applyPhonePaste = (pasted: string, country: CountryCode): PhoneEdit
   const chars = toCanonical(pasted).replace(/^00(?=[1-9])/, '+');
   if (!chars.replace(/\+/g, '')) return null;
 
-  const parsed = parsePhoneText(chars, country, { detectCallingCode: true });
+  let parsed = parsePhoneText(chars, country, { detectCallingCode: true });
+  // Un número local sin área ("123 4567" con Puerto Rico elegido): se le pone la del país.
+  if (!parsed.number?.isValid() && !chars.startsWith('+') && getAreaCodes(country).length) {
+    const withArea = parsePhoneText(`+${getDialDigits(country)}${chars}`, country);
+    if (withArea.number?.isValid()) parsed = withArea;
+  }
   if (!parsed.number) return applyPhoneEdit(chars, { country, previousText: '', assumed: !chars.startsWith('+') });
 
   return {
@@ -267,19 +286,33 @@ export const finishPhoneEdit = (text: string, country: CountryCode | undefined, 
   return { ...describeCanonical(canonical, country), assumed: false };
 };
 
+/** El número local sin el código de área de `country`, si empieza con uno de ellos. */
+const stripAreaCode = (national: string, country: CountryCode | undefined): string => {
+  const area = country && getAreaCodes(country).find((code) => national.startsWith(code));
+  return area ? national.slice(area.length) : national;
+};
+
 /**
  * Reinterpreta el número al elegir otro país a mano. Si los dígitos nacionales empiezan con el
  * código del país elegido y así forman un número válido, ese código ya estaba en lo pegado
  * ("98562848" leído como UY → Irán es +98 562848, no +98 98562848); si no, se le antepone.
+ *
+ * Si el país elegido tiene código de área, se cambia el del país anterior por el suyo
+ * ("+1 787 123 4567" de Puerto Rico → "+1 809 123 4567" al elegir República Dominicana) o se le
+ * antepone al número local, salvo que así quede demasiado largo.
  */
 export const reinterpretForCountry = (text: string, from: CountryCode | undefined, to: CountryCode): PhoneEdit => {
   const national = parsePhoneText(text, from).number?.nationalNumber ?? '';
   const callingCode = getCountryCallingCode(to);
-  let canonical = `+${callingCode}${national}`;
-  if (national.startsWith(callingCode)) {
-    const embedded = parseWith(`+${national}`);
-    if (embedded?.isValid() && embedded.countryCallingCode === callingCode) canonical = `+${national}`;
-  }
+  const local = stripAreaCode(national, from);
+  const withArea = `+${getDialDigits(to)}${local}`;
+  const embedded = national.startsWith(callingCode) ? parseWith(`+${national}`) : undefined;
+  let canonical: string;
+  if (embedded?.isValid() && embedded.countryCallingCode === callingCode) canonical = `+${national}`;
+  else if (getAreaCodes(to).length && (!local || validatePhoneNumberLength(withArea) !== 'TOO_LONG')) canonical = withArea;
+  // Sólo estaba el área del país anterior: no es parte del número.
+  else if (!local) canonical = `+${callingCode}`;
+  else canonical = `+${callingCode}${national}`;
   // El país lo eligió el usuario: manda aunque el prefijo lo compartan varios ("+1").
   return { ...describeCanonical(canonical, to), country: to, assumed: false };
 };
