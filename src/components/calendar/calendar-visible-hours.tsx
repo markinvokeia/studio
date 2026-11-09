@@ -70,6 +70,16 @@ export function expandVisibleHoursRange(range: VisibleHoursRange, startMin: numb
   };
 }
 
+/**
+ * Hora cuya línea queda justo en el borde superior de la franja (la franja empieza en
+ * hora en punto), o 0 sin franja. La columna de horas le baja la etiqueta para que
+ * el recorte no la corte.
+ */
+export function firstVisibleHour(range?: VisibleHoursRange | null): number {
+  if (!range || range.startMin % 60 !== 0) return 0;
+  return range.startMin / 60;
+}
+
 const toDate = (value: Date | string): Date => (typeof value === 'string' ? parseISO(value) : value);
 
 /** Minutos desde medianoche de `date`, sobre el día `dayKey` (antes => 0, después => 1440). */
@@ -136,32 +146,69 @@ export function VisibleHoursClip({ range, hourSlotHeight, children }: VisibleHou
   );
 }
 
+/** Hora (minutos desde medianoche) que queda arriba de todo y si se está en el tope. */
+interface TimeGridScrollPosition {
+  topMin: number;
+  atTop: boolean;
+}
+
 /**
  * Scroll vertical de la rejilla: al montar va a las 08:00 (o al inicio de la
  * franja, si empieza después) y, al cambiar el alto de hora (zoom) o la franja,
- * conserva la hora que estaba arriba de todo.
+ * conserva la hora que estaba arriba de todo. Con una franja activa, si se estaba
+ * en el tope se sigue en el tope: si la franja se amplía hacia atrás (p. ej. pasa
+ * de empezar a las 09:00 a las 08:00) se ve la nueva primera hora.
+ *
+ * La posición se registra en cada evento de scroll, con la geometría con la que se
+ * midió, y no se relee `scrollTop` después del commit: para entonces el navegador
+ * ya lo recortó al nuevo alto de la rejilla (o lo corrió el scroll anchoring) y la
+ * hora calculada sale desplazada.
  */
 export function useTimeGridScroll(
   scrollRef: React.RefObject<HTMLElement | null>,
   hourSlotHeight: number,
-  startMin = 0,
+  range?: VisibleHoursRange | null,
 ) {
-  const didInitialScrollRef = React.useRef(false);
-  const prevHourRef = React.useRef(hourSlotHeight);
-  const prevStartRef = React.useRef(startMin);
+  const startMin = range?.startMin ?? 0;
+  const hasRange = !!range;
+  const positionRef = React.useRef<TimeGridScrollPosition | null>(null);
+  const geometryRef = React.useRef({ hourSlotHeight, startMin });
+
+  React.useEffect(() => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const onScroll = () => {
+      const geometry = geometryRef.current;
+      positionRef.current = {
+        topMin: (c.scrollTop / geometry.hourSlotHeight) * 60 + geometry.startMin,
+        atTop: c.scrollTop <= 1,
+      };
+    };
+    c.addEventListener('scroll', onScroll, { passive: true });
+    return () => c.removeEventListener('scroll', onScroll);
+  }, [scrollRef]);
+
   React.useLayoutEffect(() => {
     const c = scrollRef.current;
     if (!c) return;
-    if (!didInitialScrollRef.current) {
-      c.scrollTop = (Math.max(0, DEFAULT_SCROLL_HOUR * 60 - startMin) / 60) * hourSlotHeight;
-      didInitialScrollRef.current = true;
-    } else if (prevHourRef.current && (prevHourRef.current !== hourSlotHeight || prevStartRef.current !== startMin)) {
-      const topTimeMin = (c.scrollTop / prevHourRef.current) * 60 + prevStartRef.current;
-      c.scrollTop = (Math.max(0, topTimeMin - startMin) / 60) * hourSlotHeight;
+    const prev = geometryRef.current;
+    const position = positionRef.current;
+    geometryRef.current = { hourSlotHeight, startMin };
+
+    let targetMin: number;
+    if (!position) {
+      targetMin = Math.max(DEFAULT_SCROLL_HOUR * 60, startMin);
+    } else if (prev.hourSlotHeight !== hourSlotHeight || prev.startMin !== startMin) {
+      targetMin = hasRange && position.atTop ? startMin : Math.max(startMin, position.topMin);
+    } else {
+      return;
     }
-    prevHourRef.current = hourSlotHeight;
-    prevStartRef.current = startMin;
-  }, [scrollRef, hourSlotHeight, startMin]);
+    c.scrollTop = ((targetMin - startMin) / 60) * hourSlotHeight;
+    positionRef.current = {
+      topMin: (c.scrollTop / hourSlotHeight) * 60 + startMin,
+      atTop: c.scrollTop <= 1,
+    };
+  }, [scrollRef, hourSlotHeight, startMin, hasRange]);
 }
 
 interface FittedHourSlotHeightOptions {

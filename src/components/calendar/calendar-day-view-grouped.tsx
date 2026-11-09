@@ -35,7 +35,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
-import { useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
+import { firstVisibleHour, useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 /** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
 const EMPTY_EVENTS: CalendarEvent[] = [];
@@ -181,7 +181,7 @@ export function CalendarDayViewGrouped({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours?.startMin);
+  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours);
   // Topes del arrastre: la cita no puede terminar fuera de la franja visible.
   const windowStartMin = visibleHours?.startMin ?? 0;
   const windowEndMin = visibleHours?.endMin ?? MINUTES_IN_DAY;
@@ -392,7 +392,7 @@ export function CalendarDayViewGrouped({
           className="day-view-body-grouped"
           style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
-          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} />}
+          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} firstHour={firstVisibleHour(visibleHours)} />}
           {days.map((day) => (
             <div
               key={`day-block-${format(day, 'yyyy-MM-dd')}`}

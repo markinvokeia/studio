@@ -30,7 +30,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
-import { useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
+import { firstVisibleHour, useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 interface CalendarDayViewProps {
   currentDate: Date;
@@ -120,7 +120,7 @@ export function CalendarDayView({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours?.startMin);
+  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -187,7 +187,7 @@ export function CalendarDayView({
         </div>
         <VisibleHoursClip range={visibleHours} hourSlotHeight={hourSlotHeight}>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
-          <CalendarTimeColumn visible={showTimeColumn} />
+          <CalendarTimeColumn visible={showTimeColumn} firstHour={firstVisibleHour(visibleHours)} />
           {days.map((day) => (
             <ContextMenu key={format(day, 'yyyy-MM-dd')}>
               <ContextMenuTrigger asChild disabled={!renderSlotContextMenu}>

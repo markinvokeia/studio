@@ -292,6 +292,12 @@
   overflow: auto;
   height: 100%;
   scrollbar-gutter: stable;
+  /* Sin scroll anchoring: la posición vertical la maneja `useTimeGridScroll`. Con
+     anchoring, si la cabecera sticky crece (fila de consultorios, banda de todo el
+     día) estando scrolleado, el navegador corre el scroll para "mantener" la rejilla
+     y la cabecera más alta termina tapando las primeras filas; esa corrida además
+     se arrastraba al aplicar la franja visible y escondía su primera hora. */
+  overflow-anchor: none;
 }
 
 .day-view-scroll-content {
