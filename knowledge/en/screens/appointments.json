@@ -102,7 +102,8 @@
       "label": "Exit bulk mode"
     },
     "appointments.btn.print": {
-      "label": "Export calendar to Excel"
+      "label": "Export calendar to Excel",
+      "description": "Downloads the appointments of a period (day, week, month or range) to Excel, without cancelled appointments or no-shows. The format (basic, or extended with several branches) is set in Clinic Preferences."
     },
     "appointments.btn.refresh": {
       "label": "Refresh"

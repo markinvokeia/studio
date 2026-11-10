@@ -1143,9 +1143,19 @@ export default function AppointmentsPage() {
     // El efecto de más abajo lo aplica como patch quirúrgico sobre `appointments`
     // en vez de recargar todo el rango visible.
     useCalendarLiveRefresh(fetchCalendarIds);
+    // Calendarios del "Exportar agenda a Excel", con su sede (el formato extendido
+    // los agrupa por sede y la escribe en una columna). Mismo nombre de sede que
+    // el panel de agendas: el de la lista de sedes y, si no está, el del calendario.
     const exportableCalendars = React.useMemo(
-        () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
-        [calendars],
+        () => calendars
+            .filter((c) => c.is_active !== false)
+            .map((c) => ({
+                id: c.id,
+                name: c.name,
+                sedeId: c.sede_id || undefined,
+                sedeName: c.sede_id ? (sedes.find((s) => s.id === c.sede_id)?.name || c.sede_name || undefined) : undefined,
+            })),
+        [calendars, sedes],
     );
     // Calendarios ofrecidos en el filtro del buscador de citas (incluye color).
     const searchPanelCalendars = React.useMemo(

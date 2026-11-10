@@ -617,6 +617,39 @@ export interface ClinicAutomationSettings {
   google_calendar_sync_mode: GoogleCalendarSyncMode;
   /** `help_mascot_visible`: la mascota del asistente se ve en pantalla (por defecto sí). */
   help_mascot_visible: boolean;
+  /** `appointment_schedule_export` (json): formato del Excel de la agenda (por defecto básico). */
+  appointment_schedule_export: ScheduleExportSettings;
+}
+
+/**
+ * Formato de "Exportar agenda a Excel".
+ * - `basic`: un calendario; Horario · Nombre · Teléfono, con una fila de fecha antes de cada día.
+ * - `extended`: varios calendarios/sedes, con las columnas elegidas y filtros.
+ */
+export type ScheduleExportMode = 'basic' | 'extended';
+
+/** Columnas que puede llevar el Excel extendido (todas salen de `/users_appointments`). */
+export type ScheduleExportColumn =
+  | 'sede'
+  | 'calendar'
+  | 'date'
+  | 'time'
+  | 'end_time'
+  | 'patient_name'
+  | 'phone'
+  | 'email'
+  | 'doctor'
+  | 'service'
+  | 'status'
+  | 'notes';
+
+/** `system_configurations.appointment_schedule_export` (json). */
+export interface ScheduleExportSettings {
+  mode: ScheduleExportMode;
+  /** Extendido: una hoja por sede (la columna Sede se omite, la dice el nombre de la hoja). */
+  split_by_sede: boolean;
+  /** Extendido: columnas en el orden en que salen. Nunca vacío. */
+  columns: ScheduleExportColumn[];
 }
 
 export type AuditLog = {

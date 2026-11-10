@@ -1458,7 +1458,30 @@
     "col_phone": "Teléfono",
     "toast_success": "{count, plural, one {# cita exportada} other {# citas exportadas}}",
     "toast_empty": "No hay citas en el período seleccionado",
-    "toast_error": "No se pudo generar el Excel"
+    "toast_error": "No se pudo generar el Excel",
+    "description_extended": "Genera una planilla de las citas de uno o varios calendarios, con sede, fecha y hora en columnas. Se excluyen las citas canceladas y las ausencias.",
+    "field_calendars": "Calendarios",
+    "select_all": "Seleccionar todos",
+    "select_none": "Quitar todos",
+    "select_at_least_one": "Elegí al menos un calendario.",
+    "no_sede": "Sin sede",
+    "file_name_multi": "Agenda",
+    "summary_calendars": "{count, plural, one {# calendario} other {# calendarios}}",
+    "columns": {
+      "sede": "Sede",
+      "calendar": "Calendario",
+      "date": "Fecha",
+      "time": "Hora",
+      "end_time": "Hora de fin",
+      "patient_name": "Nombre y Apellido",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "doctor": "Doctor",
+      "service": "Servicio / Estudio",
+      "status": "Estado",
+      "notes": "Notas"
+    },
+    "summary_split_by_sede": "una hoja por sede"
   },
   "AppointmentsColumns": {
     "service": "Servicio",
@@ -10207,6 +10230,32 @@
         "description": "Desde la próxima ejecución del planificador se enviarán emails a los pacientes en las reglas que tengan el envío automático marcado. El cambio se aplica al guardar.",
         "cancel": "Cancelar",
         "confirm": "Activar"
+      }
+    },
+    "scheduleExport": {
+      "sectionTitle": "Exportar agenda a Excel",
+      "help": "Formato del Excel que se descarga desde la agenda con el botón de planilla. Se aplica a todos los usuarios.",
+      "modes": {
+        "basic": {
+          "title": "Básico",
+          "description": "Un calendario por archivo. Columnas Horario, Nombre y Apellido y Teléfono, con una fila con la fecha antes de las citas de cada día."
+        },
+        "extended": {
+          "title": "Extendido",
+          "description": "Uno o varios calendarios y sedes en el mismo archivo, con las columnas que elijas y filtros para ordenar y filtrar en Excel."
+        }
+      },
+      "splitBySede": {
+        "label": "Una hoja por sede",
+        "help": "Cada sede va en su propia hoja, con el nombre de la sede. Las sedes sin citas en el período no generan hoja."
+      },
+      "columns": {
+        "label": "Columnas del Excel",
+        "help": "Marcá las columnas que salen y ordenalas con las flechas. Las filas se ordenan siempre por sede, fecha y hora.",
+        "noneLeft": "Con una hoja por sede la columna Sede no sale: elegí al menos otra columna.",
+        "omittedBySheet": "(no sale: la dice el nombre de la hoja)",
+        "moveUp": "Subir {column}",
+        "moveDown": "Bajar {column}"
       }
     },
     "googleCalendar": {

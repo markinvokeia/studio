@@ -1,5 +1,5 @@
 {
- "version": "d9b38c7f1172288b",
+ "version": "9b9eadbe6ad2263b",
  "locale": "en",
  "journey": [
   {
@@ -3461,6 +3461,7 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "description": "Downloads the appointments of a period (day, week, month or range) to Excel, without cancelled appointments or no-shows. The format (basic, or extended with several branches) is set in Clinic Preferences.",
      "id": "appointments.btn.print",
      "kind": "btn",
      "label": "Export calendar to Excel",
@@ -5731,6 +5732,34 @@
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     },
     {
+     "description": "Extended only: which columns are included (branch, calendar, date, time, end, patient, phone, email, doctor, service, status, notes) and in what order.",
+     "id": "config.clinic-prefs.field.schedule_export_columns",
+     "kind": "field",
+     "label": "Excel columns",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "One calendar per file: Time, Full name and Phone, with a row showing the date before each day. This is the default format.",
+     "id": "config.clinic-prefs.field.schedule_export_mode.basic",
+     "kind": "field",
+     "label": "Basic",
+     "source": "knowledge/screens/config.clinic-prefs.json"
+    },
+    {
+     "description": "Several calendars and branches at once, with the chosen columns and filters on the header; optionally, one sheet per branch.",
+     "id": "config.clinic-prefs.field.schedule_export_mode.extended",
+     "kind": "field",
+     "label": "Extended",
+     "source": "knowledge/screens/config.clinic-prefs.json"
+    },
+    {
+     "description": "Extended only: each branch on its own sheet, named after it; the Branch column is left out. Branches with no appointments get no sheet.",
+     "id": "config.clinic-prefs.field.schedule_export_split_by_sede",
+     "kind": "field",
+     "label": "One sheet per branch",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
      "description": "Whether alerts send their email to the patient on their own.",
      "id": "config.clinic-prefs.section.alert-email",
      "kind": "section",
@@ -5777,6 +5806,13 @@
      "id": "config.clinic-prefs.section.identity-document",
      "kind": "section",
      "label": "ID document",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "Format of the Excel file downloaded from the calendar: basic or extended.",
+     "id": "config.clinic-prefs.section.schedule-export",
+     "kind": "section",
+     "label": "Export calendar to Excel",
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     }
    ],

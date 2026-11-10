@@ -30,6 +30,26 @@
       "label": "Guided assistant",
       "description": "Mascot visible or only the help icon."
     },
+    "config.clinic-prefs.section.schedule-export": {
+      "label": "Export calendar to Excel",
+      "description": "Format of the Excel file downloaded from the calendar: basic or extended."
+    },
+    "config.clinic-prefs.field.schedule_export_mode.basic": {
+      "label": "Basic",
+      "description": "One calendar per file: Time, Full name and Phone, with a row showing the date before each day. This is the default format."
+    },
+    "config.clinic-prefs.field.schedule_export_mode.extended": {
+      "label": "Extended",
+      "description": "Several calendars and branches at once, with the chosen columns and filters on the header; optionally, one sheet per branch."
+    },
+    "config.clinic-prefs.field.schedule_export_split_by_sede": {
+      "label": "One sheet per branch",
+      "description": "Extended only: each branch on its own sheet, named after it; the Branch column is left out. Branches with no appointments get no sheet."
+    },
+    "config.clinic-prefs.field.schedule_export_columns": {
+      "label": "Excel columns",
+      "description": "Extended only: which columns are included (branch, calendar, date, time, end, patient, phone, email, doctor, service, status, notes) and in what order."
+    },
     "config.clinic-prefs.section.google-calendar": {
       "label": "Google Calendar",
       "description": "Calendar sync with Google Calendar."

@@ -1,5 +1,12 @@
 import { API_ROUTES } from '@/constants/routes';
-import type { ClinicAutomationSettings, GoogleCalendarSyncMode, SystemConfiguration } from '@/lib/types';
+import type {
+  ClinicAutomationSettings,
+  GoogleCalendarSyncMode,
+  ScheduleExportColumn,
+  ScheduleExportMode,
+  ScheduleExportSettings,
+  SystemConfiguration,
+} from '@/lib/types';
 import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api';
 
 /**
@@ -12,7 +19,38 @@ export const GOOGLE_CALENDAR_SYNC_MODE_KEY = 'google_calendar_sync_mode';
 /** Asistente guiado: si la mascota se ve (database/scripts/142). Sin la clave, se ve. */
 export const HELP_MASCOT_VISIBLE_KEY = 'help_mascot_visible';
 
+/**
+ * Formato del Excel de la agenda (json: modo, hoja por sede y columnas del extendido).
+ * Sin la clave (lo normal: no hay script que la cree) vale el básico de siempre; la
+ * primera vez que se guarda desde Preferencias de Clínica se crea la fila.
+ */
+export const SCHEDULE_EXPORT_KEY = 'appointment_schedule_export';
+const SCHEDULE_EXPORT_DESCRIPTION =
+  'Exportar agenda a Excel (json). mode: basic (un calendario, Horario/Nombre/Teléfono con una fila por día) o extended (varios calendarios y sedes). split_by_sede: en extended, una hoja por sede. columns: columnas del extended, en orden.';
+
 export const GOOGLE_CALENDAR_SYNC_MODES: GoogleCalendarSyncMode[] = ['none', 'from_google', 'to_google', 'both'];
+export const SCHEDULE_EXPORT_MODES: ScheduleExportMode[] = ['basic', 'extended'];
+/** Todas las columnas del extendido, en el orden en que se ofrecen. */
+export const SCHEDULE_EXPORT_COLUMNS: ScheduleExportColumn[] = [
+  'sede',
+  'calendar',
+  'date',
+  'time',
+  'end_time',
+  'patient_name',
+  'phone',
+  'email',
+  'doctor',
+  'service',
+  'status',
+  'notes',
+];
+export const DEFAULT_SCHEDULE_EXPORT_COLUMNS: ScheduleExportColumn[] = ['sede', 'calendar', 'date', 'time', 'patient_name', 'phone'];
+export const DEFAULT_SCHEDULE_EXPORT_SETTINGS: ScheduleExportSettings = {
+  mode: 'basic',
+  split_by_sede: false,
+  columns: DEFAULT_SCHEDULE_EXPORT_COLUMNS,
+};
 
 export async function fetchSystemConfigs(options?: ApiRequestOptions): Promise<SystemConfiguration[]> {
   const data = await api.get(API_ROUTES.SYSTEM.CONFIGS, undefined, undefined, options);
@@ -61,10 +99,50 @@ export function parseHelpMascotVisible(configs: SystemConfiguration[]): boolean 
   return String(value ?? 'true').trim().toLowerCase() !== 'false';
 }
 
+/**
+ * Lee la clave tolerando valores viejos o a medio escribir: lo que falta o no se
+ * reconoce toma el valor por defecto, y las columnas desconocidas o repetidas se
+ * descartan (si no queda ninguna, van las de por defecto).
+ */
+export function parseScheduleExportSettings(configs: SystemConfiguration[]): ScheduleExportSettings {
+  const raw: unknown = configs.find((c) => c.key === SCHEDULE_EXPORT_KEY)?.value;
+  let obj: Record<string, unknown> = {};
+  try {
+    const parsed = typeof raw === 'string' ? (raw.trim() ? JSON.parse(raw) : {}) : raw;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) obj = parsed as Record<string, unknown>;
+  } catch {
+    /* JSON inválido: por defecto */
+  }
+  const columns = Array.isArray(obj.columns)
+    ? Array.from(new Set(obj.columns.filter((c): c is ScheduleExportColumn =>
+        (SCHEDULE_EXPORT_COLUMNS as unknown[]).includes(c))))
+    : [];
+  return {
+    mode: obj.mode === 'extended' ? 'extended' : 'basic',
+    split_by_sede: obj.split_by_sede === true,
+    columns: columns.length ? columns : DEFAULT_SCHEDULE_EXPORT_COLUMNS,
+  };
+}
+
+/**
+ * Formato del Excel de la agenda para el diálogo de exportar. Si no se puede leer
+ * (sin permiso sobre `/configs`, red caída) se exporta en básico: nunca bloquea.
+ */
+export async function fetchScheduleExportSettings(options?: ApiRequestOptions): Promise<ScheduleExportSettings> {
+  try {
+    return parseScheduleExportSettings(await fetchSystemConfigs(options));
+  } catch (error) {
+    if (options?.signal?.aborted) throw error;
+    console.warn('[schedule-export] no se pudo leer el formato; se usa el básico', error);
+    return DEFAULT_SCHEDULE_EXPORT_SETTINGS;
+  }
+}
+
 export const DEFAULT_CLINIC_AUTOMATION_SETTINGS: ClinicAutomationSettings = {
   alert_email_auto_send_enabled: false,
   google_calendar_sync_mode: 'none',
   help_mascot_visible: true,
+  appointment_schedule_export: DEFAULT_SCHEDULE_EXPORT_SETTINGS,
 };
 
 export async function fetchClinicAutomationSettings(options?: ApiRequestOptions): Promise<ClinicAutomationSettings> {
@@ -73,6 +151,7 @@ export async function fetchClinicAutomationSettings(options?: ApiRequestOptions)
     alert_email_auto_send_enabled: parseAlertEmailAutoSend(configs),
     google_calendar_sync_mode: parseGoogleCalendarSyncMode(configs),
     help_mascot_visible: parseHelpMascotVisible(configs),
+    appointment_schedule_export: parseScheduleExportSettings(configs),
   };
 }
 
@@ -104,6 +183,14 @@ export async function updateClinicAutomationSettings(
       value: next.help_mascot_visible ? 'true' : 'false',
       data_type: 'boolean',
       description: 'Asistente guiado: si la mascota se ve en pantalla. Con false las guías funcionan igual (resaltado, globo, barra y lista de pasos) pero sin la mascota, y al asistente se entra por el ícono de ayuda.',
+    }, options);
+  }
+  if (JSON.stringify(next.appointment_schedule_export) !== JSON.stringify(previous.appointment_schedule_export)) {
+    await saveSystemConfig({
+      key: SCHEDULE_EXPORT_KEY,
+      value: JSON.stringify(next.appointment_schedule_export),
+      data_type: 'json',
+      description: SCHEDULE_EXPORT_DESCRIPTION,
     }, options);
   }
 }

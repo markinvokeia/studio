@@ -7,7 +7,10 @@ import {
   ArrowUpFromLine,
   CalendarOff,
   CalendarSync,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  FileSpreadsheet,
   FileText,
   HelpCircle,
   Mail,
@@ -48,7 +51,16 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
-import type { AppointmentStatus, ClinicAutomationSettings, ClinicPreferences, DiscountScope, GoogleCalendarSyncMode } from '@/lib/types';
+import type {
+  AppointmentStatus,
+  ClinicAutomationSettings,
+  ClinicPreferences,
+  DiscountScope,
+  GoogleCalendarSyncMode,
+  ScheduleExportColumn,
+  ScheduleExportMode,
+  ScheduleExportSettings,
+} from '@/lib/types';
 import { APPOINTMENT_STATUSES } from '@/constants/appointment-status';
 import {
   DEFAULT_CLINIC_PREFERENCES,
@@ -59,6 +71,8 @@ import {
   DEFAULT_CLINIC_AUTOMATION_SETTINGS,
   fetchClinicAutomationSettings,
   GOOGLE_CALENDAR_SYNC_MODES,
+  SCHEDULE_EXPORT_COLUMNS,
+  SCHEDULE_EXPORT_MODES,
   updateClinicAutomationSettings,
 } from '@/services/system-config';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
@@ -141,6 +155,14 @@ export default function ClinicPrefsConfigPage() {
 
   const patchAutomation = (values: Partial<ClinicAutomationSettings>) => setAutomation((c) => ({ ...c, ...values }));
 
+  const scheduleExport = automation.appointment_schedule_export;
+  const patchScheduleExport = (values: Partial<ScheduleExportSettings>) =>
+    setAutomation((c) => ({ ...c, appointment_schedule_export: { ...c.appointment_schedule_export, ...values } }));
+  // Con una hoja por sede la columna Sede no sale: tiene que quedar alguna otra.
+  const scheduleExportColumnsInvalid =
+    scheduleExport.mode === 'extended' &&
+    scheduleExport.columns.filter((c) => !(scheduleExport.split_by_sede && c === 'sede')).length === 0;
+
   const patch = (values: Partial<ClinicPreferences>) => setConfig((c) => ({ ...c, ...values }));
 
   // El porcentaje por defecto no puede superar el tope: si lo hiciera, cada
@@ -187,7 +209,7 @@ export default function ClinicPrefsConfigPage() {
     }
   );
   const isBusy = save.isPending || isRefreshing || isAutomationRefreshing;
-  const canSave = canUpdate && isDirty && !isBusy && !defaultOverMax;
+  const canSave = canUpdate && isDirty && !isBusy && !defaultOverMax && !scheduleExportColumnsInvalid;
   const canEdit = canUpdate && !isBusy;
 
   if (isLoading) {
@@ -528,6 +550,81 @@ export default function ClinicPrefsConfigPage() {
             </CardContent>
           </Card>
 
+          {/* ── Exportar agenda a Excel ────────────────────────────────── */}
+          <Card data-help-id="config.clinic-prefs.section.schedule-export">
+            <CardContent className="space-y-5 p-5">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">{t('scheduleExport.sectionTitle')}</h2>
+                <HelpTip text={t('scheduleExport.help')} />
+              </div>
+
+              {isAutomationLoading ? (
+                <div className="space-y-3">
+                  {SCHEDULE_EXPORT_MODES.map((mode) => (
+                    <Skeleton key={mode} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <RadioGroup
+                  value={scheduleExport.mode}
+                  disabled={!canEdit || !!automationError}
+                  onValueChange={(v) => patchScheduleExport({ mode: v as ScheduleExportMode })}
+                  className={cn('gap-3', automationError && 'opacity-50')}
+                  aria-label={t('scheduleExport.sectionTitle')}
+                >
+                  {SCHEDULE_EXPORT_MODES.map((mode) => (
+                    <ScopeOption
+                      key={mode}
+                      value={mode}
+                      idPrefix="schedule-export-mode"
+                      helpId={`config.clinic-prefs.field.schedule_export_mode.${mode}`}
+                      title={t(`scheduleExport.modes.${mode}.title`)}
+                      description={t(`scheduleExport.modes.${mode}.description`)}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+
+              {/* Opciones del extendido: el básico queda fijo. */}
+              {!isAutomationLoading && scheduleExport.mode === 'extended' && (
+                <div className="space-y-5 border-t pt-5">
+                  <SettingRow
+                    label={t('scheduleExport.splitBySede.label')}
+                    help={t('scheduleExport.splitBySede.help')}
+                    disabled={!!automationError}
+                    control={
+                      <Switch
+                        data-help-id="config.clinic-prefs.field.schedule_export_split_by_sede"
+                        checked={scheduleExport.split_by_sede}
+                        disabled={!canEdit || !!automationError}
+                        onCheckedChange={(v) => patchScheduleExport({ split_by_sede: v })}
+                      />
+                    }
+                  />
+
+                  <div data-help-id="config.clinic-prefs.field.schedule_export_columns" className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">{t('scheduleExport.columns.label')}</Label>
+                      <HelpTip text={t('scheduleExport.columns.help')} />
+                    </div>
+                    <ScheduleExportColumnsEditor
+                      value={scheduleExport.columns}
+                      splitBySede={scheduleExport.split_by_sede}
+                      disabled={!canEdit || !!automationError}
+                      onChange={(columns) => patchScheduleExport({ columns })}
+                    />
+                    {scheduleExportColumnsInvalid && (
+                      <p className="rounded-xl bg-destructive/10 px-4 py-3 text-xs leading-relaxed text-destructive">
+                        {t('scheduleExport.columns.noneLeft')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* ── Google Calendar ────────────────────────────────────────── */}
           <Card data-help-id="config.clinic-prefs.section.google-calendar">
             <CardContent className="space-y-5 p-5">
@@ -689,11 +786,23 @@ function FieldLabel({ htmlFor, label, help }: { htmlFor: string; label: string; 
   );
 }
 
-/** Opción del ámbito, con su explicación: la elección no es obvia por el nombre. */
-function ScopeOption({ value, title, description }: { value: DiscountScope; title: string; description: string }) {
-  const id = `discount-scope-${value}`;
+/** Opción de un RadioGroup con su explicación: la elección no es obvia por el nombre. */
+function ScopeOption({
+  value,
+  title,
+  description,
+  idPrefix = 'discount-scope',
+  helpId,
+}: {
+  value: string;
+  title: string;
+  description: string;
+  idPrefix?: string;
+  helpId?: string;
+}) {
+  const id = `${idPrefix}-${value}`;
   return (
-    <div className="flex items-start gap-3 rounded-xl border p-3">
+    <div data-help-id={helpId} className="flex items-start gap-3 rounded-xl border p-3">
       <RadioGroupItem value={value} id={id} className="mt-0.5" />
       <div className="space-y-0.5">
         <Label htmlFor={id} className="text-sm font-medium">
@@ -702,6 +811,95 @@ function ScopeOption({ value, title, description }: { value: DiscountScope; titl
         <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Columnas del Excel extendido: casillas para elegir cuáles salen y flechas para
+ * ordenarlas. Arriba las elegidas (en el orden en que salen), abajo las demás.
+ * No deja destildar la última: el Excel no puede quedar sin columnas.
+ */
+function ScheduleExportColumnsEditor({
+  value,
+  splitBySede,
+  disabled,
+  onChange,
+}: {
+  value: ScheduleExportColumn[];
+  splitBySede: boolean;
+  disabled: boolean;
+  onChange: (columns: ScheduleExportColumn[]) => void;
+}) {
+  const t = useTranslations('ClinicPrefsPage.scheduleExport.columns');
+  const tCol = useTranslations('PrintScheduleDialog.columns');
+  const unchecked = SCHEDULE_EXPORT_COLUMNS.filter((c) => !value.includes(c));
+
+  const move = (index: number, delta: -1 | 1) => {
+    const next = [...value];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  const renderRow = (column: ScheduleExportColumn, index: number | null) => {
+    const checked = index !== null;
+    const id = `schedule-export-col-${column}`;
+    // Con una hoja por sede la columna Sede no sale (la dice el nombre de la hoja).
+    const omitted = splitBySede && column === 'sede';
+    return (
+      <li
+        key={column}
+        className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5', checked ? 'bg-card' : 'bg-muted/30')}
+      >
+        <Checkbox
+          id={id}
+          checked={checked}
+          disabled={disabled || (checked && value.length === 1)}
+          onCheckedChange={(v) => onChange(v === true ? [...value, column] : value.filter((c) => c !== column))}
+        />
+        <Label
+          htmlFor={id}
+          className={cn('min-w-0 flex-1 truncate text-sm font-normal', (!checked || omitted) && 'text-muted-foreground')}
+        >
+          {tCol(column)}
+          {omitted && checked && <span className="ml-2 text-xs">{t('omittedBySheet')}</span>}
+        </Label>
+        {checked && (
+          <div className="flex shrink-0 items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={disabled || index === 0}
+              onClick={() => move(index, -1)}
+              aria-label={t('moveUp', { column: tCol(column) })}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={disabled || index === value.length - 1}
+              onClick={() => move(index, 1)}
+              aria-label={t('moveDown', { column: tCol(column) })}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </li>
+    );
+  };
+
+  return (
+    <ul className="space-y-1.5">
+      {value.map((column, index) => renderRow(column, index))}
+      {unchecked.map((column) => renderRow(column, null))}
+    </ul>
   );
 }
 

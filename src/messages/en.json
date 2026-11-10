@@ -1458,7 +1458,30 @@
     "col_phone": "Phone",
     "toast_success": "{count, plural, one {# appointment exported} other {# appointments exported}}",
     "toast_empty": "No appointments in the selected period",
-    "toast_error": "Could not generate the Excel file"
+    "toast_error": "Could not generate the Excel file",
+    "description_extended": "Builds a spreadsheet of the appointments of one or more calendars, with branch, date and time as columns. Cancelled appointments and no-shows are left out.",
+    "field_calendars": "Calendars",
+    "select_all": "Select all",
+    "select_none": "Clear all",
+    "select_at_least_one": "Choose at least one calendar.",
+    "no_sede": "No branch",
+    "file_name_multi": "Schedule",
+    "summary_calendars": "{count, plural, one {# calendar} other {# calendars}}",
+    "columns": {
+      "sede": "Branch",
+      "calendar": "Calendar",
+      "date": "Date",
+      "time": "Time",
+      "end_time": "End time",
+      "patient_name": "Full name",
+      "phone": "Phone",
+      "email": "Email",
+      "doctor": "Doctor",
+      "service": "Service / Study",
+      "status": "Status",
+      "notes": "Notes"
+    },
+    "summary_split_by_sede": "one sheet per branch"
   },
   "AppointmentsColumns": {
     "service": "Service",
@@ -10207,6 +10230,32 @@
         "description": "From the next scheduler run, patients will be emailed for the rules that have automatic sending checked. The change applies when you save.",
         "cancel": "Cancel",
         "confirm": "Enable"
+      }
+    },
+    "scheduleExport": {
+      "sectionTitle": "Export calendar to Excel",
+      "help": "Format of the Excel file downloaded from the calendar with the spreadsheet button. Applies to every user.",
+      "modes": {
+        "basic": {
+          "title": "Basic",
+          "description": "One calendar per file. Time, Full name and Phone columns, with a row showing the date before each day's appointments."
+        },
+        "extended": {
+          "title": "Extended",
+          "description": "One or more calendars and branches in the same file, with the columns you choose and filters to sort and filter in Excel."
+        }
+      },
+      "splitBySede": {
+        "label": "One sheet per branch",
+        "help": "Each branch goes on its own sheet, named after the branch. Branches with no appointments in the period get no sheet."
+      },
+      "columns": {
+        "label": "Excel columns",
+        "help": "Tick the columns to include and order them with the arrows. Rows are always sorted by branch, date and time.",
+        "noneLeft": "With one sheet per branch the Branch column is left out: choose at least one other column.",
+        "omittedBySheet": "(left out: the sheet name shows it)",
+        "moveUp": "Move {column} up",
+        "moveDown": "Move {column} down"
       }
     },
     "googleCalendar": {

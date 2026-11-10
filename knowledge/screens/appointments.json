@@ -130,7 +130,8 @@
       "label": "Salir del modo lotes"
     },
     "appointments.btn.print": {
-      "label": "Exportar agenda a Excel"
+      "label": "Exportar agenda a Excel",
+      "description": "Descarga en Excel las citas de un período (día, semana, mes o rango), sin canceladas ni ausencias. El formato (básico o extendido, con varias sedes) se elige en Preferencias de Clínica."
     },
     "appointments.btn.refresh": {
       "label": "Actualizar"

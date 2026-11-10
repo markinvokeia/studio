@@ -1,5 +1,5 @@
 {
- "version": "7229c5f073bcf88e",
+ "version": "3a2dba5f41005062",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3548,6 +3548,7 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "description": "Descarga en Excel las citas de un período (día, semana, mes o rango), sin canceladas ni ausencias. El formato (básico o extendido, con varias sedes) se elige en Preferencias de Clínica.",
      "id": "appointments.btn.print",
      "kind": "btn",
      "label": "Exportar agenda a Excel",
@@ -5818,6 +5819,34 @@
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     },
     {
+     "description": "Sólo en extendido: qué columnas salen (sede, calendario, fecha, hora, fin, paciente, teléfono, correo, doctor, servicio, estado, notas) y en qué orden.",
+     "id": "config.clinic-prefs.field.schedule_export_columns",
+     "kind": "field",
+     "label": "Columnas del Excel",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "Un calendario por archivo: Horario, Nombre y Apellido y Teléfono, con una fila con la fecha antes de cada día. Es el formato por defecto.",
+     "id": "config.clinic-prefs.field.schedule_export_mode.basic",
+     "kind": "field",
+     "label": "Básico",
+     "source": "knowledge/screens/config.clinic-prefs.json"
+    },
+    {
+     "description": "Varios calendarios y sedes a la vez, con las columnas elegidas y filtros en el encabezado; opcionalmente, una hoja por sede.",
+     "id": "config.clinic-prefs.field.schedule_export_mode.extended",
+     "kind": "field",
+     "label": "Extendido",
+     "source": "knowledge/screens/config.clinic-prefs.json"
+    },
+    {
+     "description": "Sólo en extendido: cada sede en su propia hoja, con su nombre; la columna Sede no sale. Las sedes sin citas no generan hoja.",
+     "id": "config.clinic-prefs.field.schedule_export_split_by_sede",
+     "kind": "field",
+     "label": "Una hoja por sede",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
      "description": "Si las alertas envían su correo solas al paciente.",
      "id": "config.clinic-prefs.section.alert-email",
      "kind": "section",
@@ -5864,6 +5893,13 @@
      "id": "config.clinic-prefs.section.identity-document",
      "kind": "section",
      "label": "Documento de identidad",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "Formato del Excel que se descarga desde la agenda: básico o extendido.",
+     "id": "config.clinic-prefs.section.schedule-export",
+     "kind": "section",
+     "label": "Exportar agenda a Excel",
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     }
    ],

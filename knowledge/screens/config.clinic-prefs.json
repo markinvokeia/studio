@@ -39,6 +39,26 @@
       "label": "Asistente guiado",
       "description": "Mascota visible o sólo el ícono de ayuda."
     },
+    "config.clinic-prefs.section.schedule-export": {
+      "label": "Exportar agenda a Excel",
+      "description": "Formato del Excel que se descarga desde la agenda: básico o extendido."
+    },
+    "config.clinic-prefs.field.schedule_export_mode.basic": {
+      "label": "Básico",
+      "description": "Un calendario por archivo: Horario, Nombre y Apellido y Teléfono, con una fila con la fecha antes de cada día. Es el formato por defecto."
+    },
+    "config.clinic-prefs.field.schedule_export_mode.extended": {
+      "label": "Extendido",
+      "description": "Varios calendarios y sedes a la vez, con las columnas elegidas y filtros en el encabezado; opcionalmente, una hoja por sede."
+    },
+    "config.clinic-prefs.field.schedule_export_split_by_sede": {
+      "label": "Una hoja por sede",
+      "description": "Sólo en extendido: cada sede en su propia hoja, con su nombre; la columna Sede no sale. Las sedes sin citas no generan hoja."
+    },
+    "config.clinic-prefs.field.schedule_export_columns": {
+      "label": "Columnas del Excel",
+      "description": "Sólo en extendido: qué columnas salen (sede, calendario, fecha, hora, fin, paciente, teléfono, correo, doctor, servicio, estado, notas) y en qué orden."
+    },
     "config.clinic-prefs.section.google-calendar": {
       "label": "Google Calendar",
       "description": "Sincronización de la agenda con Google Calendar."
