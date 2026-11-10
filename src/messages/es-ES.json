@@ -6214,7 +6214,8 @@
       "default": "Predeterminado",
       "patients": "Pacientes",
       "reminders": "Recordatorios",
-      "dates": "Fechas"
+      "dates": "Fechas",
+      "lab_orders": "Órdenes de laboratorio"
     },
     "status": {
       "pending": "Pendiente",
@@ -9637,7 +9638,15 @@
     "loading": "Cargando...",
     "serviceWillBeCreated": "Este servicio se creará automáticamente",
     "searchSede": "Buscar sede...",
-    "selectSede": "Seleccionar sede..."
+    "selectSede": "Seleccionar sede...",
+    "createSupplier": "Crear proveedor",
+    "createPatient": "Crear paciente",
+    "createService": "Crear servicio",
+    "serviceNamePlaceholder": "Nombre del servicio",
+    "labServiceWillBeCreated": "Se crea como trabajo de laboratorio (precio 0; puedes completarlo en Ventas → Servicios).",
+    "createServiceError": "No se ha podido crear el servicio.",
+    "labFlagError": "Se ha creado \"{name}\" pero no se ha podido marcar como trabajo de laboratorio. Márcalo en Ventas → Servicios.",
+    "createTimeout": "El servidor ha tardado demasiado en responder. Comprueba si el servicio se ha creado antes de volver a intentarlo."
   },
   "PrintTemplates": {
     "quote": "Presupuesto",
@@ -10698,13 +10707,14 @@
       "addService": "Añadir servicio",
       "addAnotherService": "Añadir otro servicio",
       "searchService": "Buscar servicio de laboratorio…",
-      "noLabServices": "No hay servicios de laboratorio con ese nombre. Márcalos en Ventas → Servicios.",
+      "noLabServices": "No hay servicios de laboratorio con ese nombre.",
       "removeService": "Quitar {name}",
       "quantity": "Cantidad",
       "itemNotes": "Nota",
       "itemNotesPlaceholder": "Color, material…",
       "workOptional": "Descripción adicional (opcional)",
-      "workHint": "Si el trabajo no está en el catálogo, descríbelo aquí."
+      "workHint": "Si el trabajo no está en el catálogo, descríbelo aquí.",
+      "noLabServicesYet": "Todavía no hay servicios de laboratorio."
     },
     "detail": {
       "loading": "Cargando…",

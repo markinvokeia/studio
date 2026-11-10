@@ -2,13 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/hooks/use-toast';
 import { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { getPurchaseServices, getSalesServices, setServiceIsLab } from '@/services/services';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -35,6 +37,8 @@ interface ServiceSelectorProps {
     placeholder?: string;
     /** Texto cuando no hay resultados */
     noResultsText?: string;
+    /** Texto cuando el catálogo no tiene ninguno (sin búsqueda). Por defecto, `noResultsText`. */
+    emptyText?: string;
     /** Texto cuando está cargando */
     loadingText?: string;
     /** Texto del botón de-trigger */
@@ -62,6 +66,7 @@ export function ServiceSelector({
     onValueChange,
     placeholder: placeholderProp,
     noResultsText,
+    emptyText,
     loadingText: loadingTextProp,
     triggerText: triggerTextProp,
     className,
@@ -73,6 +78,7 @@ export function ServiceSelector({
     const loadingText = loadingTextProp ?? t('loading');
     const triggerText = triggerTextProp ?? t('selectService');
     const { hasPermission } = usePermissions();
+    const { toast } = useToast();
     const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const [side, setSide] = React.useState<'top' | 'bottom'>('bottom');
@@ -83,6 +89,8 @@ export function ServiceSelector({
     const [isLoading, setIsLoading] = React.useState(false);
     const [isCreating, setIsCreating] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+    /** Nombre del servicio a crear: arranca con lo buscado y se puede corregir. */
+    const [createName, setCreateName] = React.useState('');
 
     const noResultsMessage = noResultsText || t('noServices');
 
@@ -103,6 +111,8 @@ export function ServiceSelector({
                 setSide(spaceBelow < DESIRED_POPOVER_HEIGHT && spaceAbove > spaceBelow ? 'top' : 'bottom');
             }
         } else {
+            // No se cierra a mitad de un alta.
+            if (isSaving) return;
             setIsCreating(false);
         }
         setOpen(nextOpen);
@@ -175,51 +185,79 @@ export function ServiceSelector({
         setIsCreating(false);
     };
 
+    const startCreate = () => {
+        setCreateName(searchQuery.trim());
+        setIsCreating(true);
+    };
+
+    const fetchByName = async (name: string, lab?: boolean): Promise<Service[]> => {
+        const result = isSales
+            ? await getSalesServices({ search: name, limit: 50, is_lab: lab })
+            : await getPurchaseServices({ search: name, limit: 50, is_lab: lab });
+        return result.items.map((s: any) => ({
+            ...s,
+            id: String(s.id),
+            currency: s.currency || getClinicCurrency(),
+        }));
+    };
+
+    const sameName = (name: string) => (s: Service) => s.name.trim().toLowerCase() === name.toLowerCase();
+
     const handleCreateService = async () => {
-        const name = searchQuery.trim();
-        if (!name || !canCreateService) return;
+        const name = createName.trim();
+        if (!name || !canCreateService || isSaving) return;
         setIsSaving(true);
         try {
-            await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
-                name,
-                price: 0,
-                currency: getClinicCurrency(),
-                is_sales: isSales,
-                is_active: true,
-                duration_minutes: 60,
-                category: '',
-                description: '',
-            });
+            // Trabajo de laboratorio: si el servicio ya existe en el catálogo sin la marca,
+            // se marca ese en vez de crear otro con el mismo nombre.
+            let created = isLab ? (await fetchByName(name, false)).find(sameName(name)) : undefined;
 
-            // Re-fetch to find and auto-select the newly created service
-            const result = isSales
-                ? await getSalesServices({ search: name, limit: 50 })
-                : await getPurchaseServices({ search: name, limit: 50 });
+            if (!created) {
+                await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
+                    name,
+                    price: 0,
+                    currency: getClinicCurrency(),
+                    is_sales: isSales,
+                    is_active: true,
+                    duration_minutes: 60,
+                    category: '',
+                    description: '',
+                }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
-            const newServices = result.items.map((s: any) => ({
-                ...s,
-                id: String(s.id),
-                currency: s.currency || getClinicCurrency(),
-            }));
-            setServices(newServices);
-
-            const created = newServices.find((s: Service) =>
-                s.name.toLowerCase() === name.toLowerCase()
-            ) || newServices[0];
-
-            if (created) {
-                // El alta no persiste is_lab (lo escribe su propio endpoint).
-                if (isLab && await setServiceIsLab(created.id, true)) {
-                    created.is_lab = true;
-                }
-                handleSelect(created);
+                // El alta no devuelve el id: se busca por nombre para seleccionarlo.
+                const found = await fetchByName(name);
+                setServices(found);
+                created = found.find(sameName(name));
             }
+
+            if (!created) {
+                toast({ variant: 'destructive', title: t('createServiceError') });
+                return;
+            }
+            // El alta no persiste is_lab (lo escribe su propio endpoint).
+            if (isLab && !created.is_lab) {
+                if (await setServiceIsLab(created.id, true)) {
+                    created = { ...created, is_lab: true };
+                } else {
+                    toast({ variant: 'destructive', title: t('labFlagError', { name: created.name }) });
+                }
+            }
+            handleSelect(created);
         } catch (error) {
             console.error('Failed to create service:', error);
+            toast({
+                variant: 'destructive',
+                title: t('createServiceError'),
+                description: isTimeoutError(error) ? t('createTimeout') : undefined,
+            });
         } finally {
             setIsSaving(false);
         }
     };
+
+    const hasQuery = Boolean(searchQuery.trim());
+    // Crear: al buscar algo, o cuando no hay nada para elegir aunque no se haya escrito nada.
+    const showCreate = canCreateService && (hasQuery || isCreating || visibleServices.length === 0);
 
     return (
         <Popover open={open} onOpenChange={handleOpenChange}>
@@ -277,31 +315,42 @@ export function ServiceSelector({
                                 )}
 
                                 {/* No results message */}
-                                {visibleServices.length === 0 && (
-                                    <p className="py-5 text-center text-sm text-muted-foreground">
-                                        {noResultsMessage}
+                                {visibleServices.length === 0 && !isCreating && (
+                                    <p className="py-5 px-3 text-center text-sm text-muted-foreground">
+                                        {!hasQuery && services.length === 0 && emptyText ? emptyText : noResultsMessage}
                                     </p>
                                 )}
 
-                                {/* Create option — always at bottom when there's a search query.
-                                    Solo para quien puede dar de alta servicios: crear acá es
-                                    el mismo alta que desde el catálogo, con otra puerta. */}
-                                {canCreateService && searchQuery.trim() && (
-                                    <div className={cn("border-t", visibleServices.length === 0 && "border-t-0")}>
+                                {/* Crear: solo para quien puede dar de alta servicios (es el mismo
+                                    alta que desde el catálogo, con otra puerta). */}
+                                {showCreate && (
+                                    <div className={cn("border-t", visibleServices.length === 0 && !isCreating && "border-t-0")}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">
-                                                    {t('serviceWillBeCreated')}
+                                                    {isLab ? t('labServiceWillBeCreated') : t('serviceWillBeCreated')}
                                                 </p>
-                                                <div className="flex items-center gap-2 px-1">
-                                                    <span className="text-sm flex-1 truncate font-medium">
-                                                        "{searchQuery}"
-                                                    </span>
+                                                {/* Las teclas no deben llegar al Command: Enter elegiría un resultado. */}
+                                                <div className="flex items-center gap-2" onKeyDown={(e) => e.stopPropagation()}>
+                                                    <Input
+                                                        value={createName}
+                                                        onChange={(e) => setCreateName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') { e.preventDefault(); void handleCreateService(); }
+                                                            if (e.key === 'Escape') { e.preventDefault(); setIsCreating(false); }
+                                                        }}
+                                                        placeholder={t('serviceNamePlaceholder')}
+                                                        aria-label={t('serviceNamePlaceholder')}
+                                                        className="h-8 text-sm"
+                                                        maxLength={200}
+                                                        disabled={isSaving}
+                                                        autoFocus
+                                                    />
                                                     <Button
                                                         size="sm"
                                                         className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                                                        onClick={handleCreateService}
-                                                        disabled={isSaving}
+                                                        onClick={() => void handleCreateService()}
+                                                        disabled={isSaving || !createName.trim()}
                                                         type="button"
                                                     >
                                                         {isSaving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
@@ -312,11 +361,13 @@ export function ServiceSelector({
                                         ) : (
                                             <button
                                                 className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent cursor-pointer text-left"
-                                                onClick={() => setIsCreating(true)}
+                                                onClick={startCreate}
                                                 type="button"
                                             >
                                                 <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{t('createNamed', { name: searchQuery })}</span>
+                                                <span className="truncate">
+                                                    {hasQuery ? t('createNamed', { name: searchQuery.trim() }) : t('createService')}
+                                                </span>
                                             </button>
                                         )}
                                     </div>

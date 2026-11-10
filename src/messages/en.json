@@ -6214,7 +6214,8 @@
       "default": "Default",
       "patients": "Patients",
       "reminders": "Reminders",
-      "dates": "Dates"
+      "dates": "Dates",
+      "lab_orders": "Lab orders"
     },
     "status": {
       "pending": "Pending",
@@ -9637,7 +9638,15 @@
     "loading": "Loading...",
     "serviceWillBeCreated": "This service will be created automatically",
     "searchSede": "Search location...",
-    "selectSede": "Select location..."
+    "selectSede": "Select location...",
+    "createSupplier": "Create supplier",
+    "createPatient": "Create patient",
+    "createService": "Create service",
+    "serviceNamePlaceholder": "Service name",
+    "labServiceWillBeCreated": "It will be created as a lab work (price 0; you can complete it in Sales → Services).",
+    "createServiceError": "The service couldn't be created.",
+    "labFlagError": "\"{name}\" was created but couldn't be marked as lab work. Mark it in Sales → Services.",
+    "createTimeout": "The server took too long to respond. Check whether the service was created before trying again."
   },
   "PrintTemplates": {
     "quote": "Quote",
@@ -10698,13 +10707,14 @@
       "addService": "Add service",
       "addAnotherService": "Add another service",
       "searchService": "Search lab service…",
-      "noLabServices": "No lab services with that name. Mark them in Sales → Services.",
+      "noLabServices": "There are no lab services with that name.",
       "removeService": "Remove {name}",
       "quantity": "Quantity",
       "itemNotes": "Note",
       "itemNotesPlaceholder": "Shade, material…",
       "workOptional": "Additional description (optional)",
-      "workHint": "If the job is not in the catalog, describe it here."
+      "workHint": "If the job is not in the catalog, describe it here.",
+      "noLabServicesYet": "There are no lab services yet."
     },
     "detail": {
       "loading": "Loading…",

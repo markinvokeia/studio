@@ -298,7 +298,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.lab_order_change_stage($1::integer, $2::integer, NULLIF($3, '')::uuid, NULLIF($4, '')::integer, NULLIF($5, ''));",
+        "query": "SELECT * FROM public.lab_order_change_stage(NULLIF($1::text, '')::integer, NULLIF($2::text, '')::integer, NULLIF($3, '')::uuid, NULLIF($4::text, '')::integer, NULLIF($5, ''));",
         "options": {
           "queryReplacement": "={{ [$json.body.id, $json.body.to_stage_id, $json.jwtPayload?.userId ?? '', $json.body.expected_from_stage_id ?? '', $json.body.note ?? ''] }}"
         }

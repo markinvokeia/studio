@@ -296,6 +296,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                     placeholder={t('form.searchService')}
                     triggerText={hasItems ? t('form.addAnotherService') : t('form.addService')}
                     noResultsText={t('form.noLabServices')}
+                    emptyText={t('form.noLabServicesYet')}
                     disabled={save.isPending}
                   />
                 </div>

@@ -103,7 +103,7 @@ export function UserSelector({
 
     const handleOpenChange = (nextOpen: boolean) => {
         // La advertencia de contacto repetido se abre encima: no perder lo tecleado.
-        if (!nextOpen && (duplicateOwners || uniqueConflict)) return;
+        if (!nextOpen && (duplicateOwners || uniqueConflict || isSaving)) return;
         if (!nextOpen) {
             setIsCreating(false);
             setCreateName('');
@@ -340,14 +340,15 @@ export function UserSelector({
                                     </CommandGroup>
                                 )}
 
-                                {users.length === 0 && (
+                                {users.length === 0 && !isCreating && (
                                     <p className="py-5 text-center text-sm text-muted-foreground">
                                         {t('EntitySelectors.noResults')}
                                     </p>
                                 )}
 
-                                {(searchQuery.trim() || isCreating) && (
-                                    <div className={cn('border-t', users.length === 0 && 'border-t-0')}>
+                                {/* Crear: al buscar algo, o cuando no hay nadie para elegir aunque no se haya escrito nada. */}
+                                {(searchQuery.trim() || isCreating || users.length === 0) && (
+                                    <div className={cn('border-t', users.length === 0 && !isCreating && 'border-t-0')}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">
@@ -399,7 +400,11 @@ export function UserSelector({
                                                 type="button"
                                             >
                                                 <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{t('EntitySelectors.createNamed', { name: searchQuery })}</span>
+                                                <span className="truncate">
+                                                    {searchQuery.trim()
+                                                        ? t('EntitySelectors.createNamed', { name: searchQuery.trim() })
+                                                        : t(filterType === 'PROVEEDOR' ? 'EntitySelectors.createSupplier' : 'EntitySelectors.createPatient')}
+                                                </span>
                                             </button>
                                         )}
                                     </div>
