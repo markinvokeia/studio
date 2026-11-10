@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Stages — Configuración → Etapas de laboratorio\n\nGET  /lab-stages        → todas las etapas (activas primero, en orden) con orders_count / in_use (lab_stages_list()).\nPOST /lab-stages/save   → body { stages: [...] } en el orden de la pantalla. Guarda TODO en una transacción con lab_stages_save(stages, usuario del JWT): valida una sola inicial, al menos una final, nombres, umbrales; borra las que no vienen (si nunca se usaron) y mueve órdenes de las desactivadas (move_orders_to).\n\nErrores: la función lanza 'LAB_STAGES:<CODIGO>|<detalle>'. 'Map error' responde 400 { success:false, code, detail, message } y el frontend traduce code.\n\nCada etapa trae \"alerts\" { enter, dwell } (script 150). Después de guardar se publica `lab_stages_changed` (canal lab_orders) para que el tablero rearme sus columnas.\n\nRequiere database/scripts/147 y 150.",
+        "content": "## Lab Stages — Configuración → Etapas de laboratorio\n\nGET  /lab-stages        → todas las etapas (activas primero, en orden) con orders_count / in_use (lab_stages_list()).\nPOST /lab-stages/save   → body { stages: [...] } en el orden de la pantalla. Guarda TODO en una transacción con lab_stages_save(stages, usuario del JWT): valida una sola inicial, al menos una final, nombres, umbrales; borra las que no vienen (si nunca se usaron) y mueve órdenes de las desactivadas (move_orders_to).\n\nErrores: la función lanza 'LAB_STAGES:<CODIGO>|<detalle>'. 'Map error' responde 400 { success:false, code, detail, message } y el frontend traduce code.\n\nCada etapa trae \"alerts\" { enter, dwell } (script 150). Después de guardar se publica `lab_stages_changed` (canal lab_orders) para que el tablero rearme sus columnas.\n\nRequiere database/scripts/147 y 150.\n\nRespuestas de error: las escrituras (save) NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).",
         "height": 360,
         "width": 560
       },
@@ -106,7 +106,6 @@
       ],
       "id": "2c00eb95-3ad0-4a16-bd7d-3ed8851029c0",
       "name": "Save lab stages",
-      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -117,13 +116,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// lab_stages_save lanza 'LAB_STAGES:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/LAB_STAGES:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
+        "jsCode": "// lab_stages_save lanza 'LAB_STAGES:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\n// Este nodo y \"Error\" van ARRIBA de todo en el lienzo: en las lecturas (con\n// alwaysOutputData) un error corre las dos salidas y responde el nodo más alto.\nconst pieces = [\n  $json.message,\n  $json.error?.message,\n  $json.error?.description,\n  typeof $json.error === 'string' ? $json.error : null,\n].filter((p) => typeof p === 'string' && p.trim());\nconst text = pieces[0] ?? 'Error';\n// El detalle llega hasta el fin de línea; en el JSON del item, hasta la comilla.\nconst match = pieces.join('\\n').match(/LAB_STAGES:([A-Z_]+)(?:\\|([^\\n]*))?/)\n  ?? JSON.stringify($json).match(/LAB_STAGES:([A-Z_]+)(?:\\|([^\"\\\\]*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         176,
-        320
+        -320
       ],
       "id": "3a102611-b2d1-435f-8040-07c268ea5cbe",
       "name": "Map error"
@@ -163,7 +162,7 @@
       "typeVersion": 1.4,
       "position": [
         416,
-        320
+        -320
       ],
       "id": "dc68d5a7-2fc8-4812-902a-892ff50822e9",
       "name": "Error"

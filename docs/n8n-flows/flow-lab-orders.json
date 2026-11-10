@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167 y 168.",
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167 y 168.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).",
         "height": 520,
         "width": 900
       },
@@ -18,13 +18,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// Las funciones de los scripts 148–150 lanzan 'LAB_ORDERS:<CODIGO>'. Cualquier\n// otro error (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/LAB_ORDERS:([A-Z_]+)/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  message: text || 'Error',\n} }];"
+        "jsCode": "// Las funciones de los scripts 148–167 lanzan 'LAB_ORDERS:<CODIGO>'. Cualquier\n// otro error (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\n// Este nodo y \"Error\" van ARRIBA de todo en el lienzo: en las lecturas (con\n// alwaysOutputData) un error corre las dos salidas y responde el nodo más alto.\nconst pieces = [\n  $json.message,\n  $json.error?.message,\n  $json.error?.description,\n  typeof $json.error === 'string' ? $json.error : null,\n].filter((p) => typeof p === 'string' && p.trim());\n// Último recurso: el item entero, por si n8n cambia dónde deja el texto.\nconst haystack = pieces.join('\\n') + '\\n' + JSON.stringify($json);\nconst text = pieces[0] ?? 'Error';\nconst match = haystack.match(/LAB_ORDERS:([A-Z_]+)/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  message: text,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1168,
-        2528
+        832
       ],
       "name": "Map error",
       "id": "ad2fb590-ec44-41a5-b134-fe21f2da59cf"
@@ -63,7 +63,7 @@
       "typeVersion": 1.4,
       "position": [
         1408,
-        2528
+        832
       ],
       "name": "Error",
       "id": "edd6161b-44bf-488a-8b48-f01fe7022a9d"
@@ -210,7 +210,6 @@
         1456
       ],
       "name": "Get lab order detail",
-      "alwaysOutputData": true,
       "id": "b29ad44e-5d94-4be5-93d3-2e358b277907",
       "credentials": {
         "postgres": {
@@ -261,7 +260,6 @@
         1712
       ],
       "name": "Save lab order",
-      "alwaysOutputData": true,
       "id": "b66ca859-e204-4d2f-8716-52c8fbff3725",
       "credentials": {
         "postgres": {
@@ -312,7 +310,6 @@
         2064
       ],
       "name": "Change lab order stage",
-      "alwaysOutputData": true,
       "id": "53162e8f-9841-4eab-ac4c-ddb30638322b",
       "credentials": {
         "postgres": {
@@ -351,7 +348,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.lab_orders\nSET is_deleted = true, updated_at = now(), updated_by = NULLIF($2, '')::uuid\nWHERE id = $1::integer AND NOT is_deleted\nRETURNING id;",
+        "query": "-- Siempre una fila (deleted = false si no existía o ya estaba borrada): así el\n-- nodo no necesita alwaysOutputData y un error solo sale por la salida de error.\nWITH d AS (\n    UPDATE public.lab_orders\n    SET is_deleted = true, updated_at = now(), updated_by = NULLIF($2, '')::uuid\n    WHERE id = $1::integer AND NOT is_deleted\n    RETURNING id\n)\nSELECT $1::integer AS id, EXISTS (SELECT 1 FROM d) AS deleted;",
         "options": {
           "queryReplacement": "={{ [$json.body.id, $json.jwtPayload?.userId ?? ''] }}"
         }
@@ -363,7 +360,6 @@
         2432
       ],
       "name": "Delete lab order",
-      "alwaysOutputData": true,
       "id": "2dcb9df7-fa7e-4768-aa9d-60af7a69e855",
       "credentials": {
         "postgres": {
