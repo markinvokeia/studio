@@ -76,6 +76,10 @@ type DoctorAgentActionResult = {
 };
 
 const AUTO_REFRESH_MS = 60_000;
+
+/** Which appointment (and patient) the clinical panel is showing; a session is only valid for the key it was loaded with */
+const appointmentContextKey = (appointment: Appointment) => `${appointment.id}:${appointment.patientId}`;
+
 /** How long an odontogram prefill may take to be applied (includes loading the patient's sessions) */
 const ODONTOGRAM_PREFILL_TIMEOUT_MS = 30_000;
 /** Agent "titles" longer than this are really the dictated procedures and belong in the notes */
@@ -860,6 +864,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
   const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+  // Context key linkedSession was loaded for. Until it matches the selected appointment we don't
+  // know whether that appointment already has a session, so nothing may be saved for it.
+  const [linkedSessionContextKey, setLinkedSessionContextKey] = React.useState<string | null>(null);
   const [patientSessions, setPatientSessions] = React.useState<PatientSession[]>([]);
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
   const [patientAlertTags, setPatientAlertTags] = React.useState<PatientAlertTag[]>([]);
@@ -1026,10 +1033,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number, silent = false) => {
     if (!appointment?.patientId) {
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
       setIsLoadingTimeline(false);
       return;
     }
+
+    // A response for an appointment that is no longer on screen (the doctor moved on while it
+    // loaded, or a save from a previous appointment reloads it) must not replace the current one:
+    // its session would be edited — and moved to the new patient — on the next save.
+    const contextKey = appointmentContextKey(appointment);
+    const isStale = () => (
+      (requestId != null && requestId !== contextRequestRef.current)
+      || lastLoadedContextKeyRef.current !== contextKey
+    );
 
     if (!silent) setIsLoadingTimeline(true);
     try {
@@ -1043,16 +1060,19 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           return Number.isNaN(rightDate) || Number.isNaN(leftDate) ? 0 : rightDate - leftDate;
         });
       const match = sessions.find((session) => String(session?.appointment_id ?? '') === appointment.id);
-      if (requestId != null && requestId !== contextRequestRef.current) return;
+      if (isStale()) return;
       setPatientSessions(sessions);
       setLinkedSession(match ? ({ ...match, sesion_id: Number(match.sesion_id) } as PatientSession) : null);
+      setLinkedSessionContextKey(contextKey);
     } catch (error) {
       console.error('Failed to load linked session:', error);
-      if (requestId != null && requestId !== contextRequestRef.current) return;
+      if (isStale()) return;
+      // Unknown whether the appointment has a session: keep saving blocked until a reload succeeds
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
     } finally {
-      if (requestId == null || requestId === contextRequestRef.current) {
+      if (!isStale()) {
         setIsLoadingTimeline(false);
       }
     }
@@ -1128,6 +1148,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   React.useEffect(() => {
     if (!selectedAppointment) {
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
       setQuoteItems([]);
       setPatientAlertTags([]);
@@ -1137,9 +1158,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
     // Detect whether this is a genuine appointment navigation or just a background poll
     // that refreshed the appointments array (same appointment, new object reference).
-    const contextKey = `${selectedAppointment.id}:${selectedAppointment.patientId}`;
+    const contextKey = appointmentContextKey(selectedAppointment);
     const isSameContext = lastLoadedContextKeyRef.current === contextKey;
     lastLoadedContextKeyRef.current = contextKey;
+
+    if (!isSameContext) {
+      // The previous appointment's session must not stay around while this one loads:
+      // saving in that window would update it with this appointment's patient.
+      setLinkedSession(null);
+      setLinkedSessionContextKey(null);
+      setPatientSessions([]);
+    }
 
     contextRequestRef.current += 1;
     const requestId = contextRequestRef.current;
@@ -1183,8 +1212,26 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     if (completed) updateKnownAppointmentStatus(userId, appointment.id, 'completed');
   }, [completeAppointmentWithDocumentCheck, loadAppointments, user?.id]);
 
+  // Why the selected appointment's session can't be saved right now, or null. The session to
+  // update must have been loaded for this very appointment (and patient) and still be on screen:
+  // the endpoint rewrites paciente_id/appointment_id, so a stale session would move patients.
+  const getSessionSaveBlocker = React.useCallback((appointment: Appointment): string | null => {
+    const contextKey = appointmentContextKey(appointment);
+    if (lastLoadedContextKeyRef.current !== contextKey || linkedSessionContextKey !== contextKey) {
+      return t('focus.sessionContextNotReady');
+    }
+    if (linkedSession && String(linkedSession.appointment_id ?? '') !== appointment.id) {
+      return t('focus.sessionContextNotReady');
+    }
+    return null;
+  }, [linkedSession, linkedSessionContextKey, t]);
+
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
+
+    // Thrown so the dialog keeps the form open and shows the reason
+    const blocker = getSessionSaveBlocker(selectedAppointment);
+    if (blocker) throw new Error(blocker);
 
     // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
     let sesionId: number | undefined;
@@ -1211,6 +1258,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   }, [
     completeSelectedAppointment,
     createSession,
+    getSessionSaveBlocker,
     isSessionEditingBlockedByDate,
     linkedSession,
     loadAppointments,
@@ -1283,6 +1331,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const executeDoctorAgentAction = React.useCallback(async (action: DoctorAgentAction): Promise<DoctorAgentActionResult> => {
     if (!selectedAppointment) {
       return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
+    }
+
+    // The agent names another appointment when the doctor asks for one that isn't open. Opening
+    // this one with that data would put another patient's dictation here.
+    const targetAppointmentId = action.payload?.appointment_id;
+    if (targetAppointmentId && targetAppointmentId !== selectedAppointment.id) {
+      return { success: false, message: t('focus.ai.actionOtherAppointment') };
     }
 
     if (
@@ -1362,8 +1417,18 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
   }, [clearAgentSessionDraft]);
 
-  const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
-    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
+  const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload): Promise<DoctorAgentActionResult> => {
+    if (!selectedAppointment?.patientId) {
+      return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
+    }
+    if (isSessionEditingBlockedByDate) {
+      return { success: false, message: t('focus.sessionOnlyOnAppointmentDay') };
+    }
+    if (payload.appointment_id && payload.appointment_id !== selectedAppointment.id) {
+      return { success: false, message: t('focus.ai.actionOtherAppointment') };
+    }
+    const blocker = getSessionSaveBlocker(selectedAppointment);
+    if (blocker) return { success: false, message: blocker };
 
     const fecha = selectedAppointment.start?.dateTime
       ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
@@ -1382,7 +1447,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, isSessionEditingBlockedByDate, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
+    return { success: true };
+  }, [getSessionSaveBlocker, handleSaveClinicSession, isSessionEditingBlockedByDate, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName, t]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)

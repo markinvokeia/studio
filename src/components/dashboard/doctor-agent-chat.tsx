@@ -23,7 +23,8 @@ interface DoctorAgentChatProps {
   onAction?: (action: DoctorAgentAction) => void | { success?: boolean; message?: string } | Promise<void | { success?: boolean; message?: string }>;
   presentation?: 'floating' | 'embedded';
   hasExistingSession?: boolean;
-  onDirectSave?: (payload: DoctorAgentActionPayload) => Promise<void>;
+  /** Resolves `{ success: false, message }` when the session couldn't be saved for a known reason */
+  onDirectSave?: (payload: DoctorAgentActionPayload) => Promise<void | { success?: boolean; message?: string }>;
 }
 
 const PREFERRED_VOICE_NAMES = [
@@ -178,6 +179,53 @@ function writeDoctorAgentChatState(sessionId: string, state: PersistedDoctorAgen
   }
 }
 
+/**
+ * Adds the agent's answer to the chat of an appointment that is no longer on screen: each
+ * appointment has its own chat, so an answer that arrives after the doctor moved on belongs
+ * there and shows up when they come back.
+ */
+function appendToStoredDoctorAgentChat(sessionId: string, contents: string[], suggestions?: string[]) {
+  if (!contents.length) return;
+  const state = readDoctorAgentChatState(sessionId)
+    ?? { isOpen: true, isMinimized: false, ttsEnabled: true, suggestions: [], messages: [] };
+  writeDoctorAgentChatState(sessionId, {
+    ...state,
+    suggestions: suggestions ?? state.suggestions,
+    messages: [
+      ...state.messages,
+      ...contents.map((content) => ({
+        id: createChatMessageId('assistant'),
+        role: 'assistant' as const,
+        content,
+        timestamp: new Date().toISOString(),
+      })),
+    ],
+  });
+}
+
+/** Texts the chat shows for an answer: the reply itself and, when present, the clinical brief */
+function doctorResponseTexts(result: DoctorAiQueryResponse): string[] {
+  const texts: string[] = [];
+  const responseText = result.answer || result.output;
+  if (responseText) texts.push(responseText);
+  if (result.clinical_brief) {
+    const briefMessage = [
+      result.clinical_brief.resumen_clinico,
+      result.clinical_brief.ultimo_realizado,
+      ...result.clinical_brief.que_toca_hoy,
+      ...result.clinical_brief.alertas,
+    ].filter(Boolean).join('\n\n');
+    if (briefMessage) texts.push(briefMessage);
+  }
+  return texts;
+}
+
+/** The appointment the agent says the action is for, when it names one (its prompt asks it to for another appointment) */
+function actionAppointmentId(rawAction: any): string | undefined {
+  const id = rawAction?.appointment_id;
+  return id != null && String(id).trim() !== '' ? String(id).trim() : undefined;
+}
+
 function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
   if (!rawAction || typeof rawAction !== 'object') return null;
 
@@ -192,6 +240,7 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     return {
       type: 'open_clinic_session',
       payload: {
+        appointment_id: actionAppointmentId(rawAction),
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
         plan_proxima_cita: rawAction.plan_proxima_cita || '',
         tratamientos,
@@ -210,6 +259,7 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     return {
       type: 'save_clinic_session',
       payload: {
+        appointment_id: actionAppointmentId(rawAction),
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
         plan_proxima_cita: rawAction.plan_proxima_cita || '',
         tratamientos,
@@ -228,6 +278,7 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     return {
       type: 'review_clinic_session',
       payload: {
+        appointment_id: actionAppointmentId(rawAction),
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
         plan_proxima_cita: rawAction.plan_proxima_cita || '',
         tratamientos,
@@ -239,6 +290,7 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     return {
       type: 'open_odontogram',
       payload: {
+        appointment_id: actionAppointmentId(rawAction),
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
         // The model does not always use the documented field name for the dictated procedures
         notas_clinicas: rawAction.notas_clinicas || rawAction.notas || rawAction.procedimientos || rawAction.observaciones || '',
@@ -323,13 +375,18 @@ export function DoctorAgentChat({
   const portalContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
   const [isMinimized, setIsMinimized] = React.useState(false);
-  const [isSending, setIsSending] = React.useState(false);
+  // Chats (one per appointment) waiting for the agent. Only the one on screen shows it is typing.
+  const [sendingSessionIds, setSendingSessionIds] = React.useState<ReadonlySet<string>>(() => new Set());
   const [ttsEnabled, setTtsEnabled] = React.useState(true);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [pendingSessionAction, setPendingSessionAction] = React.useState<DoctorAgentAction | null>(null);
   const [isSavingDirect, setIsSavingDirect] = React.useState(false);
   const sessionId = React.useMemo(() => buildDoctorDailySessionId(userId, appointmentId), [userId, appointmentId]);
+  const isSending = sendingSessionIds.has(sessionId);
+  // Which chat the messages in state belong to. Right after switching appointments the state still
+  // holds the previous chat for one render, and it must not be saved under the new one.
+  const [loadedSessionId, setLoadedSessionId] = React.useState<string | null>(null);
   const isFloating = presentation === 'floating';
 
   const quickQuestions = React.useMemo(
@@ -367,7 +424,17 @@ export function DoctorAgentChat({
     };
   }, []);
 
+  // The chat on screen right now, read when an answer arrives: the doctor may have switched
+  // appointments while the agent was thinking.
+  const currentSessionIdRef = React.useRef(sessionId);
+  React.useLayoutEffect(() => {
+    currentSessionIdRef.current = sessionId;
+  }, [sessionId]);
+
   React.useEffect(() => {
+    // A prepared session belongs to the appointment it was dictated for
+    setPendingSessionAction(null);
+    setLoadedSessionId(sessionId);
     const persistedState = readDoctorAgentChatState(sessionId);
     if (!persistedState) {
       setMessages([]);
@@ -391,7 +458,7 @@ export function DoctorAgentChat({
   }, [sessionId]);
 
   React.useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || loadedSessionId !== sessionId) return;
 
     writeDoctorAgentChatState(sessionId, {
       isOpen,
@@ -406,7 +473,7 @@ export function DoctorAgentChat({
         timestamp: message.timestamp.toISOString(),
       })),
     });
-  }, [isClient, isMinimized, isOpen, messages, sessionId, suggestions, ttsEnabled]);
+  }, [isClient, isMinimized, isOpen, loadedSessionId, messages, sessionId, suggestions, ttsEnabled]);
 
   React.useEffect(() => {
     if (appointmentId || !isFloating) return;
@@ -463,8 +530,12 @@ export function DoctorAgentChat({
         if (onDirectSave) {
           setIsSavingDirect(true);
           try {
-            await onDirectSave(payload);
-            setPendingSessionAction(null);
+            const saveResult = await onDirectSave(payload);
+            if (saveResult && saveResult.success === false) {
+              if (saveResult.message) appendAssistantMessage(saveResult.message);
+            } else {
+              setPendingSessionAction(null);
+            }
           } catch {
             appendAssistantMessage(t('chatError'));
           } finally {
@@ -506,7 +577,10 @@ export function DoctorAgentChat({
       },
     ]);
 
-    setIsSending(true);
+    // The chat this question belongs to; the answer goes there even if the doctor moves on
+    const requestSessionId = sessionId;
+    const isStillOnScreen = () => currentSessionIdRef.current === requestSessionId;
+    setSendingSessionIds((prev) => new Set(prev).add(requestSessionId));
     try {
       const jwtToken = typeof window !== 'undefined' ? (window.localStorage.getItem('token') ?? undefined) : undefined;
       const result = await queryDoctorAi({
@@ -519,12 +593,24 @@ export function DoctorAgentChat({
         token: jwtToken,
         has_existing_session: hasExistingSession,
       });
+      if (!isStillOnScreen()) {
+        // Saved silently in that appointment's chat. Its action (save, open a dialog...) is not run:
+        // it would act on the appointment now on screen.
+        const normalized = normalizeDoctorResponse(result);
+        appendToStoredDoctorAgentChat(requestSessionId, doctorResponseTexts(normalized), normalized.suggestions);
+        return;
+      }
       await applyDoctorResponse(result);
     } catch (error) {
       console.error('Failed to query doctor agent chat:', error);
-      appendAssistantMessage(t('chatError'));
+      if (isStillOnScreen()) appendAssistantMessage(t('chatError'));
+      else appendToStoredDoctorAgentChat(requestSessionId, [t('chatError')]);
     } finally {
-      setIsSending(false);
+      setSendingSessionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(requestSessionId);
+        return next;
+      });
     }
   }, [appendAssistantMessage, appointmentId, patientId, doctorId, applyDoctorResponse, sessionId, t]);
 
