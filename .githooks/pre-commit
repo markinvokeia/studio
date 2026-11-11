@@ -14,6 +14,16 @@ cd "$ROOT" || exit 1
 
 STAGED="$(git diff --cached --name-only --diff-filter=ACMRD)"
 
+# Traducciones: toda clave agregada/borrada tiene que estar en todos los
+# src/messages/*.json con los mismos placeholders ICU. Ver scripts/i18n/check-translations.mjs.
+if printf '%s\n' "$STAGED" | grep -q '^src/messages/'; then
+  if ! node scripts/i18n/check-translations.mjs --staged; then
+    echo ""
+    echo "✖ Traducciones incompletas (ver arriba): agregá la clave en todos los locales y hacé git add."
+    exit 1
+  fi
+fi
+
 if printf '%s\n' "$STAGED" | grep -qE '^(src/|knowledge/|scripts/knowledge/)'; then
   if ! node scripts/knowledge/build-catalog.mjs; then
     echo ""

@@ -12,9 +12,11 @@ pnpm typecheck     # TypeScript type check without emit
 pnpm knowledge:build  # Regenerate the assistant's product map (src/generated/help-catalog.json)
 pnpm knowledge:check  # Fail if the map is stale or a guide points to a missing route/help id
 pnpm n8n:help         # Regenerate n8n-workflows/help-*.json (never edit them by hand)
+pnpm i18n:check       # Same keys in every src/messages/*.json + same ICU placeholders on changed keys
+pnpm i18n:audit       # Same, but checks placeholders on every key
 ```
 
-**Before committing:** Always run `pnpm typecheck && pnpm lint`. The pre-commit hook (`.githooks/pre-commit`, set by `pnpm install`) regenerates the product map and blocks the commit if an assistant guide broke.
+**Before committing:** Always run `pnpm typecheck && pnpm lint`. The pre-commit hook (`.githooks/pre-commit`, set by `pnpm install`) regenerates the product map and blocks the commit if an assistant guide broke; when `src/messages/` is staged it also runs `i18n:check --staged` and blocks on missing keys or mismatched placeholders.
 
 ## Architecture
 
