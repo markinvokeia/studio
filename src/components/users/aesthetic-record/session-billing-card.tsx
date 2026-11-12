@@ -164,7 +164,8 @@ export function SessionBillingCard({ items }: { items: BillingItem[] }) {
   );
 }
 
-function InvoiceDetails({ invoice, items, canPay, onPay, onPrintInvoice, onPrintPayment }: {
+/** Invoice of a session with its balance and payments (also used by the periodontogram's closing) */
+export function InvoiceDetails({ invoice, items, canPay, onPay, onPrintInvoice, onPrintPayment }: {
   invoice: AestheticSessionInvoice;
   items: BillingItem[];
   canPay: boolean;
@@ -264,7 +265,7 @@ function InvoiceDetails({ invoice, items, canPay, onPay, onPrintInvoice, onPrint
 }
 
 /** The printing helpers take a whole document and load the rest by id */
-function toPrintableInvoice(invoice: AestheticSessionInvoice, patientId: string, patientName?: string): Invoice {
+export function toPrintableInvoice(invoice: AestheticSessionInvoice, patientId: string, patientName?: string): Invoice {
   return {
     id: invoice.id,
     doc_no: invoice.docNo,
@@ -284,7 +285,7 @@ function toPrintableInvoice(invoice: AestheticSessionInvoice, patientId: string,
   };
 }
 
-function toPrintablePayment(payment: InvoicePaymentSummary, patientName: string | undefined, currency: string): Payment {
+export function toPrintablePayment(payment: InvoicePaymentSummary, patientName: string | undefined, currency: string): Payment {
   const date = payment.date || '';
   const amount = payment.amount ?? 0;
   return {

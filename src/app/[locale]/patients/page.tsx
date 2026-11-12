@@ -85,7 +85,7 @@ import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, PERIO_RECORD_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -534,6 +534,7 @@ export default function UsersPage() {
   ]);
   const isClinicalReadOnly = !canWriteClinical;
   const canCreateAesthetic = canWriteClinical && hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  const canCreatePerio = canWriteClinical && hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
 
   // Header actions that were previously ungated.
   const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
@@ -569,6 +570,7 @@ export default function UsersPage() {
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
+  const [createPerioTrigger, setCreatePerioTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
@@ -1157,6 +1159,7 @@ export default function UsersPage() {
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
       setCreateAestheticTrigger(0);
+      setCreatePerioTrigger(0);
       setCreateDocumentTrigger(0);
       setCreateMedicalInstructionTrigger(0);
       setCreatePrescriptionTrigger(0);
@@ -1467,6 +1470,7 @@ export default function UsersPage() {
                         onCreateClinicalSession={canWriteClinical ? () => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); } : undefined}
                         onCreateOdontogram={canWriteClinical ? () => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); } : undefined}
                         onCreateAestheticSession={canCreateAesthetic ? () => { openClinicalHistory(); setCreateAestheticTrigger(n => n + 1); } : undefined}
+                        onCreatePerioExam={canCreatePerio ? () => { openClinicalHistory(); setCreatePerioTrigger(n => n + 1); } : undefined}
                         onCreateMedicalInstruction={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); } : undefined}
                         onCreatePrescription={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreatePrescriptionTrigger(n => n + 1); } : undefined}
                         onCreateDocument={canWriteClinical ? () => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); } : undefined}
@@ -1582,6 +1586,8 @@ export default function UsersPage() {
                             createOdontogramTrigger={createOdontogramTrigger}
                             createAestheticTrigger={createAestheticTrigger}
                             onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
+                            createPerioTrigger={createPerioTrigger}
+                            onPerioTriggerConsumed={() => setCreatePerioTrigger(0)}
                             patientSex={selectedUser.sex}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}

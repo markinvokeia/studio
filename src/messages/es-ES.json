@@ -1827,7 +1827,8 @@
       "readOnly": "Solo lectura",
       "readOnlyOnDate": "Solo lectura · {date}",
       "prescribe": "Recetar",
-      "aestheticSession": "Sesión estética"
+      "aestheticSession": "Sesión estética",
+      "perioExam": "Periodontograma"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -2175,7 +2176,9 @@
       "history": "Línea de tiempo",
       "medicalInstructions": "Indicaciones Médicas",
       "dependents": "Dependientes",
-      "responsible": "Responsable"
+      "responsible": "Responsable",
+      "clinicalShort": "Clínica",
+      "financialShort": "Finanzas"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -5531,7 +5534,14 @@
       "apptTime": "Horario",
       "apptServices": "Servicios",
       "sessionTypeAesthetic": "Estética",
-      "viewAestheticSession": "Ver sesión"
+      "viewAestheticSession": "Ver sesión",
+      "sessionTypePeriodontogram": "Periodontograma",
+      "viewPeriodontogram": "Ver periodontograma",
+      "filterEventType": "Tipo de evento",
+      "filterAll": "Todos",
+      "filterDoctor": "Doctor",
+      "filterAllDoctors": "Todos los doctores",
+      "eventCount": "{shown} de {total, plural, one {# evento} other {# eventos}}"
     },
     "anamnesis": {
       "personalTitle": "Información Personal",
@@ -8057,7 +8067,8 @@
     "status": "Estado",
     "settings": "Configuración",
     "sendReminder": "Enviar recordatorio",
-    "createAestheticSession": "Sesión estética"
+    "createAestheticSession": "Sesión estética",
+    "createPerioExam": "Periodontograma"
   },
   "WhatsAppTemplateSendDialog": {
     "title": "Enviar recordatorio por WhatsApp",
@@ -10898,7 +10909,8 @@
       "elements": "Campos y botones",
       "show": "Mostrar",
       "tourCta": "Guíame por esta pantalla",
-      "tourTitle": "Recorrido por {screen}"
+      "tourTitle": "Recorrido por {screen}",
+      "about": "Sobre esta pantalla"
     },
     "chat": {
       "welcomeTitle": "¡Hola! ¿Qué quieres hacer ahora?",
@@ -12162,6 +12174,966 @@
       "cancel": "Cancelar",
       "confirm": "Eliminar",
       "deactivate": "Desactivar"
+    }
+  },
+  "PerioRecord": {
+    "status": {
+      "probing": "Sondaje en curso",
+      "probed": "Sondada",
+      "closed": "Cerrada",
+      "void": "Anulada",
+      "diagnosed": "Con diagnóstico"
+    },
+    "examTypes": {
+      "initial": "Diagnóstico inicial",
+      "reevaluation": "Reevaluación",
+      "maintenance": "Mantenimiento",
+      "screening": "Cribado PSR/BPE",
+      "implants": "Solo implantes"
+    },
+    "sheet": {
+      "title": "Periodontograma",
+      "newTitle": "Nuevo periodontograma",
+      "notFound": "No se encontró el periodontograma.",
+      "defaultTitle": "Periodontograma {date}",
+      "closedBanner": "Cerrado el {date} por {name} · solo lectura",
+      "fromOdontogram": {
+        "prefix": "del odontograma: {list}",
+        "missing": "{teeth} ausentes",
+        "pontic": "{teeth} póntico",
+        "implant": "{teeth} implante",
+        "none": "del odontograma: todas las piezas presentes"
+      }
+    },
+    "flow": {
+      "steps": {
+        "probe": "Sondaje",
+        "evolution": "Evolución",
+        "diagnosis": "Diagnóstico",
+        "close": "Cierre"
+      },
+      "header": {
+        "steps": "Pasos del periodontograma",
+        "subtitle": "Periodontograma n.º {number} · {date}",
+        "completeness": "{value}% completo"
+      },
+      "hints": {
+        "step": "Paso {step}: {name}",
+        "comingSoon": "Disponible en una próxima versión.",
+        "steps": {
+          "probe": "Profundidad y sangrado, margen gingival, furcas y movilidad.",
+          "evolution": "Comparar con sesiones anteriores.",
+          "diagnosis": "Estabilidad, estadio, grado, riesgo y plan.",
+          "close": "Revisar los índices, anotar y firmar."
+        }
+      },
+      "missing": {
+        "closed": "Cerrado. Solo lectura.",
+        "void": "Anulado. Solo lectura.",
+        "depths": "{count, plural, one {Falta # sitio por sondar} other {Faltan # sitios por sondar}}",
+        "margin": "{count, plural, one {Falta el margen gingival en # sitio} other {Falta el margen gingival en # sitios}}",
+        "ready": "Listo para firmar y cerrar",
+        "show": "Ver qué falta en el gráfico",
+        "diagnosis": "Falta confirmar el diagnóstico",
+        "sextants": "{count, plural, one {Falta # sextante} other {Faltan # sextantes}}"
+      },
+      "save": {
+        "saving": "Guardando…",
+        "justNow": "Guardado hace un momento",
+        "secondsAgo": "Guardado hace {seconds} s",
+        "minutesAgo": "Guardado hace {minutes} min",
+        "error": "No se pudo guardar",
+        "retry": "Reintentar",
+        "upToDate": "Al día",
+        "notCreated": "Todavía sin guardar",
+        "readOnly": "Solo lectura",
+        "closed": "Cerrado"
+      },
+      "leave": {
+        "title": "¿Salir sin guardar?",
+        "description": "El último cambio no se ha guardado ({error}). Si sales ahora, se pierde.",
+        "descriptionGeneric": "Hay cambios sin guardar. Si sales ahora, se pierden.",
+        "stay": "Quedarme",
+        "confirm": "Salir igual"
+      }
+    },
+    "probe": {
+      "banner": {
+        "examType": "Examen de",
+        "guide": "guía: examen del {date}",
+        "noGuide": "sin examen anterior como guía",
+        "implantsOnly": "Solo implantes: se sondean los implantes"
+      },
+      "passes": {
+        "label": "Pasadas",
+        "ps": "Profundidad y sangrado",
+        "mg": "Margen gingival",
+        "fm": "Furcas y movilidad"
+      },
+      "focus": {
+        "label": "Arcada",
+        "auto": "Sigue a la sonda",
+        "U": "Superior",
+        "L": "Inferior",
+        "both": "Ambas"
+      },
+      "showGuide": "Mostrar el examen anterior como guía",
+      "undo": "Deshacer (Ctrl+Z)",
+      "redo": "Rehacer (Ctrl+Y)",
+      "guide": {
+        "passDone": "Pasada completa · {done} de {total}",
+        "depth": "profundidad de sondaje",
+        "margin": "margen gingival",
+        "enlargement": "agrandamiento (−)",
+        "fm": "movilidad y furcas",
+        "line": {
+          "bop": "sangrado: sí o no",
+          "sup": "supuración: sí o no",
+          "plaque": "placa: sí o no"
+        },
+        "recession": "recesión (−)"
+      },
+      "keys": {
+        "ps": "0–9 medida · Enter igual que antes ({value}) · B sangra · S supura · P placa · ← → ↑ ↓",
+        "mg": "0–9 recesión · − agrandamiento · Enter igual que antes ({value}) · ← → ↑ ↓",
+        "fm": "0–3 movilidad · Enter sin cambios · toca ▲ para la furca"
+      },
+      "flags": {
+        "bop": "Sangra",
+        "sup": "Supura",
+        "plaque": "Placa"
+      },
+      "toast": {
+        "depthsDone": "Profundidades completas. Sigue el margen gingival.",
+        "marginDone": "Margen gingival completo. Puedes revisar furcas y movilidad.",
+        "mobilityRange": "La movilidad va de 0 a III",
+        "jump": "Ojo: {site} pasó de {from} a {to} mm",
+        "fix": "Corregir",
+        "noPrevious": "No hay un valor anterior para este sitio: escribe la medida",
+        "flagOn": "{flag} marcado en {site}",
+        "flagOff": "{flag} quitado en {site}",
+        "notProbed": "{tooth}: {status}, no se sondea"
+      },
+      "archNotice": "Ahora en {arch} · {tooth} {face}",
+      "flagKeys": {
+        "bop": "B",
+        "sup": "S",
+        "plaque": "P"
+      },
+      "reveal": {
+        "depths": "{count, plural, one {# sitio sin profundidad, resaltado en ámbar} other {# sitios sin profundidad, resaltados en ámbar}}",
+        "margin": "{count, plural, one {# sitio sin margen gingival, resaltado en ámbar} other {# sitios sin margen gingival, resaltados en ámbar}}",
+        "clear": "Quitar resaltado"
+      },
+      "nextStep": "Siguiente: Evolución",
+      "copy": {
+        "pass": "Iniciar con el examen anterior",
+        "all": "Copiar todo del examen anterior",
+        "hintSites": "{count, plural, one {Llena # sitio vacío} other {Llena # sitios vacíos}} con los valores del examen anterior",
+        "hintTeeth": "{count, plural, one {Llena # pieza} other {Llena # piezas}} con la movilidad y las furcas del examen anterior",
+        "done": "Se copiaron {sites, plural, one {# sitio} other {# sitios}} y {teeth, plural, one {# pieza} other {# piezas}} del examen anterior",
+        "review": "Lo copiado queda subrayado: retoca lo que ha cambiado y confirma.",
+        "nothing": "No hay nada vacío para copiar del examen anterior.",
+        "undo": "Deshacer"
+      }
+    },
+    "chart": {
+      "upperArch": "Arcada superior",
+      "lowerArch": "Arcada inferior",
+      "upperAria": "Periodontograma de la arcada superior",
+      "lowerAria": "Periodontograma de la arcada inferior",
+      "rows": {
+        "pd": "PS",
+        "gm": "MG",
+        "cal": "NIC",
+        "bop": "SS"
+      },
+      "faces": {
+        "vestibular": "VEST",
+        "palatal": "PAL",
+        "lingual": "LING"
+      },
+      "sides": {
+        "v": "vestibular",
+        "iUpper": "palatino",
+        "iLower": "lingual"
+      },
+      "sidesShort": {
+        "v": "V",
+        "iUpper": "P",
+        "iLower": "L"
+      },
+      "sites": {
+        "0": "distal",
+        "1": "centro",
+        "2": "mesial"
+      },
+      "sitesShort": {
+        "0": "D",
+        "1": "C",
+        "2": "M"
+      },
+      "status": {
+        "present": "Presente",
+        "missing": "Ausente",
+        "pontic": "Póntico",
+        "implant": "Implante"
+      },
+      "missing": "ausente",
+      "pontic": "póntico",
+      "pd": "profundidad de sondaje",
+      "gm": "margen gingival",
+      "before": "antes {value} mm",
+      "bop": "sangra",
+      "sup": "supura",
+      "plaque": "placa",
+      "furcation": {
+        "v": "vestibular",
+        "mp": "mesiopalatina",
+        "dp": "distopalatina",
+        "l": "lingual"
+      },
+      "furcationTitle": "{tooth} furca {entry}: {grade}",
+      "noLesion": "sin lesión",
+      "mobilityTitle": "{tooth} · movilidad {grade} (toca para cambiar)",
+      "probeHere": "la sonda está aquí",
+      "change": "antes {before} mm · PS {pd} · NIC {cal}",
+      "lost": "{site}: pierde {mm} mm de inserción",
+      "gained": "{site}: gana {mm} mm de inserción"
+    },
+    "legend": {
+      "margin": "Margen gingival",
+      "pocket": "Fondo de bolsa (nivel de inserción)",
+      "cej": "Línea amelocementaria",
+      "bop": "Sangrado",
+      "sup": "Supuración",
+      "plaque": "Placa",
+      "s4": "4 mm",
+      "s5": "5 mm",
+      "s6": "6 mm o más",
+      "markTarget": "Dónde van las marcas",
+      "dictated": "Dictado o copiado, sin confirmar",
+      "gained": "Ganó inserción",
+      "lost": "Perdió inserción",
+      "better": "Mejoró",
+      "worse": "Empeoró",
+      "previous": "Examen comparado (punteado)"
+    },
+    "inspector": {
+      "label": "Pieza activa",
+      "kpi": {
+        "sites": "sitios",
+        "bop": "sangrado",
+        "plaque": "placa",
+        "pockets5": "bolsas ≥ 5"
+      },
+      "toothNames": {
+        "1": "Incisivo central",
+        "2": "Incisivo lateral",
+        "3": "Canino",
+        "4": "Primer premolar",
+        "5": "Segundo premolar",
+        "6": "Primer molar",
+        "7": "Segundo molar",
+        "8": "Tercer molar"
+      },
+      "quadrant": {
+        "q1": "Superior derecho",
+        "q2": "Superior izquierdo",
+        "q3": "Inferior izquierdo",
+        "q4": "Inferior derecho"
+      },
+      "implant": "Implante",
+      "prev": "Sitio anterior",
+      "next": "Sitio siguiente",
+      "statusLabel": "Estado de la pieza",
+      "notProbed": "Pieza ausente o póntico: no se sondea. Cambia el estado si en la boca no es así.",
+      "guideHint": "El número chico es el valor del examen guía. NIC se calcula solo.",
+      "implantTip": "Implante: se sondea en 6 sitios. Con sangrado o supuración y más profundidad que en el examen anterior, pide una Rx para medir el hueso (criterio de periimplantitis).",
+      "mobility": "Movilidad (Miller)",
+      "furcationEntry": "Furca {entry}",
+      "noFurcation": "Pieza sin furcas para registrar.",
+      "noFurcationThird": "Tercer molar: no se registran furcas.",
+      "nextTooth": "Siguiente pieza",
+      "furcationHelp": "Furca: I < 3 mm horizontal · II > 3 mm sin atravesar · III de lado a lado (Hamp).",
+      "mobilityOnlyPresent": "La movilidad y las furcas se registran en piezas presentes.",
+      "backspace": "Borrar",
+      "bumpHint": "Suma 1 al último valor (10 mm o más)",
+      "sameAsBefore": "Igual que antes · {value}",
+      "same": "Igual que antes",
+      "noRecession": "Sin recesión · 0",
+      "enlargement": "− Agrandamiento",
+      "flagsApplyTo": "Se aplican a {site}",
+      "flagsApplyToLast": "Se aplican al último sitio medido",
+      "marginHelp": "Positivo = recesión (margen por debajo de la LAC). Negativo = agrandamiento. NIC = PS + MG.",
+      "history": "Historia de la pieza · PS máxima",
+      "noHistory": "Sin sesiones anteriores para esta pieza.",
+      "notePlaceholder": "Nota de la pieza (ej.: control radiográfico)",
+      "marksOn": "Marcas en {site}",
+      "marksOnLabel": "Las marcas van a",
+      "marksRow": "Sangrado, supuración y placa de cada sitio",
+      "marksHelp": "Toca un sitio del gráfico o de la tabla para elegir otro. En el teclado: B, S y P.",
+      "recessionKey": "− Recesión",
+      "marginHelpNegative": "Negativo = recesión (margen por debajo de la LAC). Positivo = agrandamiento. NIC = PS + recesión."
+    },
+    "close": {
+      "title": "Cierre",
+      "lead": "Revisa el reporte, resuelve el cobro y la próxima cita, y firma. Cerrado, queda en la historia clínica en solo lectura; los cambios van como enmienda.",
+      "indices": "Índices de hoy (piezas naturales)",
+      "kpi": {
+        "sites": "sitios sondados",
+        "bop": "sangrado al sondaje",
+        "plaque": "placa",
+        "meanPd": "PS media",
+        "meanCal": "NIC medio",
+        "n4": "sitios ≥ 4 mm",
+        "n5": "sitios ≥ 5 mm",
+        "n6": "sitios ≥ 6 mm",
+        "b4": "4 mm con sangrado",
+        "teeth5": "piezas con ≥ 5 mm"
+      },
+      "notes": "Notas de la sesión",
+      "notesPlaceholder": "Observaciones, indicaciones, plan…",
+      "checklist": {
+        "depths": "Profundidades completas",
+        "margin": "Margen gingival completo",
+        "dictation": "Valores dictados o copiados confirmados",
+        "diagnosis": "Diagnóstico confirmado",
+        "billing": "Cobro resuelto",
+        "nextVisit": "Próxima cita",
+        "screening": "Sextantes codificados"
+      },
+      "sign": "Firmar y cerrar",
+      "notReady": "Completa profundidad y margen en todos los sitios para cerrar",
+      "confirm": {
+        "title": "¿Firmar y cerrar el periodontograma?",
+        "description": "Queda en la historia clínica con tu firma y ya no se puede editar.",
+        "cancel": "Cancelar",
+        "action": "Firmar y cerrar"
+      },
+      "toast": {
+        "closed": "Periodontograma firmado y cerrado",
+        "errorTitle": "No se pudo cerrar el periodontograma"
+      },
+      "dictationPending": "Confirma o descarta los valores dictados o copiados antes de firmar",
+      "confirmDictation": "Confirmar",
+      "diagnosis": "Diagnóstico",
+      "notDiagnosed": "Confirma el diagnóstico para cerrar",
+      "backToDiagnosis": "Volver al diagnóstico",
+      "billingPending": "Cobra o marca «Sin cobro hoy»",
+      "nextVisitPending": "Reserva la próxima cita o elige «Agendar después»",
+      "report": {
+        "title": "Reporte para el paciente",
+        "hello": "Hola {name}, te dejamos el resumen de tu control de encías.",
+        "bopVs": "Sangran el {now}% de los puntos medidos (en el primer control, el {before}%).",
+        "bop": "Sangran el {now}% de los puntos medidos.",
+        "pocketsVs": "Zonas con bolsas de 5 mm o más: {now} (en el primer control, {before}).",
+        "pockets": "Zonas con bolsas de 5 mm o más: {now}.",
+        "tipTeeth": "Hay que repasar la zona de {teeth}. Usa cepillo interdental todas las noches.",
+        "tipPlaque": "Hay placa en varias zonas: cepilla con cuidado el borde de la encía y usa cepillo interdental.",
+        "tipKeep": "Sigue así: te esperamos para el mantenimiento en {months, plural, one {# mes} other {# meses}}.",
+        "sentAt": "Enviado el {date}",
+        "noPhone": "El paciente no tiene teléfono cargado",
+        "print": "Imprimir",
+        "copy": "Copiar",
+        "copied": "Copiado",
+        "psr": "Resultado del control de encías: código {code} de 4 (0 es sano).",
+        "psrTip": {
+          "0": "Tus encías están sanas. Sigue con tu higiene de siempre.",
+          "1": "Hay sangrado: cepilla con cuidado el borde de la encía y usa hilo o cepillo interdental.",
+          "2": "Hay sarro: hace falta una limpieza profesional.",
+          "3": "Hay bolsas en algunas zonas: hace falta un estudio completo de las encías.",
+          "4": "Hay bolsas profundas: hace falta un estudio completo y tratamiento de las encías."
+        },
+        "state": {
+          "stable": "Hoy tus encías están estables.",
+          "gingivitis": "Hoy tus encías están inflamadas, pero sin bolsas que tratar.",
+          "unstable": "Hoy hay zonas de tus encías que necesitan tratamiento."
+        },
+        "whatsapp": "WhatsApp",
+        "email": "Enviar",
+        "noEmail": "El paciente no tiene email cargado",
+        "emailSubject": "Tu control de encías"
+      },
+      "billing": {
+        "title": "Cobro de hoy",
+        "today": "Marcado «Hoy» en el plan",
+        "nothingToday": "No hay nada marcado «Hoy» en el plan.",
+        "pickServices": "En el cobro se eligen los servicios del catálogo, con sus precios.",
+        "charge": "Cobrar",
+        "noCharge": "Sin cobro hoy",
+        "linkError": "La factura se creó, pero no se pudo vincular al periodontograma",
+        "unlinked": "La factura no quedó vinculada al periodontograma.",
+        "retry": "Reintentar",
+        "startError": "No se pudo abrir el cobro",
+        "noAccess": "Ya tiene factura, pero no tienes permiso para verla."
+      },
+      "next": {
+        "title": "Próxima cita",
+        "reinstrumentation": "Reinstrumentación · {teeth}",
+        "reinstrumentationShort": "Reinstrumentación",
+        "maintenance": "Mantenimiento periodontal",
+        "inWeeks": "en 1 a 2 semanas",
+        "inMonths": "en {count, plural, one {# mes} other {# meses}}",
+        "book": "Reservar",
+        "bookLater": "Agendar después",
+        "booked": "Cita reservada para el {date}",
+        "later": "Agendar después · sugerida para el {date}",
+        "change": "Cambiar",
+        "loadError": "No se pudo abrir la agenda",
+        "bookedAt": "Cita reservada para el {date} a las {time}"
+      },
+      "amend": {
+        "title": "Enmiendas",
+        "add": "Enmendar",
+        "none": "Sin enmiendas.",
+        "dialogTitle": "Enmendar el periodontograma",
+        "dialogDescription": "El periodontograma cerrado no cambia: la enmienda se añade con tu nombre y la fecha. Escribe qué se corrige y por qué.",
+        "placeholder": "Qué se corrige y por qué",
+        "cancel": "Cancelar",
+        "save": "Añadir enmienda",
+        "error": "No se ha podido añadir la enmienda"
+      }
+    },
+    "timeline": {
+      "open": "Abrir este periodontograma",
+      "continue": "Continuar",
+      "type": "Examen",
+      "doctor": "Profesional",
+      "sites": "Sitios sondados",
+      "bop": "sangrado {value}%",
+      "pockets5": "{count, plural, =0 {sin bolsas ≥ 5 mm} one {# bolsa ≥ 5 mm} other {# bolsas ≥ 5 mm}}",
+      "bopLabel": "Sangrado",
+      "plaqueLabel": "Placa",
+      "means": "PS · NIC medios",
+      "pocketsLabel": "Sitios ≥ 4 / 5 / 6 mm",
+      "pocketsValue": "{n4} / {n5} / {n6}",
+      "noProbing": "Todavía sin sondar.",
+      "notes": "Notas",
+      "deleted": "Periodontograma eliminado",
+      "deleteError": "No se pudo eliminar el periodontograma",
+      "deleteTitle": "Eliminar periodontograma",
+      "deleteDescription": "Se elimina el periodontograma del {date}, que todavía no está cerrado. ¿Continuar?",
+      "deleteConfirm": "Eliminar",
+      "compare": "Comparar con hoy",
+      "diagnosis": "Diagnóstico",
+      "sextants": "Sextantes"
+    },
+    "errors": {
+      "generic": "No se ha podido completar la acción. Inténtalo de nuevo.",
+      "codes": {
+        "DATE_REQUIRED": "Falta la fecha del periodontograma.",
+        "EXAM_CLOSED": "El periodontograma ya está cerrado: no se puede modificar.",
+        "EXAM_NOT_FOUND": "El periodontograma ya no existe (pudo haberse eliminado).",
+        "INVALID_TOOTH": "Hay una pieza inválida en el periodontograma.",
+        "INVALID_TOOTH_STATUS": "Hay un estado de pieza inválido.",
+        "INVALID_VALUE": "Hay un valor fuera de rango (PS 0–15, MG −10 a 15, movilidad 0–3).",
+        "NOT_READY_TO_CLOSE": "Para cerrar falta completar el sondaje y confirmar el diagnóstico.",
+        "PATIENT_REQUIRED": "Falta el paciente del periodontograma.",
+        "INVALID_DIAGNOSIS": "El diagnóstico tiene un valor inválido (estadio, grado, riesgo o estabilidad).",
+        "AMENDMENT_REQUIRED": "Escribe el texto de la enmienda.",
+        "BILLING_PENDING": "Para cerrar, cobra o marca «Sin cobro hoy».",
+        "NEXT_VISIT_PENDING": "Para cerrar, reserva la próxima cita o elige «Agendar después».",
+        "INVOICE_ALREADY_LINKED": "El periodontograma ya tiene otra factura vinculada.",
+        "INVOICE_NOT_FOUND": "No se encontró la factura de este paciente.",
+        "NOT_CLOSED": "Solo se puede enmendar un periodontograma cerrado."
+      }
+    },
+    "voice": {
+      "start": "Dictar",
+      "stop": "Detener",
+      "listening": "Escuchando… habla",
+      "placeholder": "Dicta o escribe: «SS 23», «3 2 4»… (/)",
+      "label": "Comando de voz",
+      "send": "Aplicar",
+      "unsupported": "Este navegador no permite dictar: escribe los comandos",
+      "line": "Línea: {line}",
+      "leaveLine": "Volver a los valores",
+      "unknown": "No entendí: «{words}»",
+      "nothing": "No encontré comandos en «{text}»",
+      "pending": "{count, plural, one {# sitio dictado o copiado sin confirmar} other {# sitios dictados o copiados sin confirmar}}",
+      "discard": "Descartar",
+      "confirm": "Confirmar",
+      "errors": {
+        "not-allowed": "El navegador no tiene permiso para usar el micrófono",
+        "unavailable": "No hay micrófono disponible"
+      },
+      "lines": {
+        "bop": "SS",
+        "sup": "Supuración",
+        "plaque": "Placa"
+      },
+      "feedback": {
+        "marked": "{flag} en {site}",
+        "unmarked": "Quitado: {flag} en {site}",
+        "mobility": "{tooth} · movilidad {grade}",
+        "notProbed": "La {tooth} no se sondea (ausente o póntico)",
+        "outOfRange": "{value} está fuera de rango",
+        "readOnly": "Solo lectura: no se puede dictar",
+        "now": "Sonda en {where}",
+        "focus": "Vista: {focus}",
+        "actions": {
+          "undo": "Deshecho",
+          "redo": "Rehecho",
+          "confirm": "Dictado confirmado",
+          "discard": "Dictado descartado"
+        }
+      },
+      "help": {
+        "button": "Comandos",
+        "title": "Comandos de voz",
+        "lead": "Se entienden en español y en inglés. Los valores van al sitio de la sonda y avanza sola, como con el teclado. Lo dictado queda subrayado en violeta hasta que digas «confirmar».",
+        "groups": [
+          {
+            "title": "Valores",
+            "items": [
+              [
+                "3 2 4",
+                "tres sitios seguidos en la línea actual, en el orden del sondaje"
+              ],
+              [
+                "menos 2",
+                "agrandamiento, en margen gingival"
+              ],
+              [
+                "igual",
+                "el valor del examen anterior"
+              ],
+              [
+                "borrar",
+                "borra el último valor"
+              ]
+            ]
+          },
+          {
+            "title": "Moverse",
+            "items": [
+              [
+                "siguiente · anterior",
+                "pieza siguiente o anterior"
+              ],
+              [
+                "diente 23",
+                "va a la 23 en la cara actual"
+              ],
+              [
+                "38 lingual 3 2 4",
+                "pieza y cara, después los valores"
+              ],
+              [
+                "vestibular · lingual · palatino",
+                "cambia de cara en la pieza actual"
+              ]
+            ]
+          },
+          {
+            "title": "Líneas",
+            "items": [
+              [
+                "SS 23",
+                "línea de sangrado de la 23 (cara palatina o lingual si no dices otra)"
+              ],
+              [
+                "SS vest · SS ling",
+                "línea de sangrado en esa cara"
+              ],
+              [
+                "PS 23 vest",
+                "profundidad de la 23 por vestibular"
+              ],
+              [
+                "MG 16",
+                "margen gingival de la 16"
+              ],
+              [
+                "placa 23",
+                "línea de placa de la 23"
+              ],
+              [
+                "sí · no",
+                "en una línea de marcas: marca o deja limpio, y avanza"
+              ]
+            ]
+          },
+          {
+            "title": "Marcas",
+            "items": [
+              [
+                "sangra",
+                "sangrado en el último sitio medido"
+              ],
+              [
+                "sangra distal",
+                "en ese sitio de la última pieza medida"
+              ],
+              [
+                "sangra 16 mesial",
+                "en ese sitio de la 16"
+              ],
+              [
+                "supura · placa",
+                "igual que sangra"
+              ],
+              [
+                "no sangra",
+                "quita la marca"
+              ]
+            ]
+          },
+          {
+            "title": "Pasadas y vista",
+            "items": [
+              [
+                "profundidad",
+                "pasada de profundidad y sangrado"
+              ],
+              [
+                "margen gingival",
+                "pasada de margen gingival"
+              ],
+              [
+                "furcas y movilidad",
+                "pasada de furcas y movilidad"
+              ],
+              [
+                "movilidad 2 · 46 movilidad 1",
+                "movilidad de la pieza actual o de la que digas"
+              ],
+              [
+                "furca vestibular 2",
+                "grado de furca"
+              ],
+              [
+                "arcada superior · inferior",
+                "muestra esa arcada"
+              ],
+              [
+                "ver ambas",
+                "las dos arcadas"
+              ],
+              [
+                "sigue a la sonda",
+                "vuelve al modo automático"
+              ]
+            ]
+          },
+          {
+            "title": "Edición",
+            "items": [
+              [
+                "deshacer · rehacer",
+                "la última frase"
+              ],
+              [
+                "confirmar",
+                "deja firme lo dictado"
+              ],
+              [
+                "descartar",
+                "quita lo dictado sin confirmar"
+              ],
+              [
+                "parar dictado",
+                "apaga el micrófono"
+              ]
+            ]
+          }
+        ]
+      },
+      "thinking": "Interpretando con IA…",
+      "ai": "IA",
+      "rewritten": "La IA lo interpretó como «{phrase}»"
+    },
+    "evolution": {
+      "title": "Evolución desde el examen del {date}",
+      "lead": {
+        "slider": "Arrastra el deslizador: a la izquierda, el periodontograma del {date}; a la derecha, el de hoy.",
+        "overlay": "La curva del {date} va punteada. Las barras muestran dónde se ganó (verde) o se perdió (rojo) inserción.",
+        "diff": "Cada profundidad de hoy se colorea por el cambio desde el {date}: verde mejoró, rojo empeoró. El detalle está en el tooltip.",
+        "map": "Vista oclusal: cada sector se colorea por el cambio de inserción desde el {date}.",
+        "play": "Evolución sesión por sesión."
+      },
+      "modesLabel": "Modo de comparación",
+      "modes": {
+        "slider": "Deslizador",
+        "overlay": "Superponer",
+        "diff": "Cambios"
+      },
+      "viewLabel": "Vista",
+      "views": {
+        "curves": "Curvas",
+        "map": "Mapa"
+      },
+      "play": "Ver la evolución animada",
+      "pause": "Pausar",
+      "handle": "Deslizador de comparación",
+      "today": "Hoy",
+      "tagBase": "{exam} · {date}",
+      "tagToday": "Hoy · {date}",
+      "compareWith": "Comparar hoy con…",
+      "nodeBop": "{date} · {value}% sangrado",
+      "trends": {
+        "title": "Tendencias",
+        "bop": "Sangrado al sondaje",
+        "plaque": "Placa",
+        "n5": "Sitios de 5 mm o más",
+        "meanPd": "PS media",
+        "meanCal": "NIC medio",
+        "from": "{date}: {value} → hoy"
+      },
+      "worse": "Empeoraron · {count}",
+      "better": "Mejoraron · {count}",
+      "noWorse": "Ningún sitio perdió 2 mm o más.",
+      "noBetter": "Sin mejoras de 2 mm o más.",
+      "more": "y {count} sitios más",
+      "pocket": "{from} → {to} mm de bolsa",
+      "cal": "NIC {value}",
+      "note": "Solo se listan cambios de 2 mm o más: con sonda manual, diferencias de 1 mm entran en el error de medición.",
+      "empty": {
+        "title": "Todavía no hay con qué comparar",
+        "description": "Es el primer periodontograma del paciente. La evolución se ve desde la próxima sesión."
+      },
+      "backToProbe": "Volver al sondaje",
+      "next": "Ir al cierre",
+      "screening": {
+        "title": "Evolución del cribado",
+        "lead": "El cribado no tiene curvas: se comparan los códigos de cada sextante, sesión por sesión.",
+        "session": "Sesión",
+        "first": "Es el primer cribado del paciente."
+      }
+    },
+    "diagnosis": {
+      "title": "Diagnóstico y plan",
+      "lead": "Invoke calcula índices, estadio, grado y riesgo con lo que has sondado. Son sugerencias: revísalas, cambia lo que haga falta y confirma. Nada queda en la historia clínica hasta que confirmes.",
+      "notProbed": "Completa profundidad y margen en todos los sitios para confirmar el diagnóstico.",
+      "toConfirm": "Revisa las sugerencias y confirma el diagnóstico.",
+      "confirm": "Confirmar diagnóstico",
+      "confirmedAt": "Diagnóstico confirmado el {date}",
+      "back": "Volver a Evolución",
+      "next": "Ir al cierre",
+      "manual": "cambiado",
+      "manualHint": "Lo has cambiado a mano: ya no sigue la sugerencia",
+      "stageOption": "Estadio {stage}",
+      "gradeOption": "Grado {grade}",
+      "today": {
+        "title": "Cómo está hoy",
+        "bop": "Sangrado al sondaje {value}% (estable: menos de 10%)",
+        "pockets5": "{count, plural, =0 {Ningún sitio de 5 mm o más} one {# sitio de 5 mm o más} other {# sitios de 5 mm o más}}",
+        "bleeding4": "{count, plural, =0 {Ningún sitio de 4 mm con sangrado} one {# sitio de 4 mm con sangrado} other {# sitios de 4 mm con sangrado}}",
+        "endpointsMet": "Objetivos de la terapia cumplidos: ninguna PS de más de 4 mm con sangrado ni de 6 mm o más.",
+        "endpointsNotMet": "Objetivos de la terapia sin cumplir: quedan PS de más de 4 mm con sangrado o de 6 mm o más."
+      },
+      "stability": {
+        "stable": "Estable",
+        "gingivitis": "Estable con inflamación gingival",
+        "unstable": "Inestable"
+      },
+      "stabilityHelp": {
+        "stable": "Salud gingival en un periodonto reducido.",
+        "gingivitis": "Sin bolsas activas, pero con sangrado del 10 % o más.",
+        "unstable": "Hay bolsas de 5 mm o más, o de 4 mm con sangrado."
+      },
+      "classification": {
+        "title": "Clasificación AAP/EFP 2017",
+        "case": "Caso de periodontitis",
+        "stage": "Estadio",
+        "extent": "Extensión",
+        "grade": "Grado"
+      },
+      "inputs": {
+        "teethLost": "Dientes perdidos por periodontitis",
+        "boneLoss": "Pérdida ósea (Rx)",
+        "fromXray": "de la Rx",
+        "age": "Edad",
+        "cigarettes": "Cigarrillos por día",
+        "diabetes": "Diabetes",
+        "note": "Lo que no sale del sondaje se introduce aquí y pasa al próximo periodontograma."
+      },
+      "diabetes": {
+        "no": "No",
+        "controlled": "Sí, HbA1c < 7 %",
+        "uncontrolled": "Sí, HbA1c ≥ 7 %"
+      },
+      "yesNo": {
+        "yes": "Sí",
+        "no": "No"
+      },
+      "extent": {
+        "localized": "Localizada",
+        "generalized": "Generalizada",
+        "molarIncisor": "Patrón molar-incisivo"
+      },
+      "phrase": {
+        "case": {
+          "localized": "Periodontitis localizada",
+          "generalized": "Periodontitis generalizada",
+          "molarIncisor": "Periodontitis con patrón molar-incisivo",
+          "none": "Periodontitis"
+        },
+        "stage": "estadio {stage}",
+        "grade": "grado {grade}",
+        "noCase": "Sin periodontitis · {stability}",
+        "psr": "PSR/BPE: código máximo {code}"
+      },
+      "why": {
+        "caseInter": "NIC interproximal en {count} piezas, no todas vecinas",
+        "caseMid": "NIC vestibular u oral de 3 mm o más con bolsa en {count} piezas",
+        "noCase": "Sin pérdida de inserción interproximal en 2 piezas no vecinas",
+        "stageCal": "NIC interproximal máximo {mm} mm en la {tooth} (examen inicial)",
+        "stageDepth": "complejidad: PS de {mm} mm",
+        "stageFurcation": "complejidad: furca II–III en {teeth}",
+        "stageLost": "{count} dientes perdidos por periodontitis",
+        "stageKept": "se mantiene el estadio {stage} de un diagnóstico anterior (no baja)",
+        "noInitial": "Sin datos de inserción en el examen inicial",
+        "extent": "{pct}% de las piezas con NIC interproximal de 3 mm o más (desde 30%: generalizada)",
+        "gradeRatio": "pérdida ósea {bone}% / {age} años = {ratio}",
+        "gradeDefault": "sin pérdida ósea de la Rx: grado B por defecto",
+        "smokes10": "fuma 10 o más por día",
+        "smokesLess": "fuma menos de 10 por día",
+        "diabetesBad": "HbA1c ≥ 7 %",
+        "diabetesOk": "diabetes con HbA1c < 7 %"
+      },
+      "risk": {
+        "title": "Riesgo de progresión (Lang y Tonetti)",
+        "label": "Riesgo",
+        "maintenance": "Mantenimiento cada",
+        "months": "{count, plural, one {# mes} other {# meses}}",
+        "perDay": "{count} por día",
+        "diabetes": "Diabetes",
+        "levels": {
+          "low": "Bajo",
+          "moderate": "Moderado",
+          "high": "Alto"
+        },
+        "zones": {
+          "0": "bajo",
+          "1": "moderado",
+          "2": "alto"
+        },
+        "params": {
+          "bop": "Sangrado al sondaje",
+          "pockets": "Sitios de 5 mm o más",
+          "lost": "Dientes perdidos (de 28)",
+          "boneAge": "Pérdida ósea / edad",
+          "systemic": "Sistémico",
+          "smoking": "Tabaco",
+          "short": {
+            "bop": "Sangrado",
+            "pockets": "Bolsas ≥ 5",
+            "lost": "Perdidos",
+            "boneAge": "Hueso/edad",
+            "systemic": "Sistémico",
+            "smoking": "Tabaco"
+          }
+        }
+      },
+      "plan": {
+        "title": "Plan por pasos (guía EFP)",
+        "lead": "Se arma con el sondaje de hoy. Marca qué se incluye y si se hace hoy o más adelante.",
+        "step": "Paso {step}",
+        "implantStep": "Implante",
+        "today": "Hoy",
+        "later": "Más adelante",
+        "bleeds": "sangra",
+        "suppurates": "supura",
+        "billingLater": "El cobro de lo marcado «Hoy» y el presupuesto del resto llegan con el cierre, en una próxima versión.",
+        "kinds": {
+          "hygiene": "Instrucción de higiene y control de placa",
+          "reinstrumentation": "Reinstrumentación subgingival · {tooth}",
+          "surgery": "Reevaluar y evaluar cirugía · {teeth}",
+          "implantRx": "Rx periapical · {tooth}",
+          "periImplant": "Desbridamiento periimplantario · {tooth}",
+          "maintenance": "Mantenimiento periodontal",
+          "scaling": "Destartraje supragingival",
+          "fullChart": "Periodontograma completo · sextantes {teeth}"
+        },
+        "subs": {
+          "hygiene": "Placa {value}: objetivo por debajo de 20 %",
+          "reinstrumentation": "",
+          "surgery": "Si sigue en 6 mm o más cuando cicatriza la reinstrumentación",
+          "implantRx": "",
+          "periImplant": "Si la Rx no muestra pérdida ósea, se trata como mucositis",
+          "maintenance": "Instrumentación supra y subgingival y refuerzo de higiene",
+          "scaling": "Y corrección de los factores que retienen placa",
+          "fullChart": "Por código 3, 4 o * en el cribado"
+        }
+      },
+      "screening": {
+        "lead": "Invoke interpreta el código más alto y propone qué hacer. Revísalo y confirma.",
+        "title": "Resultado del cribado",
+        "notCoded": "Faltan sextantes por codificar",
+        "notProbed": "Codifica los seis sextantes para confirmar.",
+        "chartSextants": "Periodontograma completo en los sextantes {sextants}.",
+        "action": {
+          "0": "Sin tratamiento: refuerzo de higiene y control en el intervalo de mantenimiento.",
+          "1": "Instrucción de higiene y control de placa.",
+          "2": "Higiene, destartraje supragingival y corrección de los factores que retienen placa.",
+          "3": "Higiene y destartraje; periodontograma completo de los sextantes con código 3.",
+          "4": "Periodontograma completo de toda la boca y tratamiento periodontal."
+        }
+      },
+      "implants": {
+        "title": "Implantes",
+        "lead": "Estado sugerido de cada implante con el sondaje de hoy y el examen anterior. La periimplantitis se confirma con una Rx.",
+        "none": "No hay implantes en este examen.",
+        "status": {
+          "health": "Sano",
+          "mucositis": "Mucositis",
+          "periimplantitis": "Periimplantitis"
+        },
+        "why": {
+          "health": "sin sangrado ni supuración",
+          "mucositis": "sangra o supura, sin bolsa de 6 mm ni aumento",
+          "periimplantitis": "sangra o supura con bolsa de 6 mm o más, o 2 mm más profunda que antes"
+        }
+      }
+    },
+    "screening": {
+      "sextant": "Sextante {n}",
+      "sextantShort": "S{n}",
+      "lead": "Un código por sextante: el del peor sitio. X si tiene menos de dos piezas.",
+      "star": "* (furca, movilidad, problema mucogingival o recesión ≥ 3,5 mm)",
+      "starHelp": "Furca, movilidad, problema mucogingival o recesión de 3,5 mm o más: periodontograma completo del sextante",
+      "keys": "Teclado: 0–4 y X codifican el sextante marcado y pasan al siguiente; * lo marca; ← → para moverse.",
+      "progress": "{done} de 6 sextantes",
+      "codes": {
+        "0": "Sano: sin sangrado ni cálculo; la banda de color se ve entera",
+        "1": "Sangrado al sondaje, sin cálculo",
+        "2": "Cálculo o restauraciones desbordantes; la banda se ve",
+        "3": "Bolsa de 3,5 a 5,5 mm (la banda se ve en parte)",
+        "4": "Bolsa de más de 5,5 mm (la banda no se ve)",
+        "X": "Excluido: menos de dos piezas"
+      }
+    },
+    "settings": {
+      "title": "Configuración del periodontograma",
+      "lead": "Vale para toda la clínica.",
+      "readOnly": "Solo quien edita la configuración del sistema puede cambiarla.",
+      "saved": "Configuración guardada",
+      "error": "No se ha podido guardar la configuración",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "order": {
+        "label": "Orden de sondaje",
+        "arch": "Por arcada",
+        "archHelp": "Superior vestibular 18→28, superior palatino 28→18, inferior vestibular 48→38, inferior lingual 38→48",
+        "buccalFirst": "Vestibulares primero",
+        "buccalFirstHelp": "Superior vestibular 18→28, inferior vestibular 38→48, inferior lingual 48→38, superior palatino 28→18"
+      },
+      "marginSign": {
+        "label": "Signo del margen gingival",
+        "recessionPositive": "Recesión positiva",
+        "recessionPositiveHelp": "Margen por debajo de la LAC = positivo; agrandamiento = negativo.",
+        "recessionNegative": "Recesión negativa",
+        "recessionNegativeHelp": "Margen por debajo de la LAC = negativo; agrandamiento = positivo. Se guarda igual: solo cambia cómo se escribe y se muestra."
+      },
+      "intervals": {
+        "label": "Mantenimiento sugerido (meses)",
+        "high": "Riesgo alto",
+        "moderate": "Riesgo moderado",
+        "low": "Riesgo bajo",
+        "help": "La guía EFP pide entre 3 y 6 meses."
+      }
     }
   }
 }

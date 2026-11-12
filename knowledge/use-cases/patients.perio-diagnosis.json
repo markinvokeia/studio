@@ -1,0 +1,134 @@
+{
+  "id": "patients.perio-diagnosis",
+  "title": "Diagnóstico y plan",
+  "module": "Pacientes",
+  "summary": "Revisar y confirmar la estabilidad, la clasificación 2017, el riesgo y el plan sugeridos.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "diagnóstico",
+    "estadio",
+    "grado",
+    "riesgo",
+    "plan periodontal",
+    "clasificación 2017",
+    "estabilidad"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado con sondaje queda como guía (un cribado no es guía).",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "step",
+      "action": "click",
+      "target": "perio-session.btn.step-diagnosis",
+      "title": "Diagnóstico",
+      "details": "Todo lo calcula el sistema como sugerencia; el profesional lo revisa y confirma."
+    },
+    {
+      "id": "today",
+      "action": "highlight",
+      "target": "perio-session.section.dx-today",
+      "title": "Cómo está hoy",
+      "details": "Estable, estable con inflamación o inestable, con la lista que lo justifica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "inputs",
+      "action": "highlight",
+      "target": "perio-session.section.dx-inputs",
+      "title": "Datos que no salen del sondaje",
+      "details": "Dientes perdidos por periodontitis, pérdida ósea de la Rx, edad, tabaco y diabetes: definen el estadio IV y el grado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "class",
+      "action": "highlight",
+      "target": "perio-session.section.dx-classification",
+      "title": "Clasificación 2017",
+      "details": "Caso, estadio (qué tan grave), extensión (dónde) y grado (qué tan rápido), con su porqué. Se pueden cambiar; lo cambiado queda marcado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "risk",
+      "action": "highlight",
+      "target": "perio-session.section.dx-risk",
+      "title": "Riesgo",
+      "details": "Seis parámetros de Lang y Tonetti; el riesgo sugiere cada cuántos meses controlar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "implants",
+      "action": "highlight",
+      "target": "perio-session.section.dx-implants",
+      "title": "Implantes",
+      "details": "En «solo implantes»: sano, mucositis o periimplantitis para cada implante.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "plan",
+      "action": "highlight",
+      "target": "perio-session.section.dx-plan",
+      "title": "Plan por pasos",
+      "details": "Higiene, reinstrumentación por pieza, reevaluación y mantenimiento, cada uno Hoy o Más adelante.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "confirm",
+      "action": "highlight",
+      "target": "perio-session.btn.confirm-diagnosis",
+      "title": "Confirmar diagnóstico",
+      "details": "Con el sondaje completo, tocalo para dejar el diagnóstico en la historia clínica. Si después cambiás algo, hay que volver a confirmar.",
+      "skipIfMissing": true
+    }
+  ]
+}

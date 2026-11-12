@@ -14,7 +14,8 @@
     "system.alert-rules.create",
     "system.alert-rules.edit",
     "system.alert-rules.delete",
-    "system.alert-rules.test"
+    "system.alert-rules.test",
+    "system.alert-rules.perio-maintenance"
   ],
   "elements": {
     "system.alert-rules.section.first-row": {
@@ -93,6 +94,10 @@
     },
     "system.alert-rules.btn.row-delete": {
       "label": "Eliminar"
+    },
+    "system.alert-rules.section.conditions": {
+      "label": "Condiciones",
+      "description": "Qué filas del origen generan la alerta. Para fechas: columna, operador «=» y valor {{TODAY}}; «Días antes del evento» corre esa fecha."
     }
   }
 }

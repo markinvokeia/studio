@@ -70,8 +70,8 @@ export function PatientDetailMainContent({
 
   const macroTabs = React.useMemo<VerticalTab[]>(() => [
     ...(showInfo ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []),
-    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' }] : []),
-    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' }] : []),
+    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: t('tabs.clinicalShort') }] : []),
+    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: t('tabs.financialShort') }] : []),
   ], [showInfo, showClinical, showFinancial, t])
 
   const infoTabs = React.useMemo(() => [

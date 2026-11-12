@@ -1,0 +1,92 @@
+{
+  "id": "patients.perio-overview",
+  "title": "Tour of the periodontal chart",
+  "summary": "The parts of the periodontal chart sheet: steps, progress, probing, inspector and footer.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "probing",
+    "tour"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is)."
+    },
+    {
+      "id": "header",
+      "title": "Header",
+      "details": "Patient, chart number, date and doctor."
+    },
+    {
+      "id": "steps",
+      "title": "The four steps",
+      "details": "Probing, Progress, Diagnosis and Closing. You can jump between steps at any time; a finished one has a tick."
+    },
+    {
+      "id": "progress",
+      "title": "Progress and status",
+      "details": "The ring says how complete it is; the status is worked out by the system and saving is automatic."
+    },
+    {
+      "id": "missing",
+      "title": "What is missing",
+      "details": "Tap it to see the missing sites in amber on the chart."
+    },
+    {
+      "id": "banner",
+      "title": "Exam bar",
+      "details": "Exam type, the guide exam, what came from the odontogram, settings and dictation."
+    },
+    {
+      "id": "passes",
+      "title": "Passes",
+      "details": "Probing is done in three rounds: depth and bleeding, gingival margin, furcations and mobility."
+    },
+    {
+      "id": "chart",
+      "title": "Periodontal chart",
+      "details": "Outer face on top, inner face below; blue margin curve and red pocket-bottom curve. Tap a cell to measure there."
+    },
+    {
+      "id": "inspector",
+      "title": "Inspector",
+      "details": "The active tooth with its table, the keypad, the marks and the note."
+    },
+    {
+      "id": "footer",
+      "title": "Footer",
+      "details": "Back and next, always in the same place."
+    }
+  ]
+}

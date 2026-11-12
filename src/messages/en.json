@@ -1827,7 +1827,8 @@
       "readOnly": "Read-only",
       "readOnlyOnDate": "Read-only · {date}",
       "prescribe": "Prescribe",
-      "aestheticSession": "Aesthetic session"
+      "aestheticSession": "Aesthetic session",
+      "perioExam": "Periodontal chart"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -2175,7 +2176,9 @@
       "history": "Timeline",
       "medicalInstructions": "Medical Instructions",
       "dependents": "Dependents",
-      "responsible": "Guardian"
+      "responsible": "Guardian",
+      "clinicalShort": "Clinical",
+      "financialShort": "Finance"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -5532,7 +5535,14 @@
       "apptTime": "Time",
       "apptServices": "Services",
       "sessionTypeAesthetic": "Aesthetics",
-      "viewAestheticSession": "View session"
+      "viewAestheticSession": "View session",
+      "sessionTypePeriodontogram": "Periodontal chart",
+      "viewPeriodontogram": "View periodontal chart",
+      "filterEventType": "Event type",
+      "filterAll": "All",
+      "filterDoctor": "Doctor",
+      "filterAllDoctors": "All doctors",
+      "eventCount": "{shown} of {total, plural, one {# event} other {# events}}"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -8057,7 +8067,8 @@
     "status": "Status",
     "settings": "Settings",
     "sendReminder": "Send reminder",
-    "createAestheticSession": "Aesthetic session"
+    "createAestheticSession": "Aesthetic session",
+    "createPerioExam": "Periodontal chart"
   },
   "WhatsAppTemplateSendDialog": {
     "title": "Send WhatsApp reminder",
@@ -10898,7 +10909,8 @@
       "elements": "Fields and buttons",
       "show": "Show",
       "tourCta": "Guide me through this screen",
-      "tourTitle": "Tour of {screen}"
+      "tourTitle": "Tour of {screen}",
+      "about": "About this screen"
     },
     "chat": {
       "welcomeTitle": "Hi! What do you want to do now?",
@@ -12162,6 +12174,966 @@
       "cancel": "Cancel",
       "confirm": "Delete",
       "deactivate": "Deactivate"
+    }
+  },
+  "PerioRecord": {
+    "status": {
+      "probing": "Probing",
+      "probed": "Probed",
+      "closed": "Closed",
+      "void": "Void",
+      "diagnosed": "Diagnosed"
+    },
+    "examTypes": {
+      "initial": "Initial diagnosis",
+      "reevaluation": "Re-evaluation",
+      "maintenance": "Maintenance",
+      "screening": "PSR/BPE screening",
+      "implants": "Implants only"
+    },
+    "sheet": {
+      "title": "Periodontal chart",
+      "newTitle": "New periodontal chart",
+      "notFound": "The periodontal chart was not found.",
+      "defaultTitle": "Periodontal chart {date}",
+      "closedBanner": "Closed on {date} by {name} · read-only",
+      "fromOdontogram": {
+        "prefix": "from the odontogram: {list}",
+        "missing": "{teeth} missing",
+        "pontic": "{teeth} pontic",
+        "implant": "{teeth} implant",
+        "none": "from the odontogram: every tooth present"
+      }
+    },
+    "flow": {
+      "steps": {
+        "probe": "Probing",
+        "evolution": "Progress",
+        "diagnosis": "Diagnosis",
+        "close": "Closing"
+      },
+      "header": {
+        "steps": "Periodontal chart steps",
+        "subtitle": "Periodontal chart #{number} · {date}",
+        "completeness": "{value}% complete"
+      },
+      "hints": {
+        "step": "Step {step}: {name}",
+        "comingSoon": "Available in an upcoming version.",
+        "steps": {
+          "probe": "Depth and bleeding, gingival margin, furcations and mobility.",
+          "evolution": "Compare with earlier sessions.",
+          "diagnosis": "Stability, stage, grade, risk and plan.",
+          "close": "Review the indices, add notes and sign."
+        }
+      },
+      "missing": {
+        "closed": "Closed. Read-only.",
+        "void": "Void. Read-only.",
+        "depths": "{count, plural, one {# site left to probe} other {# sites left to probe}}",
+        "margin": "{count, plural, one {Gingival margin missing at # site} other {Gingival margin missing at # sites}}",
+        "ready": "Ready to sign and close",
+        "show": "Show what is missing on the chart",
+        "diagnosis": "The diagnosis is not confirmed yet",
+        "sextants": "{count, plural, one {# sextant left} other {# sextants left}}"
+      },
+      "save": {
+        "saving": "Saving…",
+        "justNow": "Saved just now",
+        "secondsAgo": "Saved {seconds} s ago",
+        "minutesAgo": "Saved {minutes} min ago",
+        "error": "Could not save",
+        "retry": "Retry",
+        "upToDate": "Up to date",
+        "notCreated": "Not saved yet",
+        "readOnly": "Read-only",
+        "closed": "Closed"
+      },
+      "leave": {
+        "title": "Leave without saving?",
+        "description": "The last change was not saved ({error}). If you leave now, it is lost.",
+        "descriptionGeneric": "There are unsaved changes. If you leave now, they are lost.",
+        "stay": "Stay",
+        "confirm": "Leave anyway"
+      }
+    },
+    "probe": {
+      "banner": {
+        "examType": "Exam type",
+        "guide": "guide: exam of {date}",
+        "noGuide": "no earlier exam as a guide",
+        "implantsOnly": "Implants only: only implants are probed"
+      },
+      "passes": {
+        "label": "Passes",
+        "ps": "Depth and bleeding",
+        "mg": "Gingival margin",
+        "fm": "Furcations and mobility"
+      },
+      "focus": {
+        "label": "Arch",
+        "auto": "Follows the probe",
+        "U": "Upper",
+        "L": "Lower",
+        "both": "Both"
+      },
+      "showGuide": "Show the previous exam as a guide",
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "guide": {
+        "passDone": "Pass complete · {done} of {total}",
+        "depth": "probing depth",
+        "margin": "gingival margin",
+        "enlargement": "enlargement (−)",
+        "fm": "mobility and furcations",
+        "line": {
+          "bop": "bleeding: yes or no",
+          "sup": "suppuration: yes or no",
+          "plaque": "plaque: yes or no"
+        },
+        "recession": "recession (−)"
+      },
+      "keys": {
+        "ps": "0–9 value · Enter same as before ({value}) · B bleeds · S suppurates · P plaque · ← → ↑ ↓",
+        "mg": "0–9 recession · − enlargement · Enter same as before ({value}) · ← → ↑ ↓",
+        "fm": "0–3 mobility · Enter unchanged · tap ▲ for the furcation"
+      },
+      "flags": {
+        "bop": "Bleeds",
+        "sup": "Suppurates",
+        "plaque": "Plaque"
+      },
+      "toast": {
+        "depthsDone": "Depths complete. Next: the gingival margin.",
+        "marginDone": "Gingival margin complete. You can review furcations and mobility.",
+        "mobilityRange": "Mobility goes from 0 to III",
+        "jump": "Check: {site} went from {from} to {to} mm",
+        "fix": "Fix",
+        "noPrevious": "There is no earlier value for this site: type the measurement",
+        "flagOn": "{flag} marked at {site}",
+        "flagOff": "{flag} removed at {site}",
+        "notProbed": "{tooth}: {status}, not probed"
+      },
+      "archNotice": "Now on the {arch} · {tooth} {face}",
+      "flagKeys": {
+        "bop": "B",
+        "sup": "S",
+        "plaque": "P"
+      },
+      "reveal": {
+        "depths": "{count, plural, one {# site without depth, highlighted in amber} other {# sites without depth, highlighted in amber}}",
+        "margin": "{count, plural, one {# site without gingival margin, highlighted in amber} other {# sites without gingival margin, highlighted in amber}}",
+        "clear": "Clear highlight"
+      },
+      "nextStep": "Next: Progress",
+      "copy": {
+        "pass": "Start from the previous exam",
+        "all": "Copy everything from the previous exam",
+        "hintSites": "{count, plural, one {Fills # empty site} other {Fills # empty sites}} with the previous exam's values",
+        "hintTeeth": "{count, plural, one {Fills # tooth} other {Fills # teeth}} with the previous exam's mobility and furcations",
+        "done": "Copied {sites, plural, one {# site} other {# sites}} and {teeth, plural, one {# tooth} other {# teeth}} from the previous exam",
+        "review": "What was copied stays underlined: adjust what changed and confirm.",
+        "nothing": "There is nothing empty to copy from the previous exam.",
+        "undo": "Undo"
+      }
+    },
+    "chart": {
+      "upperArch": "Upper arch",
+      "lowerArch": "Lower arch",
+      "upperAria": "Upper arch periodontal chart",
+      "lowerAria": "Lower arch periodontal chart",
+      "rows": {
+        "pd": "PD",
+        "gm": "GM",
+        "cal": "CAL",
+        "bop": "BOP"
+      },
+      "faces": {
+        "vestibular": "BUC",
+        "palatal": "PAL",
+        "lingual": "LING"
+      },
+      "sides": {
+        "v": "buccal",
+        "iUpper": "palatal",
+        "iLower": "lingual"
+      },
+      "sidesShort": {
+        "v": "B",
+        "iUpper": "P",
+        "iLower": "L"
+      },
+      "sites": {
+        "0": "distal",
+        "1": "mid",
+        "2": "mesial"
+      },
+      "sitesShort": {
+        "0": "D",
+        "1": "M",
+        "2": "Me"
+      },
+      "status": {
+        "present": "Present",
+        "missing": "Missing",
+        "pontic": "Pontic",
+        "implant": "Implant"
+      },
+      "missing": "missing",
+      "pontic": "pontic",
+      "pd": "probing depth",
+      "gm": "gingival margin",
+      "before": "before {value} mm",
+      "bop": "bleeds",
+      "sup": "suppurates",
+      "plaque": "plaque",
+      "furcation": {
+        "v": "buccal",
+        "mp": "mesiopalatal",
+        "dp": "distopalatal",
+        "l": "lingual"
+      },
+      "furcationTitle": "{tooth} {entry} furcation: {grade}",
+      "noLesion": "no lesion",
+      "mobilityTitle": "{tooth} · mobility {grade} (tap to change)",
+      "probeHere": "the probe is here",
+      "change": "before {before} mm · PD {pd} · CAL {cal}",
+      "lost": "{site}: loses {mm} mm of attachment",
+      "gained": "{site}: gains {mm} mm of attachment"
+    },
+    "legend": {
+      "margin": "Gingival margin",
+      "pocket": "Pocket depth (attachment level)",
+      "cej": "Cemento-enamel junction",
+      "bop": "Bleeding",
+      "sup": "Suppuration",
+      "plaque": "Plaque",
+      "s4": "4 mm",
+      "s5": "5 mm",
+      "s6": "6 mm or more",
+      "markTarget": "Where marks go",
+      "dictated": "Dictated or copied, not confirmed",
+      "gained": "Gained attachment",
+      "lost": "Lost attachment",
+      "better": "Better",
+      "worse": "Worse",
+      "previous": "Compared exam (dashed)"
+    },
+    "inspector": {
+      "label": "Active tooth",
+      "kpi": {
+        "sites": "sites",
+        "bop": "bleeding",
+        "plaque": "plaque",
+        "pockets5": "pockets ≥ 5"
+      },
+      "toothNames": {
+        "1": "Central incisor",
+        "2": "Lateral incisor",
+        "3": "Canine",
+        "4": "First premolar",
+        "5": "Second premolar",
+        "6": "First molar",
+        "7": "Second molar",
+        "8": "Third molar"
+      },
+      "quadrant": {
+        "q1": "Upper right",
+        "q2": "Upper left",
+        "q3": "Lower left",
+        "q4": "Lower right"
+      },
+      "implant": "Implant",
+      "prev": "Previous site",
+      "next": "Next site",
+      "statusLabel": "Tooth status",
+      "notProbed": "Missing tooth or pontic: not probed. Change the status if that is not the case in the mouth.",
+      "guideHint": "The small number is the guide exam's value. CAL is calculated.",
+      "implantTip": "Implant: probed at 6 sites. With bleeding or suppuration and more depth than in the previous exam, order an X-ray to measure the bone (peri-implantitis criteria).",
+      "mobility": "Mobility (Miller)",
+      "furcationEntry": "{entry} furcation",
+      "noFurcation": "No furcations to record on this tooth.",
+      "noFurcationThird": "Third molar: furcations are not recorded.",
+      "nextTooth": "Next tooth",
+      "furcationHelp": "Furcation: I < 3 mm horizontal · II > 3 mm, not through · III through and through (Hamp).",
+      "mobilityOnlyPresent": "Mobility and furcations are recorded on present teeth.",
+      "backspace": "Delete",
+      "bumpHint": "Adds 1 to the last value (10 mm or more)",
+      "sameAsBefore": "Same as before · {value}",
+      "same": "Same as before",
+      "noRecession": "No recession · 0",
+      "enlargement": "− Enlargement",
+      "flagsApplyTo": "Applied to {site}",
+      "flagsApplyToLast": "Applied to the last site measured",
+      "marginHelp": "Positive = recession (margin below the CEJ). Negative = enlargement. CAL = PD + GM.",
+      "history": "Tooth history · max PD",
+      "noHistory": "No earlier sessions for this tooth.",
+      "notePlaceholder": "Tooth note (e.g. X-ray follow-up)",
+      "marksOn": "Marks on {site}",
+      "marksOnLabel": "Marks go to",
+      "marksRow": "Bleeding, suppuration and plaque of each site",
+      "marksHelp": "Tap a site on the chart or in the table to pick another. On the keyboard: B, S and P.",
+      "recessionKey": "− Recession",
+      "marginHelpNegative": "Negative = recession (margin below the CEJ). Positive = enlargement. CAL = PD + recession."
+    },
+    "close": {
+      "title": "Closing",
+      "lead": "Review the report, settle the billing and the next visit, and sign. Once closed, it stays in the clinical record as read-only; changes go as amendments.",
+      "indices": "Today's indices (natural teeth)",
+      "kpi": {
+        "sites": "sites probed",
+        "bop": "bleeding on probing",
+        "plaque": "plaque",
+        "meanPd": "mean PD",
+        "meanCal": "mean CAL",
+        "n4": "sites ≥ 4 mm",
+        "n5": "sites ≥ 5 mm",
+        "n6": "sites ≥ 6 mm",
+        "b4": "4 mm with bleeding",
+        "teeth5": "teeth with ≥ 5 mm"
+      },
+      "notes": "Session notes",
+      "notesPlaceholder": "Remarks, instructions, plan…",
+      "checklist": {
+        "depths": "Depths complete",
+        "margin": "Gingival margin complete",
+        "dictation": "Dictated or copied values confirmed",
+        "diagnosis": "Diagnosis confirmed",
+        "billing": "Billing settled",
+        "nextVisit": "Next visit",
+        "screening": "Sextants coded"
+      },
+      "sign": "Sign and close",
+      "notReady": "Complete depth and margin at every site to close",
+      "confirm": {
+        "title": "Sign and close the periodontal chart?",
+        "description": "It goes into the clinical record with your signature and can no longer be edited.",
+        "cancel": "Cancel",
+        "action": "Sign and close"
+      },
+      "toast": {
+        "closed": "Periodontal chart signed and closed",
+        "errorTitle": "Could not close the periodontal chart"
+      },
+      "dictationPending": "Confirm or discard the dictated or copied values before signing",
+      "confirmDictation": "Confirm",
+      "diagnosis": "Diagnosis",
+      "notDiagnosed": "Confirm the diagnosis to close",
+      "backToDiagnosis": "Back to diagnosis",
+      "billingPending": "Charge or tick “Nothing to charge today”",
+      "nextVisitPending": "Book the next visit or choose “Schedule later”",
+      "report": {
+        "title": "Report for the patient",
+        "hello": "Hi {name}, here is the summary of your gum check-up.",
+        "bopVs": "{now}% of the points measured bleed (at the first check-up, {before}%).",
+        "bop": "{now}% of the points measured bleed.",
+        "pocketsVs": "Areas with pockets of 5 mm or more: {now} (at the first check-up, {before}).",
+        "pockets": "Areas with pockets of 5 mm or more: {now}.",
+        "tipTeeth": "The area of {teeth} needs another look. Use an interdental brush every night.",
+        "tipPlaque": "There is plaque in several areas: brush the gum line carefully and use an interdental brush.",
+        "tipKeep": "Keep it up: see you for maintenance in {months, plural, one {# month} other {# months}}.",
+        "sentAt": "Sent on {date}",
+        "noPhone": "The patient has no phone on file",
+        "print": "Print",
+        "copy": "Copy",
+        "copied": "Copied",
+        "psr": "Gum check result: code {code} of 4 (0 is healthy).",
+        "psrTip": {
+          "0": "Your gums are healthy. Keep up your usual hygiene.",
+          "1": "There is bleeding: brush the gum line carefully and use floss or an interdental brush.",
+          "2": "There is tartar: a professional cleaning is needed.",
+          "3": "There are pockets in some areas: a full gum assessment is needed.",
+          "4": "There are deep pockets: a full gum assessment and treatment are needed."
+        },
+        "state": {
+          "stable": "Today your gums are stable.",
+          "gingivitis": "Today your gums are inflamed, but with no pockets to treat.",
+          "unstable": "Today some areas of your gums need treatment."
+        },
+        "whatsapp": "WhatsApp",
+        "email": "Send",
+        "noEmail": "The patient has no email on file",
+        "emailSubject": "Your gum check-up"
+      },
+      "billing": {
+        "title": "Today's billing",
+        "today": "Marked “Today” in the plan",
+        "nothingToday": "Nothing is marked “Today” in the plan.",
+        "pickServices": "The billing picks the catalog services, with their prices.",
+        "charge": "Charge",
+        "noCharge": "Nothing to charge today",
+        "linkError": "The invoice was created, but it could not be linked to the periodontal chart",
+        "unlinked": "The invoice was not linked to the periodontal chart.",
+        "retry": "Retry",
+        "startError": "Could not open the billing",
+        "noAccess": "It already has an invoice, but you are not allowed to see it."
+      },
+      "next": {
+        "title": "Next visit",
+        "reinstrumentation": "Reinstrumentation · {teeth}",
+        "reinstrumentationShort": "Reinstrumentation",
+        "maintenance": "Periodontal maintenance",
+        "inWeeks": "in 1 to 2 weeks",
+        "inMonths": "in {count, plural, one {# month} other {# months}}",
+        "book": "Book",
+        "bookLater": "Schedule later",
+        "booked": "Appointment booked for {date}",
+        "later": "Schedule later · suggested for {date}",
+        "change": "Change",
+        "loadError": "Could not open the schedule",
+        "bookedAt": "Appointment booked for {date} at {time}"
+      },
+      "amend": {
+        "title": "Amendments",
+        "add": "Amend",
+        "none": "No amendments.",
+        "dialogTitle": "Amend the periodontal chart",
+        "dialogDescription": "The closed periodontal chart does not change: the amendment is added with your name and the date. Write what is corrected and why.",
+        "placeholder": "What is corrected and why",
+        "cancel": "Cancel",
+        "save": "Add amendment",
+        "error": "Could not add the amendment"
+      }
+    },
+    "timeline": {
+      "open": "Open this periodontal chart",
+      "continue": "Continue",
+      "type": "Exam",
+      "doctor": "Doctor",
+      "sites": "Sites probed",
+      "bop": "bleeding {value}%",
+      "pockets5": "{count, plural, =0 {no pockets ≥ 5 mm} one {# pocket ≥ 5 mm} other {# pockets ≥ 5 mm}}",
+      "bopLabel": "Bleeding",
+      "plaqueLabel": "Plaque",
+      "means": "Mean PD · CAL",
+      "pocketsLabel": "Sites ≥ 4 / 5 / 6 mm",
+      "pocketsValue": "{n4} / {n5} / {n6}",
+      "noProbing": "Not probed yet.",
+      "notes": "Notes",
+      "deleted": "Periodontal chart deleted",
+      "deleteError": "Could not delete the periodontal chart",
+      "deleteTitle": "Delete periodontal chart",
+      "deleteDescription": "The periodontal chart of {date}, not closed yet, will be deleted. Continue?",
+      "deleteConfirm": "Delete",
+      "compare": "Compare with today",
+      "diagnosis": "Diagnosis",
+      "sextants": "Sextants"
+    },
+    "errors": {
+      "generic": "The action could not be completed. Please try again.",
+      "codes": {
+        "DATE_REQUIRED": "The periodontal chart has no date.",
+        "EXAM_CLOSED": "The periodontal chart is already closed: it cannot be changed.",
+        "EXAM_NOT_FOUND": "The periodontal chart no longer exists (it may have been deleted).",
+        "INVALID_TOOTH": "There is an invalid tooth in the periodontal chart.",
+        "INVALID_TOOTH_STATUS": "There is an invalid tooth status.",
+        "INVALID_VALUE": "A value is out of range (PD 0–15, GM −10 to 15, mobility 0–3).",
+        "NOT_READY_TO_CLOSE": "To close, complete the probing and confirm the diagnosis.",
+        "PATIENT_REQUIRED": "The periodontal chart has no patient.",
+        "INVALID_DIAGNOSIS": "The diagnosis has an invalid value (stage, grade, risk or stability).",
+        "AMENDMENT_REQUIRED": "Write the text of the amendment.",
+        "BILLING_PENDING": "To close, charge or tick “Nothing to charge today”.",
+        "NEXT_VISIT_PENDING": "To close, book the next visit or choose “Schedule later”.",
+        "INVOICE_ALREADY_LINKED": "The periodontal chart already has another invoice linked.",
+        "INVOICE_NOT_FOUND": "This patient's invoice was not found.",
+        "NOT_CLOSED": "Only a closed periodontal chart can be amended."
+      }
+    },
+    "voice": {
+      "start": "Dictate",
+      "stop": "Stop",
+      "listening": "Listening… speak",
+      "placeholder": "Dictate or type: “SS 23”, “3 2 4”… (/)",
+      "label": "Voice command",
+      "send": "Apply",
+      "unsupported": "This browser cannot dictate: type the commands",
+      "line": "Line: {line}",
+      "leaveLine": "Back to the values",
+      "unknown": "Not understood: “{words}”",
+      "nothing": "No commands found in “{text}”",
+      "pending": "{count, plural, one {# dictated or copied site not confirmed} other {# dictated or copied sites not confirmed}}",
+      "discard": "Discard",
+      "confirm": "Confirm",
+      "errors": {
+        "not-allowed": "The browser is not allowed to use the microphone",
+        "unavailable": "No microphone available"
+      },
+      "lines": {
+        "bop": "BOP",
+        "sup": "Suppuration",
+        "plaque": "Plaque"
+      },
+      "feedback": {
+        "marked": "{flag} at {site}",
+        "unmarked": "Removed: {flag} at {site}",
+        "mobility": "{tooth} · mobility {grade}",
+        "notProbed": "{tooth} is not probed (missing or pontic)",
+        "outOfRange": "{value} is out of range",
+        "readOnly": "Read-only: dictation is off",
+        "now": "Probe at {where}",
+        "focus": "View: {focus}",
+        "actions": {
+          "undo": "Undone",
+          "redo": "Redone",
+          "confirm": "Dictation confirmed",
+          "discard": "Dictation discarded"
+        }
+      },
+      "help": {
+        "button": "Commands",
+        "title": "Voice commands",
+        "lead": "Spanish and English are both understood. Values go to the probe's site and it moves on by itself, as with the keyboard. What you dictate stays underlined in violet until you say “confirm”.",
+        "groups": [
+          {
+            "title": "Values",
+            "items": [
+              [
+                "3 2 4",
+                "three sites in a row on the current line, in probing order"
+              ],
+              [
+                "minus 2",
+                "enlargement, on the gingival margin"
+              ],
+              [
+                "same",
+                "the previous exam's value"
+              ],
+              [
+                "delete",
+                "deletes the last value"
+              ]
+            ]
+          },
+          {
+            "title": "Moving",
+            "items": [
+              [
+                "next · previous",
+                "next or previous tooth"
+              ],
+              [
+                "tooth 23",
+                "goes to 23 on the current face"
+              ],
+              [
+                "38 lingual 3 2 4",
+                "tooth and face, then the values"
+              ],
+              [
+                "buccal · lingual · palatal",
+                "changes face on the current tooth"
+              ]
+            ]
+          },
+          {
+            "title": "Lines",
+            "items": [
+              [
+                "SS 23",
+                "bleeding line of 23 (palatal or lingual face unless you say another)"
+              ],
+              [
+                "SS buccal · SS lingual",
+                "bleeding line on that face"
+              ],
+              [
+                "PD 23 buccal",
+                "probing depth of 23, buccal"
+              ],
+              [
+                "MG 16",
+                "gingival margin of 16"
+              ],
+              [
+                "plaque 23",
+                "plaque line of 23"
+              ],
+              [
+                "yes · no",
+                "on a line of marks: marks it or leaves it clean, and moves on"
+              ]
+            ]
+          },
+          {
+            "title": "Marks",
+            "items": [
+              [
+                "bleeds",
+                "bleeding on the last site measured"
+              ],
+              [
+                "bleeds distal",
+                "on that site of the last tooth measured"
+              ],
+              [
+                "bleeds 16 mesial",
+                "on that site of 16"
+              ],
+              [
+                "suppurates · plaque",
+                "same as bleeds"
+              ],
+              [
+                "no bleeding",
+                "removes the mark"
+              ]
+            ]
+          },
+          {
+            "title": "Passes and view",
+            "items": [
+              [
+                "probing depth",
+                "depth and bleeding pass"
+              ],
+              [
+                "gingival margin",
+                "gingival margin pass"
+              ],
+              [
+                "furcations and mobility",
+                "furcations and mobility pass"
+              ],
+              [
+                "mobility 2 · 46 mobility 1",
+                "mobility of the current tooth or of the one you say"
+              ],
+              [
+                "furcation buccal 2",
+                "furcation grade"
+              ],
+              [
+                "upper arch · lower arch",
+                "shows that arch"
+              ],
+              [
+                "both",
+                "both arches"
+              ],
+              [
+                "follow probe",
+                "back to automatic"
+              ]
+            ]
+          },
+          {
+            "title": "Editing",
+            "items": [
+              [
+                "undo · redo",
+                "the last phrase"
+              ],
+              [
+                "confirm",
+                "keeps what was dictated"
+              ],
+              [
+                "discard",
+                "removes what was dictated and not confirmed"
+              ],
+              [
+                "stop dictation",
+                "turns the microphone off"
+              ]
+            ]
+          }
+        ]
+      },
+      "thinking": "Interpreting with AI…",
+      "ai": "AI",
+      "rewritten": "The AI read it as “{phrase}”"
+    },
+    "evolution": {
+      "title": "Progress since the exam of {date}",
+      "lead": {
+        "slider": "Drag the slider: on the left, the periodontal chart of {date}; on the right, today's.",
+        "overlay": "The curve of {date} is dashed. The bars show where attachment was gained (green) or lost (red).",
+        "diff": "Each depth today is coloured by its change since {date}: green better, red worse. Details are in the tooltip.",
+        "map": "Occlusal view: each sector is coloured by the change in attachment since {date}.",
+        "play": "Progress, session by session."
+      },
+      "modesLabel": "Comparison mode",
+      "modes": {
+        "slider": "Slider",
+        "overlay": "Overlay",
+        "diff": "Changes"
+      },
+      "viewLabel": "View",
+      "views": {
+        "curves": "Curves",
+        "map": "Map"
+      },
+      "play": "Play the progress",
+      "pause": "Pause",
+      "handle": "Comparison slider",
+      "today": "Today",
+      "tagBase": "{exam} · {date}",
+      "tagToday": "Today · {date}",
+      "compareWith": "Compare today with…",
+      "nodeBop": "{date} · {value}% bleeding",
+      "trends": {
+        "title": "Trends",
+        "bop": "Bleeding on probing",
+        "plaque": "Plaque",
+        "n5": "Sites of 5 mm or more",
+        "meanPd": "Mean PD",
+        "meanCal": "Mean CAL",
+        "from": "{date}: {value} → today"
+      },
+      "worse": "Worse · {count}",
+      "better": "Better · {count}",
+      "noWorse": "No site lost 2 mm or more.",
+      "noBetter": "No improvements of 2 mm or more.",
+      "more": "and {count} more sites",
+      "pocket": "{from} → {to} mm pocket",
+      "cal": "CAL {value}",
+      "note": "Only changes of 2 mm or more are listed: with a manual probe, 1 mm differences are within the measurement error.",
+      "empty": {
+        "title": "Nothing to compare with yet",
+        "description": "This is the patient's first periodontal chart. Progress shows from the next session on."
+      },
+      "backToProbe": "Back to probing",
+      "next": "Go to closing",
+      "screening": {
+        "title": "Screening progress",
+        "lead": "A screening has no curves: the codes of each sextant are compared, session by session.",
+        "session": "Session",
+        "first": "This is the patient's first screening."
+      }
+    },
+    "diagnosis": {
+      "title": "Diagnosis and plan",
+      "lead": "Invoke works out indices, stage, grade and risk from what you probed. They are suggestions: review them, change what is needed and confirm. Nothing goes into the clinical record until you confirm.",
+      "notProbed": "Complete depth and margin at every site to confirm the diagnosis.",
+      "toConfirm": "Review the suggestions and confirm the diagnosis.",
+      "confirm": "Confirm diagnosis",
+      "confirmedAt": "Diagnosis confirmed on {date}",
+      "back": "Back to Progress",
+      "next": "Go to closing",
+      "manual": "changed",
+      "manualHint": "You changed it by hand: it no longer follows the suggestion",
+      "stageOption": "Stage {stage}",
+      "gradeOption": "Grade {grade}",
+      "today": {
+        "title": "How it is today",
+        "bop": "Bleeding on probing {value}% (stable: under 10%)",
+        "pockets5": "{count, plural, =0 {No site of 5 mm or more} one {# site of 5 mm or more} other {# sites of 5 mm or more}}",
+        "bleeding4": "{count, plural, =0 {No 4 mm site with bleeding} one {# 4 mm site with bleeding} other {# 4 mm sites with bleeding}}",
+        "endpointsMet": "Therapy endpoints met: no PD over 4 mm with bleeding and none of 6 mm or more.",
+        "endpointsNotMet": "Therapy endpoints not met: PD over 4 mm with bleeding or of 6 mm or more remain."
+      },
+      "stability": {
+        "stable": "Stable",
+        "gingivitis": "Stable with gingival inflammation",
+        "unstable": "Unstable"
+      },
+      "stabilityHelp": {
+        "stable": "Gingival health on a reduced periodontium.",
+        "gingivitis": "No active pockets, but bleeding of 10% or more.",
+        "unstable": "There are pockets of 5 mm or more, or of 4 mm with bleeding."
+      },
+      "classification": {
+        "title": "AAP/EFP 2017 classification",
+        "case": "Periodontitis case",
+        "stage": "Stage",
+        "extent": "Extent",
+        "grade": "Grade"
+      },
+      "inputs": {
+        "teethLost": "Teeth lost to periodontitis",
+        "boneLoss": "Bone loss (X-ray)",
+        "fromXray": "from X-ray",
+        "age": "Age",
+        "cigarettes": "Cigarettes per day",
+        "diabetes": "Diabetes",
+        "note": "What the probing does not give is entered here and carries over to the next periodontal chart."
+      },
+      "diabetes": {
+        "no": "No",
+        "controlled": "Yes, HbA1c < 7%",
+        "uncontrolled": "Yes, HbA1c ≥ 7%"
+      },
+      "yesNo": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "extent": {
+        "localized": "Localized",
+        "generalized": "Generalized",
+        "molarIncisor": "Molar-incisor pattern"
+      },
+      "phrase": {
+        "case": {
+          "localized": "Localized periodontitis",
+          "generalized": "Generalized periodontitis",
+          "molarIncisor": "Periodontitis, molar-incisor pattern",
+          "none": "Periodontitis"
+        },
+        "stage": "stage {stage}",
+        "grade": "grade {grade}",
+        "noCase": "No periodontitis · {stability}",
+        "psr": "PSR/BPE: highest code {code}"
+      },
+      "why": {
+        "caseInter": "Interdental CAL at {count} teeth, not all neighbours",
+        "caseMid": "Buccal or oral CAL of 3 mm or more with pockets at {count} teeth",
+        "noCase": "No interdental attachment loss at 2 non-adjacent teeth",
+        "stageCal": "Highest interdental CAL {mm} mm at {tooth} (initial exam)",
+        "stageDepth": "complexity: PD of {mm} mm",
+        "stageFurcation": "complexity: furcation II–III at {teeth}",
+        "stageLost": "{count} teeth lost to periodontitis",
+        "stageKept": "stage {stage} of an earlier diagnosis is kept (it does not go down)",
+        "noInitial": "No attachment data in the initial exam",
+        "extent": "{pct}% of teeth with interdental CAL of 3 mm or more (from 30%: generalized)",
+        "gradeRatio": "bone loss {bone}% / {age} years = {ratio}",
+        "gradeDefault": "no bone loss from an X-ray: grade B by default",
+        "smokes10": "smokes 10 or more a day",
+        "smokesLess": "smokes fewer than 10 a day",
+        "diabetesBad": "HbA1c ≥ 7%",
+        "diabetesOk": "diabetes with HbA1c < 7%"
+      },
+      "risk": {
+        "title": "Risk of progression (Lang & Tonetti)",
+        "label": "Risk",
+        "maintenance": "Maintenance every",
+        "months": "{count, plural, one {# month} other {# months}}",
+        "perDay": "{count} a day",
+        "diabetes": "Diabetes",
+        "levels": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High"
+        },
+        "zones": {
+          "0": "low",
+          "1": "moderate",
+          "2": "high"
+        },
+        "params": {
+          "bop": "Bleeding on probing",
+          "pockets": "Sites of 5 mm or more",
+          "lost": "Teeth lost (of 28)",
+          "boneAge": "Bone loss / age",
+          "systemic": "Systemic",
+          "smoking": "Smoking",
+          "short": {
+            "bop": "Bleeding",
+            "pockets": "Pockets ≥ 5",
+            "lost": "Lost",
+            "boneAge": "Bone/age",
+            "systemic": "Systemic",
+            "smoking": "Smoking"
+          }
+        }
+      },
+      "plan": {
+        "title": "Plan by steps (EFP guideline)",
+        "lead": "Built from today's probing. Choose what is included and whether it is done today or later.",
+        "step": "Step {step}",
+        "implantStep": "Implant",
+        "today": "Today",
+        "later": "Later",
+        "bleeds": "bleeds",
+        "suppurates": "suppurates",
+        "billingLater": "Billing what is marked “Today” and the quote for the rest come with the closing, in an upcoming version.",
+        "kinds": {
+          "hygiene": "Oral hygiene instruction and plaque control",
+          "reinstrumentation": "Subgingival reinstrumentation · {tooth}",
+          "surgery": "Re-evaluate and assess surgery · {teeth}",
+          "implantRx": "Periapical X-ray · {tooth}",
+          "periImplant": "Peri-implant debridement · {tooth}",
+          "maintenance": "Periodontal maintenance",
+          "scaling": "Supragingival scaling",
+          "fullChart": "Full periodontal chart · sextants {teeth}"
+        },
+        "subs": {
+          "hygiene": "Plaque {value}: target under 20%",
+          "reinstrumentation": "",
+          "surgery": "If it is still 6 mm or more once the reinstrumentation heals",
+          "implantRx": "",
+          "periImplant": "If the X-ray shows no bone loss, it is treated as mucositis",
+          "maintenance": "Supra- and subgingival instrumentation and hygiene reinforcement",
+          "scaling": "And correction of plaque-retentive factors",
+          "fullChart": "Because of code 3, 4 or * in the screening"
+        }
+      },
+      "screening": {
+        "lead": "Invoke reads the highest code and suggests what to do. Review it and confirm.",
+        "title": "Screening result",
+        "notCoded": "Some sextants are not coded yet",
+        "notProbed": "Code the six sextants to confirm.",
+        "chartSextants": "Full periodontal chart of sextants {sextants}.",
+        "action": {
+          "0": "No treatment: hygiene reinforcement and a check-up at the maintenance interval.",
+          "1": "Oral hygiene instruction and plaque control.",
+          "2": "Hygiene, supragingival scaling and correction of plaque-retentive factors.",
+          "3": "Hygiene and scaling; full chart of the sextants with code 3.",
+          "4": "Full-mouth periodontal chart and periodontal treatment."
+        }
+      },
+      "implants": {
+        "title": "Implants",
+        "lead": "Suggested status of each implant from today's probing and the previous exam. Peri-implantitis is confirmed with an X-ray.",
+        "none": "There are no implants in this exam.",
+        "status": {
+          "health": "Healthy",
+          "mucositis": "Mucositis",
+          "periimplantitis": "Peri-implantitis"
+        },
+        "why": {
+          "health": "no bleeding or suppuration",
+          "mucositis": "bleeds or suppurates, no 6 mm pocket or increase",
+          "periimplantitis": "bleeds or suppurates with a pocket of 6 mm or more, or 2 mm deeper than before"
+        }
+      }
+    },
+    "screening": {
+      "sextant": "Sextant {n}",
+      "sextantShort": "S{n}",
+      "lead": "One code per sextant: that of the worst site. X with fewer than two teeth.",
+      "star": "* (furcation, mobility, mucogingival problem or recession ≥ 3.5 mm)",
+      "starHelp": "Furcation, mobility, mucogingival problem or recession of 3.5 mm or more: full chart of the sextant",
+      "keys": "Keyboard: 0–4 and X code the marked sextant and move to the next; * marks it; ← → to move.",
+      "progress": "{done} of 6 sextants",
+      "codes": {
+        "0": "Healthy: no bleeding or calculus; the colour band is fully visible",
+        "1": "Bleeding on probing, no calculus",
+        "2": "Calculus or overhanging restorations; the band is visible",
+        "3": "Pocket of 3.5 to 5.5 mm (the band is partly visible)",
+        "4": "Pocket over 5.5 mm (the band is not visible)",
+        "X": "Excluded: fewer than two teeth"
+      }
+    },
+    "settings": {
+      "title": "Periodontal chart settings",
+      "lead": "They apply to the whole clinic.",
+      "readOnly": "Only those who edit the system settings can change them.",
+      "saved": "Settings saved",
+      "error": "Could not save the settings",
+      "cancel": "Cancel",
+      "save": "Save",
+      "order": {
+        "label": "Probing order",
+        "arch": "By arch",
+        "archHelp": "Upper buccal 18→28, upper palatal 28→18, lower buccal 48→38, lower lingual 38→48",
+        "buccalFirst": "Buccal first",
+        "buccalFirstHelp": "Upper buccal 18→28, lower buccal 38→48, lower lingual 48→38, upper palatal 28→18"
+      },
+      "marginSign": {
+        "label": "Gingival margin sign",
+        "recessionPositive": "Recession positive",
+        "recessionPositiveHelp": "Margin below the CEJ = positive; enlargement = negative.",
+        "recessionNegative": "Recession negative",
+        "recessionNegativeHelp": "Margin below the CEJ = negative; enlargement = positive. It is stored the same way: only how it is typed and shown changes."
+      },
+      "intervals": {
+        "label": "Suggested maintenance (months)",
+        "high": "High risk",
+        "moderate": "Moderate risk",
+        "low": "Low risk",
+        "help": "The EFP guideline asks for 3 to 6 months."
+      }
     }
   }
 }

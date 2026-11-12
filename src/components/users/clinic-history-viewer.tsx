@@ -65,12 +65,16 @@ import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
-import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, PERIO_RECORD_PERMISSIONS } from '@/constants/permissions';
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
-import { AestheticBodyFigure, AestheticSession, Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
+import { AestheticBodyFigure, AestheticSession, Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, PerioExam, SessionPrefillData } from '@/lib/types';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
 import { isSessionLockedError, useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { deleteAestheticSession } from '@/services/aesthetic-record';
+import { deletePerioExam } from '@/services/perio-record';
+import { isExamLockedError, usePerioErrorMessage } from '@/components/users/perio-record/perio-errors';
+import { PerioSessionSheet } from '@/components/users/perio-record/perio-session-sheet';
+import { PerioExamDetails, PerioExamPreview, PerioStatusChip, usePerioExamSummary, usePerioExams } from '@/components/users/perio-record/perio-timeline';
 import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { getDateFnsLocale } from '@/lib/locale';
@@ -89,6 +93,7 @@ import {
     File,
     FileText,
     FolderArchive,
+    GitCompareArrows,
     GlassWater,
     Heart,
     Loader2,
@@ -100,6 +105,7 @@ import {
     SlidersHorizontal,
     Smile,
     Sparkles,
+    Activity,
     Stethoscope,
     Trash2,
     Upload,
@@ -142,6 +148,9 @@ interface ClinicHistoryViewerProps {
     createAestheticTrigger?: number;
     /** The parent must reset its counter here, or the next mount opens a new draft */
     onAestheticTriggerConsumed?: () => void;
+    /** Bump to start a new periodontogram (one-shot, like the aesthetic trigger) */
+    createPerioTrigger?: number;
+    onPerioTriggerConsumed?: () => void;
     /** Patient's sex, for the body figure of their first aesthetic session */
     patientSex?: AestheticBodyFigure | null;
     sessionPrefill?: SessionPrefillData | null;
@@ -156,7 +165,7 @@ interface ClinicHistoryViewerProps {
     readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, createAestheticTrigger = 0, onAestheticTriggerConsumed, patientSex, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, createAestheticTrigger = 0, onAestheticTriggerConsumed, createPerioTrigger = 0, onPerioTriggerConsumed, patientSex, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -299,6 +308,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
     const [localOdontogramTrigger, setLocalOdontogramTrigger] = React.useState(0);
     const [localAestheticTrigger, setLocalAestheticTrigger] = React.useState(0);
+    const [localPerioTrigger, setLocalPerioTrigger] = React.useState(0);
 
     React.useEffect(() => {
         if (createSessionTrigger > 0) {
@@ -328,6 +338,13 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         }
     }, [createAestheticTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    React.useEffect(() => {
+        if (createPerioTrigger > 0) {
+            setLocalPerioTrigger(t => t + 1);
+            onPerioTriggerConsumed?.();
+        }
+    }, [createPerioTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
         <div className="pt-1">
                         <TreatmentTimeline
@@ -352,6 +369,8 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onOdontogramTriggerConsumed={() => setLocalOdontogramTrigger(0)}
                             createAestheticTrigger={localAestheticTrigger}
                             onAestheticTriggerConsumed={() => setLocalAestheticTrigger(0)}
+                            createPerioTrigger={localPerioTrigger}
+                            onPerioTriggerConsumed={() => setLocalPerioTrigger(0)}
                             patientSex={patientSex}
                             sessionPrefill={sessionPrefill}
                             onSessionCreated={onSessionCreated}
@@ -1822,6 +1841,8 @@ interface TimelineRowProps {
     onToggle?: () => void;
     /** Resalta el registro ligado a la cita que se está atendiendo. */
     highlighted?: boolean;
+    /** data-help-id de la cabecera (para que una guía señale este tipo de registro). */
+    helpId?: string;
     /** Detalle completo, sin truncar. Solo se monta desplegado. */
     children?: React.ReactNode;
 }
@@ -1834,7 +1855,7 @@ interface TimelineRowProps {
  * los lectores de pantalla (su clic sube a la cabecera, no se maneja dos veces).
  * Las `actions` cortan la propagación, también la de los menús en portal de Radix.
  */
-function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, children }: TimelineRowProps) {
+function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, helpId, children }: TimelineRowProps) {
     const isExpandable = Boolean(onToggle);
     const isOpen = isExpandable && expanded;
     const summaryContent = (
@@ -1853,6 +1874,7 @@ function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, hig
             )}
         >
             <div
+                data-help-id={helpId}
                 className={cn('flex items-start gap-2 px-2.5 py-2', isExpandable && 'cursor-pointer transition-colors hover:bg-muted/50')}
                 onClick={onToggle}
             >
@@ -1904,7 +1926,7 @@ function TimelineSplit({ preview, children }: { preview: React.ReactNode; childr
 }
 
 // Treatment Timeline Component with CRUD
-export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'estetica' | 'appointment';
+export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'estetica' | 'periodontograma' | 'appointment';
 
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
@@ -1931,6 +1953,9 @@ interface TreatmentTimelineProps {
     /** Bump to open the sheet of a new aesthetic session */
     createAestheticTrigger?: number;
     onAestheticTriggerConsumed?: () => void;
+    /** Bump to open the sheet of a new periodontogram */
+    createPerioTrigger?: number;
+    onPerioTriggerConsumed?: () => void;
     /** Context of new aesthetic sessions (e.g. Mi Consultorio's appointment and doctor) */
     aestheticDefaults?: { doctorId?: string; doctorName?: string; appointmentId?: string };
     /** Patient's sex, for the body figure of their first aesthetic session */
@@ -1957,7 +1982,7 @@ interface TreatmentTimelineProps {
     linkedAppointmentId?: string;
 }
 
-export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, createAestheticTrigger = 0, onAestheticTriggerConsumed, aestheticDefaults, patientSex, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, createAestheticTrigger = 0, onAestheticTriggerConsumed, createPerioTrigger = 0, onPerioTriggerConsumed, aestheticDefaults, patientSex, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const helpScope = useHelpScope();
     const tDental = useTranslations('DentalRecord');
@@ -1989,6 +2014,11 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && !isPortalReadOnly;
     const canManageAesthetic = canViewAesthetic && !readOnly && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
     const { sessions: aestheticSessions, reload: reloadAestheticSessions } = useAestheticSessions(userId, canViewAesthetic);
+    const canViewPerio = hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && !isPortalReadOnly;
+    const canManagePerio = canViewPerio && !readOnly && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
+    const { exams: perioExams, reload: reloadPerioExams } = usePerioExams(userId, canViewPerio);
+    const perioSummary = usePerioExamSummary();
+    const tPerio = useTranslations('PerioRecord');
     const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
 
     const handlePrintHistory = React.useCallback(async () => {
@@ -2024,6 +2054,11 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     /** Sheet of an aesthetic session: `sessionId` null creates one */
     const [aestheticSheet, setAestheticSheet] = React.useState<{ sessionId: string | null } | null>(null);
     const [deletingAesthetic, setDeletingAesthetic] = React.useState<AestheticSession | null>(null);
+    /** Sheet of a periodontogram: `examId` null creates one */
+    const [perioSheet, setPerioSheet] = React.useState<{ examId: string | null; compareWithId?: string } | null>(null);
+    /** Latest periodontogram of the patient: "Comparar con hoy" opens it on Evolution */
+    const latestPerio = React.useMemo(() => [...perioExams].filter((e) => e.status !== 'void').sort((a, b) => (a.date === b.date ? (a.createdAt < b.createdAt ? -1 : 1) : a.date < b.date ? -1 : 1)).at(-1) ?? null, [perioExams]);
+    const [deletingPerio, setDeletingPerio] = React.useState<PerioExam | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
 
@@ -2115,15 +2150,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const [typeFilter, setTypeFilter] = React.useState<TimelineFilter>('all');
     const [doctorFilter, setDoctorFilter] = React.useState<string>('all');
 
-    // Open edit dialog when editSessionId is provided from outside (e.g. treatment plan step)
-    React.useEffect(() => {
-        if (!editSessionId) return;
-        const session = sessions.find(s => s.sesion_id === editSessionId);
-        if (session) {
-            handleEditSession(session);
-        }
-    }, [editSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
-
     // Prefill state for ClinicSessionDialog
     const [sessionPrefillData, setSessionPrefillData] = React.useState<{
         doctor_id?: string; doctor_name?: string;
@@ -2170,6 +2196,14 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             onAestheticTriggerConsumed?.();
         }
     }, [createAestheticTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    React.useEffect(() => {
+        if (!canManagePerio) return;
+        if (createPerioTrigger > 0) {
+            setPerioSheet({ examId: null });
+            onPerioTriggerConsumed?.();
+        }
+    }, [createPerioTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Attachment viewer state
     const [viewingAttachment, setViewingAttachment] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
@@ -2269,6 +2303,15 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         setIsSessionDialogOpen(true);
     };
 
+    // Open edit dialog when editSessionId is provided from outside (e.g. treatment plan step)
+    React.useEffect(() => {
+        if (!editSessionId) return;
+        const session = sessions.find(s => s.sesion_id === editSessionId);
+        if (session) {
+            handleEditSession(session);
+        }
+    }, [editSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const handleDeleteSession = (session: PatientSession) => {
         setDeletingSession(session);
     };
@@ -2305,6 +2348,28 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 if (!isSessionLockedError(error)) return;
                 setDeletingAesthetic(null);
                 reloadAestheticSessions();
+            },
+        }
+    );
+
+    const describePerioError = usePerioErrorMessage();
+    const deletePerioAction = useAsyncAction(
+        async () => {
+            if (deletingPerio) await deletePerioExam(deletingPerio.id);
+        },
+        {
+            onSuccess: async () => {
+                toast({ title: tPerio('timeline.deleted') });
+                setDeletingPerio(null);
+                await reloadPerioExams();
+            },
+            errorTitle: tPerio('timeline.deleteError'),
+            describeError: describePerioError,
+            // Closed or deleted by someone else: the list was out of date
+            onError: (error) => {
+                if (!isExamLockedError(error)) return;
+                setDeletingPerio(null);
+                reloadPerioExams();
             },
         }
     );
@@ -2361,6 +2426,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     type TimelineItem =
         | { kind: 'session'; date: Date; data: PatientSession }
         | { kind: 'aesthetic'; date: Date; data: AestheticSession }
+        | { kind: 'perio'; date: Date; data: PerioExam }
         | { kind: 'appointment'; date: Date; data: Appointment };
 
     const timelineDoctorName = (item: TimelineItem): string | undefined =>
@@ -2369,6 +2435,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const timelineType = (item: TimelineItem): Exclude<TimelineFilter, 'all'> => {
         if (item.kind === 'appointment') return 'appointment';
         if (item.kind === 'aesthetic') return 'estetica';
+        if (item.kind === 'perio') return 'periodontograma';
         return item.data.tipo_sesion === 'odontograma' ? 'odontograma' : 'clinica';
     };
 
@@ -2389,10 +2456,15 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             date: s.date ? parseISO(s.date) : new Date(0),
             data: s,
         }));
-        return [...sessionItems, ...aestheticItems, ...appointmentItems].sort(
+        const perioItems: TimelineItem[] = perioExams.map(e => ({
+            kind: 'perio' as const,
+            date: e.date ? parseISO(e.date) : new Date(0),
+            data: e,
+        }));
+        return [...sessionItems, ...aestheticItems, ...perioItems, ...appointmentItems].sort(
             (a, b) => b.date.getTime() - a.date.getTime()
         );
-    }, [sessions, aestheticSessions, appointments]);
+    }, [sessions, aestheticSessions, perioExams, appointments]);
 
     const doctorOptions = React.useMemo(() => {
         const map = new Map<string, string>();
@@ -2414,7 +2486,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     }, [allItems, effectiveTypeFilter, doctorFilter]); // eslint-disable-line react-hooks/exhaustive-deps -- the helpers only read `item`
 
     const getItemKey = (item: { kind: string; data: any }, index: number) =>
-        item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : item.kind === 'aesthetic' ? `aesthetic-${item.data.id}` : `session-${item.data.sesion_id}`;
+        item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : item.kind === 'aesthetic' ? `aesthetic-${item.data.id}` : item.kind === 'perio' ? `perio-${item.data.id}` : `session-${item.data.sesion_id}`;
 
     // Sesión más reciente de la lista. No es `filteredItems[0]`: la lista está ordenada
     // por fecha y puede arrancar con una cita.
@@ -2459,7 +2531,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         <div>
                             <h3 className="text-lg font-semibold">{t('title')}</h3>
                             <p className="text-sm text-muted-foreground">
-                                {filteredItems.length} de {allItems.length} eventos
+                                {t('eventCount', { shown: filteredItems.length, total: allItems.length })}
                             </p>
                         </div>
                     </div>
@@ -2499,13 +2571,14 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel className="text-xs">Tipo de evento</DropdownMenuLabel>
+                                    <DropdownMenuLabel className="text-xs">{t('filterEventType')}</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {([
-                                        { value: 'all', label: 'Todos' },
+                                        { value: 'all', label: t('filterAll') },
                                         { value: 'clinica', label: t('sessionTypeClinical') },
                                         { value: 'odontograma', label: t('sessionTypeOdontogram') },
                                         ...(canViewAesthetic ? [{ value: 'estetica', label: t('sessionTypeAesthetic') }] : []),
+                                        ...(canViewPerio ? [{ value: 'periodontograma', label: t('sessionTypePeriodontogram') }] : []),
                                         { value: 'appointment', label: t('sessionTypeAppointment') },
                                     ] as { value: TimelineFilter; label: string }[]).map(opt => (
                                         <DropdownMenuItem
@@ -2520,13 +2593,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     {doctorOptions.length > 1 && (
                                         <>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuLabel className="text-xs">Doctor</DropdownMenuLabel>
+                                            <DropdownMenuLabel className="text-xs">{t('filterDoctor')}</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="flex items-center justify-between text-sm py-1.5"
                                                 onSelect={(e) => { e.preventDefault(); setDoctorFilter('all'); }}
                                             >
-                                                <span className={cn(doctorFilter === 'all' && 'font-medium')}>Todos los doctores</span>
+                                                <span className={cn(doctorFilter === 'all' && 'font-medium')}>{t('filterAllDoctors')}</span>
                                                 {doctorFilter === 'all' && <Check className="h-4 w-4" />}
                                             </DropdownMenuItem>
                                             {doctorOptions.map(opt => (
@@ -2580,6 +2653,12 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         {t('sessionTypeAesthetic')}
                                     </DropdownMenuItem>
                                 )}
+                                {canManagePerio && (
+                                    <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'timeline-add-periodontogram')} onClick={() => setPerioSheet({ examId: null })}>
+                                        <Activity className="h-4 w-4 mr-2" />
+                                        {t('sessionTypePeriodontogram')}
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                         )}
@@ -2595,7 +2674,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 className="gap-1 text-xs cursor-pointer hover:bg-muted-foreground/20 transition-colors"
                                 onClick={() => setTypeFilter('all')}
                             >
-                                {typeFilter === 'clinica' ? t('sessionTypeClinical') : typeFilter === 'odontograma' ? t('sessionTypeOdontogram') : typeFilter === 'estetica' ? t('sessionTypeAesthetic') : t('sessionTypeAppointment')}
+                                {typeFilter === 'clinica' ? t('sessionTypeClinical') : typeFilter === 'odontograma' ? t('sessionTypeOdontogram') : typeFilter === 'estetica' ? t('sessionTypeAesthetic') : typeFilter === 'periodontograma' ? t('sessionTypePeriodontogram') : t('sessionTypeAppointment')}
                                 <X className="h-3 w-3 ml-0.5" />
                             </Badge>
                         )}
@@ -2852,6 +2931,91 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 </TimelineRow>
                                             );
                                         }
+                                        if (item.kind === 'perio') {
+                                            const exam = item.data;
+                                            const isLinkedToAppointment = Boolean(linkedAppointmentId && exam.appointmentId === linkedAppointmentId);
+                                            const canExpandPerio = !isPortalReadOnly;
+                                            const isExpanded = canExpandPerio && expandedKey === key;
+                                            const isOpenExam = exam.status === 'probing' || exam.status === 'probed' || exam.status === 'diagnosed';
+                                            return (
+                                                <TimelineRow
+                                                    key={key}
+                                                    helpId={composeHelpId(helpScope, 'btn', 'timeline-row-perio')}
+                                                    icon={(
+                                                        <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
+                                                            <Activity className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+                                                        </div>
+                                                    )}
+                                                    expanded={isExpanded}
+                                                    onToggle={canExpandPerio ? () => toggleExpanded(key) : undefined}
+                                                    highlighted={isLinkedToAppointment}
+                                                    summary={
+                                                        <>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <Badge variant="secondary" className="text-xs px-1.5 py-0 leading-relaxed bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+                                                                    {t('sessionTypePeriodontogram')}
+                                                                </Badge>
+                                                                <span className="text-xs font-medium text-foreground">{formatDate(exam.date)}</span>
+                                                                <PerioStatusChip status={exam.status} completeness={exam.completeness} />
+                                                                {isLinkedToAppointment && (
+                                                                    <Badge variant="default" className="rounded-full text-[10px] shadow-sm dark:border-link/40 dark:bg-link/20 dark:text-link">
+                                                                        {t('currentAppointmentBadge')}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            {!isExpanded && (
+                                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">{perioSummary(exam)}</p>
+                                                            )}
+                                                        </>
+                                                    }
+                                                >
+                                                    <TimelineSplit preview={<PerioExamPreview exam={exam} onOpen={() => setPerioSheet({ examId: exam.id })} />}>
+                                                        <p className="break-words font-medium text-foreground">{exam.title || t('sessionTypePeriodontogram')}</p>
+                                                        <PerioExamDetails exam={exam} />
+                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                            <Button
+                                                                type="button"
+                                                                variant={canManagePerio && isOpenExam ? 'default' : 'outline'}
+                                                                size="sm"
+                                                                className="h-7 gap-1.5 text-xs"
+                                                                data-help-id={composeHelpId(helpScope, 'btn', 'timeline-open-perio')}
+                                                                onClick={() => setPerioSheet({ examId: exam.id })}
+                                                            >
+                                                                {canManagePerio && isOpenExam ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                                {canManagePerio && isOpenExam ? tPerio('timeline.continue') : t('viewPeriodontogram')}
+                                                            </Button>
+                                                            {latestPerio && latestPerio.id !== exam.id && exam.status !== 'void' && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs"
+                                                                    data-help-id={composeHelpId(helpScope, 'btn', 'timeline-compare-perio')}
+                                                                    onClick={() => setPerioSheet({ examId: latestPerio.id, compareWithId: exam.id })}
+                                                                >
+                                                                    <GitCompareArrows className="h-3.5 w-3.5" />
+                                                                    {tPerio('timeline.compare')}
+                                                                </Button>
+                                                            )}
+                                                            {/* A closed periodontogram is part of the clinical record: it is not deleted */}
+                                                            {canManagePerio && isOpenExam && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    data-help-id={composeHelpId(helpScope, 'btn', 'timeline-delete-perio')}
+                                                                    onClick={() => setDeletingPerio(exam)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.delete')}
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </TimelineSplit>
+                                                </TimelineRow>
+                                            );
+                                        }
                                         const session = item.data as PatientSession;
                                         const isOdontogramSession = session.tipo_sesion === 'odontograma';
                                         const Icon = isOdontogramSession ? Smile : Stethoscope;
@@ -3008,6 +3172,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 variant="outline"
                                                                 size="sm"
                                                                 className="h-7 gap-1.5 text-xs"
+                                                                data-help-id={composeHelpId(helpScope, 'btn', 'timeline-open-odontogram')}
                                                                 onClick={() => openOdontogramViewer(String(session.sesion_id))}
                                                             >
                                                                 <Smile className="h-3.5 w-3.5" />
@@ -3181,6 +3346,52 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         <Button variant="destructive" onClick={() => deleteAestheticAction.run()} disabled={deleteAestheticAction.isPending} className="px-8">
                             {deleteAestheticAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tAesthetic('deleteDialog.confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Periodontogram sheet (create / view / continue) */}
+            {canViewPerio && (
+                <PerioSessionSheet
+                    open={perioSheet !== null}
+                    onOpenChange={(open) => { if (!open) setPerioSheet(null); }}
+                    patientId={userId}
+                    patientName={userName}
+                    examId={perioSheet?.examId ?? null}
+                    initialStep={perioSheet?.compareWithId ? 'evolution' : undefined}
+                    compareWithId={perioSheet?.compareWithId}
+                    doctorId={aestheticDefaults?.doctorId}
+                    doctorName={aestheticDefaults?.doctorName}
+                    appointmentId={aestheticDefaults?.appointmentId}
+                    readOnly={!canManagePerio}
+                    onChanged={reloadPerioExams}
+                />
+            )}
+
+            <Dialog
+                open={!!deletingPerio}
+                onOpenChange={(next) => {
+                    if (!next && deletePerioAction.isPending) return;
+                    if (!next) setDeletingPerio(null);
+                }}
+            >
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{tPerio('timeline.deleteTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">
+                            {deletingPerio && tPerio('timeline.deleteDescription', { date: formatDate(deletingPerio.date) })}
+                        </p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingPerio(null)} disabled={deletePerioAction.isPending}>
+                            {tDialog('cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={() => deletePerioAction.run()} disabled={deletePerioAction.isPending} className="px-8">
+                            {deletePerioAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {tPerio('timeline.deleteConfirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

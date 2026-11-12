@@ -68,7 +68,7 @@ type Bridge = {
   startScreenTour: (screenId: string, options?: { pace?: number; manualClicks?: boolean }) => boolean;
   next: () => void;
   state: () => {
-    guide: { current: number; statuses: string[]; finished: boolean; steps: Step[] } | null;
+    guide: { current: number; statuses: string[]; finished: boolean; steps: Step[]; error?: string } | null;
     spotlight: { targetId: string; mode?: string } | null;
   };
   catalogVersion: string;
@@ -89,7 +89,7 @@ export const sendsToPeople = (id: string) => SENDS_TO_PEOPLE.test(id);
  * hasta el OK pero no lo pulsan. Las demás altas, ediciones y bajas sí confirman,
  * siempre sobre lo que creó la guía de alta de esa pantalla.
  */
-const KEEPS_EXISTING = /^(patients\.aesthetic-[a-z]+|workspace\.aesthetic-session|sales\.services\.(aesthetic|consent-template)|clinic-catalog\.measurement-units\.(create|edit|delete)|onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|block-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.(mascot|identity-document)|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
+const KEEPS_EXISTING = /^(patients\.aesthetic-[a-z]+|patients\.perio-settings|system\.alert-rules\.perio-maintenance|workspace\.aesthetic-session|sales\.services\.(aesthetic|consent-template)|clinic-catalog\.measurement-units\.(create|edit|delete)|onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|block-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.(mascot|identity-document)|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
 /** ¿Esta guía pulsa su OK en tests y videos? */
 export const confirmsInRuns = (id: string) => !SENDS_TO_PEOPLE.test(id) && !KEEPS_EXISTING.test(id);
 
@@ -196,6 +196,20 @@ export const readingMs = (text: string) => Math.min(7000, Math.max(1800, 900 + t
 
 const state = (page: Page) => page.evaluate(() => window.__invokeHelp!.state());
 
+/**
+ * Deja leer el paso, pero corta si la guía sigue sola (un `until` que ya se cumplía: la fila
+ * desplegada por defecto). Si no, los pasos siguientes pasan durante la espera y el video
+ * queda sin su segmento.
+ */
+async function readStep(page: Page, current: number, ms: number) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    await page.waitForTimeout(Math.min(250, end - Date.now()));
+    const guide = (await state(page)).guide;
+    if (!guide || guide.finished || guide.current !== current) return;
+  }
+}
+
 /** Corre una guía con el asistente real y devuelve cómo terminó. Falla si un paso falla. */
 export async function driveGuide(page: Page, id: string, options: DriveOptions = {}): Promise<DriveResult> {
   const { values = {}, mode = 'test', confirm = false, beforeClick, onStep, onConfirm, screenTour, expectRow, confirmStep, personActs, firstMatch } = options;
@@ -239,13 +253,13 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
     // Clic o completado que hace el asistente solo: entra en la línea de tiempo aunque no frene.
     if (status === 'running' && index !== lastSegment && s.spotlight?.mode === 'action') { lastSegment = index; onStep?.(step, index); }
     if (status === 'running' || status === 'pending') { await page.waitForTimeout(250); continue; }
-    if (status === 'failed') throw new Error(`${id}: falló el paso ${index + 1} «${step.title}» (${step.target ?? step.route})`);
+    if (status === 'failed') throw new Error(`${id}: falló el paso ${index + 1} «${step.title}» (${step.target ?? step.route})${guide.error ? ` · ${guide.error}` : ''}`);
 
     // Paso nuevo a la vista: se deja leer (en video, el tiempo de la narración).
     if (index !== lastShown) {
       lastShown = index;
       if (index !== lastSegment) { lastSegment = index; onStep?.(step, index); }
-      await page.waitForTimeout(video ? readingMs(`${step.title} ${step.description ?? ''} ${step.details ?? ''}`) : 300);
+      await readStep(page, guide.current, video ? readingMs(`${step.title} ${step.description ?? ''} ${step.details ?? ''}`) : 300);
     }
 
     const key = `${index}:${status}`;
@@ -294,11 +308,16 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
     // La fila a editar o borrar tiene que ser la que creó la guía de alta.
     // También los botones de la fila (eliminar, editar, acciones) cuando la guía va directo a ellos.
     const rowTarget = !!step.target && (step.target.endsWith('.section.first-row') || /\.btn\.row-(delete|edit|actions)$/.test(step.target));
-    if (expectRow && !rowChecked && rowTarget && (status === 'waiting' || status === 'running')) {
+    // El paciente buscado también: si la lista todavía no se filtró, la primera fila es otro
+    // paciente y la guía crearía registros en su ficha.
+    const rowWanted = expectRow ?? (step.target === 'patients.section.first-row' && typeof values.patient === 'string' ? values.patient : undefined);
+    if (rowWanted && !rowChecked && rowTarget && (status === 'waiting' || status === 'running')) {
       const el = page.locator(`[data-help-id="${step.target}"]:visible, [data-help-item="${step.target}"]:visible`).first();
-      const text = normalizeRow(await el.evaluate((node) => (node.closest('tr, [role="row"], [data-help-id$=".section.first-row"]') ?? node).textContent ?? '').catch(() => ''));
-      if (!text.includes(normalizeRow(expectRow))) {
-        throw new Error(`${id}: la primera fila no es «${expectRow}» (la búsqueda no lo encontró): no se toca un registro que no creó la corrida`);
+      const rowText = async () => normalizeRow(await el.evaluate((node) => (node.closest('tr, [role="row"], [data-help-id$=".section.first-row"]') ?? node).textContent ?? '').catch(() => ''));
+      const deadline = Date.now() + 15_000;
+      while (!(await rowText()).includes(normalizeRow(rowWanted))) {
+        if (Date.now() > deadline) throw new Error(`${id}: la primera fila no es «${rowWanted}» (la búsqueda no lo encontró): no se toca otro registro`);
+        await page.waitForTimeout(300);
       }
       rowChecked = true;
     }
@@ -337,6 +356,10 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
     if (personActs && !acted.has(index)) {
       acted.add(index);
       await personActs(page, step);
+      // El gesto (un clic dentro de lo señalado) ya pudo hacer avanzar la guía: un "Siguiente"
+      // de más se saltaría el paso que viene.
+      const after = (await state(page)).guide;
+      if (!after || after.finished || after.current !== guide.current || after.statuses[after.current] !== guide.statuses[guide.current]) continue;
     }
     await page.evaluate(() => window.__invokeHelp!.next());
     await page.waitForTimeout(250);

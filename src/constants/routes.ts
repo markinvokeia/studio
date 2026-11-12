@@ -584,6 +584,17 @@ export const API_ROUTES = {
         /** Ajustes del asistente que fija la clínica (mascota visible). */
         SETTINGS:            '/help/settings',
     },
+    // Periodontograma — flujo n8n "Perio Record" (database/scripts/163)
+    PERIO_RECORD: {
+        EXAMS:        '/perio/exams',
+        EXAM_SAVE:    '/perio/exams/save',
+        EXAM_CLOSE:   '/perio/exams/close',
+        EXAM_DELETE:  '/perio/exams/delete',
+        EXAM_LINK_INVOICE: '/perio/exams/link-invoice',
+        EXAM_AMEND:   '/perio/exams/amend',
+        /** Ruta de Next.js (no n8n): respaldo con IA del dictado, src/app/api/ai/perio-dictation */
+        DICTATION_FALLBACK: '/api/ai/perio-dictation',
+    },
     // Ficha estética — flujo n8n "Aesthetic Record" (database/scripts/151)
     AESTHETIC_RECORD: {
         SESSIONS:         '/aesthetic/sessions',

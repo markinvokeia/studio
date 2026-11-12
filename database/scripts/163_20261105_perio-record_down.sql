@@ -1,0 +1,45 @@
+-- =====================================================================
+-- DESACTIVADO: todo este archivo está comentado a propósito.
+--
+-- Borra las tablas, funciones y permisos del periodontograma. Si alguien
+-- corre los scripts en orden, no tiene que deshacer la 163: el
+-- periodontograma dejaría de funcionar. Sólo para revertir a mano, en un
+-- entorno sin periodontogramas: descomentar, revisar y correr.
+-- =====================================================================
+--
+-- -- =====================================================================
+-- -- Vuelta atrás de 163_20261105_perio-record.sql
+-- --
+-- -- Sólo borra si no hay ningún periodontograma registrado: un examen guardado
+-- -- es historia clínica y no se pierde por un rollback. Con datos, aborta.
+-- -- =====================================================================
+--
+-- BEGIN;
+--
+-- DO $$
+-- BEGIN
+--     IF to_regclass('public.perio_exams') IS NOT NULL AND EXISTS (SELECT 1 FROM public.perio_exams) THEN
+--         RAISE EXCEPTION 'Hay periodontogramas registrados: no se revierte la migración 163';
+--     END IF;
+-- END $$;
+--
+-- DROP FUNCTION IF EXISTS public.perio_exam_delete(bigint, uuid);
+-- DROP FUNCTION IF EXISTS public.perio_exam_close(bigint, uuid);
+-- DROP FUNCTION IF EXISTS public.perio_exam_save(jsonb, uuid);
+-- DROP FUNCTION IF EXISTS public.perio_exam_recompute(bigint);
+-- DROP FUNCTION IF EXISTS public.perio_exams_list(uuid);
+-- DROP FUNCTION IF EXISTS public.perio_exam_json(bigint);
+--
+-- DROP TABLE IF EXISTS public.perio_exam_events;
+-- DROP TABLE IF EXISTS public.perio_sites;
+-- DROP TABLE IF EXISTS public.perio_teeth;
+-- DROP TABLE IF EXISTS public.perio_exams;
+--
+-- DELETE FROM public.role_permissions rp
+-- USING public.permissions p
+-- WHERE rp.permission_id = p.id AND p.code IN ('PERIO_RECORD_VIEW', 'PERIO_RECORD_REGISTER_SESSION');
+-- DELETE FROM public.permissions WHERE code IN ('PERIO_RECORD_VIEW', 'PERIO_RECORD_REGISTER_SESSION');
+--
+-- DELETE FROM db_migrations WHERE script_name = '163_20261105_perio-record.sql';
+--
+-- COMMIT;

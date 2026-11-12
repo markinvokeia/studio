@@ -1,0 +1,130 @@
+{
+  "id": "patients.perio-overview",
+  "title": "Recorrer el periodontograma",
+  "module": "Pacientes",
+  "summary": "Las partes de la hoja del periodontograma: pasos, avance, sondaje, inspector y pie.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "sondaje",
+    "recorrido"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado con sondaje queda como guía (un cribado no es guía).",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "header",
+      "action": "highlight",
+      "target": "perio-session.section.header",
+      "title": "Encabezado",
+      "details": "Paciente, número de periodontograma, fecha y profesional."
+    },
+    {
+      "id": "steps",
+      "action": "highlight",
+      "target": "perio-session.btn.step-probe",
+      "title": "Los cuatro pasos",
+      "details": "Sondaje, Evolución, Diagnóstico y Cierre. Se puede saltar entre pasos en cualquier momento; el terminado lleva tilde."
+    },
+    {
+      "id": "progress",
+      "action": "highlight",
+      "target": "perio-session.section.progress",
+      "title": "Avance y estado",
+      "details": "El anillo dice cuánto está completo; el estado lo calcula el sistema y el guardado es automático."
+    },
+    {
+      "id": "missing",
+      "action": "highlight",
+      "target": "perio-session.btn.missing",
+      "title": "Qué falta",
+      "details": "Tocalo para ver en el gráfico, en ámbar, los sitios que faltan.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "banner",
+      "action": "highlight",
+      "target": "perio-session.section.banner",
+      "title": "Barra del examen",
+      "details": "Tipo de examen, el examen guía, lo que vino del odontograma, la configuración y el dictado."
+    },
+    {
+      "id": "passes",
+      "action": "highlight",
+      "target": "perio-session.section.passes",
+      "title": "Pasadas",
+      "details": "El sondaje se hace en tres vueltas: profundidad y sangrado, margen gingival, furcas y movilidad."
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "perio-session.section.chart",
+      "title": "Periodontograma",
+      "details": "La cara de afuera arriba y la de adentro abajo; curva azul del margen y roja del fondo de la bolsa. Tocá una celda para medir ahí."
+    },
+    {
+      "id": "inspector",
+      "action": "highlight",
+      "target": "perio-session.section.inspector",
+      "title": "Inspector",
+      "details": "La pieza activa con su tabla, el teclado, las marcas y la nota."
+    },
+    {
+      "id": "footer",
+      "action": "highlight",
+      "target": "perio-session.section.footer",
+      "title": "Pie",
+      "details": "Volver y seguir, siempre en el mismo lugar."
+    }
+  ]
+}

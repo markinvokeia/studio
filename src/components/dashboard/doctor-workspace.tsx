@@ -31,7 +31,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { AESTHETIC_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, PERIO_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
@@ -55,6 +55,7 @@ import {
   Lock,
   RefreshCw,
   Sparkles,
+  Activity,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -837,6 +838,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
   const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
   const canCreateAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  const canCreatePerio = hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -889,6 +891,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
   // Opens the aesthetic session sheet of the timeline, linked to the selected appointment
   const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
+  const [createPerioTrigger, setCreatePerioTrigger] = React.useState(0);
   // Each agent request gets its own key so the odontogram applies it even when it is already open
   const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const odontogramPrefillKeyRef = React.useRef(0);
@@ -1653,6 +1656,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <span className="hidden sm:inline">{t('focus.aestheticSession')}</span>
                 </Button>
               )}
+              {activePanel === 'sessions' && canCreatePerio && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.periodontogram" onClick={() => setCreatePerioTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
+                  <Activity className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.perioExam')}</span>
+                </Button>
+              )}
             </div>
 
             {/* Content */}
@@ -1679,6 +1688,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     linkedAppointmentId={selectedAppointment.id}
                     createAestheticTrigger={createAestheticTrigger}
                     onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
+                    createPerioTrigger={createPerioTrigger}
+                    onPerioTriggerConsumed={() => setCreatePerioTrigger(0)}
                     aestheticDefaults={{ doctorId: sessionDoctorId || undefined, doctorName: sessionDoctorName || undefined, appointmentId: selectedAppointment.id }}
                     isDoctorMode
                     hideToolbar
@@ -1699,6 +1710,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   {canCreateAesthetic && (
                     <Button variant="outline" size="icon" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.aestheticSession')} title={t('focus.aestheticSession')}>
                       <Sparkles className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {canCreatePerio && (
+                    <Button variant="outline" size="icon" onClick={() => setCreatePerioTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.perioExam')} title={t('focus.perioExam')}>
+                      <Activity className="h-4 w-4" />
                     </Button>
                   )}
                 </div>

@@ -34,7 +34,7 @@ import { getErrorMessage } from '@/lib/error-utils';
 import { AlertCategory, AlertRule, AlertSourceColumn, AlertSourceMeta } from '@/lib/types';
 import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import { Separator } from '@/components/ui/separator';
@@ -91,7 +91,8 @@ async function getRules(signal?: AbortSignal): Promise<{ data: AlertRule[], tota
             limit: 100
         };
     } catch (error) {
-        console.error('Error fetching rules:', error);
+        // Leaving the page (or React's dev double mount) cancels the load: that is not an error
+        if (!isAbortError(error)) console.error('Error fetching rules:', error);
         // Rethrown: a failed load must show an error, not "no rules".
         throw error;
     }
@@ -1008,7 +1009,7 @@ export default function AlertRulesPage() {
                                 )} />
                             </div>
 
-                            <div className="space-y-4">
+                            <div data-help-id="system.alert-rules.section.conditions" className="space-y-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <Label>{t('dialog.conditions')}</Label>
                                     <Button
