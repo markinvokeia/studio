@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
   LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderItem,
-  LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
+  LabCategory, Laboratory, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -59,6 +59,7 @@ function toItem(raw: any): LabOrderItem {
     quantity: Number(raw.quantity) || 1,
     teeth: Array.isArray(raw.teeth) ? raw.teeth.map(Number) : [],
     notes: raw.notes ?? null,
+    lab_category_id: raw.lab_category_id ? String(raw.lab_category_id) : null,
   };
 }
 
@@ -96,6 +97,8 @@ function toOrder(raw: any): LabOrder | null {
     created_at: toUtcIso(raw.created_at),
     created_by: raw.created_by ?? null,
     created_by_name: raw.created_by_name ?? null,
+    // Sin el script 170 no hay categorías: el selector muestra todos los laboratorios.
+    lab_category_ids: Array.isArray(raw.lab_category_ids) ? raw.lab_category_ids.filter(Boolean).map(String) : [],
   };
 }
 
@@ -162,16 +165,60 @@ export async function saveLabOrder(payload: LabOrderSavePayload, options?: ApiRe
 /**
  * `expectedFromStageId`: la etapa en la que el usuario vio la orden. Si otro la movió
  * mientras tanto el backend responde STAGE_CONFLICT en vez de pisar el cambio.
+ * `laboratoryId`: laboratorio al que se envía, en el mismo cambio. Sin laboratorio, mover
+ * a una etapa no final responde LABORATORY_REQUIRED (script 170).
  */
 export async function changeLabOrderStage(
   id: number,
   toStageId: number,
   expectedFromStageId: number | null,
   options?: ApiRequestOptions,
+  laboratoryId?: string | null,
 ): Promise<LabOrder> {
   return firstOrder(await call(() => api.post(API_ROUTES.LAB_ORDERS.CHANGE_STAGE, {
     id, to_stage_id: toStageId, expected_from_stage_id: expectedFromStageId,
+    ...(laboratoryId ? { laboratory_id: laboratoryId } : {}),
   }, undefined, undefined, options)));
+}
+
+function toCategoryRefs(value: unknown): { id: string; name: string }[] {
+  const list = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return []; } })() : value;
+  return Array.isArray(list)
+    ? list.filter((c: any) => c?.id != null).map((c: any) => ({ id: String(c.id), name: String(c.name ?? '') }))
+    : [];
+}
+
+/** Laboratorios (proveedores en una categoría de laboratorio), opcionalmente de una categoría. */
+export async function searchLaboratories(
+  filters: { search?: string; categoryId?: string | null; limit?: number },
+  options?: ApiRequestOptions,
+): Promise<Laboratory[]> {
+  const params: Record<string, string> = { limit: String(filters.limit ?? 30) };
+  if (filters.search?.trim()) params.search = filters.search.trim();
+  if (filters.categoryId) params.category_id = filters.categoryId;
+  const data = await call(() => api.get(API_ROUTES.LAB_ORDERS.LABORATORIES, params, undefined, options));
+  return unwrapRows(data)
+    .filter((row) => row?.id != null)
+    .map((row) => ({
+      id: String(row.id),
+      name: row.name ?? '',
+      phone_number: row.phone_number ?? null,
+      email: row.email ?? null,
+      categories: toCategoryRefs(row.categories),
+    }));
+}
+
+/** Categorías de laboratorio activas. */
+export async function fetchLabCategories(options?: ApiRequestOptions): Promise<LabCategory[]> {
+  const data = await call(() => api.get(API_ROUTES.LAB_ORDERS.LAB_CATEGORIES, undefined, undefined, options));
+  return unwrapRows(data)
+    .filter((row) => row?.id != null)
+    .map((row) => ({
+      id: String(row.id),
+      name: row.name ?? '',
+      description: row.description ?? null,
+      laboratories_count: Number(row.laboratories_count) || 0,
+    }));
 }
 
 export async function deleteLabOrder(id: number, options?: ApiRequestOptions): Promise<void> {

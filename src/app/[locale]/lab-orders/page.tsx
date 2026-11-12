@@ -23,6 +23,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
+import { LabSelector } from '@/components/lab-orders/lab-selector';
 import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useDebounce } from '@/hooks/use-debounce';
@@ -363,13 +364,12 @@ export default function LabOrdersPage() {
                 )}
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">{t('filters.laboratory')}</Label>
-                  <UserSelector
-                    filterType="PROVEEDOR"
-                    isSales={false}
+                  <LabSelector
                     value={laboratory?.id ?? ''}
-                    selectedUserName={laboratory?.name}
-                    onValueChange={(id, user) => setLaboratory(id ? { id, name: user?.name ?? '' } : null)}
-                    placeholder={t('form.searchLaboratory')}
+                    selectedName={laboratory?.name}
+                    allowCreate={false}
+                    clearable
+                    onValueChange={(id, lab) => setLaboratory(id ? { id, name: lab?.name ?? '' } : null)}
                     triggerText={t('filters.any')}
                   />
                 </div>

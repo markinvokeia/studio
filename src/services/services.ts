@@ -128,14 +128,21 @@ export async function setServiceBookableOnline(serviceId: string, bookableOnline
  * `/catalogoservicios/upsert` no persiste `is_lab`. Se llama al crear un
  * servicio, y al editar **sólo si el flag cambió**.
  *
+ * `labCategoryId` (script 170): `undefined` no la toca; `null` la borra. Sin
+ * `is_lab` el backend la borra siempre.
+ *
  * Nunca lanza: devuelve `false` si no se pudo aplicar.
  */
-export async function setServiceIsLab(serviceId: string, isLab: boolean): Promise<boolean> {
+export async function setServiceIsLab(serviceId: string, isLab: boolean, labCategoryId?: string | null): Promise<boolean> {
     if (!serviceId) return false;
     try {
         const response = await api.post(
             API_ROUTES.SERVICE_LAB_WORK,
-            { service_id: Number(serviceId), is_lab: isLab },
+            {
+                service_id: Number(serviceId),
+                is_lab: isLab,
+                ...(labCategoryId !== undefined ? { lab_category_id: labCategoryId } : {}),
+            },
             undefined,
             undefined,
             { timeoutMs: REQUEST_TIMEOUT_MS.mutation },

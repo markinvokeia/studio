@@ -31,6 +31,13 @@
     },
     "config.provider-groups.field.is_active": {
       "label": "Active"
+    },
+    "config.provider-groups.field.is_lab_category": {
+      "label": "Laboratory category",
+      "description": "Its providers are labs and are offered in lab orders."
     }
-  }
+  },
+  "tips": [
+    "Tick “Laboratory category” on lab groups (prosthetics, orthodontics…): their providers are the ones offered when choosing an order’s lab."
+  ]
 }

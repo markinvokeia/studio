@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { UserSelector } from '@/components/ui/user-selector';
 
 import { parseTeeth, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabSelector } from '@/components/lab-orders/lab-selector';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
@@ -43,6 +44,8 @@ const labOrderSchema = (t: (key: string) => string) => z.object({
     quantity: z.coerce.number().int().min(1, t('form.validation.quantity')).max(99, t('form.validation.quantity')),
     teeth: z.string().refine((value) => parseTeeth(value) !== null, t('form.validation.teeth')),
     notes: z.string().max(500).optional(),
+    /** Categoría de laboratorio del servicio: solo para filtrar el selector, no se envía. */
+    lab_category_id: z.string().nullable().optional(),
   })),
   work_description: z.string().trim().max(500),
   /** Piezas de la orden: solo cuando no hay servicios (cada servicio lleva las suyas). */
@@ -70,6 +73,7 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
       quantity: item.quantity,
       teeth: item.teeth.join(', '),
       notes: item.notes ?? '',
+      lab_category_id: item.lab_category_id,
     })),
     work_description: order?.work_description ?? '',
     teeth: order?.teeth.join(', ') ?? '',
@@ -112,11 +116,18 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
   const hasItems = items.fields.length > 0;
   const chosenServiceIds = items.fields.map((item) => item.service_id);
 
-  const addService = (serviceId: string, serviceName: string) => {
+  // Categorías de los servicios elegidos: con una sola, el selector de laboratorio arranca filtrado.
+  const watchedItems = useWatch({ control: form.control, name: 'items' });
+  const labCategoryIds = React.useMemo(
+    () => Array.from(new Set((watchedItems ?? []).map((item) => item.lab_category_id).filter((id): id is string => !!id))),
+    [watchedItems],
+  );
+
+  const addService = (serviceId: string, serviceName: string, labCategoryId: string | null = null) => {
     if (!serviceId || chosenServiceIds.includes(serviceId)) return;
     // El primer servicio hereda las piezas que ya se habían escrito para la orden.
     const inheritedTeeth = items.fields.length === 0 ? form.getValues('teeth') : '';
-    items.append({ service_id: serviceId, service_name: serviceName, quantity: 1, teeth: inheritedTeeth, notes: '' });
+    items.append({ service_id: serviceId, service_name: serviceName, quantity: 1, teeth: inheritedTeeth, notes: '', lab_category_id: labCategoryId });
     if (inheritedTeeth) form.setValue('teeth', '', { shouldDirty: true });
     form.clearErrors('work_description');
   };
@@ -215,16 +226,15 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                   <FormItem className="flex flex-col">
                     <FormLabel>{t('form.laboratory')}</FormLabel>
                     <FormControl>
-                      <UserSelector
-                        filterType="PROVEEDOR"
-                        isSales={false}
+                      <LabSelector
                         value={field.value}
-                        selectedUserName={laboratoryName}
-                        onValueChange={(id, user) => {
+                        selectedName={laboratoryName}
+                        categoryIds={labCategoryIds}
+                        clearable
+                        onValueChange={(id, lab) => {
                           field.onChange(id);
-                          form.setValue('laboratory_name', user?.name ?? '');
+                          form.setValue('laboratory_name', lab?.name ?? '', { shouldDirty: true });
                         }}
-                        placeholder={t('form.searchLaboratory')}
                         triggerText={t('form.selectLaboratory')}
                         disabled={save.isPending}
                       />
@@ -292,7 +302,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                     isLab
                     excludeIds={chosenServiceIds}
                     value=""
-                    onValueChange={(id, service) => addService(id, service?.name ?? '')}
+                    onValueChange={(id, service) => addService(id, service?.name ?? '', service?.lab_category_id ?? null)}
                     placeholder={t('form.searchService')}
                     triggerText={hasItems ? t('form.addAnotherService') : t('form.addService')}
                     noResultsText={t('form.noLabServices')}

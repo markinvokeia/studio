@@ -13,13 +13,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { LabOrderDaysInStage, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, fetchLabOrdersBoard, searchLabOrders } from '@/services/lab-orders';
 
-import type { LabOrder, LabOrderBoardFilters, LabStage } from '@/lib/types';
+import type { Laboratory, LabOrder, LabOrderBoardFilters, LabStage } from '@/lib/types';
 
 interface ColumnState {
   total: number;
@@ -146,12 +147,20 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
     return null;
   };
 
-  const move = async (orderId: number, toStageId: number) => {
+  // Orden sin laboratorio que va a una etapa no final: primero se elige a dónde se envía.
+  const [labRequest, setLabRequest] = React.useState<LabOrderLaboratoryRequest | null>(null);
+
+  const move = async (orderId: number, toStageId: number, laboratory?: Laboratory) => {
     const found = findOrder(orderId);
     if (!found || found.stageId === toStageId || inFlightRef.current.has(orderId)) return;
-    inFlightRef.current.add(orderId);
     const { order, stageId: fromStageId, index } = found;
     const target = stageById.get(toStageId);
+    if (!laboratory && target && labOrderNeedsLaboratory(order, target)) {
+      // La tarjeta queda donde estaba hasta que se confirme.
+      setLabRequest({ order, stage: target });
+      return;
+    }
+    inFlightRef.current.add(orderId);
 
     // Optimista: la tarjeta pasa ya a la columna destino, marcada como "guardando".
     // La entrega vencida sigue salvo que llegue a una etapa final.
@@ -169,16 +178,22 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       is_past_due: stillPastDue,
       days_past_due: stillPastDue ? order.days_past_due : 0,
       is_pending: target ? target.kind !== 'final' : order.is_pending,
+      ...(laboratory ? { laboratory_id: laboratory.id, laboratory_name: laboratory.name } : {}),
     }, toStageId, fromStageId));
     setPending((prev) => new Set(prev).add(orderId));
 
     try {
-      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, laboratory?.id);
       setData((prev) => prev && placeOrder(prev, saved, saved.current_stage_id, toStageId));
       onMoved?.(saved);
     } catch (error) {
       // Vuelve a su columna y a su lugar.
       setData((prev) => prev && placeOrder(prev, order, fromStageId, toStageId, index));
+      if (error instanceof LabOrdersError && error.code === 'LABORATORY_REQUIRED' && target) {
+        // Las etapas cambiaron desde que se cargó el tablero: se pide el laboratorio.
+        setLabRequest({ order, stage: target });
+        return;
+      }
       toast({ variant: 'destructive', title: t('moveError'), description: errorText(error) });
       if (isTimeoutError(error) || (error instanceof LabOrdersError && (error.code === 'STAGE_CONFLICT' || error.code === 'INVALID_STAGE'))) {
         deferredReloadRef.current = true;
@@ -315,6 +330,15 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       <DragOverlay dropAnimation={null}>
         {dragging && <CardBody order={dragging} className="rotate-1 shadow-xl ring-1 ring-primary/30" />}
       </DragOverlay>
+      <LabOrderLaboratoryDialog
+        request={labRequest}
+        onCancel={() => setLabRequest(null)}
+        onConfirm={(laboratory) => {
+          const request = labRequest;
+          setLabRequest(null);
+          if (request) void move(request.order.id, request.stage.id, laboratory);
+        }}
+      />
     </DndContext>
   );
 }

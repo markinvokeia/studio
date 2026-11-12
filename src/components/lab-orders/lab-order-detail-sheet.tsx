@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { Can } from '@/components/auth/Can';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
+import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText, useLabOrderOverdueReasons } from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -90,8 +91,15 @@ function LabOrderDetailView({
   // Si otro usuario la mueve o la edita mientras está abierta, se ve sin cerrar el panel.
   useLabOrdersLive(() => { if (orderId != null) reload(); });
 
+  // Orden sin laboratorio que va a una etapa no final: primero se elige a dónde se envía.
+  const [labRequest, setLabRequest] = React.useState<LabOrderLaboratoryRequest | null>(null);
+  const moveTargetRef = React.useRef<number | null>(null);
+
   const move = useAsyncAction(
-    (toStageId: number) => changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }),
+    ({ toStageId, laboratoryId }: { toStageId: number; laboratoryId?: string }) => {
+      moveTargetRef.current = toStageId;
+      return changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, laboratoryId);
+    },
     {
       onSuccess: (order) => {
         toast({ title: t('moved', { stage: order.stage_name }) });
@@ -99,6 +107,11 @@ function LabOrderDetailView({
         reload();
       },
       onError: (error) => {
+        const target = stages.find((s) => s.id === moveTargetRef.current);
+        if (error instanceof LabOrdersError && error.code === 'LABORATORY_REQUIRED' && detail && target) {
+          setLabRequest({ order: detail, stage: target });
+          return;
+        }
         // Otro usuario la movió, o el guardado pudo aplicarse: se muestra el estado real.
         if (isTimeoutError(error) || (error instanceof LabOrdersError && error.code === 'STAGE_CONFLICT')) reload();
         toast({ variant: 'destructive', title: t('moveError'), description: errorText(error) });
@@ -160,7 +173,11 @@ function LabOrderDetailView({
             {canChangeStage && (
               <Select
                 value=""
-                onValueChange={(value) => move.run(Number(value))}
+                onValueChange={(value) => {
+                  const target = stages.find((s) => s.id === Number(value));
+                  if (target && labOrderNeedsLaboratory(detail, target)) setLabRequest({ order: detail, stage: target });
+                  else move.run({ toStageId: Number(value) });
+                }}
                 disabled={move.isPending || moveTargets.length === 0}
               >
                 <SelectTrigger data-help-id="lab-orders.btn.move-to" className="h-9" aria-label={t('moveTo')}>
@@ -259,6 +276,15 @@ function LabOrderDetailView({
 
   const dialogs = (
     <>
+      <LabOrderLaboratoryDialog
+        request={labRequest}
+        onCancel={() => setLabRequest(null)}
+        onConfirm={(laboratory) => {
+          const request = labRequest;
+          setLabRequest(null);
+          if (request) move.run({ toStageId: request.stage.id, laboratoryId: laboratory.id });
+        }}
+      />
       <LabOrderFormDialog
         open={editOpen}
         onOpenChange={setEditOpen}

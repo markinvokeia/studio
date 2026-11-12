@@ -506,6 +506,8 @@ export type Service = {
   bookable_online?: boolean;
   /** Trabajo de laboratorio: se puede pedir en una orden de laboratorio (script 167). */
   is_lab?: boolean;
+  /** Categoría de laboratorio que hace este trabajo (opcional, script 170). */
+  lab_category_id?: string | null;
   /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
   image_updated_at?: string | null;
 };
@@ -800,6 +802,8 @@ export interface LabOrderItem {
   /** Piezas dentales (FDI) de este servicio. */
   teeth: number[];
   notes: string | null;
+  /** Categoría de laboratorio del servicio (script 170). */
+  lab_category_id: string | null;
 }
 
 /** Orden de laboratorio tal como la devuelve v_lab_orders (scripts 148 y 167). */
@@ -845,6 +849,25 @@ export interface LabOrder {
   created_at: string;
   created_by: string | null;
   created_by_name: string | null;
+  /** Categorías de laboratorio de los servicios de la orden (script 170). */
+  lab_category_ids: string[];
+}
+
+/** Categoría de laboratorio: un grupo de proveedores marcado como tal (script 170). */
+export interface LabCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  laboratories_count: number;
+}
+
+/** Laboratorio: proveedor que pertenece a alguna categoría de laboratorio. */
+export interface Laboratory {
+  id: string;
+  name: string;
+  phone_number: string | null;
+  email: string | null;
+  categories: { id: string; name: string }[];
 }
 
 export interface LabOrderHistoryEntry {
@@ -937,7 +960,8 @@ export interface LabOrderItemInput {
 /** Códigos de error de las funciones de órdenes (script 148). */
 export type LabOrdersErrorCode =
   | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
-  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY' | 'UNKNOWN';
+  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
+  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'UNKNOWN';
 
 /** Códigos de error de lab_stages_save (script 147). */
 export type LabStagesSaveErrorCode =
@@ -2077,6 +2101,8 @@ export type ProviderGroup = {
   name: string;
   description?: string;
   is_active: boolean;
+  /** Es una categoría de laboratorio: sus proveedores son laboratorios (script 170). */
+  is_lab_category?: boolean;
   external_id?: string | null;
   created_at?: string;
   updated_at?: string;

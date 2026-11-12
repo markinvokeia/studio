@@ -282,6 +282,9 @@ export const API_ROUTES = {
         SAVE: '/lab-orders/save',
         CHANGE_STAGE: '/lab-orders/change-stage',
         DELETE: '/lab-orders/delete',
+        /** GET ?search=&category_id=&limit= — solo proveedores en una categoría de laboratorio. */
+        LABORATORIES: '/lab-orders/laboratories',
+        LAB_CATEGORIES: '/lab-orders/lab-categories',
     },
     LAB_STAGES: {
         LIST: '/lab-stages',

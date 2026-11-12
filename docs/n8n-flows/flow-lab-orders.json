@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167 y 168.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).",
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169 y 170.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).",
         "height": 520,
         "width": 900
       },
@@ -298,9 +298,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.lab_order_change_stage(NULLIF($1::text, '')::integer, NULLIF($2::text, '')::integer, NULLIF($3, '')::uuid, NULLIF($4::text, '')::integer, NULLIF($5, ''));",
+        "query": "SELECT * FROM public.lab_order_change_stage(NULLIF($1::text, '')::integer, NULLIF($2::text, '')::integer, NULLIF($3, '')::uuid, NULLIF($4::text, '')::integer, NULLIF($5, ''), NULLIF($6, '')::uuid);",
         "options": {
-          "queryReplacement": "={{ [$json.body.id, $json.body.to_stage_id, $json.jwtPayload?.userId ?? '', $json.body.expected_from_stage_id ?? '', $json.body.note ?? ''] }}"
+          "queryReplacement": "={{ [$json.body.id, $json.body.to_stage_id, $json.jwtPayload?.userId ?? '', $json.body.expected_from_stage_id ?? '', $json.body.note ?? '', $json.body.laboratory_id ?? ''] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -712,6 +712,104 @@
       "id": "145759ba-136e-4ec2-9718-6c8aca0e448a",
       "name": "Notify staff",
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/laboratories",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2640
+      ],
+      "webhookId": "ce1a3202-61b8-44dc-88b1-e59e61d321a7",
+      "name": "GET /lab-orders/laboratories",
+      "id": "3b0cc650-ddeb-4c61-b51b-de7a46cefc0f",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_laboratories_search($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify({ search: $json.query.search ?? '', category_id: $json.query.category_id ?? '', limit: $json.query.limit ?? '' })] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2640
+      ],
+      "name": "Search laboratories",
+      "alwaysOutputData": true,
+      "id": "4333722e-fe35-42bf-868a-f91c667eb1c0",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/lab-categories",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2832
+      ],
+      "webhookId": "11af43d8-29d7-4fd2-a09e-0be7a09b3786",
+      "name": "GET /lab-orders/lab-categories",
+      "id": "44e9bd49-7499-44e7-9a12-d9147116f70d",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_categories_list();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2832
+      ],
+      "name": "List lab categories",
+      "alwaysOutputData": true,
+      "id": "1fdb07a7-dbc3-4fce-933e-0b3efab330c2",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
     }
   ],
   "pinData": {},
@@ -953,6 +1051,64 @@
         [
           {
             "node": "Notify staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/laboratories": {
+      "main": [
+        [
+          {
+            "node": "Search laboratories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search laboratories": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/lab-categories": {
+      "main": [
+        [
+          {
+            "node": "List lab categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List lab categories": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
             "type": "main",
             "index": 0
           }

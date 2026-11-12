@@ -3922,6 +3922,13 @@
       "isLab": {
         "label": "Lab work",
         "help": "Can be ordered in a lab order (crown, prosthesis, splint…)."
+      },
+      "labCategory": {
+        "label": "Laboratory category",
+        "none": "No category",
+        "inactive": "Inactive category",
+        "help": "Lab orders with this work show the laboratories of this category first.",
+        "empty": "There are no laboratory categories yet. Create them in Business settings → Supplier groups."
       }
     },
     "serviceType": {
@@ -7397,6 +7404,11 @@
       "remove": "Remove from group",
       "removed": "Provider removed from group",
       "removeError": "Could not remove provider"
+    },
+    "labCategory": {
+      "label": "Laboratory category",
+      "help": "Its suppliers are laboratories: they are offered when choosing where a lab order is sent.",
+      "badge": "Laboratory"
     }
   },
   "ProviderGroupsColumns": {
@@ -10643,7 +10655,9 @@
       "STAGE_CONFLICT": "Someone else moved this order in the meantime. The current stage is shown now.",
       "UNKNOWN": "Something went wrong. Please try again.",
       "INVALID_SERVICE": "One of the services no longer exists. Remove it and choose it again.",
-      "INVALID_QUANTITY": "Each service quantity must be between 1 and 99."
+      "INVALID_QUANTITY": "Each service quantity must be between 1 and 99.",
+      "LABORATORY_REQUIRED": "Choose the laboratory the order is sent to before moving it to this stage.",
+      "INVALID_LABORATORY": "That laboratory is no longer an active supplier. Choose another one."
     },
     "columns": {
       "id": "#",
@@ -10773,6 +10787,33 @@
         "end": "Order {order} was moved to \"{stage}\".",
         "cancel": "Moving order {order} was cancelled."
       }
+    },
+    "labSelector": {
+      "select": "Select laboratory",
+      "search": "Search laboratory...",
+      "categoryFilter": "Laboratory category",
+      "allCategories": "All",
+      "clear": "No laboratory",
+      "noResults": "No laboratories in this category.",
+      "loadError": "Couldn't load the laboratories. Try again.",
+      "noCategories": "There are no laboratories yet.",
+      "noCategoriesHint": "Mark a supplier group as a laboratory category in Business settings → Supplier groups and assign the laboratories to it.",
+      "create": "Create laboratory",
+      "newLab": "A new laboratory will be created",
+      "categoriesLabel": "Categories *",
+      "categoriesRequired": "Choose at least one category: that is what makes it a laboratory.",
+      "createError": "Couldn't create the laboratory. Try again.",
+      "categoriesFailedTitle": "Category not assigned",
+      "categoriesFailedDescription": "\"{name}\" was created but its category could not be assigned. Assign it in Purchases → Suppliers."
+    },
+    "laboratoryDialog": {
+      "title": "Which laboratory is it sent to?",
+      "description": "Order #{id} · {patient} has no laboratory yet.",
+      "movingTo": "Moving to",
+      "laboratory": "Laboratory",
+      "hint": "Only laboratories are listed. If it is missing you can create it here.",
+      "cancel": "Cancel",
+      "confirm": "Move to {stage}"
     }
   },
   "PatientPortalConfigPage": {

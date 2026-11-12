@@ -32,10 +32,10 @@ import { ProviderGroup } from '@/lib/types';
 import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Boxes, Trash2 } from 'lucide-react';
+import { AlertTriangle, Boxes, FlaskConical, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { type Control, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { createDefaultPagination } from '@/lib/pagination';
 
@@ -44,6 +44,8 @@ const providerGroupFormSchema = (t: (key: string) => string) => z.object({
     name: z.string().min(1, { message: t('validation.nameRequired') }),
     description: z.string().optional(),
     is_active: z.boolean().default(true),
+    // Sus proveedores son laboratorios: aparecen al elegir a dónde se envía una orden (script 170).
+    is_lab_category: z.boolean().default(false),
 });
 
 type ProviderGroupFormValues = z.infer<ReturnType<typeof providerGroupFormSchema>>;
@@ -85,6 +87,7 @@ async function getProviderGroups(pagination: PaginationState, searchQuery: strin
                 name: g.name,
                 description: g.description,
                 is_active: g.is_active ?? true,
+                is_lab_category: g.is_lab_category === true,
                 external_id: g.external_id ?? null,
                 created_at: g.created_at,
                 updated_at: g.updated_at,
@@ -92,6 +95,21 @@ async function getProviderGroups(pagination: PaginationState, searchQuery: strin
             .filter((g: ProviderGroup) => g.id !== undefined && g.id !== null);
 
         return { providerGroups, total };
+}
+
+/** "Es categoría de laboratorio": sus proveedores pasan a ser laboratorios. */
+function LabCategoryField({ control, disabled, t }: { control: Control<ProviderGroupFormValues>; disabled?: boolean; t: (key: string) => string }) {
+    return (
+        <FormField control={control} name="is_lab_category" render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={disabled} /></FormControl>
+                <div className="space-y-0.5">
+                    <FormLabel className="font-normal">{t('labCategory.label')}</FormLabel>
+                    <p className="text-xs text-muted-foreground">{t('labCategory.help')}</p>
+                </div>
+            </FormItem>
+        )} />
+    );
 }
 
 async function upsertProviderGroup(providerGroupData: ProviderGroupFormValues) {
@@ -135,7 +153,7 @@ export default function ProviderGroupsPage() {
     const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ProviderGroupFormValues>({
         resolver: zodResolver(providerGroupFormSchema(t)),
-        defaultValues: { name: '', description: '', is_active: true },
+        defaultValues: { name: '', description: '', is_active: true, is_lab_category: false },
     });
 
     const groupToFormValues = React.useCallback((group: ProviderGroup): ProviderGroupFormValues => ({
@@ -143,9 +161,10 @@ export default function ProviderGroupsPage() {
         name: group.name,
         description: group.description || '',
         is_active: group.is_active,
+        is_lab_category: group.is_lab_category === true,
     }), []);
 
-    const emptyFormValues: ProviderGroupFormValues = { name: '', description: '', is_active: true };
+    const emptyFormValues: ProviderGroupFormValues = { name: '', description: '', is_active: true, is_lab_category: false };
 
     const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
     const debouncedSearch = useDebounce(searchQuery, 500);
@@ -251,8 +270,16 @@ export default function ProviderGroupsPage() {
         }
     );
 
+    const labBadge = (group: ProviderGroup) => group.is_lab_category
+        ? <Badge variant="secondary" className="text-[10px] gap-1"><FlaskConical className="h-3 w-3" />{t('labCategory.badge')}</Badge>
+        : null;
+
     const columns: ColumnDef<ProviderGroup>[] = [
-        { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('name')} /> },
+        {
+            accessorKey: 'name',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('name')} />,
+            cell: ({ row }) => <div className="flex items-center gap-2 min-w-0"><span className="truncate">{row.original.name}</span>{labBadge(row.original)}</div>,
+        },
         { accessorKey: 'description', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('description')} /> },
         {
             accessorKey: 'is_active',
@@ -301,7 +328,7 @@ export default function ProviderGroupsPage() {
                         <DataCard isSelected={_isSelected}
                             title={row.name}
                             subtitle={row.description}
-                            badge={<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? 'Activo' : 'Inactivo'}</Badge>}
+                            badge={<div className="flex gap-1">{labBadge(row)}<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? 'Activo' : 'Inactivo'}</Badge></div>}
                             showArrow
                         />
                     )}
@@ -320,7 +347,8 @@ export default function ProviderGroupsPage() {
                             {isEditing && !selectedProviderGroup ? t('createDialog.title') : (selectedProviderGroup?.name ?? '')}
                         </CardTitle>
                         {selectedProviderGroup && (
-                            <div className="mt-0.5">
+                            <div className="mt-0.5 flex gap-1">
+                                {labBadge(selectedProviderGroup)}
                                 <Badge variant={selectedProviderGroup.is_active ? 'success' : 'outline'} className="text-[10px]">
                                     {selectedProviderGroup.is_active ? 'Activo' : 'Inactivo'}
                                 </Badge>
@@ -375,6 +403,7 @@ export default function ProviderGroupsPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
+                        <LabCategoryField control={form.control} disabled={!isEditing} t={t} />
                         </fieldset>
                     </CardContent>
                     {isEditing && (
@@ -475,6 +504,7 @@ export default function ProviderGroupsPage() {
                                         <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                <LabCategoryField control={form.control} t={t} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>

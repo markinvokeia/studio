@@ -2248,7 +2248,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Este flujo hace UNA sola cosa: marcar o desmarcar un servicio como trabajo de\n// laboratorio (service_catalog.is_lab, script 167). Es el único escritor de esa\n// columna: /catalogoservicios/upsert no la toca, así una edición que no la\n// mande no la apaga.\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst serviceId = String(body.service_id ?? '').trim();\nif (!/^[0-9]+$/.test(serviceId)) {\n  throw new Error(`Invalid service_id: ${body.service_id}`);\n}\n\n// Se exige un booleano explícito: un valor ausente o raro no se toma como false.\nconst raw = body.is_lab;\nconst isTrue = raw === true || raw === 'true';\nconst isFalse = raw === false || raw === 'false';\nif (!isTrue && !isFalse) {\n  throw new Error(`Invalid is_lab: ${raw}`);\n}\n\nreturn [{ json: { service_id: serviceId, is_lab: isTrue } }];\n"
+        "jsCode": "\n// Este flujo hace UNA sola cosa: marcar o desmarcar un servicio como trabajo de\n// laboratorio (service_catalog.is_lab, script 167). Es el único escritor de esa\n// columna: /catalogoservicios/upsert no la toca, así una edición que no la\n// mande no la apaga.\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst serviceId = String(body.service_id ?? '').trim();\nif (!/^[0-9]+$/.test(serviceId)) {\n  throw new Error(`Invalid service_id: ${body.service_id}`);\n}\n\n// Se exige un booleano explícito: un valor ausente o raro no se toma como false.\nconst raw = body.is_lab;\nconst isTrue = raw === true || raw === 'true';\nconst isFalse = raw === false || raw === 'false';\nif (!isTrue && !isFalse) {\n  throw new Error(`Invalid is_lab: ${raw}`);\n}\n\n// Categoría de laboratorio (script 170), opcional: solo se toca si llega la clave.\n// null o '' la borra; sin is_lab se borra siempre.\nconst hasCategory = Object.prototype.hasOwnProperty.call(body, 'lab_category_id');\nconst rawCategory = hasCategory ? String(body.lab_category_id ?? '').trim() : '';\nif (rawCategory && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawCategory)) {\n  throw new Error(`Invalid lab_category_id: ${body.lab_category_id}`);\n}\n\nreturn [{ json: {\n  service_id: serviceId,\n  is_lab: isTrue,\n  set_category: hasCategory || !isTrue,\n  lab_category_id: isTrue ? (rawCategory || null) : null,\n} }];\n"
       },
       "id": "11720c82-937a-4d7f-a95a-679000030e88",
       "name": "Validar Entrada Lab",
@@ -2262,9 +2262,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- UPDATE de una sola columna. Nada más.\nUPDATE public.service_catalog\nSET is_lab = $2\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          name,\n          is_lab",
+        "query": "-- is_lab y, si llega, la categoría de laboratorio (script 170). Nada más.\nUPDATE public.service_catalog\nSET is_lab = $2,\n    lab_category_id = CASE WHEN $3::boolean THEN NULLIF($4::text, '')::uuid ELSE lab_category_id END\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          name,\n          is_lab,\n          lab_category_id::text AS lab_category_id",
         "options": {
-          "queryReplacement": "={{ [ $json.service_id, $json.is_lab ] }}"
+          "queryReplacement": "={{ [ $json.service_id, $json.is_lab, $json.set_category, $json.lab_category_id ?? '' ] }}"
         }
       },
       "id": "9608b75e-e986-4015-b96f-e1d4abd3ea8c",
@@ -2287,7 +2287,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: row?.error ? 400 : 404, body: { message: row?.error ? 'No se pudo actualizar el servicio.' : 'No se encontró el servicio.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: row.id,\n  name: row.name,\n  is_lab: row.is_lab === true,\n} } }];\n"
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: row?.error ? 400 : 404, body: { message: row?.error ? 'No se pudo actualizar el servicio.' : 'No se encontró el servicio.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: row.id,\n  name: row.name,\n  is_lab: row.is_lab === true,\n  lab_category_id: row.lab_category_id || null,\n} } }];\n"
       },
       "id": "5600fc50-9126-4320-be85-424bcfd2e10b",
       "name": "Formatear Respuesta Lab",

@@ -1,5 +1,5 @@
 {
- "version": "f3f1e12eae937970",
+ "version": "a222b1e8df80f8a6",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -7396,6 +7396,13 @@
      "source": "src/app/[locale]/config/provider-groups/page.tsx"
     },
     {
+     "description": "Sus proveedores son laboratorios y se ofrecen en las órdenes de laboratorio.",
+     "id": "config.provider-groups.field.is_lab_category",
+     "kind": "field",
+     "label": "Categoría de laboratorio",
+     "source": "src/app/[locale]/config/provider-groups/page.tsx"
+    },
+    {
      "id": "config.provider-groups.field.name",
      "kind": "field",
      "label": "Nombre",
@@ -7451,6 +7458,9 @@
    "route": "/config/provider-groups",
    "status": "draft",
    "summary": "Grupos de proveedores.",
+   "tips": [
+    "Marcá «Categoría de laboratorio» en los grupos de laboratorios (prótesis, ortodoncia…): sus proveedores son los que se ofrecen al elegir el laboratorio de una orden."
+   ],
    "title": "Grupos de Proveedores",
    "useCases": [
     "config.provider-groups.overview",
@@ -8037,7 +8047,7 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
-     "description": "Cambia la orden de etapa. Queda registrado en el historial.",
+     "description": "Cambia la orden de etapa. Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
      "id": "lab-orders.btn.move-to",
      "kind": "btn",
      "label": "Mover a…",
@@ -8110,6 +8120,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "A qué laboratorio se envía. Opcional al crear. Solo lista laboratorios; se pueden filtrar por categoría y, si no existe, crearlo ahí mismo eligiendo su categoría.",
      "id": "lab-orders.field.laboratory_id",
      "kind": "field",
      "label": "Laboratorio",
@@ -8152,6 +8163,13 @@
      "kind": "section",
      "label": "Tablero",
      "source": "src/components/lab-orders/lab-orders-board.tsx"
+    },
+    {
+     "description": "Aparece al mover a una etapa no final una orden que no tiene laboratorio: se elige (o se crea) y la orden cambia de etapa con ese laboratorio. A una etapa final se mueve sin pedirlo.",
+     "id": "lab-orders.section.choose-laboratory",
+     "kind": "section",
+     "label": "Elegir laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Panel con la etapa actual, «Mover a…», los datos y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra.",
@@ -8219,7 +8237,7 @@
    "tips": [
     "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Al pasar el puntero sobre los días se ve el motivo.",
-    "El laboratorio se elige entre los proveedores.",
+    "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
     "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
@@ -16460,6 +16478,13 @@
      "id": "sales.services.field.is-lab",
      "kind": "field",
      "label": "Trabajo de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "description": "Opcional, solo para trabajos de laboratorio. Las órdenes con este servicio filtran los laboratorios por esa categoría.",
+     "id": "sales.services.field.lab_category_id",
+     "kind": "field",
+     "label": "Categoría de laboratorio",
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {

@@ -105,7 +105,8 @@
             "name": "={{ $json.body.name }}",
             "created_at": "={{ $now }}",
             "updated_at": "={{ $now }}",
-            "description": "={{ $json.body.description }}"
+            "description": "={{ $json.body.description }}",
+            "is_lab_category": "={{ $json.body.is_lab_category === true || $json.body.is_lab_category === 'true' }}"
           },
           "matchingColumns": ["id"],
           "schema": [
@@ -114,7 +115,8 @@
             { "id": "description", "displayName": "description", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
             { "id": "created_at", "displayName": "created_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
             { "id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
-            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
+            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true },
+            { "id": "is_lab_category", "displayName": "is_lab_category", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -156,7 +158,8 @@
             "id": "={{ $json.body.id }}",
             "name": "={{ $json.body.name }}",
             "updated_at": "={{ $now }}",
-            "description": "={{ $json.body.description }}"
+            "description": "={{ $json.body.description }}",
+            "is_lab_category": "={{ $json.body.is_lab_category === true || $json.body.is_lab_category === 'true' }}"
           },
           "matchingColumns": ["id"],
           "schema": [
@@ -165,7 +168,8 @@
             { "id": "description", "displayName": "description", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
             { "id": "created_at", "displayName": "created_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true, "removed": true },
             { "id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
-            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
+            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true },
+            { "id": "is_lab_category", "displayName": "is_lab_category", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false

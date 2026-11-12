@@ -3922,6 +3922,13 @@
       "isLab": {
         "label": "Trabajo de laboratorio",
         "help": "Se puede pedir en una orden de laboratorio (corona, prótesis, férula…)."
+      },
+      "labCategory": {
+        "label": "Categoría de laboratorio",
+        "none": "Sin categoría",
+        "inactive": "Categoría inactiva",
+        "help": "Las órdenes con este trabajo muestran primero los laboratorios de esta categoría.",
+        "empty": "Todavía no hay categorías de laboratorio. Créalas en Configuración de Negocio → Grupos de Proveedores."
       }
     },
     "serviceType": {
@@ -7397,6 +7404,11 @@
       "remove": "Quitar del grupo",
       "removed": "Proveedor quitado del grupo",
       "removeError": "No se pudo quitar el proveedor"
+    },
+    "labCategory": {
+      "label": "Categoría de laboratorio",
+      "help": "Sus proveedores son laboratorios: se ofrecen al elegir a dónde se envía una orden de laboratorio.",
+      "badge": "Laboratorio"
     }
   },
   "ProviderGroupsColumns": {
@@ -10643,7 +10655,9 @@
       "STAGE_CONFLICT": "Otro usuario ha movido esta orden mientras tanto. Ahora se muestra la etapa actual.",
       "UNKNOWN": "Se ha producido un error. Inténtalo de nuevo.",
       "INVALID_SERVICE": "Uno de los servicios ya no existe. Quítalo y vuelve a elegirlo.",
-      "INVALID_QUANTITY": "La cantidad de cada servicio tiene que estar entre 1 y 99."
+      "INVALID_QUANTITY": "La cantidad de cada servicio tiene que estar entre 1 y 99.",
+      "LABORATORY_REQUIRED": "Elige a qué laboratorio se envía la orden antes de pasarla a esta etapa.",
+      "INVALID_LABORATORY": "Ese laboratorio ya no es un proveedor activo. Elige otro."
     },
     "columns": {
       "id": "#",
@@ -10773,6 +10787,33 @@
         "end": "La orden {order} se movió a «{stage}».",
         "cancel": "Se canceló el movimiento de la orden {order}."
       }
+    },
+    "labSelector": {
+      "select": "Seleccionar laboratorio",
+      "search": "Buscar laboratorio...",
+      "categoryFilter": "Categoría de laboratorio",
+      "allCategories": "Todas",
+      "clear": "Sin laboratorio",
+      "noResults": "No hay laboratorios en esta categoría.",
+      "loadError": "No se han podido cargar los laboratorios. Inténtalo de nuevo.",
+      "noCategories": "Todavía no hay laboratorios.",
+      "noCategoriesHint": "Marca un grupo de proveedores como categoría de laboratorio en Configuración de Negocio → Grupos de Proveedores y asígnale los laboratorios.",
+      "create": "Crear laboratorio",
+      "newLab": "Se creará un nuevo laboratorio",
+      "categoriesLabel": "Categorías *",
+      "categoriesRequired": "Elige al menos una categoría: es lo que lo convierte en laboratorio.",
+      "createError": "No se ha podido crear el laboratorio. Inténtalo de nuevo.",
+      "categoriesFailedTitle": "Categoría sin asignar",
+      "categoriesFailedDescription": "Se ha creado \"{name}\" pero no se le ha podido asignar la categoría. Asígnala en Compras → Proveedores."
+    },
+    "laboratoryDialog": {
+      "title": "¿A qué laboratorio se envía?",
+      "description": "La orden #{id} · {patient} todavía no tiene laboratorio.",
+      "movingTo": "Pasa a",
+      "laboratory": "Laboratorio",
+      "hint": "Solo se muestran laboratorios. Si no está, puedes crearlo aquí mismo.",
+      "cancel": "Cancelar",
+      "confirm": "Mover a {stage}"
     }
   },
   "PatientPortalConfigPage": {

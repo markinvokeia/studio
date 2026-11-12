@@ -135,6 +135,10 @@
     "sales.services.field.is_lab": {
       "label": "Lab work",
       "description": "When checked, the service can be picked in lab orders."
+    },
+    "sales.services.field.lab_category_id": {
+      "label": "Laboratory category",
+      "description": "Optional, lab work only. Orders with this service filter the labs by that category."
     }
   }
 }

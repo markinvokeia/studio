@@ -146,6 +146,10 @@
     "sales.services.field.is_lab": {
       "label": "Trabajo de laboratorio",
       "description": "Si lo marcás, el servicio aparece para elegir en las órdenes de laboratorio."
+    },
+    "sales.services.field.lab_category_id": {
+      "label": "Categoría de laboratorio",
+      "description": "Opcional, solo para trabajos de laboratorio. Las órdenes con este servicio filtran los laboratorios por esa categoría."
     }
   }
 }
