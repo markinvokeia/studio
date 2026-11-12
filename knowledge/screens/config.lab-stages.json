@@ -2,13 +2,13 @@
   "id": "config.lab-stages",
   "status": "draft",
   "summary": "Etapas del circuito de órdenes de laboratorio.",
-  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, y a partir de cuántos días en una etapa la orden se considera atrasada.",
+  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
   "tips": [
     "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
     "Nada se aplica hasta pulsar Guardar.",
-    "Cada etapa puede avisar al entrar una orden y por permanencia (cuando supera sus días de atraso), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
+    "Cada etapa puede avisar al entrar una orden, por permanencia (cuando supera sus días de atraso) y por entrega vencida (al día siguiente de la fecha de entrega, si la orden sigue en la etapa), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -45,6 +45,10 @@
     "config.lab-stages.section.alert-dwell": {
       "label": "Por permanencia",
       "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días mientras siga. Solo en etapas no finales con umbral."
+    },
+    "config.lab-stages.section.alert-due": {
+      "label": "Entrega vencida",
+      "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa, sin importar cuándo se registró; una vez o repetido cada X días mientras siga. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema)."
     }
   }
 }

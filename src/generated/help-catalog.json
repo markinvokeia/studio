@@ -1,5 +1,5 @@
 {
- "version": "7ff6fa5df2b321ed",
+ "version": "f3f1e12eae937970",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -6716,6 +6716,13 @@
      "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
     },
     {
+     "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa, sin importar cuándo se registró; una vez o repetido cada X días mientras siga. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema).",
+     "id": "config.lab-stages.section.alert-due",
+     "kind": "section",
+     "label": "Entrega vencida",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
      "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días mientras siga. Solo en etapas no finales con umbral.",
      "id": "config.lab-stages.section.alert-dwell",
      "kind": "section",
@@ -6750,7 +6757,7 @@
    "permissions": [
     "LAB_STAGES_CONFIG"
    ],
-   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, y a partir de cuántos días en una etapa la orden se considera atrasada.",
+   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
    "route": "/config/lab-stages",
    "status": "draft",
    "summary": "Etapas del circuito de órdenes de laboratorio.",
@@ -6759,7 +6766,7 @@
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
     "Nada se aplica hasta pulsar Guardar.",
-    "Cada etapa puede avisar al entrar una orden y por permanencia (cuando supera sus días de atraso), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
+    "Cada etapa puede avisar al entrar una orden, por permanencia (cuando supera sus días de atraso) y por entrega vencida (al día siguiente de la fecha de entrega, si la orden sigue en la etapa), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
    ],
    "title": "Etapas de Laboratorio"
   },
@@ -8115,7 +8122,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual. En rojo cuando está activo.",
+     "description": "Muestra solo las órdenes atrasadas: las que superaron los días configurados en su etapa actual o tienen la fecha de entrega vencida. En rojo cuando está activo.",
      "id": "lab-orders.field.overdue-only",
      "kind": "field",
      "label": "Solo atrasadas",
@@ -8161,7 +8168,7 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada.",
+     "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada, con el motivo (días en la etapa o entrega vencida).",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
      "label": "Etapa actual",
@@ -8211,7 +8218,7 @@
    "summary": "Órdenes enviadas a laboratorios externos.",
    "tips": [
     "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
-    "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Al pasar el puntero sobre los días se ve el motivo.",
     "El laboratorio se elige entre los proveedores.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",

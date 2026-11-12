@@ -154,6 +154,8 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
     const target = stageById.get(toStageId);
 
     // Optimista: la tarjeta pasa ya a la columna destino, marcada como "guardando".
+    // La entrega vencida sigue salvo que llegue a una etapa final.
+    const stillPastDue = order.is_past_due && target?.kind !== 'final';
     setData((prev) => prev && placeOrder(prev, {
       ...order,
       current_stage_id: toStageId,
@@ -162,7 +164,10 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       stage_kind: target?.kind ?? order.stage_kind,
       stage_overdue_days: target?.overdue_days ?? null,
       days_in_stage: 0,
-      is_overdue: false,
+      is_overdue: stillPastDue,
+      is_stage_overdue: false,
+      is_past_due: stillPastDue,
+      days_past_due: stillPastDue ? order.days_past_due : 0,
       is_pending: target ? target.kind !== 'final' : order.is_pending,
     }, toStageId, fromStageId));
     setPending((prev) => new Set(prev).add(orderId));
@@ -484,7 +489,9 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
       <div className="mt-2 flex items-center justify-between gap-2 pl-5">
         <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
         {order.due_date && order.is_pending && (
-          <span className="truncate text-[11px] text-muted-foreground">{t('dueShort', { date: formatDisplayDate(order.due_date) })}</span>
+          <span className={cn('truncate text-[11px]', order.is_past_due ? 'font-semibold text-destructive' : 'text-muted-foreground')}>
+            {t('dueShort', { date: formatDisplayDate(order.due_date) })}
+          </span>
         )}
         {order.is_pending && <LabOrderDaysInStage order={order} />}
       </div>

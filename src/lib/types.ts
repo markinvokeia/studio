@@ -727,12 +727,15 @@ export type CalendarColorSettings = CalendarColorSources & {
 /** initial: exactamente una activa (ahí entra toda orden nueva) · final: al menos una (ya no está pendiente). */
 export type LabStageKind = 'initial' | 'intermediate' | 'final';
 
-/** Disparador de una alerta de etapa: al entrar a la etapa, o por permanencia (más de overdue_days). */
-export type LabStageAlertTrigger = 'enter' | 'dwell';
+/**
+ * Disparador de una alerta de etapa: al entrar a la etapa, por permanencia (más de overdue_days)
+ * o por fecha de entrega vencida mientras la orden está en la etapa (script 169).
+ */
+export type LabStageAlertTrigger = 'enter' | 'dwell' | 'due';
 
 /** Alerta de una etapa (tabla `lab_stage_alerts`, script 150). */
 export interface LabStageAlertConfig {
-  /** Solo permanencia: repetir cada N días mientras siga en la etapa. null = una sola vez. */
+  /** Permanencia y entrega vencida: repetir cada N días mientras siga igual. null = una sola vez. */
   repeat_every_days: number | null;
   recipient_role_ids: number[];
   recipient_user_ids: string[];
@@ -750,6 +753,8 @@ export interface LabStageAlertConfig {
 export interface LabStageAlerts {
   enter: LabStageAlertConfig | null;
   dwell: LabStageAlertConfig | null;
+  /** Entrega vencida (nunca en etapas finales). */
+  due: LabStageAlertConfig | null;
 }
 
 /** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
@@ -781,7 +786,7 @@ export interface LabStageSaveItem {
   is_active: boolean;
   /** Al desactivar una etapa con órdenes: etapa activa a la que pasan. */
   move_orders_to?: number | null;
-  /** Alertas de la etapa (se reemplazan las dos). */
+  /** Alertas de la etapa (se reemplazan las tres). */
   alerts: LabStageAlerts;
 }
 
@@ -815,7 +820,7 @@ export interface LabOrder {
   work_summary: string | null;
   /** Piezas dentales (FDI). Con servicios, la unión de las de cada uno. */
   teeth: number[];
-  /** Fecha de entrega prometida ('YYYY-MM-DD'). Solo informativa. */
+  /** Fecha de entrega prometida ('YYYY-MM-DD'). Desde el día siguiente, si no llegó a una etapa final, la orden está atrasada. */
   due_date: string | null;
   notes: string | null;
   current_stage_id: number;
@@ -828,8 +833,14 @@ export interface LabOrder {
   days_in_stage: number;
   /** La etapa actual no es final. */
   is_pending: boolean;
-  /** Lleva más de stage_overdue_days en la etapa. Nunca en etapa final. */
+  /** Atrasada: is_stage_overdue o is_past_due. Nunca en etapa final. */
   is_overdue: boolean;
+  /** Lleva más de stage_overdue_days en la etapa. */
+  is_stage_overdue: boolean;
+  /** La fecha de entrega ya pasó (desde el día siguiente) y no está en una etapa final. */
+  is_past_due: boolean;
+  /** Días desde la fecha de entrega cuando is_past_due; 0 si no. */
+  days_past_due: number;
   /** ISO UTC. */
   created_at: string;
   created_by: string | null;
@@ -1218,6 +1229,8 @@ export type LabOrderAlertNotification = {
   stageName: string;
   stageColor: string;
   daysInStage: number;
+  /** Solo 'due': días de atraso de la entrega al crearse el aviso. */
+  daysPastDue: number;
 };
 
 export type UnifiedNotification =

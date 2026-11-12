@@ -243,7 +243,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
       return {
         ...base,
         type: 'lab_order_alert',
-        trigger: m.trigger === 'dwell' ? 'dwell' : 'enter',
+        trigger: m.trigger === 'dwell' || m.trigger === 'due' ? m.trigger : 'enter',
         labOrderId: Number(m.lab_order_id) || 0,
         patientName: m.patient_name ?? patientName,
         workDescription: m.work_description ?? '',
@@ -251,6 +251,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         stageName: m.stage_name ?? '',
         stageColor: m.stage_color ?? '#64748b',
         daysInStage: Number(m.days_in_stage) || 0,
+        daysPastDue: Number(m.days_past_due) || 0,
       } satisfies LabOrderAlertNotification;
 
     case 'reminder':
@@ -545,7 +546,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       });
       labAlerts.forEach((n) => {
         toast({
-          title: n.trigger === 'dwell' ? tN('labOrderOverdueTitle', { stage: n.stageName }) : tN('labOrderEnteredTitle', { stage: n.stageName }),
+          title: n.trigger === 'due'
+            ? tN('labOrderPastDueTitle')
+            : n.trigger === 'dwell' ? tN('labOrderOverdueTitle', { stage: n.stageName }) : tN('labOrderEnteredTitle', { stage: n.stageName }),
           description: [n.patientName, n.workDescription].filter(Boolean).join(' · '),
         });
       });

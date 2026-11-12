@@ -634,7 +634,9 @@
     "reminderDueTitle": "Reminder due",
     "labOrderEnteredTitle": "Lab order in \"{stage}\"",
     "labOrderOverdueTitle": "Lab order overdue in \"{stage}\"",
+    "labOrderPastDueTitle": "Lab order past its due date",
     "labOrderDaysInStage": "{count, plural, one {# day} other {# days}} in stage",
+    "labOrderDaysPastDue": "{count, plural, one {# day} other {# days}} past the due date",
     "actionViewLabOrder": "View order"
   },
   "Header": {
@@ -10568,6 +10570,11 @@
         "notForFinal": "Final stages are never overdue, so they have no time-in-stage alert.",
         "needsThreshold": "Set the stage overdue days to notify on time in stage."
       },
+      "due": {
+        "title": "Delivery overdue",
+        "hint": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered.",
+        "notForFinal": "Final stages have no pending delivery, so they have no overdue-delivery alert."
+      },
       "repeat": {
         "label": "Frequency",
         "once": "Only once",
@@ -10618,7 +10625,9 @@
     "retry": "Retry",
     "stagesLoadError": "Could not load the stages",
     "overdue": "Overdue",
+    "pastDue": "Delivery overdue",
     "overdueHint": "More than {days, plural, one {# day} other {# days}} in this stage",
+    "pastDueHint": "Delivery overdue by {days, plural, one {# day} other {# days}} ({date})",
     "daysInStage": "{count, plural, =0 {Today} one {# day} other {# days}}",
     "teethShort": "Teeth {teeth}",
     "dueShort": "Due {date}",

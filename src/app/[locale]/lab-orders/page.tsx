@@ -247,7 +247,9 @@ export default function LabOrdersPage() {
     {
       accessorKey: 'due_date',
       header: t('columns.dueDate'),
-      cell: ({ row }) => (row.original.due_date ? formatDisplayDate(row.original.due_date) : <span className="text-muted-foreground">—</span>),
+      cell: ({ row }) => (row.original.due_date
+        ? <span className={cn(row.original.is_past_due && 'font-semibold text-destructive')}>{formatDisplayDate(row.original.due_date)}</span>
+        : <span className="text-muted-foreground">—</span>),
     },
     {
       accessorKey: 'created_at',

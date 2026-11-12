@@ -912,7 +912,7 @@ function LabOrderAlertCard({ notification }: { notification: LabOrderAlertNotifi
   const t = useTranslations('Notifications');
   const locale = useLocale();
   const router = useRouter();
-  const isOverdue = notification.trigger === 'dwell';
+  const isOverdue = notification.trigger !== 'enter';
 
   const handleView = () => {
     closePanel();
@@ -935,15 +935,22 @@ function LabOrderAlertCard({ notification }: { notification: LabOrderAlertNotifi
             <RelativeTime iso={notification.createdAt} />
           </div>
           <p className={cn('mt-0.5 text-[11px] font-medium', isOverdue ? 'text-destructive' : 'text-sky-700 dark:text-sky-400')}>
-            {isOverdue
-              ? t('labOrderOverdueTitle', { stage: notification.stageName })
-              : t('labOrderEnteredTitle', { stage: notification.stageName })}
+            {notification.trigger === 'due'
+              ? t('labOrderPastDueTitle')
+              : isOverdue
+                ? t('labOrderOverdueTitle', { stage: notification.stageName })
+                : t('labOrderEnteredTitle', { stage: notification.stageName })}
           </p>
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
             #{notification.labOrderId} · {[notification.workDescription, notification.laboratoryName].filter(Boolean).join(' · ')}
           </p>
-          {isOverdue && (
+          {notification.trigger === 'dwell' && (
             <p className="mt-0.5 text-[11px] text-muted-foreground">{t('labOrderDaysInStage', { count: notification.daysInStage })}</p>
+          )}
+          {notification.trigger === 'due' && (
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {t('labOrderDaysPastDue', { count: notification.daysPastDue })} · {notification.stageName}
+            </p>
           )}
           <Button variant="outline" size="sm" className="mt-3 h-7 w-full justify-start gap-2 text-[11px]" onClick={handleView}>
             <ExternalLink className="h-3.5 w-3.5" />

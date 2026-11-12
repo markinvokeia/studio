@@ -1,5 +1,5 @@
 {
- "version": "2452568e2c78e129",
+ "version": "3a6b7ae11321d55e",
  "locale": "en",
  "journey": [
   {
@@ -6627,6 +6627,13 @@
      "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
     },
     {
+     "description": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered; once or every X days while it stays. Not available for final stages. New stages have it on (order doctor and creator, in the app).",
+     "id": "config.lab-stages.section.alert-due",
+     "kind": "section",
+     "label": "Delivery overdue",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
      "description": "Notifies when the order goes over the stage overdue days; once or every X days while it stays. Only for non-final stages with a limit.",
      "id": "config.lab-stages.section.alert-dwell",
      "kind": "section",
@@ -6661,7 +6668,7 @@
    "permissions": [
     "LAB_STAGES_CONFIG"
    ],
-   "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, and after how many days in a stage the order is considered overdue.",
+   "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order is overdue or past its due date.",
    "route": "/config/lab-stages",
    "status": "draft",
    "summary": "Stages of the lab order workflow.",
@@ -6670,7 +6677,7 @@
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
     "Nothing applies until you press Save.",
-    "Each stage can notify when an order enters it and on time in stage (when it goes over its overdue days), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
+    "Each stage can notify when an order enters it, on time in stage (when it goes over its overdue days) and when delivery is overdue (the day after the due date, if the order is still in the stage), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
    ],
    "title": "Lab Stages"
   },
@@ -8026,7 +8033,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "Shows only the orders that went over the days set for their current stage. Red when active.",
+     "description": "Shows only overdue orders: those that went over the days set for their current stage or are past their due date. Red when active.",
      "id": "lab-orders.field.overdue-only",
      "kind": "field",
      "label": "Overdue only",
@@ -8072,7 +8079,7 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "The stage the order is in and how many days it has been there; red if overdue.",
+     "description": "The stage the order is in and how many days it has been there; red if overdue, with the reason (time in stage or delivery overdue).",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
      "label": "Current stage",
@@ -8122,7 +8129,7 @@
    "summary": "Orders sent to external labs.",
    "tips": [
     "By default the list shows only pending orders (those not in a final stage).",
-    "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
+    "An order is overdue when it has spent more days in its stage than that stage's limit, or when its due date has passed (from the next day) and it has not reached a final stage. In a final stage it is never overdue. Hover over the days to see why.",
     "The lab is chosen from the providers.",
     "Every stage change is recorded in the order history, with the user and the date.",
     "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",

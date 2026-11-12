@@ -34,7 +34,7 @@ function toAlert(raw: any): LabStageAlertConfig | null {
 }
 
 function toAlerts(raw: any): LabStageAlerts {
-  return { enter: toAlert(raw?.enter), dwell: toAlert(raw?.dwell) };
+  return { enter: toAlert(raw?.enter), dwell: toAlert(raw?.dwell), due: toAlert(raw?.due) };
 }
 
 function toStage(raw: any): LabStage | null {

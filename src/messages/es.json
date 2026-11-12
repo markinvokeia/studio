@@ -634,7 +634,9 @@
     "reminderDueTitle": "Recordatorio vencido",
     "labOrderEnteredTitle": "Orden de laboratorio en «{stage}»",
     "labOrderOverdueTitle": "Orden de laboratorio atrasada en «{stage}»",
+    "labOrderPastDueTitle": "Orden de laboratorio con entrega vencida",
     "labOrderDaysInStage": "{count, plural, one {# día} other {# días}} en la etapa",
+    "labOrderDaysPastDue": "{count, plural, one {# día} other {# días}} de atraso en la entrega",
     "actionViewLabOrder": "Ver orden"
   },
   "Header": {
@@ -10568,6 +10570,11 @@
         "notForFinal": "Las etapas finales no tienen atraso, así que no llevan alerta por permanencia.",
         "needsThreshold": "Cargá los días de atraso de la etapa para poder avisar por permanencia."
       },
+      "due": {
+        "title": "Entrega vencida",
+        "hint": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa, sin importar cuándo se registró.",
+        "notForFinal": "Las etapas finales no tienen entrega pendiente, así que no llevan esta alerta."
+      },
       "repeat": {
         "label": "Frecuencia",
         "once": "Una sola vez",
@@ -10618,7 +10625,9 @@
     "retry": "Reintentar",
     "stagesLoadError": "No se pudieron cargar las etapas",
     "overdue": "Atrasada",
+    "pastDue": "Entrega vencida",
     "overdueHint": "Más de {days, plural, one {# día} other {# días}} en esta etapa",
+    "pastDueHint": "Entrega vencida hace {days, plural, one {# día} other {# días}} ({date})",
     "daysInStage": "{count, plural, =0 {Hoy} one {# día} other {# días}}",
     "teethShort": "Piezas {teeth}",
     "dueShort": "Entrega {date}",

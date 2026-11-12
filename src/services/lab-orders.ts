@@ -89,6 +89,10 @@ function toOrder(raw: any): LabOrder | null {
     days_in_stage: Number(raw.days_in_stage) || 0,
     is_pending: raw.is_pending !== false,
     is_overdue: raw.is_overdue === true,
+    // Sin el script 169 el atraso es solo por etapa.
+    is_stage_overdue: raw.is_stage_overdue != null ? raw.is_stage_overdue === true : raw.is_overdue === true,
+    is_past_due: raw.is_past_due === true,
+    days_past_due: Number(raw.days_past_due) || 0,
     created_at: toUtcIso(raw.created_at),
     created_by: raw.created_by ?? null,
     created_by_name: raw.created_by_name ?? null,

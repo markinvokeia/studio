@@ -310,7 +310,10 @@ function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
 
 function LabOrderAlertBody({ item }: { item: LabOrderAlertNotification }) {
   const t = useTranslations('Notifications');
-  const isOverdue = item.trigger === 'dwell';
+  const isOverdue = item.trigger !== 'enter';
+  const title = item.trigger === 'due'
+    ? t('labOrderPastDueTitle')
+    : isOverdue ? t('labOrderOverdueTitle', { stage: item.stageName }) : t('labOrderEnteredTitle', { stage: item.stageName });
 
   return (
     <div className="flex flex-col items-center gap-5 px-2 py-4">
@@ -322,13 +325,18 @@ function LabOrderAlertBody({ item }: { item: LabOrderAlertNotification }) {
       </div>
       <div className="space-y-1 text-center">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {isOverdue ? t('labOrderOverdueTitle', { stage: item.stageName }) : t('labOrderEnteredTitle', { stage: item.stageName })}
+          {title}
         </p>
         <p className="text-xl font-bold leading-tight text-foreground">{item.patientName || t('unknownPatient')}</p>
         <p className="text-sm text-muted-foreground">
           #{item.labOrderId} · {[item.workDescription, item.laboratoryName].filter(Boolean).join(' · ')}
         </p>
-        {isOverdue && <p className="text-sm font-medium text-destructive">{t('labOrderDaysInStage', { count: item.daysInStage })}</p>}
+        {item.trigger === 'dwell' && <p className="text-sm font-medium text-destructive">{t('labOrderDaysInStage', { count: item.daysInStage })}</p>}
+        {item.trigger === 'due' && (
+          <p className="text-sm font-medium text-destructive">
+            {t('labOrderDaysPastDue', { count: item.daysPastDue })} · {item.stageName}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -377,6 +385,7 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
     if (current.type === 'whatsapp_handoff_requested') return tN('handoffRequestedTitle');
     if (current.type === 'lab_order_alert') {
+      if (current.trigger === 'due') return tN('labOrderPastDueTitle');
       return current.trigger === 'dwell'
         ? tN('labOrderOverdueTitle', { stage: current.stageName })
         : tN('labOrderEnteredTitle', { stage: current.stageName });

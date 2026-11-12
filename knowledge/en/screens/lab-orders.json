@@ -4,7 +4,7 @@
   "purpose": "Records every job the clinic sends to a lab (prostheses, crowns, aligners, splints…) and shows which stage it is in, how many days it has been there and whether it is overdue, so no request gets lost and no fitting is booked before the job arrives.",
   "tips": [
     "By default the list shows only pending orders (those not in a final stage).",
-    "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
+    "An order is overdue when it has spent more days in its stage than that stage's limit, or when its due date has passed (from the next day) and it has not reached a final stage. In a final stage it is never overdue. Hover over the days to see why.",
     "The lab is chosen from the providers.",
     "Every stage change is recorded in the order history, with the user and the date.",
     "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",
@@ -21,11 +21,11 @@
     },
     "lab-orders.field.overdue-only": {
       "label": "Overdue only",
-      "description": "Shows only the orders that went over the days set for their current stage. Red when active."
+      "description": "Shows only overdue orders: those that went over the days set for their current stage or are past their due date. Red when active."
     },
     "lab-orders.section.detail-stage": {
       "label": "Current stage",
-      "description": "The stage the order is in and how many days it has been there; red if overdue."
+      "description": "The stage the order is in and how many days it has been there; red if overdue, with the reason (time in stage or delivery overdue)."
     },
     "lab-orders.btn.move-to": {
       "label": "Move to…",

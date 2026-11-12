@@ -118,9 +118,14 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{labOrderWork(order)}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {[order.laboratory_name, order.teeth.length > 0 ? t('teethShort', { teeth: order.teeth.join(', ') }) : null,
-                        order.due_date ? t('dueShort', { date: formatDisplayDate(order.due_date) }) : null]
-                        .filter(Boolean).join(' · ') || '—'}
+                      {[order.laboratory_name, order.teeth.length > 0 ? t('teethShort', { teeth: order.teeth.join(', ') }) : null]
+                        .filter(Boolean).join(' · ') || (order.due_date ? null : '—')}
+                      {order.due_date && (
+                        <span className={cn(order.is_past_due && 'font-semibold text-destructive')}>
+                          {order.laboratory_name || order.teeth.length > 0 ? ' · ' : ''}
+                          {t('dueShort', { date: formatDisplayDate(order.due_date) })}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span className="shrink-0 font-mono text-xs text-muted-foreground">#{order.id}</span>

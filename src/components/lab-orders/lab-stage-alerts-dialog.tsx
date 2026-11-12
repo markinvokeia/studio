@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, BellRing, Clock } from 'lucide-react';
+import { AlertTriangle, BellRing, CalendarX, Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,12 @@ export const DEFAULT_LAB_STAGE_ALERT: LabStageAlertConfig = {
   channel_whatsapp: false,
   email_template_id: null,
   whatsapp_template_id: null,
+};
+
+/** Entrega vencida por defecto (etapa nueva, y lo que siembra el script 169): doctor y quien creó la orden. */
+export const DEFAULT_LAB_DUE_ALERT: LabStageAlertConfig = {
+  ...DEFAULT_LAB_STAGE_ALERT,
+  notify_order_creator: true,
 };
 
 export type LabStageAlertIssue = 'noRecipients' | 'noChannel' | 'whatsappTemplate' | 'invalidRepeat';
@@ -63,7 +69,7 @@ export interface LabStageAlertsDialogProps {
   onApply: (alerts: LabStageAlerts) => void;
 }
 
-/** Alertas de una etapa: al entrar y por permanencia, cada una con destinatarios y canales. */
+/** Alertas de una etapa: al entrar, por permanencia y por entrega vencida, cada una con destinatarios y canales. */
 export function LabStageAlertsDialog({
   open, onOpenChange, stageName, stageKind, overdueDays, value, options, optionsError, onRetryOptions, disabled = false, onApply,
 }: LabStageAlertsDialogProps) {
@@ -80,8 +86,13 @@ export function LabStageAlertsDialog({
   }, [open]);
 
   const dwellAvailable = stageKind !== 'final' && overdueDays != null;
-  const effective: LabStageAlerts = { enter: draft.enter, dwell: dwellAvailable ? draft.dwell : null };
-  const hasIssues = labStageAlertIssues(effective.enter).length > 0 || labStageAlertIssues(effective.dwell).length > 0;
+  const dueAvailable = stageKind !== 'final';
+  const effective: LabStageAlerts = {
+    enter: draft.enter,
+    dwell: dwellAvailable ? draft.dwell : null,
+    due: dueAvailable ? draft.due : null,
+  };
+  const hasIssues = [effective.enter, effective.dwell, effective.due].some((alert) => labStageAlertIssues(alert).length > 0);
   const isDirty = JSON.stringify(effective) !== JSON.stringify(value);
 
   const apply = () => {
@@ -140,6 +151,27 @@ export function LabStageAlertsDialog({
               </p>
             </section>
           )}
+
+          {dueAvailable ? (
+            <AlertSection
+              trigger="due"
+              icon={<CalendarX className="h-4 w-4" />}
+              value={draft.due}
+              onChange={(due) => setDraft((d) => ({ ...d, due }))}
+              options={options}
+              disabled={disabled}
+              showIssues={showIssues}
+              defaultValue={DEFAULT_LAB_DUE_ALERT}
+            />
+          ) : (
+            <section className="rounded-xl border border-dashed border-border p-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <CalendarX className="h-4 w-4" />
+                {t('due.title')}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{t('due.notForFinal')}</p>
+            </section>
+          )}
         </DialogBody>
         <DialogFooter>
           <DialogCancelButton>{t('cancel')}</DialogCancelButton>
@@ -159,9 +191,13 @@ interface AlertSectionProps {
   options: LabStageAlertOptions | null;
   disabled: boolean;
   showIssues: boolean;
+  /** Configuración con la que arranca al encenderla. */
+  defaultValue?: LabStageAlertConfig;
 }
 
-function AlertSection({ trigger, icon, overdueDays, value, onChange, options, disabled, showIssues }: AlertSectionProps) {
+function AlertSection({
+  trigger, icon, overdueDays, value, onChange, options, disabled, showIssues, defaultValue = DEFAULT_LAB_STAGE_ALERT,
+}: AlertSectionProps) {
   const t = useTranslations('LabStagesPage.alerts');
   const [userFilter, setUserFilter] = React.useState('');
   const enabled = value !== null;
@@ -180,12 +216,12 @@ function AlertSection({ trigger, icon, overdueDays, value, onChange, options, di
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold">{icon}{t(`${trigger}.title`)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {trigger === 'dwell' ? t('dwell.hint', { days: overdueDays ?? 0 }) : t('enter.hint')}
+            {trigger === 'dwell' ? t('dwell.hint', { days: overdueDays ?? 0 }) : t(`${trigger}.hint`)}
           </p>
         </div>
         <Switch
           checked={enabled}
-          onCheckedChange={(on) => onChange(on ? { ...DEFAULT_LAB_STAGE_ALERT } : null)}
+          onCheckedChange={(on) => onChange(on ? { ...defaultValue } : null)}
           disabled={disabled}
           aria-label={t(`${trigger}.title`)}
         />
@@ -193,7 +229,7 @@ function AlertSection({ trigger, icon, overdueDays, value, onChange, options, di
 
       {value && (
         <div className="space-y-4">
-          {trigger === 'dwell' && (
+          {trigger !== 'enter' && (
             <div className="grid gap-2 sm:grid-cols-[12rem_8rem] sm:items-end">
               <div className="space-y-1">
                 <Label className="text-xs">{t('repeat.label')}</Label>

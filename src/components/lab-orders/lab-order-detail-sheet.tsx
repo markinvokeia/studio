@@ -16,13 +16,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { Can } from '@/components/auth/Can';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
-import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText, useLabOrderOverdueReasons } from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
+import { cn, formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, deleteLabOrder, fetchLabOrderDetail } from '@/services/lab-orders';
 
@@ -63,6 +63,7 @@ function LabOrderDetailView({
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const errorText = useLabOrderErrorText();
+  const overdueReasons = useLabOrderOverdueReasons();
   const [detail, setDetail] = React.useState<LabOrderDetail | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
@@ -153,9 +154,9 @@ function LabOrderDetailView({
               <LabStageBadge name={detail.stage_name} color={detail.stage_color} />
               <LabOrderDaysInStage order={detail} />
             </div>
-            {detail.is_overdue && (
-              <p className="text-xs text-destructive">{t('overdueHint', { days: detail.stage_overdue_days ?? 0 })}</p>
-            )}
+            {overdueReasons(detail).map((reason) => (
+              <p key={reason} className="text-xs text-destructive">{reason}</p>
+            ))}
             {canChangeStage && (
               <Select
                 value=""
@@ -216,7 +217,10 @@ function LabOrderDetailView({
             <dt className="text-muted-foreground">{t('form.teeth')}</dt>
             <dd>{detail.teeth.length > 0 ? detail.teeth.join(', ') : '—'}</dd>
             <dt className="text-muted-foreground">{t('form.dueDate')}</dt>
-            <dd>{detail.due_date ? formatDisplayDate(detail.due_date) : '—'}</dd>
+            <dd className={cn(detail.is_past_due && 'font-medium text-destructive')}>
+              {detail.due_date ? formatDisplayDate(detail.due_date) : '—'}
+              {detail.is_past_due && ` · ${t('pastDue')}`}
+            </dd>
             <dt className="text-muted-foreground">{t('form.notes')}</dt>
             <dd className="whitespace-pre-wrap break-words">{detail.notes || '—'}</dd>
             <dt className="text-muted-foreground">{t('columns.createdAt')}</dt>

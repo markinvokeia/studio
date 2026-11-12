@@ -8,7 +8,7 @@
   ],
   "tips": [
     "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
-    "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Al pasar el puntero sobre los días se ve el motivo.",
     "El laboratorio se elige entre los proveedores.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
@@ -25,11 +25,11 @@
     },
     "lab-orders.field.overdue-only": {
       "label": "Solo atrasadas",
-      "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual. En rojo cuando está activo."
+      "description": "Muestra solo las órdenes atrasadas: las que superaron los días configurados en su etapa actual o tienen la fecha de entrega vencida. En rojo cuando está activo."
     },
     "lab-orders.section.detail-stage": {
       "label": "Etapa actual",
-      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada."
+      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada, con el motivo (días en la etapa o entrega vencida)."
     },
     "lab-orders.btn.move-to": {
       "label": "Mover a…",

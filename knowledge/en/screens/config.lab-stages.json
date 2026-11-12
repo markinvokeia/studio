@@ -1,13 +1,13 @@
 {
   "id": "config.lab-stages",
   "summary": "Stages of the lab order workflow.",
-  "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, and after how many days in a stage the order is considered overdue.",
+  "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order is overdue or past its due date.",
   "tips": [
     "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
     "Nothing applies until you press Save.",
-    "Each stage can notify when an order enters it and on time in stage (when it goes over its overdue days), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
+    "Each stage can notify when an order enters it, on time in stage (when it goes over its overdue days) and when delivery is overdue (the day after the due date, if the order is still in the stage), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -44,6 +44,10 @@
     "config.lab-stages.section.alert-dwell": {
       "label": "Time in stage",
       "description": "Notifies when the order goes over the stage overdue days; once or every X days while it stays. Only for non-final stages with a limit."
+    },
+    "config.lab-stages.section.alert-due": {
+      "label": "Delivery overdue",
+      "description": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered; once or every X days while it stays. Not available for final stages. New stages have it on (order doctor and creator, in the app)."
     }
   }
 }
