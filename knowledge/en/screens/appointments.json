@@ -324,7 +324,7 @@
     },
     "appointments.field.slot-duration": {
       "label": "Slot duration",
-      "description": "Length of each slot (10, 15, 20, 30 min or 1 h). Sets how many slots fit in an hour: the more slots, the thinner they are within the configured hour height. If they're too tight, raise the hour height or the zoom."
+      "description": "Length of each slot (5, 10, 15, 20, 30 min or 1 h). Sets how many slots fit in an hour: the more slots, the thinner they are within the configured hour height. If they're too tight, raise the hour height or the zoom. With 5 min the grid keeps 15-min lines and new appointments start at 15 min; the 5 min only applies when dragging or resizing an appointment."
     },
     "appointments.field.event-label-format": {
       "label": "Appointment format",

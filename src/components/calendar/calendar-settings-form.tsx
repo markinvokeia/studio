@@ -36,6 +36,7 @@ import api, { isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_END, DEFAULT_VISIBLE_HOURS_MODE, DEFAULT_VISIBLE_HOURS_START, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS, VISIBLE_HOURS_MODES, VISIBLE_HOURS_STEP_MINUTES } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, minutesToVisibleHour, normalizeCalendarSettings, visibleHourToMinutes } from './calendar-settings-utils';
+import { gridStepMinutes } from './calendar-utils';
 
 interface CalendarSettingsFormProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
@@ -228,8 +229,9 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
   // La altura de hora se reparte entre los slots que entran en una hora, así que el
   // mismo valor rinde muy distinto con slots de 10 min que de 30. Se muestra el px
-  // por slot resultante para que las dos preferencias se elijan juntas.
-  const slotsPerHour = Math.max(1, Math.round(60 / (settings.slot_duration ?? DEFAULT_SLOT_DURATION)));
+  // por slot resultante para que las dos preferencias se elijan juntas. Es el alto de
+  // la celda que se ve: con slots de 5 min la rejilla sigue en cuartos de hora.
+  const slotsPerHour = Math.max(1, Math.round(60 / gridStepMinutes(settings.slot_duration ?? DEFAULT_SLOT_DURATION)));
   const hourHeightOptionLabel = (px: number) =>
     t('hourHeightOptionWithSlot', { px, slotPx: Math.round(px / slotsPerHour) });
 

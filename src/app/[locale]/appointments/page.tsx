@@ -14,7 +14,7 @@ import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-pan
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestBlockWindow, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
-import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
+import { filterEventsByDayAndGroup, gridStepMinutes } from '@/components/calendar/calendar-utils';
 import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_MODE, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { clinicVisibleHoursRange, countEventsOutsideVisibleHours, customVisibleHoursRange, isOutsideVisibleHours, type ClinicHoursScope, type VisibleHoursRange } from '@/components/calendar/calendar-visible-hours';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
@@ -1032,6 +1032,10 @@ export default function AppointmentsPage() {
     const prevViewRef = React.useRef<CalendarView>('month');
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
     const [slotDuration, setSlotDuration] = React.useState<number>(DEFAULT_SLOT_DURATION);
+    // Duración de partida de una cita nueva: el paso de la rejilla, no el slot. Con
+    // slots de 5 min (que solo afinan el arrastre) una cita nueva arranca en 15, no
+    // en una tarjeta de 5 min sin tirador para estirarla.
+    const newAppointmentMinutes = gridStepMinutes(slotDuration);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
@@ -1538,7 +1542,7 @@ export default function AppointmentsPage() {
             setInlineDraft(createInlineDraftState({
                 date: new Date(),
                 context: calId ? { groupBy: 'calendar', value: String(calId) } : undefined,
-                durationMin: slotDuration,
+                durationMin: newAppointmentMinutes,
                 patient: null,
                 services: [],
                 doctor: null,
@@ -1903,7 +1907,7 @@ export default function AppointmentsPage() {
                 const original = differenceInMinutes(parseISO(endStr.replace(/Z$/, '')), parseISO(startStr.replace(/Z$/, '')));
                 if (Number.isFinite(original) && original > 0) return original;
             }
-            return slotDuration;
+            return newAppointmentMinutes;
         }
         const doctorServices = draft.doctor?.id ? doctorServiceMap.get(String(draft.doctor.id)) : undefined;
         const total = sumServicesDuration(nextServices, doctorServices, services);
@@ -2019,13 +2023,13 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
+            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: newAppointmentMinutes, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             return;
         }
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, newAppointmentMinutes, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
     // Opens the inline edit/reschedule card for an existing appointment. Custom
     // mode always uses this centered window, regardless of view or preference.
@@ -3625,7 +3629,7 @@ export default function AppointmentsPage() {
         setInlineDraft(createInlineDraftState({
             date: parseNotifScheduleDate(data.date),
             context: calendar ? { groupBy: 'calendar', value: String(calendar.id) } : undefined,
-            durationMin: totalDuration > 0 ? totalDuration : slotDuration,
+            durationMin: totalDuration > 0 ? totalDuration : newAppointmentMinutes,
             patient: { id: data.patientId, name: data.patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType,
             services: draftServices,
             doctor,
@@ -3635,7 +3639,7 @@ export default function AppointmentsPage() {
             quoteId: data.quoteId,
             notifId: data.notifId,
         }));
-    }, [services, doctors, calendars, slotDuration]);
+    }, [services, doctors, calendars, newAppointmentMinutes]);
 
     // El deep-link se dispara al montar, antes de que getCalendarSettings() resuelva,
     // así que la apertura espera a conocer el modo. Se consume una sola vez.
@@ -4472,7 +4476,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
+            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: newAppointmentMinutes, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -4504,7 +4508,7 @@ export default function AppointmentsPage() {
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, newAppointmentMinutes, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {

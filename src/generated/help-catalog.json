@@ -1,5 +1,5 @@
 {
- "version": "3a2dba5f41005062",
+ "version": "b3ad89771b7cc282",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -4045,7 +4045,7 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
-     "description": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom.",
+     "description": "Duración de cada slot (5, 10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom. Con 5 min la grilla mantiene las líneas cada 15 min y las citas nuevas arrancan en 15 min; los 5 min se aplican al arrastrar o estirar una cita.",
      "id": "appointments.field.slot-duration",
      "kind": "field",
      "label": "Duración del slot",
@@ -19781,7 +19781,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom.",
+     "details": "Duración de cada slot (5, 10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom. Con 5 min la grilla mantiene las líneas cada 15 min y las citas nuevas arrancan en 15 min; los 5 min se aplican al arrastrar o estirar una cita.",
      "id": "slot",
      "optional": true,
      "target": "appointments.field.slot-duration",

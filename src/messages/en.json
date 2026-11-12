@@ -1040,7 +1040,7 @@
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
         "groupBy": "Splits the calendar into columns per doctor or per consulting room. 'No grouping' shows a single combined column.",
         "hourHeight": "Vertical space each hour takes in the day/week views. Taller = more room between appointments and clearer free gaps between them. Zoom multiplies this value and the slot duration divides it up: each option shows how many pixels one slot ends up being.",
-        "slotDuration": "Duration of each slot (10, 15, 20, 30 min or 1 h). Sets how many slots fit per hour: the more slots, the thinner each one is within the configured hour height. If they get too tight, raise the hour height or the zoom.",
+        "slotDuration": "Duration of each slot (5, 10, 15, 20, 30 min or 1 h). Sets how many slots fit per hour: the more slots, the thinner each one is within the configured hour height. If they get too tight, raise the hour height or the zoom. With 5 min the grid keeps 15-min lines and new appointments start at 15 min; the 5 min only applies when dragging or resizing appointments.",
         "sede": "Limits the calendar to a branch's consulting rooms. 'All branches' shows every room.",
         "eventLabel": "Sets how the text shown on each appointment is composed (time, patient, treatment, notes).",
         "checkAvailability": "When creating/editing an appointment, validates the slot is free for the chosen doctor or room.",

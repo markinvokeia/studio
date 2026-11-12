@@ -57,9 +57,17 @@ export const MAX_FIT_HOUR_SLOT_HEIGHT = 240;
 /** Selectable default slot durations (minutes). Defines how many slots fit in an
  *  hour (60/duration) and therefore how tall one slot ends up being for a given
  *  hour height. */
-export const SLOT_DURATION_OPTIONS = [10, 15, 20, 30, 60] as const;
+export const SLOT_DURATION_OPTIONS = [5, 10, 15, 20, 30, 60] as const;
 export type SlotDuration = (typeof SLOT_DURATION_OPTIONS)[number];
 export const DEFAULT_SLOT_DURATION: SlotDuration = 15;
+
+/** Slots más finos que esto solo afinan el encaje del arrastre: la rejilla (líneas,
+ *  clic en un hueco, duración de una cita nueva) se queda en este paso. Con slots de
+ *  5 min una línea cada 5 min serían 12 por hora — a la altura por defecto, una cada
+ *  6,7 px — y la hora exacta ya la muestra el fantasma mientras se arrastra. */
+export const MIN_GRID_STEP_MINUTES = 15;
+/** Slots por debajo de este valor usan `MIN_GRID_STEP_MINUTES` para la rejilla. */
+export const FINE_SLOT_THRESHOLD_MINUTES = 10;
 
 /** Piso de render para un slot: por debajo de esto la rejilla deja de leerse como
  *  rejilla (las líneas se solapan y las citas quedan sub-píxel). NO es un piso de

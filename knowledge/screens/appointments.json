@@ -352,7 +352,7 @@
     },
     "appointments.field.slot-duration": {
       "label": "Duración del slot",
-      "description": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom."
+      "description": "Duración de cada slot (5, 10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom. Con 5 min la grilla mantiene las líneas cada 15 min y las citas nuevas arrancan en 15 min; los 5 min se aplican al arrastrar o estirar una cita."
     },
     "appointments.field.event-label-format": {
       "label": "Formato de la cita",
