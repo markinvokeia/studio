@@ -10661,7 +10661,13 @@
       "LABORATORY_REQUIRED": "Elige a qué laboratorio se envía la orden antes de pasarla a esta etapa.",
       "INVALID_LABORATORY": "Ese laboratorio ya no es un proveedor activo. Elige otro.",
       "DUE_DATE_REQUIRED": "Indica la fecha de entrega que ha prometido el laboratorio: es obligatoria desde que la orden se envía.",
-      "INVALID_DUE_DATE": "La fecha de entrega no puede ser anterior a hoy."
+      "INVALID_DUE_DATE": "La fecha de entrega no puede ser anterior a hoy.",
+      "NO_FILES": "Selecciona al menos un archivo.",
+      "TOO_MANY_FILES": "Una orden puede tener hasta 10 adjuntos.",
+      "INVALID_FILE_TYPE": "Solo se aceptan fotos, PDF y escaneos (STL, PLY, OBJ).",
+      "FILE_TOO_LARGE": "Cada archivo puede pesar hasta 10 MB.",
+      "UPLOAD_FAILED": "No se ha podido guardar el archivo. Inténtalo de nuevo.",
+      "DELETE_FAILED": "No se ha podido borrar el archivo. Inténtalo de nuevo."
     },
     "columns": {
       "id": "#",
@@ -10692,7 +10698,9 @@
       "notInBoard": "Los punteados no se aplican en el tablero.",
       "notInBoardShort": "no se aplica en el tablero",
       "removeChip": "Quitar filtro: {name}",
-      "overdueOnly": "Solo retrasadas"
+      "overdueOnly": "Solo retrasadas",
+      "urgentOnly": "Urgentes",
+      "urgentOnlyHint": "Mostrar solo las órdenes urgentes pendientes"
     },
     "sort": {
       "created_desc": "Más recientes",
@@ -10745,7 +10753,9 @@
       "itemNotesPlaceholder": "Color, material…",
       "workOptional": "Descripción adicional (opcional)",
       "workHint": "Si el trabajo no está en el catálogo, descríbelo aquí.",
-      "noLabServicesYet": "Todavía no hay servicios de laboratorio."
+      "noLabServicesYet": "Todavía no hay servicios de laboratorio.",
+      "urgent": "Urgente",
+      "urgentHint": "Aparece primero en la lista, en su columna del tablero y en la ficha del paciente."
     },
     "detail": {
       "loading": "Cargando…",
@@ -10875,6 +10885,34 @@
         "labs": "Agrupar los laboratorios por categoría",
         "stages": "Configurar las etapas"
       }
+    },
+    "urgent": "Urgente",
+    "urgentHint": "Orden urgente: aparece primero en la lista, el tablero y la ficha del paciente mientras esté pendiente.",
+    "attachmentsCount": "{count, plural, one {# adjunto} other {# adjuntos}}",
+    "attachments": {
+      "title": "Adjuntos",
+      "formHint": "Fotos, PDF o escaneos (STL, PLY, OBJ) para el laboratorio. Se suben al crear la orden.",
+      "dropHint": "Arrastra archivos aquí o selecciónalos. Fotos, PDF y escaneos, hasta {max} MB cada uno.",
+      "add": "Añadir archivos",
+      "remove": "Quitar {name}",
+      "download": "Descargar {name}",
+      "invalidType": "{name}: solo se aceptan fotos, PDF y escaneos (STL, PLY, OBJ).",
+      "tooLarge": "{name}: supera los {max} MB.",
+      "tooMany": "Una orden puede tener hasta {max} adjuntos.",
+      "rejectedTitle": "Algunos archivos no se han añadido",
+      "empty": "Sin adjuntos.",
+      "uploaded": "Adjuntos añadidos",
+      "uploadError": "No se han podido subir los adjuntos",
+      "removed": "Adjunto quitado",
+      "removeError": "No se ha podido quitar el adjunto",
+      "downloadError": "No se ha podido descargar el adjunto",
+      "uploading": "{count, plural, one {Subiendo # archivo…} other {Subiendo # archivos…}}",
+      "removeTitle": "¿Quitar el adjunto?",
+      "removeDescription": "Se borrará «{name}» de la orden. No se puede deshacer.",
+      "removeConfirm": "Quitar",
+      "cancel": "Cancelar",
+      "createdWithoutFilesTitle": "La orden se ha creado sin los adjuntos",
+      "createdWithoutFiles": "No se han podido subir los archivos. Añádelos desde el detalle de la orden #{id}."
     }
   },
   "PatientPortalConfigPage": {

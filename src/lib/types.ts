@@ -851,6 +851,22 @@ export interface LabOrder {
   created_by_name: string | null;
   /** Categorías de laboratorio de los servicios de la orden (script 170). */
   lab_category_ids: string[];
+  /** Urgente: mientras está pendiente sale primero en la lista, el tablero y la ficha (script 173). */
+  is_urgent: boolean;
+  /** Archivos adjuntos (fotos, PDF, escaneos) de la orden (script 173). */
+  attachments_count: number;
+}
+
+/** Adjunto de una orden (tabla `attachments`, source_name 'lab_order', script 173). */
+export interface LabOrderAttachment {
+  id: number;
+  file_name: string;
+  mime_type: string | null;
+  /** Vista en Google Drive (se abre con permisos de la cuenta de la clínica). */
+  web_view_link: string | null;
+  thumbnail_link: string | null;
+  /** ISO UTC. */
+  created_at: string;
 }
 
 /** Categoría de laboratorio: un grupo de proveedores marcado como tal (script 170). */
@@ -898,6 +914,8 @@ export interface LabOrderDetail extends LabOrder {
   history: LabOrderHistoryEntry[];
   /** null sin laboratorio, o si el backend todavía no tiene el script 172 (solo se ve el nombre). */
   laboratory: LabOrderLaboratoryInfo | null;
+  /** Adjuntos de la orden, del más viejo al más nuevo (script 173). */
+  attachments: LabOrderAttachment[];
 }
 
 export type LabOrderSort = 'created_desc' | 'created_asc' | 'days_desc' | 'days_asc';
@@ -922,6 +940,8 @@ export interface LabOrderFilters {
   due_to?: string;
   /** Solo pendientes sin laboratorio (script 171). */
   without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
   /** Solo las que entraron a su etapa actual en los últimos N días ("Cargar más" de una columna final). */
   entered_within_days?: number;
   sort?: LabOrderSort;
@@ -941,6 +961,8 @@ export interface LabOrderBoardFilters {
   due_to?: string;
   /** Solo pendientes sin laboratorio (script 171). */
   without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
   /** Tarjetas por columna (default 30). */
   per_column?: number;
   /** Las columnas finales muestran solo lo que llegó en los últimos N días (default 30). */
@@ -969,6 +991,8 @@ export interface LabOrderSavePayload {
    */
   due_date?: string | null;
   notes: string | null;
+  /** Urgente (script 173). En la edición, sin la clave queda como estaba. */
+  is_urgent?: boolean;
   /** Reemplaza los servicios de la orden. */
   items: LabOrderItemInput[];
 }
@@ -984,7 +1008,9 @@ export interface LabOrderItemInput {
 export type LabOrdersErrorCode =
   | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
   | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
-  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE' | 'UNKNOWN';
+  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE'
+  | 'NO_FILES' | 'TOO_MANY_FILES' | 'INVALID_FILE_TYPE' | 'FILE_TOO_LARGE' | 'UPLOAD_FAILED' | 'DELETE_FAILED'
+  | 'UNKNOWN';
 
 /** Códigos de error de lab_stages_save (script 147). */
 export type LabStagesSaveErrorCode =

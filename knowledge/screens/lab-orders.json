@@ -13,7 +13,8 @@
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "La fecha de entrega no se carga al crear la orden: se pide al enviarla, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Después se puede cambiar desde «Editar».",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
-    "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
+    "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
+    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas."
   ],
   "elements": {
     "lab-orders.btn.new": {
@@ -135,6 +136,38 @@
     "lab-orders.section.empty": {
       "label": "Sin órdenes",
       "description": "Cuando todavía no hay órdenes y no hay filtros: botón Nueva orden y accesos para configurar el módulo (servicios de laboratorio, categorías de laboratorio y etapas)."
+    },
+    "lab-orders.field.urgent-only": {
+      "label": "Urgentes",
+      "description": "Muestra solo las órdenes urgentes que siguen pendientes, en la lista y en el tablero. En rojo cuando está activo."
+    },
+    "lab-orders.toggle.urgent": {
+      "label": "Urgente",
+      "description": "Marca la orden como urgente (al crearla o al editarla). Mientras esté pendiente sale primero y lleva la etiqueta roja «Urgente»; en una etapa final ya no se destaca."
+    },
+    "lab-orders.section.form-attachments": {
+      "label": "Adjuntos (alta)",
+      "description": "Fotos, PDF o escaneos 3D (STL, PLY, OBJ) para el laboratorio, hasta 10 archivos de 10 MB. Se suben al crear la orden; si fallan, la orden queda creada y se agregan desde el detalle."
+    },
+    "lab-orders.btn.add-attachment": {
+      "label": "Agregar archivos",
+      "description": "Elige archivos para adjuntar a la orden nueva (también se pueden arrastrar a la zona punteada)."
+    },
+    "lab-orders.section.detail-attachments": {
+      "label": "Adjuntos",
+      "description": "Archivos de la orden: se descargan con el ícono de la flecha. Con permiso de editar se agregan más o se quitan."
+    },
+    "lab-orders.btn.upload-attachment": {
+      "label": "Agregar archivos",
+      "description": "Sube más archivos a la orden desde el detalle."
+    },
+    "lab-orders.btn.download-attachment": {
+      "label": "Descargar",
+      "description": "Descarga el archivo adjunto."
+    },
+    "lab-orders.btn.remove-attachment": {
+      "label": "Quitar",
+      "description": "Borra el adjunto de la orden (pide confirmación; no se puede deshacer)."
     }
   }
 }

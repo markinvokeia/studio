@@ -1,5 +1,5 @@
 {
- "version": "f5759610debf0cfb",
+ "version": "0c3a8a0277292cba",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8019,6 +8019,13 @@
   {
    "elements": [
     {
+     "description": "Elige archivos para adjuntar a la orden nueva (también se pueden arrastrar a la zona punteada).",
+     "id": "lab-orders.btn.add-attachment",
+     "kind": "btn",
+     "label": "Agregar archivos",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Busca un servicio de laboratorio y lo suma a la orden. Si no existe, se puede crear desde acá y queda marcado como de laboratorio.",
      "id": "lab-orders.btn.add-service",
      "kind": "btn",
@@ -8031,6 +8038,13 @@
      "kind": "btn",
      "label": "Eliminar",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Descarga el archivo adjunto.",
+     "id": "lab-orders.btn.download-attachment",
+     "kind": "btn",
+     "label": "Descargar",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Cambia los datos de la orden (no la etapa).",
@@ -8081,6 +8095,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Borra el adjunto de la orden (pide confirmación; no se puede deshacer).",
+     "id": "lab-orders.btn.remove-attachment",
+     "kind": "btn",
+     "label": "Quitar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Saca ese servicio de la orden.",
      "id": "lab-orders.btn.remove-service",
      "kind": "btn",
@@ -8092,6 +8113,13 @@
      "kind": "btn",
      "label": "Guardar cambios",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Sube más archivos a la orden desde el detalle.",
+     "id": "lab-orders.btn.upload-attachment",
+     "kind": "btn",
+     "label": "Agregar archivos",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "id": "lab-orders.field.doctor_id",
@@ -8111,6 +8139,12 @@
      "kind": "field",
      "label": "Columnas finales",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.field.is_urgent",
+     "kind": "field",
+     "label": "Urgente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "Indicaciones para ese servicio en particular (color, material…).",
@@ -8173,6 +8207,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Muestra solo las órdenes urgentes que siguen pendientes, en la lista y en el tablero. En rojo cuando está activo.",
+     "id": "lab-orders.field.urgent-only",
+     "kind": "field",
+     "label": "Urgentes",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "id": "lab-orders.field.work_description",
      "kind": "field",
      "label": "Descripción adicional (opcional)",
@@ -8205,6 +8246,13 @@
      "kind": "section",
      "label": "Detalle de la orden",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Archivos de la orden: se descargan con el ícono de la flecha. Con permiso de editar se agregan más o se quitan.",
+     "id": "lab-orders.section.detail-attachments",
+     "kind": "section",
+     "label": "Adjuntos",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Laboratorio asignado con sus categorías y los datos de su ficha de proveedor: teléfonos (se pueden marcar), correo, dirección y RUT. Si no tiene ninguno, indica que se cargan en Compras → Proveedores.",
@@ -8249,6 +8297,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Fotos, PDF o escaneos 3D (STL, PLY, OBJ) para el laboratorio, hasta 10 archivos de 10 MB. Se suben al crear la orden; si fallan, la orden queda creada y se agregan desde el detalle.",
+     "id": "lab-orders.section.form-attachments",
+     "kind": "section",
+     "label": "Adjuntos (alta)",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora, y cuánto estuvo la orden en cada etapa («Estuvo 4 días»). El primero marca la etapa actual.",
      "id": "lab-orders.section.history",
      "kind": "section",
@@ -8275,6 +8330,13 @@
      "kind": "section",
      "label": "Lista o tablero",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Marca la orden como urgente (al crearla o al editarla). Mientras esté pendiente sale primero y lleva la etiqueta roja «Urgente»; en una etapa final ya no se destaca.",
+     "id": "lab-orders.toggle.urgent",
+     "kind": "section",
+     "label": "Urgente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     }
    ],
    "id": "lab-orders",
@@ -8297,7 +8359,8 @@
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "La fecha de entrega no se carga al crear la orden: se pide al enviarla, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Después se puede cambiar desde «Editar».",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
-    "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
+    "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
+    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas."
    ],
    "title": "Órdenes de Laboratorio"
   },

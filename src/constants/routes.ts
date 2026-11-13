@@ -285,6 +285,12 @@ export const API_ROUTES = {
         /** GET ?search=&category_id=&limit= — solo proveedores en una categoría de laboratorio. */
         LABORATORIES: '/lab-orders/laboratories',
         LAB_CATEGORIES: '/lab-orders/lab-categories',
+        /** Adjuntos (script 173): POST multipart order_id + archivos → [{ attachments, order_id }]. */
+        ATTACHMENTS_UPLOAD: '/lab-orders/attachments/upload',
+        /** POST { order_id, attachment_id } → [{ attachments, order_id }]. */
+        ATTACHMENTS_DELETE: '/lab-orders/attachments/delete',
+        /** GET ?order_id=&id= → el archivo (binario). */
+        ATTACHMENT: '/lab-orders/attachment',
     },
     LAB_STAGES: {
         LIST: '/lab-stages',

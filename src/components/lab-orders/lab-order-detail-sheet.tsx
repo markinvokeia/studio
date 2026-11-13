@@ -16,10 +16,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { Can } from '@/components/auth/Can';
+import { LabOrderAttachmentsSection } from '@/components/lab-orders/lab-order-attachments';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
-  LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabStageBadge, LabStageProgress, labOrderWork, nextLabStage,
+  LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabOrderUrgentBadge, LabStageBadge, LabStageProgress, labOrderWork,
+  nextLabStage,
   useLabOrderErrorText, useLabOrderOverdueReasons, useLabStayText,
 } from '@/components/lab-orders/lab-order-shared';
 
@@ -33,7 +35,7 @@ import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api
 import { LabOrdersError, changeLabOrderStage, deleteLabOrder, fetchLabOrderDetail } from '@/services/lab-orders';
 
 import { LAB_ORDERS_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
-import type { LabOrder, LabOrderDetail, LabOrderLaboratoryInfo, LabStage } from '@/lib/types';
+import type { LabOrder, LabOrderAttachment, LabOrderDetail, LabOrderLaboratoryInfo, LabStage } from '@/lib/types';
 
 const SECTION_TITLE = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
 
@@ -239,6 +241,15 @@ function LabOrderDetailView({
   );
 
   const canChangeStage = !readOnly && hasPermission(LAB_ORDERS_PERMISSIONS.CHANGE_STAGE);
+  const canEditAttachments = !readOnly && hasPermission(LAB_ORDERS_PERMISSIONS.UPDATE);
+
+  // Subir o quitar adjuntos: el detalle se actualiza en el momento y la lista recibe el nuevo total (clip).
+  const handleAttachmentsChange = (attachments: LabOrderAttachment[]) => {
+    if (!detail) return;
+    const next = { ...detail, attachments, attachments_count: attachments.length };
+    setDetail(next);
+    onChanged(next);
+  };
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
   const nextStage = detail ? nextLabStage(stages, detail.current_stage_id) : null;
   const stayText = useLabStayText();
@@ -284,7 +295,10 @@ function LabOrderDetailView({
         <>
           <section data-help-id="lab-orders.section.detail-stage" className="space-y-3 rounded-xl border border-border bg-card p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <LabStageBadge name={detail.stage_name} color={detail.stage_color} />
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <LabStageBadge name={detail.stage_name} color={detail.stage_color} />
+                <LabOrderUrgentBadge order={detail} />
+              </div>
               <LabOrderDaysInStage order={detail} />
             </div>
             {overdueReasons(detail).map((reason) => (
@@ -412,6 +426,19 @@ function LabOrderDetailView({
               <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm">{detail.notes}</p>
             </section>
           )}
+
+          <section className="space-y-2">
+            <h3 className={SECTION_TITLE}>
+              {t('attachments.title')}
+              {detail.attachments.length > 0 && <span className="ml-1 font-normal normal-case">({detail.attachments.length})</span>}
+            </h3>
+            <LabOrderAttachmentsSection
+              orderId={detail.id}
+              attachments={detail.attachments}
+              canEdit={canEditAttachments}
+              onChange={handleAttachmentsChange}
+            />
+          </section>
 
           <section data-help-id="lab-orders.section.history" className="space-y-2">
             <h3 className={SECTION_TITLE}>{t('detail.history')}</h3>

@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id?, due_date? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED; script 172: al enviar (inicial → no final) sin fecha → DUE_DATE_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169, 170 y 172.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).",
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history + attachments)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id?, due_date? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED; script 172: al enviar (inicial → no final) sin fecha → DUE_DATE_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169, 170, 172 y 173.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).\n\n## Adjuntos (script 173)\n- POST /lab-orders/attachments/upload (multipart: order_id + archivos) → \"Attachements CRUD\" UPLOAD (attachments, source_name `lab_order`, Drive) → responde `[{ attachments, order_id }]`.\n- POST /lab-orders/attachments/delete `{ order_id, attachment_id }` → \"Attachements CRUD\" DELETE.\n- GET /lab-orders/attachment?order_id=&id= → el archivo (binario).\nErrores: NOT_FOUND, NO_FILES, TOO_MANY_FILES, INVALID_FILE_TYPE, FILE_TOO_LARGE, UPLOAD_FAILED, DELETE_FAILED.\nAl importar: si el id de \"Attachements CRUD\" no es TTwyLGp8Gg9qDKdn, elegirlo en \"Upload attachment\" y \"Delete attachment file\".",
         "height": 520,
         "width": 900
       },
@@ -810,6 +810,535 @@
         }
       },
       "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/attachments/upload",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        3232
+      ],
+      "name": "POST /lab-orders/attachments/upload",
+      "id": "30356fc2-5977-4655-955e-ad6b8d46e7a2",
+      "webhookId": "1cfd04ab-2f10-4f26-9540-40940d668dce",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila: ok = false si la orden no existe o está eliminada.\nSELECT EXISTS (SELECT 1 FROM public.lab_orders o WHERE o.id = NULLIF($1::text, '')::integer AND NOT o.is_deleted) AS ok;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body?.order_id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        3232
+      ],
+      "name": "Upload: order exists?",
+      "id": "a1b5f4bd-8e3c-4357-9fe0-f10e693570e1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item por archivo (binary.data), como /sesiones/upsert antes de \"Attachements CRUD\".\n// Tipos y tamaño iguales a los del frontend (lab-order-attachments.ts).\nif (!$json.ok) throw new Error('LAB_ORDERS:NOT_FOUND');\nconst req = $('POST /lab-orders/attachments/upload').first();\nconst orderId = String(req.json.body?.order_id ?? '');\nconst MAX_FILES = 10;\nconst MAX_BYTES = 10 * 1024 * 1024;\nconst EXT_3D = /\\.(stl|ply|obj)$/i;\n// n8n guarda fileSize como texto (\"850 kB\", \"1.2 MB\"); con el binario en disco no hay base64 que medir.\nconst UNITS = { b: 1, kb: 1024, mb: 1024 ** 2, gb: 1024 ** 3 };\nfunction bytesOf(file) {\n  const m = String(file.fileSize ?? '').trim().match(/^([\\d.]+)\\s*([kmg]?b)?$/i);\n  if (m) return Number(m[1]) * (UNITS[(m[2] || 'b').toLowerCase()] ?? 1);\n  return typeof file.data === 'string' && file.data.length > 64 ? Math.floor(file.data.length * 3 / 4) : 0;\n}\nconst files = Object.values(req.binary ?? {}).filter(Boolean);\nif (files.length === 0) throw new Error('LAB_ORDERS:NO_FILES');\nif (files.length > MAX_FILES) throw new Error('LAB_ORDERS:TOO_MANY_FILES');\nconst out = [];\nfor (const file of files) {\n  const name = file.fileName || 'archivo';\n  const mime = file.mimeType || '';\n  // Imágenes y PDF por tipo; escaneos 3D por extensión (el navegador suele mandarlos como octet-stream).\n  const okType = /^image\\//i.test(mime) || /^application\\/pdf$/i.test(mime) || EXT_3D.test(name);\n  if (!okType) throw new Error('LAB_ORDERS:INVALID_FILE_TYPE');\n  if (bytesOf(file) > MAX_BYTES) throw new Error('LAB_ORDERS:FILE_TOO_LARGE');\n  out.push({ json: { order_id: orderId, fileName: name, mimeType: mime }, binary: { data: file } });\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        3232
+      ],
+      "name": "Split attachment files",
+      "id": "88674660-1af7-43c3-ab48-756cd21b88ab",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TTwyLGp8Gg9qDKdn",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "UPLOAD",
+            "source_name": "lab_order",
+            "source_id": "={{ $json.order_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "attachment_id",
+              "displayName": "attachment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        3232
+      ],
+      "name": "Upload attachment",
+      "id": "03d222c2-3246-48d8-824d-973cebed064a",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \"Attachements CRUD\" no falla: devuelve { success: false } por archivo.\nconst failed = $input.all().filter((i) => i.json.success === false);\nif (failed.length) throw new Error('LAB_ORDERS:UPLOAD_FAILED ' + JSON.stringify(failed[0].json.data ?? {}).slice(0, 300));\nreturn [{ json: { order_id: $('POST /lab-orders/attachments/upload').first().json.body?.order_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        3232
+      ],
+      "name": "Check upload",
+      "id": "37ee1aec-2232-478e-86c7-e7c9888516a0",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(public.lab_order_detail($1::integer) -> 'attachments', '[]'::jsonb) AS attachments,\n       $1::integer AS order_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1808,
+        3232
+      ],
+      "name": "List attachments (upload)",
+      "id": "57947c70-dab9-4ffb-a6fe-3530698cc909",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "lab_order_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ [\"lab_orders\"] }}",
+            "payload": "={{ { event_type: 'lab_order_changed', action: 'attachments', order_id: Number($json.order_id), actor_id: $('POST /lab-orders/attachments/upload').isExecuted ? $('POST /lab-orders/attachments/upload').first().json.jwtPayload?.userId ?? null : $('POST /lab-orders/attachments/delete').first().json.jwtPayload?.userId ?? null } }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        3432
+      ],
+      "name": "Push lab_order_changed (attachments)",
+      "id": "c2dc8b10-587c-41dd-bd4b-7a0382e59290",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/attachments/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        3732
+      ],
+      "name": "POST /lab-orders/attachments/delete",
+      "id": "ff5aa459-1ce9-4503-9cd0-db2f4f10dbd9",
+      "webhookId": "b0ccd0f1-b50c-4830-9fd6-cdbae91a99de",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila: ok = false si el adjunto no es de esa orden (o la orden no existe).\nSELECT EXISTS (\n    SELECT 1 FROM public.attachments a\n    JOIN public.lab_orders o ON o.id::text = a.source_id AND NOT o.is_deleted\n    WHERE a.source_name = 'lab_order'\n      AND a.source_id = NULLIF($1::text, '')\n      AND a.id = NULLIF($2::text, '')::integer\n) AS ok;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body?.order_id ?? ''), String($json.body?.attachment_id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        3732
+      ],
+      "name": "Delete: attachment of order?",
+      "id": "f3628a11-4abb-49df-a0d1-9892e93c8eb1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$json.ok) throw new Error('LAB_ORDERS:NOT_FOUND');\nconst body = $('POST /lab-orders/attachments/delete').first().json.body ?? {};\nreturn [{ json: { order_id: String(body.order_id), attachment_id: String(body.attachment_id) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        3732
+      ],
+      "name": "Guard delete",
+      "id": "ce350b0e-d0e8-48f9-9cf8-ac2e9cc9c09e",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TTwyLGp8Gg9qDKdn",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "DELETE",
+            "attachment_id": "={{ $json.attachment_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "attachment_id",
+              "displayName": "attachment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        3732
+      ],
+      "name": "Delete attachment file",
+      "id": "5e1f2e60-c875-4f62-8c13-90b9c05e97af",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const failed = $input.all().filter((i) => i.json.success === false);\nif (failed.length) throw new Error('LAB_ORDERS:DELETE_FAILED ' + JSON.stringify(failed[0].json.data ?? {}).slice(0, 300));\nreturn [{ json: { order_id: $('Guard delete').first().json.order_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        3732
+      ],
+      "name": "Check delete",
+      "id": "169e4b1c-cd5f-4750-bb47-236652e165a9",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(public.lab_order_detail($1::integer) -> 'attachments', '[]'::jsonb) AS attachments,\n       $1::integer AS order_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1808,
+        3732
+      ],
+      "name": "List attachments (delete)",
+      "id": "689dc2a8-4ec0-4e83-b745-feca8493e641",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/attachment",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        4232
+      ],
+      "name": "GET /lab-orders/attachment",
+      "id": "321a7644-c269-40b7-8917-86c36ffbd041",
+      "webhookId": "7a225b12-4ab2-4ccc-a208-425e3eb1d1b5",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila (LEFT JOIN): drive_file_id null si el adjunto no es de esa orden.\nSELECT a.id, a.file_name, a.mime_type, a.drive_file_id\nFROM (SELECT 1) one\nLEFT JOIN public.attachments a\n  ON a.source_name = 'lab_order'\n AND a.source_id = NULLIF($1::text, '')\n AND a.id = NULLIF($2::text, '')::integer;",
+        "options": {
+          "queryReplacement": "={{ [String($json.query?.order_id ?? ''), String($json.query?.id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        4232
+      ],
+      "name": "Get attachment row",
+      "id": "1da14cfd-16c1-4cca-9342-fc73ceae89d6",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$json.drive_file_id) throw new Error('LAB_ORDERS:NOT_FOUND');\nreturn [{ json: $json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        4232
+      ],
+      "name": "Guard download",
+      "id": "84e813d9-c428-49d5-9d45-e7eff6273418",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        4232
+      ],
+      "name": "Download attachment",
+      "id": "f7876fc4-24d7-468d-ac5d-05968cad7c39",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1568,
+        4232
+      ],
+      "name": "Attachment file",
+      "id": "422a602d-35d0-4303-b72e-f395fc0ccef0"
     }
   ],
   "pinData": {},
@@ -1102,6 +1631,283 @@
         [
           {
             "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/attachments/upload": {
+      "main": [
+        [
+          {
+            "node": "Upload: order exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload: order exists?": {
+      "main": [
+        [
+          {
+            "node": "Split attachment files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split attachment files": {
+      "main": [
+        [
+          {
+            "node": "Upload attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload attachment": {
+      "main": [
+        [
+          {
+            "node": "Check upload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check upload": {
+      "main": [
+        [
+          {
+            "node": "List attachments (upload)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List attachments (upload)": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (attachments)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/attachments/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete: attachment of order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete: attachment of order?": {
+      "main": [
+        [
+          {
+            "node": "Guard delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard delete": {
+      "main": [
+        [
+          {
+            "node": "Delete attachment file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete attachment file": {
+      "main": [
+        [
+          {
+            "node": "Check delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check delete": {
+      "main": [
+        [
+          {
+            "node": "List attachments (delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List attachments (delete)": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (attachments)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/attachment": {
+      "main": [
+        [
+          {
+            "node": "Get attachment row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get attachment row": {
+      "main": [
+        [
+          {
+            "node": "Guard download",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard download": {
+      "main": [
+        [
+          {
+            "node": "Download attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download attachment": {
+      "main": [
+        [
+          {
+            "node": "Attachment file",
             "type": "main",
             "index": 0
           }

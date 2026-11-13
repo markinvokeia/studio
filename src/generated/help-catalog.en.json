@@ -1,5 +1,5 @@
 {
- "version": "0f449c1f090be968",
+ "version": "8af7d48c113a9a56",
  "locale": "en",
  "journey": [
   {
@@ -7930,6 +7930,13 @@
   {
    "elements": [
     {
+     "description": "Chooses files to attach to the new order (they can also be dropped on the dashed area).",
+     "id": "lab-orders.btn.add-attachment",
+     "kind": "btn",
+     "label": "Add files",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Finds a lab service and adds it to the order. If it does not exist you can create it here, and it is flagged as lab work.",
      "id": "lab-orders.btn.add-service",
      "kind": "btn",
@@ -7942,6 +7949,13 @@
      "kind": "btn",
      "label": "Delete",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Downloads the attached file.",
+     "id": "lab-orders.btn.download-attachment",
+     "kind": "btn",
+     "label": "Download",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Changes the order details (not the stage).",
@@ -7992,6 +8006,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Deletes the attachment from the order (asks for confirmation; cannot be undone).",
+     "id": "lab-orders.btn.remove-attachment",
+     "kind": "btn",
+     "label": "Remove",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Removes that service from the order.",
      "id": "lab-orders.btn.remove-service",
      "kind": "btn",
@@ -8003,6 +8024,13 @@
      "kind": "btn",
      "label": "Save changes",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Uploads more files to the order from the details.",
+     "id": "lab-orders.btn.upload-attachment",
+     "kind": "btn",
+     "label": "Add files",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "id": "lab-orders.field.doctor_id",
@@ -8022,6 +8050,12 @@
      "kind": "field",
      "label": "Final columns",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.field.is_urgent",
+     "kind": "field",
+     "label": "Urgent",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "Instructions for that service only (shade, material…).",
@@ -8084,6 +8118,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Shows only urgent orders that are still pending, in the list and on the board. Red when active.",
+     "id": "lab-orders.field.urgent-only",
+     "kind": "field",
+     "label": "Urgent",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "id": "lab-orders.field.work_description",
      "kind": "field",
      "label": "Additional description (optional)",
@@ -8116,6 +8157,13 @@
      "kind": "section",
      "label": "Order detail",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "The order files: download them with the arrow icon. With edit permission you can add more or remove them.",
+     "id": "lab-orders.section.detail-attachments",
+     "kind": "section",
+     "label": "Attachments",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "The assigned lab with its categories and the details from its provider record: phones (you can dial them), email, address and RUT. If it has none, it says they are added in Purchases → Providers.",
@@ -8160,6 +8208,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Photos, PDFs or 3D scans (STL, PLY, OBJ) for the lab, up to 10 files of 10 MB. They are uploaded when the order is created; if they fail, the order is still created and they can be added from the details.",
+     "id": "lab-orders.section.form-attachments",
+     "kind": "section",
+     "label": "Attachments (new order)",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Each stage change with source, target, user, date and time, and how long the order stayed in each stage (“Stayed 4 days”). The first one marks the current stage.",
      "id": "lab-orders.section.history",
      "kind": "section",
@@ -8186,6 +8241,13 @@
      "kind": "section",
      "label": "List or board",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Marks the order as urgent (when creating or editing it). While pending it shows first with the red «Urgent» label; in a final stage it is no longer highlighted.",
+     "id": "lab-orders.toggle.urgent",
+     "kind": "section",
+     "label": "Urgent",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     }
    ],
    "id": "lab-orders",
@@ -8208,7 +8270,8 @@
     "Every stage change is recorded in the order history, with the user and the date.",
     "The delivery date isn't entered when the order is created: it is asked for when the order is sent, that is, moved from the initial stage to a stage that isn't final, and it is required. It can be changed later from “Edit”.",
     "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",
-    "Changes made by other users show up on their own, without reloading."
+    "Changes made by other users show up on their own, without reloading.",
+    "Turn on «Urgent» in the form so the order shows first in the list, in its board column and in the patient record; the Urgent button shows only those."
    ],
    "title": "Lab Orders"
   },

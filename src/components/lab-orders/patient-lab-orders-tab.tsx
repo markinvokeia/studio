@@ -16,8 +16,8 @@ import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
-  DUE_SOON_DAYS, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabStageBadge, LabStageProgress,
-  daysUntilDue, labOrderWork, nextLabStage, useLabOrderErrorText,
+  DUE_SOON_DAYS, LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge,
+  LabStageBadge, LabStageProgress, daysUntilDue, isUrgentPending, labOrderWork, nextLabStage, urgentFirst, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
@@ -101,7 +101,8 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
   // Otro usuario creó, movió o editó una orden: se relee (la lista es corta).
   useLabOrdersLive(reload);
 
-  const inProgress = React.useMemo(() => (orders ?? []).filter((o) => o.is_pending), [orders]);
+  // Las urgentes primero (el backend ya las ordena así; se repite por si cambia una en el lugar).
+  const inProgress = React.useMemo(() => urgentFirst((orders ?? []).filter((o) => o.is_pending)), [orders]);
   const finished = React.useMemo(() => (orders ?? []).filter((o) => !o.is_pending), [orders]);
   const alertCounts = React.useMemo(() => ({
     overdue: inProgress.filter((o) => matchesAlert(o, 'overdue')).length,
@@ -180,6 +181,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
         className={cn(
           'relative rounded-xl border bg-card px-3 py-2.5 transition-colors hover:bg-muted/40 focus-within:ring-2 focus-within:ring-ring',
           order.is_overdue ? 'border-destructive/40' : 'border-border',
+          isUrgentPending(order) && 'border-l-4 border-l-destructive',
         )}
       >
         <div className="flex items-start justify-between gap-3">
@@ -194,7 +196,10 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
             </button>
             {details && <p className="truncate text-xs text-muted-foreground">{details}</p>}
           </div>
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">#{order.id}</span>
+          <span className="inline-flex shrink-0 items-center gap-2">
+            <LabOrderAttachmentsCount order={order} />
+            <span className="font-mono text-xs text-muted-foreground">#{order.id}</span>
+          </span>
         </div>
 
         {showProgress && (
@@ -203,6 +208,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
 
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <LabOrderUrgentBadge order={order} />
             {!showProgress && <LabStageBadge name={order.stage_name} color={order.stage_color} />}
             <LabOrderDueLabel order={order} onlySoon />
             <LabOrderNoLabBadge order={order} />

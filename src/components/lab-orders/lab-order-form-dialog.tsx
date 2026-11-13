@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Zap } from 'lucide-react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
@@ -14,15 +14,19 @@ import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { UserSelector } from '@/components/ui/user-selector';
 
+import { LabOrderAttachmentPicker } from '@/components/lab-orders/lab-order-attachments';
 import { parseTeeth, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
-import { saveLabOrder } from '@/services/lab-orders';
+import { saveLabOrder, uploadLabOrderAttachments } from '@/services/lab-orders';
 
 import type { LabOrder } from '@/lib/types';
 
@@ -58,6 +62,7 @@ const labOrderSchema = (t: (key: string) => string, dueDateRequired: boolean) =>
   teeth: z.string().refine((value) => parseTeeth(value) !== null, t('form.validation.teeth')),
   due_date: z.string().optional(),
   notes: z.string().max(2000).optional(),
+  is_urgent: z.boolean(),
 }).refine((v) => v.items.length > 0 || v.work_description.length > 0, {
   path: ['work_description'],
   message: t('form.validation.work'),
@@ -88,6 +93,7 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
     teeth: order?.teeth.join(', ') ?? '',
     due_date: order?.due_date ?? '',
     notes: order?.notes ?? '',
+    is_urgent: order?.is_urgent ?? false,
   };
 }
 
@@ -109,6 +115,8 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
   const isEdit = Boolean(order);
   const patientLocked = Boolean(patient) && !isEdit;
   const dueMode = dueDateMode(order);
+  /** Alta: archivos que se suben apenas se crea la orden. En la edición se manejan desde el detalle. */
+  const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
 
   const form = useForm<LabOrderFormValues>({
     resolver: zodResolver(labOrderSchema(t, dueMode === 'required')),
@@ -145,12 +153,13 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
     if (!open) return;
     form.reset(toFormValues(order, patient));
     setSubmissionError(null);
+    setPendingFiles([]);
     // Solo al abrir: un refetch de la orden mientras se edita no debe pisar lo escrito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const save = useAsyncAction(
-    (values: LabOrderFormValues) => saveLabOrder({
+  const saveOrder = (values: LabOrderFormValues) => {
+    return saveLabOrder({
       ...(order ? { id: order.id } : {}),
       patient_id: values.patient_id,
       doctor_id: values.doctor_id || null,
@@ -161,13 +170,30 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
       // Sin la clave el backend deja la fecha guardada (alta u orden todavía no enviada).
       ...(dueMode !== 'hidden' ? { due_date: values.due_date || null } : {}),
       notes: values.notes?.trim() || null,
+      is_urgent: values.is_urgent,
       items: values.items.map((item) => ({
         service_id: Number(item.service_id),
         quantity: item.quantity,
         teeth: parseTeeth(item.teeth) ?? [],
         notes: item.notes?.trim() || null,
       })),
-    }, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }),
+    }, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+  }
+
+  const save = useAsyncAction(
+    async (values: LabOrderFormValues) => {
+      const saved = await saveOrder(values);
+      if (isEdit || pendingFiles.length === 0) return saved;
+      // La orden ya existe: si los archivos fallan no se pierde el alta, se avisa y se agregan desde el detalle.
+      try {
+        const attachments = await uploadLabOrderAttachments(saved.id, pendingFiles, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+        return { ...saved, attachments_count: attachments.length };
+      } catch (error) {
+        toast({ variant: 'destructive', title: t('attachments.createdWithoutFilesTitle'), description: t('attachments.createdWithoutFiles', { id: saved.id }) });
+        console.error('Lab order attachments upload failed:', error);
+        return saved;
+      }
+    },
     {
       onSuccess: async (saved) => {
         await onSaved(saved);
@@ -182,7 +208,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next && save.isPending) return; onOpenChange(next); }}>
-      <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty}>
+      <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty || pendingFiles.length > 0}>
         <DialogHeader>
           <DialogTitle>{isEdit ? t('form.editTitle', { id: order!.id }) : t('form.createTitle')}</DialogTitle>
           {!isEdit && <DialogDescription>{t('form.createDescription')}</DialogDescription>}
@@ -372,6 +398,35 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                     <Textarea {...field} rows={3} maxLength={2000} placeholder={t('form.notesPlaceholder')} disabled={save.isPending} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )} />
+
+              {!isEdit && (
+                <LabOrderAttachmentPicker files={pendingFiles} onChange={setPendingFiles} disabled={save.isPending} />
+              )}
+
+              <FormField control={form.control} name="is_urgent" render={({ field }) => (
+                <FormItem
+                  className={cn(
+                    'flex flex-row items-center justify-between gap-3 space-y-0 rounded-lg border p-3 transition-colors',
+                    field.value ? 'border-destructive/50 bg-destructive/5' : 'border-border',
+                  )}
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <FormLabel className="flex items-center gap-1.5">
+                      <Zap className={cn('h-4 w-4', field.value ? 'fill-current text-destructive' : 'text-muted-foreground')} aria-hidden="true" />
+                      {t('form.urgent')}
+                    </FormLabel>
+                    <FormDescription className="text-xs">{t('form.urgentHint')}</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      data-help-id="lab-orders.toggle.urgent"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={save.isPending}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
 

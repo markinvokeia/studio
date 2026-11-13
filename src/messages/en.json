@@ -10661,7 +10661,13 @@
       "LABORATORY_REQUIRED": "Choose the laboratory the order is sent to before moving it to this stage.",
       "INVALID_LABORATORY": "That laboratory is no longer an active supplier. Choose another one.",
       "DUE_DATE_REQUIRED": "Enter the delivery date the laboratory promised: it's required once the order is sent.",
-      "INVALID_DUE_DATE": "The delivery date can't be earlier than today."
+      "INVALID_DUE_DATE": "The delivery date can't be earlier than today.",
+      "NO_FILES": "Choose at least one file.",
+      "TOO_MANY_FILES": "An order can have up to 10 attachments.",
+      "INVALID_FILE_TYPE": "Only photos, PDFs and scans (STL, PLY, OBJ) are accepted.",
+      "FILE_TOO_LARGE": "Each file can be up to 10 MB.",
+      "UPLOAD_FAILED": "The file could not be saved. Please try again.",
+      "DELETE_FAILED": "The file could not be deleted. Please try again."
     },
     "columns": {
       "id": "#",
@@ -10692,7 +10698,9 @@
       "notInBoard": "Dashed filters don't apply on the board.",
       "notInBoardShort": "doesn't apply on the board",
       "removeChip": "Remove filter: {name}",
-      "overdueOnly": "Overdue only"
+      "overdueOnly": "Overdue only",
+      "urgentOnly": "Urgent",
+      "urgentOnlyHint": "Show only pending urgent orders"
     },
     "sort": {
       "created_desc": "Newest first",
@@ -10745,7 +10753,9 @@
       "itemNotesPlaceholder": "Shade, material…",
       "workOptional": "Additional description (optional)",
       "workHint": "If the job is not in the catalog, describe it here.",
-      "noLabServicesYet": "There are no lab services yet."
+      "noLabServicesYet": "There are no lab services yet.",
+      "urgent": "Urgent",
+      "urgentHint": "Shown first in the list, in its board column and in the patient record."
     },
     "detail": {
       "loading": "Loading…",
@@ -10875,6 +10885,34 @@
         "labs": "Group labs by category",
         "stages": "Set up the stages"
       }
+    },
+    "urgent": "Urgent",
+    "urgentHint": "Urgent order: shown first in the list, the board and the patient record while it is pending.",
+    "attachmentsCount": "{count, plural, one {# attachment} other {# attachments}}",
+    "attachments": {
+      "title": "Attachments",
+      "formHint": "Photos, PDFs or scans (STL, PLY, OBJ) for the lab. They are uploaded when the order is created.",
+      "dropHint": "Drag files here or choose them. Photos, PDFs and scans, up to {max} MB each.",
+      "add": "Add files",
+      "remove": "Remove {name}",
+      "download": "Download {name}",
+      "invalidType": "{name}: only photos, PDFs and scans (STL, PLY, OBJ) are accepted.",
+      "tooLarge": "{name}: larger than {max} MB.",
+      "tooMany": "An order can have up to {max} attachments.",
+      "rejectedTitle": "Some files were not added",
+      "empty": "No attachments.",
+      "uploaded": "Attachments added",
+      "uploadError": "Could not upload the attachments",
+      "removed": "Attachment removed",
+      "removeError": "Could not remove the attachment",
+      "downloadError": "Could not download the attachment",
+      "uploading": "{count, plural, one {Uploading # file…} other {Uploading # files…}}",
+      "removeTitle": "Remove the attachment?",
+      "removeDescription": "\"{name}\" will be deleted from the order. This cannot be undone.",
+      "removeConfirm": "Remove",
+      "cancel": "Cancel",
+      "createdWithoutFilesTitle": "The order was created without its attachments",
+      "createdWithoutFiles": "The files could not be uploaded. Add them from the details of order #{id}."
     }
   },
   "PatientPortalConfigPage": {

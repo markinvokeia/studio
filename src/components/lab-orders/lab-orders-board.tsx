@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
-  LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, labOrderWork, nextLabStage, useLabOrderErrorText,
+  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge, isUrgentPending,
+  labOrderWork, nextLabStage, urgentFirst, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 
@@ -107,7 +108,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
 
   const stageById = React.useMemo(() => new Map(stages.map((s) => [s.id, s])), [stages]);
 
-  const { search, laboratory_id, doctor_id, overdue_only } = filters;
+  const { search, laboratory_id, doctor_id, overdue_only, urgent_only } = filters;
   React.useEffect(() => {
     // Una recarga con un movimiento en vuelo pisaría la tarjeta movida: se posterga.
     if (inFlightRef.current.size > 0) {
@@ -117,7 +118,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
     const controller = new AbortController();
     setLoadError(null);
     fetchLabOrdersBoard(
-      { search, laboratory_id, doctor_id, overdue_only, per_column: PER_COLUMN, final_days: finalDays },
+      { search, laboratory_id, doctor_id, overdue_only, urgent_only, per_column: PER_COLUMN, final_days: finalDays },
       { signal: controller.signal },
     )
       .then((columns) => {
@@ -128,7 +129,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       })
       .catch((error) => { if (!isAbortError(error)) setLoadError(errorText(error)); });
     return () => controller.abort();
-  }, [search, laboratory_id, doctor_id, overdue_only, finalDays, reloadKey, retryKey, internalReload, errorText]);
+  }, [search, laboratory_id, doctor_id, overdue_only, urgent_only, finalDays, reloadKey, retryKey, internalReload, errorText]);
 
   const toggleCollapsed = (stageId: number) => {
     setCollapsed((prev) => {
@@ -224,7 +225,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       const isFinal = stage.kind === 'final';
       const result = await searchLabOrders({
         stage_ids: [stage.id],
-        search, laboratory_id, doctor_id, overdue_only,
+        search, laboratory_id, doctor_id, overdue_only, urgent_only,
         entered_within_days: isFinal ? finalDays : undefined,
         // Mismo orden que el tablero: finales más recientes primero, el resto más antiguas primero.
         sort: isFinal ? 'days_asc' : 'days_desc',
@@ -320,7 +321,8 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
               onToggleCollapsed={() => toggleCollapsed(stage.id)}
               onLoadMore={() => loadMore(stage)}
             >
-              {column?.items.map((order) => (
+              {/* Las urgentes pendientes arriba también después de soltar una tarjeta. */}
+              {column && urgentFirst(column.items).map((order) => (
                 <BoardCard
                   key={order.id}
                   order={order}
@@ -514,6 +516,7 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
       className={cn(
         'rounded-lg border bg-card p-2.5 text-left shadow-sm transition-colors',
         order.is_overdue ? 'border-destructive/50 bg-destructive/5' : 'border-border',
+        isUrgentPending(order) && 'border-l-4 border-l-destructive',
         isPending && 'opacity-70',
         className,
       )}
@@ -521,6 +524,7 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
       <div className="flex items-start gap-1.5">
         <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden="true" />
         <div className="min-w-0 flex-1">
+          <LabOrderUrgentBadge order={order} className="mb-1" />
           <p className="truncate text-sm font-medium">{order.patient_name}</p>
           <p className="truncate text-xs text-muted-foreground">{labOrderWork(order)}</p>
           {order.laboratory_name
@@ -530,7 +534,10 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
         {children}
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pl-5">
-        <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
+          <LabOrderAttachmentsCount order={order} />
+        </span>
         <LabOrderDueLabel order={order} />
         {order.is_pending && <LabOrderDaysInStage order={order} />}
       </div>

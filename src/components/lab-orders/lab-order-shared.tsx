@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
-import { AlertTriangle, Building2, CalendarClock, CalendarX2, Check } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarClock, CalendarX2, Check, Paperclip, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { getErrorMessage } from '@/lib/error-utils';
@@ -266,6 +266,51 @@ export function LabOrderNoLabBadge({
     >
       <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
       <span className="truncate">{t('noLaboratory')}</span>
+    </span>
+  );
+}
+
+/** Urgente y todavía pendiente: lo único que ordena y filtra (en una etapa final ya no apura). */
+export function isUrgentPending(order: Pick<LabOrder, 'is_urgent' | 'is_pending'>): boolean {
+  return order.is_urgent && order.is_pending;
+}
+
+/** Copia ordenada con las urgentes pendientes primero; el resto conserva su orden. */
+export function urgentFirst<T extends Pick<LabOrder, 'is_urgent' | 'is_pending'>>(orders: T[]): T[] {
+  return [...orders].sort((a, b) => Number(isUrgentPending(b)) - Number(isUrgentPending(a)));
+}
+
+/** "Urgente": relleno rojo para que se distinga de los avisos de atraso (contorno). */
+export function LabOrderUrgentBadge({
+  order, className,
+}: { order: Pick<LabOrder, 'is_urgent' | 'is_pending'>; className?: string }) {
+  const t = useTranslations('LabOrdersPage');
+  if (!isUrgentPending(order)) return null;
+  return (
+    <span
+      className={cn(PILL, 'border-transparent bg-destructive text-destructive-foreground shadow-sm', className)}
+      title={t('urgentHint')}
+    >
+      <Zap className="h-3 w-3 shrink-0 fill-current" aria-hidden="true" />
+      <span className="truncate">{t('urgent')}</span>
+    </span>
+  );
+}
+
+/** Clip con la cantidad de adjuntos (nada si no tiene). */
+export function LabOrderAttachmentsCount({
+  order, className,
+}: { order: Pick<LabOrder, 'attachments_count'>; className?: string }) {
+  const t = useTranslations('LabOrdersPage');
+  if (!order.attachments_count) return null;
+  return (
+    <span
+      className={cn('inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-muted-foreground', className)}
+      title={t('attachmentsCount', { count: order.attachments_count })}
+      aria-label={t('attachmentsCount', { count: order.attachments_count })}
+    >
+      <Paperclip className="h-3 w-3 shrink-0" aria-hidden="true" />
+      {order.attachments_count}
     </span>
   );
 }

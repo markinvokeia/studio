@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
   LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderItem,
-  LabCategory, Laboratory, LabOrderLaboratoryInfo, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
+  LabCategory, Laboratory, LabOrderAttachment, LabOrderLaboratoryInfo, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -99,7 +99,27 @@ function toOrder(raw: any): LabOrder | null {
     created_by_name: raw.created_by_name ?? null,
     // Sin el script 170 no hay categorías: el selector muestra todos los laboratorios.
     lab_category_ids: Array.isArray(raw.lab_category_ids) ? raw.lab_category_ids.filter(Boolean).map(String) : [],
+    // Sin el script 173: ninguna urgente y sin adjuntos.
+    is_urgent: raw.is_urgent === true,
+    attachments_count: Number(raw.attachments_count) || 0,
   };
+}
+
+function toAttachment(raw: any): LabOrderAttachment | null {
+  if (!raw || raw.id == null) return null;
+  return {
+    id: Number(raw.id),
+    file_name: raw.file_name ?? '',
+    mime_type: raw.mime_type ?? null,
+    web_view_link: raw.web_view_link ?? null,
+    thumbnail_link: raw.thumbnail_link ?? null,
+    created_at: toUtcIso(raw.created_at),
+  };
+}
+
+function toAttachments(value: unknown): LabOrderAttachment[] {
+  const list = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return []; } })() : value;
+  return Array.isArray(list) ? list.map(toAttachment).filter((a): a is LabOrderAttachment => a !== null) : [];
 }
 
 /** Texto opcional: vacío → null. */
@@ -178,6 +198,7 @@ export async function fetchLabOrderDetail(id: number, options?: ApiRequestOption
     ...order,
     history: Array.isArray(raw.history) ? raw.history.map(toHistory) : [],
     laboratory: toLaboratoryInfo(raw.laboratory),
+    attachments: toAttachments(raw.attachments),
   };
 }
 
@@ -245,6 +266,34 @@ export async function fetchLabCategories(options?: ApiRequestOptions): Promise<L
       description: row.description ?? null,
       laboratories_count: Number(row.laboratories_count) || 0,
     }));
+}
+
+/** Lista de adjuntos que devuelven subir y quitar (`[{ attachments, order_id }]`). */
+function attachmentsFrom(data: unknown): LabOrderAttachment[] {
+  return toAttachments(unwrapRows(data)[0]?.attachments);
+}
+
+/**
+ * Sube archivos a la orden (tabla attachments + Google Drive, el mismo subflujo "Attachements
+ * CRUD" de las sesiones de la historia clínica). Devuelve todos los adjuntos de la orden.
+ */
+export async function uploadLabOrderAttachments(orderId: number, files: File[], options?: ApiRequestOptions): Promise<LabOrderAttachment[]> {
+  const form = new FormData();
+  form.append('order_id', String(orderId));
+  files.forEach((file) => form.append('files', file, file.name));
+  return attachmentsFrom(await call(() => api.post(API_ROUTES.LAB_ORDERS.ATTACHMENTS_UPLOAD, form, undefined, undefined, options)));
+}
+
+/** Quita un adjunto (también de Drive). Devuelve los que quedan. */
+export async function deleteLabOrderAttachment(orderId: number, attachmentId: number, options?: ApiRequestOptions): Promise<LabOrderAttachment[]> {
+  return attachmentsFrom(await call(() => api.post(
+    API_ROUTES.LAB_ORDERS.ATTACHMENTS_DELETE, { order_id: orderId, attachment_id: attachmentId }, undefined, undefined, options,
+  )));
+}
+
+/** El archivo de un adjunto, para descargarlo o verlo. */
+export async function fetchLabOrderAttachment(orderId: number, attachmentId: number, options?: ApiRequestOptions): Promise<Blob> {
+  return call(() => api.getBlob(API_ROUTES.LAB_ORDERS.ATTACHMENT, { order_id: String(orderId), id: String(attachmentId) }, undefined, options));
 }
 
 export async function deleteLabOrder(id: number, options?: ApiRequestOptions): Promise<void> {

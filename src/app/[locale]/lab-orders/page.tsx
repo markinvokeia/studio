@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, ArrowRight, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -26,7 +26,8 @@ import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
 import {
-  LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabStageBadge, labOrderWork, useLabOrderErrorText,
+  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge, LabStageBadge, isUrgentPending,
+  labOrderWork, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 
 import { useDebounce } from '@/hooks/use-debounce';
@@ -121,6 +122,7 @@ export default function LabOrdersPage() {
   const [dateFrom, setDateFrom] = React.useState('');
   const [dateTo, setDateTo] = React.useState('');
   const [overdueOnly, setOverdueOnly] = React.useState(false);
+  const [urgentOnly, setUrgentOnly] = React.useState(false);
   const [sort, setSort] = React.useState<LabOrderSort>('created_desc');
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
 
@@ -166,8 +168,9 @@ export default function LabOrdersPage() {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
     overdue_only: overdueOnly || undefined,
+    urgent_only: urgentOnly || undefined,
     sort,
-  }), [debouncedSearch, stageFilter, laboratory, doctor, patient, dateFrom, dateTo, overdueOnly, sort]);
+  }), [debouncedSearch, stageFilter, laboratory, doctor, patient, dateFrom, dateTo, overdueOnly, urgentOnly, sort]);
 
   // Un filtro nuevo vuelve a la primera página.
   React.useEffect(() => {
@@ -222,10 +225,10 @@ export default function LabOrdersPage() {
     view === 'list' && dateFrom,
     view === 'list' && dateTo,
   ].filter(Boolean).length;
-  const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || search || stageFilter !== 'all');
+  const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || urgentOnly || search || stageFilter !== 'all');
   const clearFilters = () => {
     setSearch(''); setStageFilter('all'); setLaboratory(null); setDoctor(null); setPatient(null);
-    setDateFrom(''); setDateTo(''); setOverdueOnly(false);
+    setDateFrom(''); setDateTo(''); setOverdueOnly(false); setUrgentOnly(false);
   };
 
   // Filtros del popover aplicados, a la vista como chips. En el tablero, los que no se aplican
@@ -251,13 +254,23 @@ export default function LabOrdersPage() {
     {
       accessorKey: 'id',
       header: t('columns.id'),
-      cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">#{row.original.id}</span>,
+      cell: ({ row }) => (
+        <span className="inline-flex flex-col items-start gap-0.5">
+          <span className="font-mono text-xs text-muted-foreground">#{row.original.id}</span>
+          <LabOrderAttachmentsCount order={row.original} />
+        </span>
+      ),
       size: 64,
     },
     {
       accessorKey: 'patient_name',
       header: t('columns.patient'),
-      cell: ({ row }) => <span className="font-medium">{row.original.patient_name}</span>,
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <span className="font-medium">{row.original.patient_name}</span>
+          <LabOrderUrgentBadge order={row.original} />
+        </div>
+      ),
     },
     {
       accessorKey: 'laboratory_name',
@@ -379,6 +392,19 @@ export default function LabOrdersPage() {
           >
             <AlertTriangle className="h-4 w-4" />
             <span className={cn(isRightOpen && 'hidden')}>{t('filters.overdueOnly')}</span>
+          </Button>
+          <Button
+            data-help-id="lab-orders.field.urgent-only"
+            variant={urgentOnly ? 'destructive' : 'outline'}
+            size="sm"
+            className="h-9 gap-1.5"
+            aria-pressed={urgentOnly}
+            aria-label={t('filters.urgentOnly')}
+            title={t('filters.urgentOnlyHint')}
+            onClick={() => setUrgentOnly((v) => !v)}
+          >
+            <Zap className={cn('h-4 w-4', urgentOnly && 'fill-current')} />
+            <span className={cn(isRightOpen && 'hidden')}>{t('filters.urgentOnly')}</span>
           </Button>
           <Popover>
             <PopoverTrigger asChild>
@@ -534,6 +560,7 @@ export default function LabOrdersPage() {
               laboratory_id: laboratory?.id,
               doctor_id: doctor?.id,
               overdue_only: overdueOnly || undefined,
+              urgent_only: urgentOnly || undefined,
             }}
             finalDays={finalDays}
             reloadKey={boardKey}
@@ -566,7 +593,12 @@ export default function LabOrdersPage() {
                   </div>
                 )
                 : <LabOrdersEmptyState onCreate={() => setCreateOpen(true)} />}
-              getRowClassName={(row) => cn(row.is_overdue && 'bg-destructive/5', row.id === selectedId && 'bg-primary/5')}
+              getRowClassName={(row) => cn(
+                row.is_overdue && 'bg-destructive/5',
+                // Franja roja a la izquierda: las urgentes se ven de un vistazo (y van primero).
+                isUrgentPending(row) && 'shadow-[inset_4px_0_0_hsl(var(--destructive))]',
+                row.id === selectedId && 'bg-primary/5',
+              )}
               isNarrow={isMobile || isRightOpen}
               renderCard={(row) => (
                 <DataCard
@@ -578,6 +610,7 @@ export default function LabOrdersPage() {
                   actions={(
                     <div className="flex w-full flex-wrap items-center justify-between gap-2">
                       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <LabOrderUrgentBadge order={row} />
                         <LabStageBadge name={row.stage_name} color={row.stage_color} />
                         <LabOrderDueLabel order={row} onlySoon />
                         <LabOrderNoLabBadge order={row} />
