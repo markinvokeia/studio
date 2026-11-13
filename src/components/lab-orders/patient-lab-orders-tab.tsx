@@ -35,6 +35,8 @@ interface PatientLabOrdersTabProps {
   patientId: string;
   patientName: string;
   readOnly?: boolean;
+  /** Doctor preseleccionado en el alta (ficha abierta desde Mi consultorio). */
+  defaultDoctor?: { id: string; name: string } | null;
 }
 
 /** Aviso de la tira de arriba: filtra la sección "En curso". */
@@ -56,12 +58,13 @@ function matchesAlert(order: LabOrder, filter: AlertFilter): boolean {
 }
 
 /** Ficha del paciente → Clínica → Laboratorio: sus órdenes en curso y finalizadas. */
-export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }: PatientLabOrdersTabProps) {
+export function PatientLabOrdersTab({ patientId, patientName, readOnly = false, defaultDoctor = null }: PatientLabOrdersTabProps) {
   const t = useTranslations('LabOrdersPage');
   const locale = useLocale();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const errorText = useLabOrderErrorText();
+  const canChangeDoctor = hasPermission(LAB_ORDERS_PERMISSIONS.UPDATE);
   const [orders, setOrders] = React.useState<LabOrder[] | null>(null);
   const [stages, setStages] = React.useState<LabStage[]>([]);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -379,6 +382,8 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
         open={createOpen}
         onOpenChange={setCreateOpen}
         patient={{ id: patientId, name: patientName }}
+        draft={defaultDoctor ? { doctor: defaultDoctor } : null}
+        lockDoctor={!canChangeDoctor}
         onSaved={(order) => {
           toast({ title: t('created', { id: order.id }) });
           reload();

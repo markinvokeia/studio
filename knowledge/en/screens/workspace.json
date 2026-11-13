@@ -96,6 +96,10 @@
     "workspace.btn.prescribe": {
       "label": "Prescribe"
     },
+    "workspace.btn.lab-order": {
+      "label": "Lab order",
+      "description": "Creates a lab order for the appointment's patient with the doctor already selected (only users who can edit orders can change it). When you save a session with lab services, the order opens on its own, already filled in."
+    },
     "workspace.btn.agent-chat": {
       "label": "Ask the agent",
       "description": "The appointment's AI clinical agent."

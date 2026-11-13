@@ -64,6 +64,8 @@ interface PatientDetailSheetProps {
   userEmail?: string;
   userPhone?: string;
   mode?: 'default' | 'doctor';
+  /** Doctor que se preselecciona al crear una orden de laboratorio (Mi consultorio). */
+  defaultDoctor?: { id: string; name: string } | null;
   clinicalHistoryDefaultView?: 'anamnesis' | 'timeline' | 'documents';
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
   /** View-only mode: hides every add/edit/delete affordance across the clinical tabs. */
@@ -100,6 +102,7 @@ export function PatientDetailSheet({
   userEmail,
   userPhone,
   mode = 'default',
+  defaultDoctor = null,
   clinicalHistoryDefaultView,
   initialTab = 'clinical',
   readOnly = false,
@@ -525,7 +528,7 @@ export function PatientDetailSheet({
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
           labOrdersContent={hasPermission(LAB_ORDERS_PERMISSIONS.VIEW)
-            ? <PatientLabOrdersTab patientId={userId} patientName={userName} readOnly={isReadOnly} />
+            ? <PatientLabOrdersTab patientId={userId} patientName={userName} readOnly={isReadOnly} defaultDoctor={defaultDoctor} />
             : undefined}
           medicalInstructionsContent={<PatientIndicationsTab userId={userId} userName={userName} createTrigger={createMedicalInstructionTrigger} createPrescriptionTrigger={createPrescriptionTrigger} readOnly={isReadOnly} lockDoctor={isDoctorMode} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}

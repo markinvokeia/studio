@@ -73,26 +73,43 @@ const labOrderSchema = (t: (key: string) => string, dueDateRequired: boolean) =>
 
 type LabOrderFormValues = z.infer<ReturnType<typeof labOrderSchema>>;
 
-function toFormValues(order?: LabOrder | null, patient?: { id: string; name: string } | null): LabOrderFormValues {
+/** Datos con los que arranca un alta (desde Mi consultorio o al guardar una sesión clínica). */
+export interface LabOrderDraft {
+  doctor?: { id: string; name: string } | null;
+  items?: Array<{ service_id: string; service_name: string; quantity: number; teeth: number[]; lab_category_id?: string | null }>;
+  notes?: string;
+}
+
+function toFormValues(order?: LabOrder | null, patient?: { id: string; name: string } | null, draft?: LabOrderDraft | null): LabOrderFormValues {
+  const fromDraft = !order ? draft : null;
   return {
     patient_id: order?.patient_id ?? patient?.id ?? '',
     patient_name: order?.patient_name ?? patient?.name ?? '',
-    doctor_id: order?.doctor_id ?? '',
-    doctor_name: order?.doctor_name ?? '',
+    doctor_id: order?.doctor_id ?? fromDraft?.doctor?.id ?? '',
+    doctor_name: order?.doctor_name ?? fromDraft?.doctor?.name ?? '',
     laboratory_id: order?.laboratory_id ?? '',
     laboratory_name: order?.laboratory_name ?? '',
-    items: (order?.items ?? []).map((item) => ({
-      service_id: String(item.service_id),
-      service_name: item.service_name,
-      quantity: item.quantity,
-      teeth: item.teeth.join(', '),
-      notes: item.notes ?? '',
-      lab_category_id: item.lab_category_id,
-    })),
+    items: order
+      ? order.items.map((item) => ({
+        service_id: String(item.service_id),
+        service_name: item.service_name,
+        quantity: item.quantity,
+        teeth: item.teeth.join(', '),
+        notes: item.notes ?? '',
+        lab_category_id: item.lab_category_id,
+      }))
+      : (fromDraft?.items ?? []).map((item) => ({
+        service_id: String(item.service_id),
+        service_name: item.service_name,
+        quantity: Math.min(99, Math.max(1, Math.round(item.quantity) || 1)),
+        teeth: item.teeth.join(', '),
+        notes: '',
+        lab_category_id: item.lab_category_id ?? null,
+      })),
     work_description: order?.work_description ?? '',
     teeth: order?.teeth.join(', ') ?? '',
     due_date: order?.due_date ?? '',
-    notes: order?.notes ?? '',
+    notes: order?.notes ?? fromDraft?.notes ?? '',
     is_urgent: order?.is_urgent ?? false,
   };
 }
@@ -104,15 +121,22 @@ export interface LabOrderFormDialogProps {
   order?: LabOrder | null;
   /** Alta desde la ficha del paciente: el paciente queda fijo. */
   patient?: { id: string; name: string } | null;
+  /** Alta: doctor, servicios y notas precargados. Se ignora al editar. */
+  draft?: LabOrderDraft | null;
+  /** El doctor precargado no se puede cambiar (sin permiso para elegir otro). */
+  lockDoctor?: boolean;
+  /** Texto bajo el título del alta (por ejemplo, de qué sesión viene). */
+  description?: string;
   onSaved: (order: LabOrder) => void | Promise<void>;
 }
 
 /** Alta y edición de una orden de laboratorio. La etapa no se edita acá: se mueve desde el detalle. */
-export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved }: LabOrderFormDialogProps) {
+export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, lockDoctor = false, description, onSaved }: LabOrderFormDialogProps) {
   const t = useTranslations('LabOrdersPage');
   const errorText = useLabOrderErrorText();
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const isEdit = Boolean(order);
+  const doctorLocked = lockDoctor && !isEdit && Boolean(draft?.doctor?.id);
   const patientLocked = Boolean(patient) && !isEdit;
   const dueMode = dueDateMode(order);
   /** Alta: archivos que se suben apenas se crea la orden. En la edición se manejan desde el detalle. */
@@ -120,7 +144,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
 
   const form = useForm<LabOrderFormValues>({
     resolver: zodResolver(labOrderSchema(t, dueMode === 'required')),
-    defaultValues: toFormValues(order, patient),
+    defaultValues: toFormValues(order, patient, draft),
   });
 
   // Nombres de lo elegido, para que los selectores muestren la selección sin volver a buscarla.
@@ -151,7 +175,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
 
   React.useEffect(() => {
     if (!open) return;
-    form.reset(toFormValues(order, patient));
+    form.reset(toFormValues(order, patient, draft));
     setSubmissionError(null);
     setPendingFiles([]);
     // Solo al abrir: un refetch de la orden mientras se edita no debe pisar lo escrito.
@@ -211,7 +235,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
       <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty || pendingFiles.length > 0}>
         <DialogHeader>
           <DialogTitle>{isEdit ? t('form.editTitle', { id: order!.id }) : t('form.createTitle')}</DialogTitle>
-          {!isEdit && <DialogDescription>{t('form.createDescription')}</DialogDescription>}
+          {!isEdit && <DialogDescription>{description ?? t('form.createDescription')}</DialogDescription>}
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(save.run)} className="flex min-h-0 flex-1 flex-col">
@@ -332,7 +356,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                         }}
                         placeholder={t('form.searchDoctor')}
                         triggerText={t('form.selectDoctor')}
-                        disabled={save.isPending}
+                        disabled={doctorLocked || save.isPending}
                       />
                     </FormControl>
                     <FormMessage />

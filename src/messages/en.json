@@ -1810,6 +1810,9 @@
       "readOnly": "Read-only",
       "readOnlyOnDate": "Read-only · {date}",
       "prescribe": "Prescribe",
+      "labOrder": "Lab order",
+      "labOrderFromSession": "This session includes lab work. Review the details and create the order, or close this window if it isn't needed.",
+      "labOrderCreated": "Lab order #{id} created",
       "aestheticSession": "Aesthetic session"
     },
     "calendarSwitch": {

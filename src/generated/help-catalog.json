@@ -1,5 +1,5 @@
 {
- "version": "0c3a8a0277292cba",
+ "version": "d67b498a416ff2dc",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -18597,6 +18597,13 @@
      "kind": "btn",
      "label": "Consulta al agente",
      "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Crea una orden de laboratorio para el paciente de la cita, con el doctor ya elegido (solo quien edita órdenes puede cambiarlo). Al guardar una sesión con servicios de laboratorio, la orden se abre sola, ya cargada.",
+     "id": "workspace.btn.lab-order",
+     "kind": "btn",
+     "label": "Orden de laboratorio",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {
      "description": "Registra en el odontograma todas las propuestas de la bandeja. «Descartar» las saca sin guardar nada.",

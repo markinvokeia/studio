@@ -12,6 +12,8 @@ import {
 } from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
+import { LabOrderFormDialog, type LabOrderDraft } from '@/components/lab-orders/lab-order-form-dialog';
+import { findLabItemsInTreatments } from '@/components/lab-orders/lab-order-from-session';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
@@ -29,9 +31,10 @@ import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { toast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { AESTHETIC_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, LAB_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
@@ -50,6 +53,7 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
+  FlaskConical,
   Pill,
   Heart,
   Lock,
@@ -814,6 +818,29 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
     ));
 }
 
+/**
+ * Orden de laboratorio propuesta al guardar una sesión: sus servicios de laboratorio con
+ * piezas y cantidades, y el doctor de la sesión. Al editar una sesión solo cuentan los
+ * servicios que no estaban antes, para no proponer de nuevo una orden ya pedida.
+ */
+async function labOrderDraftFromSession(
+  data: ClinicSessionFormData,
+  previousTreatments: TreatmentDetail[] | undefined,
+): Promise<LabOrderDraft | null> {
+  const serviceKey = (treatment: TreatmentDetail) => {
+    const id = treatment.service_id ?? treatment.service_catalog_id;
+    return id === undefined || id === null || id === '' ? null : String(id);
+  };
+  const previousIds = new Set((previousTreatments ?? []).map(serviceKey).filter((id): id is string => id !== null));
+  const newTreatments = (data.tratamientos ?? []).filter((treatment) => {
+    const id = serviceKey(treatment);
+    return id === null || !previousIds.has(id);
+  });
+  const items = await findLabItemsInTreatments(newTreatments);
+  if (items.length === 0) return null;
+  return { doctor: data.doctor_id ? { id: data.doctor_id, name: data.doctor_name } : null, items };
+}
+
 export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspaceProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
@@ -833,6 +860,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
   const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
   const canCreateAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  // Orden de laboratorio: el doctor llega preseleccionado y solo quien edita órdenes puede cambiarlo.
+  const canCreateLabOrder = hasPermission(LAB_ORDERS_PERMISSIONS.CREATE);
+  const canChangeLabOrderDoctor = hasPermission(LAB_ORDERS_PERMISSIONS.UPDATE);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -868,6 +898,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = React.useState(false);
+  /** Alta de orden de laboratorio: a mano (botón) o propuesta al guardar una sesión con trabajos de laboratorio. */
+  const [labOrderRequest, setLabOrderRequest] = React.useState<{ draft: LabOrderDraft; fromSession: boolean } | null>(null);
+  const [labOrderOpen, setLabOrderOpen] = React.useState(false);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
@@ -1206,10 +1239,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       await completeSelectedAppointment(selectedAppointment);
     }
 
+    // Trabajos de laboratorio en la sesión → se abre el alta de la orden ya cargada.
+    if (canCreateLabOrder) {
+      const draft = await labOrderDraftFromSession(data, linkedSession?.tratamientos);
+      if (draft) {
+        setLabOrderRequest({ draft, fromSession: true });
+        setLabOrderOpen(true);
+      }
+    }
+
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
+    canCreateLabOrder,
     completeSelectedAppointment,
+    setLabOrderOpen,
+    setLabOrderRequest,
     createSession,
     isSessionEditingBlockedByDate,
     linkedSession,
@@ -1263,6 +1308,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   // hasActiveSessionToday was too broad: it blocked new appointments on the same day for the same patient.
   const isNewSessionBlocked = false;
   const isOdontogramSession = linkedSession?.tipo_sesion === 'odontograma';
+
+  const openLabOrder = () => {
+    setLabOrderRequest({
+      draft: { doctor: sessionDoctorId ? { id: sessionDoctorId, name: sessionDoctorName ?? '' } : null },
+      fromSession: false,
+    });
+    setLabOrderOpen(true);
+  };
 
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
   const alertAllergies = patientAlertTags.filter(tag => tag.type === 'allergy');
@@ -1581,6 +1634,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <span className="hidden sm:inline">{t('focus.prescribe')}</span>
                 </Button>
               )}
+              {activePanel === 'sessions' && canCreateLabOrder && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.lab-order" onClick={openLabOrder} className="hidden shrink-0 sm:inline-flex">
+                  <FlaskConical className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.labOrder')}</span>
+                </Button>
+              )}
               {activePanel === 'sessions' && canCreateAesthetic && (
                 <Button size="sm" variant="outline" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
                   <Sparkles className="h-4 w-4 sm:mr-2" />
@@ -1628,6 +1687,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <Button variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="flex-1">
                       <Pill className="mr-2 h-4 w-4" />
                       {t('focus.prescribe')}
+                    </Button>
+                  )}
+                  {canCreateLabOrder && (
+                    <Button variant="outline" size="icon" data-help-id="workspace.btn.lab-order" onClick={openLabOrder} className="shrink-0" aria-label={t('focus.labOrder')} title={t('focus.labOrder')}>
+                      <FlaskConical className="h-4 w-4" />
                     </Button>
                   )}
                   {canCreateAesthetic && (
@@ -1809,6 +1873,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           userId={selectedAppointment.patientId}
           userName={selectedAppointment.patientName || ''}
           mode="doctor"
+          defaultDoctor={sessionDoctorId ? { id: sessionDoctorId, name: sessionDoctorName ?? '' } : null}
           clinicalHistoryDefaultView={patientFichaDefaultView}
           readOnly={isSessionEditingBlockedByDate}
         />
@@ -1834,6 +1899,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
           lockDoctor
+        />
+      )}
+
+      {selectedAppointment && canCreateLabOrder && (
+        <LabOrderFormDialog
+          open={labOrderOpen}
+          onOpenChange={setLabOrderOpen}
+          patient={{ id: selectedAppointment.patientId, name: selectedAppointment.patientName || '' }}
+          draft={labOrderRequest?.draft}
+          lockDoctor={!canChangeLabOrderDoctor}
+          description={labOrderRequest?.fromSession ? t('focus.labOrderFromSession') : undefined}
+          onSaved={(order) => {
+            toast({ title: t('focus.labOrderCreated', { id: order.id }) });
+          }}
         />
       )}
 

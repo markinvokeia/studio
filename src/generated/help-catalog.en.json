@@ -1,5 +1,5 @@
 {
- "version": "8af7d48c113a9a56",
+ "version": "ed8968956159c387",
  "locale": "en",
  "journey": [
   {
@@ -18508,6 +18508,13 @@
      "kind": "btn",
      "label": "Ask the agent",
      "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Creates a lab order for the appointment's patient with the doctor already selected (only users who can edit orders can change it). When you save a session with lab services, the order opens on its own, already filled in.",
+     "id": "workspace.btn.lab-order",
+     "kind": "btn",
+     "label": "Lab order",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {
      "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything.",

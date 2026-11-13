@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history + attachments)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id?, due_date? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED; script 172: al enviar (inicial → no final) sin fecha → DUE_DATE_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169, 170, 172 y 173.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).\n\n## Adjuntos (script 173)\n- POST /lab-orders/attachments/upload (multipart: order_id + archivos) → \"Attachements CRUD\" UPLOAD (attachments, source_name `lab_order`, Drive) → responde `[{ attachments, order_id }]`.\n- POST /lab-orders/attachments/delete `{ order_id, attachment_id }` → \"Attachements CRUD\" DELETE.\n- GET /lab-orders/attachment?order_id=&id= → el archivo (binario).\nErrores: NOT_FOUND, NO_FILES, TOO_MANY_FILES, INVALID_FILE_TYPE, FILE_TOO_LARGE, UPLOAD_FAILED, DELETE_FAILED.\nAl importar: si el id de \"Attachements CRUD\" no es TTwyLGp8Gg9qDKdn, elegirlo en \"Upload attachment\" y \"Delete attachment file\".",
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history + attachments)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id?, due_date? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED; script 172: al enviar (inicial → no final) sin fecha → DUE_DATE_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169, 170, 172 y 173.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).\n\n## Adjuntos (script 173)\n- POST /lab-orders/attachments/upload (multipart: order_id + archivos) → \"Attachements CRUD\" UPLOAD (attachments, source_name `lab_order`, Drive) → responde `[{ attachments, order_id }]`.\n- POST /lab-orders/attachments/delete `{ order_id, attachment_id }` → \"Attachements CRUD\" DELETE.\n- GET /lab-orders/attachment?order_id=&id= → el archivo (binario).\nErrores: NOT_FOUND, NO_FILES, TOO_MANY_FILES, INVALID_FILE_TYPE, FILE_TOO_LARGE, UPLOAD_FAILED, DELETE_FAILED.\nAl importar: si el id de \"Attachements CRUD\" no es TTwyLGp8Gg9qDKdn, elegirlo en \"Upload attachment\" y \"Delete attachment file\".\n\n**Aviso al paciente (script 174).** Después de cada cambio de etapa, `Ready alert (moved)` llama a `lab_order_ready_alert(id)`: si la regla LAB_ORDER_READY está activa y la orden quedó en una etapa final, crea la alerta y la despacha con los subflujos del Alert Scheduler (\"Alert Email Auto-Send\" / \"Alert WhatsApp Auto-Send\"), con los mismos interruptores (alert_email_auto_send_enabled, auto_send_email / auto_send_sms y plantilla de la regla).",
         "height": 520,
         "width": 900
       },
@@ -1339,6 +1339,332 @@
       ],
       "name": "Attachment file",
       "id": "422a602d-35d0-4303-b72e-f395fc0ccef0"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Aviso al paciente (regla LAB_ORDER_READY, script 174): solo si la regla está activa,\n-- la orden quedó en una etapa final y no tenía aviso por esta llegada.\nSELECT a AS alert FROM public.lab_order_ready_alert($1::integer) a;",
+        "options": {
+          "queryReplacement": "={{ [$json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1168,
+        2384
+      ],
+      "name": "Ready alert (moved)",
+      "id": "9c77680b-65c2-4be5-9f22-5b80411c0159",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a839d102-2ddd-4072-a55e-d6591474a714",
+              "leftValue": "={{ $json.alert?.email_auto_send_globally_enabled === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "77898e22-3a94-486a-96f5-04c96b7062ce",
+              "leftValue": "={{ $json.alert?.auto_send_email === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "984409a7-5f87-4c20-82f0-6fee07997872",
+              "leftValue": "={{ !!$json.alert?.email_template_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        2304
+      ],
+      "name": "Send ready email?",
+      "id": "7d9f77cb-a285-4b2a-a466-10bcf87c78f8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "694c8558-1db4-4cda-987e-c6137f1e05ba",
+              "leftValue": "={{ $json.alert?.auto_send_sms === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "560aa032-c4d3-422b-8f8f-14864b3d70c4",
+              "leftValue": "={{ !!$json.alert?.whatsapp_template_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        2480
+      ],
+      "name": "Send ready WhatsApp?",
+      "id": "69691f7b-88d6-4276-bf5f-6b0011a01ce4"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nR7gZAElUVF9m5Cs",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/nR7gZAElUVF9m5Cs",
+          "cachedResultName": "Alert Email Auto-Send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_instance_id": "={{ $json.alert.id }}",
+            "rule_id": "={{ $json.alert.rule_id }}",
+            "patient_id": "={{ $json.alert.patient_id }}",
+            "reference_table": "={{ $json.alert.reference_table }}",
+            "reference_id": "={{ $json.alert.reference_id }}",
+            "email_template_id": "={{ $json.alert.email_template_id }}",
+            "performed_by": "={{ $env.ALERT_SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000000' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "alert_instance_id",
+              "displayName": "alert_instance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "rule_id",
+              "displayName": "rule_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_table",
+              "displayName": "reference_table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_id",
+              "displayName": "reference_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "email_template_id",
+              "displayName": "email_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "performed_by",
+              "displayName": "performed_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        2304
+      ],
+      "id": "596df41b-d179-4942-b885-ed8911eb387e",
+      "name": "Send ready email",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WlxkMz1nFkh6cwJh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WlxkMz1nFkh6cwJh",
+          "cachedResultName": "Alert WhatsApp Auto-Send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_instance_id": "={{ $json.alert.id }}",
+            "rule_id": "={{ $json.alert.rule_id }}",
+            "patient_id": "={{ $json.alert.patient_id }}",
+            "reference_table": "={{ $json.alert.reference_table }}",
+            "reference_id": "={{ $json.alert.reference_id }}",
+            "whatsapp_template_id": "={{ $json.alert.whatsapp_template_id }}",
+            "performed_by": "={{ $env.ALERT_SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000000' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "alert_instance_id",
+              "displayName": "alert_instance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "rule_id",
+              "displayName": "rule_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_table",
+              "displayName": "reference_table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_id",
+              "displayName": "reference_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "whatsapp_template_id",
+              "displayName": "whatsapp_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "performed_by",
+              "displayName": "performed_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        2480
+      ],
+      "id": "d46a52d2-3603-4c5c-9072-a72ac859363a",
+      "name": "Send ready WhatsApp",
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -1506,6 +1832,11 @@
           },
           {
             "node": "Enter alerts (moved)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ready alert (moved)",
             "type": "main",
             "index": 0
           }
@@ -1919,6 +2250,46 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Ready alert (moved)": {
+      "main": [
+        [
+          {
+            "node": "Send ready email?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send ready WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send ready email?": {
+      "main": [
+        [
+          {
+            "node": "Send ready email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send ready WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Send ready WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

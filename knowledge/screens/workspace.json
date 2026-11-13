@@ -109,6 +109,10 @@
     "workspace.btn.prescribe": {
       "label": "Recetar"
     },
+    "workspace.btn.lab-order": {
+      "label": "Orden de laboratorio",
+      "description": "Crea una orden de laboratorio para el paciente de la cita, con el doctor ya elegido (solo quien edita órdenes puede cambiarlo). Al guardar una sesión con servicios de laboratorio, la orden se abre sola, ya cargada."
+    },
     "workspace.btn.agent-chat": {
       "label": "Consulta al agente",
       "description": "Agente clínico con IA de la cita."
