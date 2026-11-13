@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { AlertTriangle, ArrowRight, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X } from 'lucide-react';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,9 @@ import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
-import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import {
+  LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabStageBadge, labOrderWork, useLabOrderErrorText,
+} from '@/components/lab-orders/lab-order-shared';
 
 import { useDebounce } from '@/hooks/use-debounce';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
@@ -35,10 +38,10 @@ import { isAbortError } from '@/services/api';
 import { searchLabOrders } from '@/services/lab-orders';
 import { fetchLabStages } from '@/services/lab-stages';
 
-import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, LAB_ORDERS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import type { LabOrder, LabOrderFilters, LabOrderSort, LabStage } from '@/lib/types';
 
-/** Filtro de etapa: 'pending' (default) = todas las que no están en etapa final. */
+/** Filtro de etapa: 'all' (default, incluye las finalizadas); 'pending' = las que no están en etapa final. */
 type StageFilter = 'pending' | 'all' | `stage-${number}`;
 
 type ViewMode = 'list' | 'board';
@@ -49,6 +52,14 @@ const FINAL_DAYS_OPTIONS = [7, 30, 90] as const;
 interface PickedEntity {
   id: string;
   name: string;
+}
+
+interface FilterChip {
+  key: string;
+  label: string;
+  /** El tablero no lo aplica (etapa, paciente, fechas). */
+  listOnly: boolean;
+  onRemove: () => void;
 }
 
 function useIsMobile() {
@@ -103,7 +114,7 @@ export default function LabOrdersPage() {
   const [reloadKey, setReloadKey] = React.useState(0);
 
   const [search, setSearch] = React.useState('');
-  const [stageFilter, setStageFilter] = React.useState<StageFilter>('pending');
+  const [stageFilter, setStageFilter] = React.useState<StageFilter>('all');
   const [laboratory, setLaboratory] = React.useState<PickedEntity | null>(null);
   const [doctor, setDoctor] = React.useState<PickedEntity | null>(null);
   const [patient, setPatient] = React.useState<PickedEntity | null>(null);
@@ -126,6 +137,16 @@ export default function LabOrdersPage() {
     const id = Number(orderParam);
     if (Number.isInteger(id) && id > 0) setSelectedId(id);
   }, [orderParam]);
+
+  // Desde la ficha del paciente: /lab-orders?patient=<id> abre la lista con todas sus órdenes.
+  // El nombre del filtro se completa con el de sus órdenes (en la URL va solo el id).
+  const patientParam = searchParams.get('patient');
+  React.useEffect(() => {
+    if (!patientParam) return;
+    setPatient({ id: patientParam, name: '' });
+    setStageFilter('all');
+    setView('list');
+  }, [patientParam]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -180,6 +201,12 @@ export default function LabOrdersPage() {
     setBoardKey((k) => k + 1);
   };
 
+  React.useEffect(() => {
+    if (!patient || patient.name) return;
+    const match = orders.find((o) => o.patient_id === patient.id);
+    if (match) setPatient({ id: patient.id, name: match.patient_name });
+  }, [orders, patient]);
+
   // Cambios de otros usuarios (y el eco de los propios): se recarga lo que se ve.
   useLabOrdersLive(({ stagesChanged }) => {
     if (stagesChanged) setStagesKey((k) => k + 1);
@@ -188,18 +215,37 @@ export default function LabOrdersPage() {
 
   // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora etapa, paciente y fechas).
   const activeFilterCount = [
-    view === 'list' && stageFilter !== 'pending',
+    view === 'list' && stageFilter !== 'all',
     laboratory,
     doctor,
     view === 'list' && patient,
     view === 'list' && dateFrom,
     view === 'list' && dateTo,
   ].filter(Boolean).length;
-  const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || search || stageFilter !== 'pending');
+  const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || search || stageFilter !== 'all');
   const clearFilters = () => {
-    setSearch(''); setStageFilter('pending'); setLaboratory(null); setDoctor(null); setPatient(null);
+    setSearch(''); setStageFilter('all'); setLaboratory(null); setDoctor(null); setPatient(null);
     setDateFrom(''); setDateTo(''); setOverdueOnly(false);
   };
+
+  // Filtros del popover aplicados, a la vista como chips. En el tablero, los que no se aplican
+  // (etapa, paciente, fechas) quedan atenuados en vez de desaparecer.
+  const filterChips = ([
+    stageFilter !== 'all' && {
+      key: 'stage',
+      label: `${t('filters.stage')}: ${stageFilter === 'pending'
+        ? t('filters.pending')
+        : stages.find((s) => `stage-${s.id}` === stageFilter)?.name ?? ''}`,
+      listOnly: true,
+      onRemove: () => setStageFilter('all'),
+    },
+    laboratory && { key: 'laboratory', label: `${t('filters.laboratory')}: ${laboratory.name}`, listOnly: false, onRemove: () => setLaboratory(null) },
+    doctor && { key: 'doctor', label: `${t('filters.doctor')}: ${doctor.name}`, listOnly: false, onRemove: () => setDoctor(null) },
+    patient && { key: 'patient', label: `${t('filters.patient')}: ${patient.name}`, listOnly: true, onRemove: () => setPatient(null) },
+    dateFrom && { key: 'dateFrom', label: `${t('filters.createdFrom')}: ${formatDisplayDate(dateFrom)}`, listOnly: true, onRemove: () => setDateFrom('') },
+    dateTo && { key: 'dateTo', label: `${t('filters.createdTo')}: ${formatDisplayDate(dateTo)}`, listOnly: true, onRemove: () => setDateTo('') },
+  ]).filter((chip): chip is FilterChip => Boolean(chip));
+  const hasIgnoredChips = view === 'board' && filterChips.some((chip) => chip.listOnly);
 
   const columns = React.useMemo<ColumnDef<LabOrder>[]>(() => [
     {
@@ -216,7 +262,8 @@ export default function LabOrdersPage() {
     {
       accessorKey: 'laboratory_name',
       header: t('columns.laboratory'),
-      cell: ({ row }) => row.original.laboratory_name || <span className="text-muted-foreground">—</span>,
+      cell: ({ row }) => row.original.laboratory_name
+        || (row.original.is_pending ? <LabOrderNoLabBadge order={row.original} /> : <span className="text-muted-foreground">—</span>),
     },
     {
       id: 'work',
@@ -249,7 +296,12 @@ export default function LabOrdersPage() {
       accessorKey: 'due_date',
       header: t('columns.dueDate'),
       cell: ({ row }) => (row.original.due_date
-        ? <span className={cn(row.original.is_past_due && 'font-semibold text-destructive')}>{formatDisplayDate(row.original.due_date)}</span>
+        ? (
+          <div className="flex flex-col items-start gap-1">
+            <span className="whitespace-nowrap">{formatDisplayDate(row.original.due_date)}</span>
+            <LabOrderDueLabel order={row.original} onlySoon />
+          </div>
+        )
         : <span className="text-muted-foreground">—</span>),
     },
     {
@@ -272,7 +324,8 @@ export default function LabOrdersPage() {
           <div className="header-icon-circle mt-0.5">
             <FlaskConical className="h-5 w-5" />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col text-left">
+          {/* Ancho mínimo: en celular las acciones bajan a otra fila en vez de aplastar el título. */}
+          <div className="flex min-w-[11rem] flex-1 flex-col text-left">
             <CardTitle className="text-lg">{t('title')}</CardTitle>
             <CardDescription className="text-xs">{t('description')}</CardDescription>
           </div>
@@ -347,8 +400,8 @@ export default function LabOrdersPage() {
                     <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">{t('filters.pending')}</SelectItem>
                         <SelectItem value="all">{t('filters.allStages')}</SelectItem>
+                        <SelectItem value="pending">{t('filters.pending')}</SelectItem>
                         {stages.length > 0 && <SelectSeparator />}
                         {stages.map((stage) => (
                           <SelectItem key={stage.id} value={`stage-${stage.id}`}>
@@ -443,6 +496,36 @@ export default function LabOrdersPage() {
           </Popover>
         </div>
 
+        {filterChips.length > 0 && (
+          <div data-help-id="lab-orders.section.active-filters" className="-mt-1 flex flex-none flex-wrap items-center gap-1.5 pb-3">
+            {filterChips.map((chip) => {
+              const ignored = view === 'board' && chip.listOnly;
+              return (
+                <span
+                  key={chip.key}
+                  className={cn(
+                    'inline-flex max-w-full items-center gap-0.5 rounded-full border border-border bg-muted/40 py-0.5 pl-2.5 pr-0.5 text-xs',
+                    ignored && 'border-dashed bg-transparent text-muted-foreground',
+                  )}
+                >
+                  <span className="truncate">{chip.label}</span>
+                  {ignored && <span className="sr-only"> ({t('filters.notInBoardShort')})</span>}
+                  <button
+                    type="button"
+                    onClick={chip.onRemove}
+                    aria-label={t('filters.removeChip', { name: chip.label })}
+                    className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
+            {hasIgnoredChips && <span className="text-xs text-muted-foreground">{t('filters.notInBoard')}</span>}
+            <Button variant="link" size="sm" className="h-6 px-1 text-xs" onClick={clearFilters}>{t('filters.clear')}</Button>
+          </div>
+        )}
+
         {view === 'board' ? (
           <LabOrdersBoard
             stages={stages}
@@ -475,6 +558,14 @@ export default function LabOrdersPage() {
               rowCount={total}
               getRowId={(row) => String(row.id)}
               onRowClick={(row) => setSelectedId(row.id)}
+              emptyState={hasExtraFilters
+                ? (
+                  <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+                    <p>{t('empty.filtered')}</p>
+                    <Button variant="outline" size="sm" onClick={clearFilters}>{t('filters.clear')}</Button>
+                  </div>
+                )
+                : <LabOrdersEmptyState onCreate={() => setCreateOpen(true)} />}
               getRowClassName={(row) => cn(row.is_overdue && 'bg-destructive/5', row.id === selectedId && 'bg-primary/5')}
               isNarrow={isMobile || isRightOpen}
               renderCard={(row) => (
@@ -485,8 +576,12 @@ export default function LabOrdersPage() {
                   isSelected={row.id === selectedId}
                   showArrow
                   actions={(
-                    <div className="flex w-full items-center justify-between gap-2">
-                      <LabStageBadge name={row.stage_name} color={row.stage_color} />
+                    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <LabStageBadge name={row.stage_name} color={row.stage_color} />
+                        <LabOrderDueLabel order={row} onlySoon />
+                        <LabOrderNoLabBadge order={row} />
+                      </div>
                       <LabOrderDaysInStage order={row} />
                     </div>
                   )}
@@ -528,6 +623,47 @@ export default function LabOrdersPage() {
           setSelectedId(order.id);
         }}
       />
+    </div>
+  );
+}
+
+/** Lista vacía sin filtros: qué es esto, cómo empezar y qué conviene configurar antes. */
+function LabOrdersEmptyState({ onCreate }: { onCreate: () => void }) {
+  const t = useTranslations('LabOrdersPage.empty');
+  const locale = useLocale();
+  const setupLinks = [
+    { key: 'services', href: '/sales/services', permission: SALES_PERMISSIONS.SERVICES_VIEW_MENU },
+    { key: 'labs', href: '/config/provider-groups', permission: BUSINESS_CONFIG_PERMISSIONS.PROVIDER_GROUPS_VIEW_MENU },
+    { key: 'stages', href: '/config/lab-stages', permission: LAB_ORDERS_PERMISSIONS.STAGES_CONFIG },
+  ] as const;
+  return (
+    <div data-help-id="lab-orders.section.empty" className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-8 text-center">
+      <div className="header-icon-circle"><FlaskConical className="h-5 w-5" /></div>
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-foreground">{t('title')}</p>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
+      </div>
+      <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
+        <Button size="sm" className="gap-1.5" onClick={onCreate}>
+          <Plus className="h-4 w-4" />
+          {t('create')}
+        </Button>
+      </Can>
+      <div className="w-full space-y-1.5 border-t pt-3 text-left">
+        <p className="text-xs font-medium text-muted-foreground">{t('setupTitle')}</p>
+        <ul className="space-y-1">
+          {setupLinks.map((link) => (
+            <Can key={link.key} permission={link.permission}>
+              <li>
+                <Link href={`/${locale}${link.href}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  {t(`setup.${link.key}`)}
+                  <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                </Link>
+              </li>
+            </Can>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

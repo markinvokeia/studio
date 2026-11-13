@@ -7,8 +7,8 @@
     "config.lab-stages"
   ],
   "tips": [
-    "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
-    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Al pasar el puntero sobre los días se ve el motivo.",
+    "Por defecto la lista muestra todas las órdenes, también las que llegaron a una etapa final; el filtro Etapa permite ver solo las pendientes o una etapa en particular.",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
     "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
@@ -21,7 +21,7 @@
     },
     "lab-orders.section.filters": {
       "label": "Búsqueda y filtros",
-      "description": "Búsqueda por paciente, trabajo, laboratorio o número; «Solo atrasadas»; y el botón Filtros con etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, fechas de alta y orden."
+      "description": "Búsqueda por paciente, trabajo, laboratorio o número, y el botón Filtros con etapa (todas, pendientes o una en particular), laboratorio, doctor, paciente, fechas de alta y orden."
     },
     "lab-orders.field.overdue-only": {
       "label": "Solo atrasadas",
@@ -29,15 +29,15 @@
     },
     "lab-orders.section.detail-stage": {
       "label": "Etapa actual",
-      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada, con el motivo (días en la etapa o entrega vencida)."
+      "description": "Etapa en la que está la orden, los días que lleva ahí (en rojo si superó el máximo) y el motivo si está atrasada. Debajo, el progreso por las etapas y los botones para moverla."
     },
     "lab-orders.btn.move-to": {
-      "label": "Mover a…",
-      "description": "Cambia la orden de etapa. Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo."
+      "label": "Otra etapa…",
+      "description": "Menú con todas las demás etapas, para saltar etapas, volver atrás o cerrar la orden (por ejemplo, cancelarla). Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo."
     },
     "lab-orders.section.history": {
       "label": "Historial de etapas",
-      "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora."
+      "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora, y cuánto estuvo la orden en cada etapa («Estuvo 4 días»). El primero marca la etapa actual."
     },
     "lab-orders.btn.edit": {
       "label": "Editar",
@@ -53,7 +53,7 @@
     },
     "lab-orders.section.board": {
       "label": "Tablero",
-      "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio y días en la etapa, en rojo si están atrasadas. Las columnas se pueden colapsar."
+      "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio (o «Sin laboratorio»), entrega («Vencida hace N días» si pasó) y días en la etapa, en rojo si superó el máximo. Las columnas se pueden colapsar."
     },
     "lab-orders.field.final-days": {
       "label": "Columnas finales",
@@ -61,7 +61,7 @@
     },
     "lab-orders.section.detail": {
       "label": "Detalle de la orden",
-      "description": "Panel con la etapa actual, «Mover a…», los datos y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra."
+      "description": "Panel con la etapa actual, el progreso, «Pasar a…» y «Otra etapa…», el trabajo, los datos de la orden, las notas y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra."
     },
     "lab-orders.btn.filters": {
       "label": "Filtros",
@@ -102,6 +102,30 @@
     "lab-orders.section.choose-laboratory": {
       "label": "Elegir laboratorio",
       "description": "Aparece al mover a una etapa no final una orden que no tiene laboratorio: se elige (o se crea) y la orden cambia de etapa con ese laboratorio. A una etapa final se mueve sin pedirlo."
+    },
+    "lab-orders.section.active-filters": {
+      "label": "Filtros aplicados",
+      "description": "Un chip por cada filtro del botón Filtros que está aplicado; la ✕ lo quita y «Limpiar filtros» los quita todos. En el tablero, los que no se aplican ahí (etapa, paciente, fechas) se ven punteados."
+    },
+    "lab-orders.btn.open-patient": {
+      "label": "Ver en Pacientes",
+      "description": "Abre Pacientes buscando al paciente de la orden."
+    },
+    "lab-orders.btn.next-stage": {
+      "label": "Pasar a «siguiente etapa»",
+      "description": "Mueve la orden a la etapa que sigue en el orden configurado, con un clic. No aparece si ya está en una etapa final. Si no tiene laboratorio y la etapa no es final, primero pide elegirlo."
+    },
+    "lab-orders.section.stage-progress": {
+      "label": "Progreso",
+      "description": "Las etapas del circuito en orden: las ya pasadas con tilde, la actual resaltada y las que faltan en gris."
+    },
+    "lab-orders.section.detail-work": {
+      "label": "Trabajo",
+      "description": "Servicios pedidos con cantidad, piezas y nota de cada uno, o la descripción del trabajo si no hay servicios."
+    },
+    "lab-orders.section.empty": {
+      "label": "Sin órdenes",
+      "description": "Cuando todavía no hay órdenes y no hay filtros: botón Nueva orden y accesos para configurar el módulo (servicios de laboratorio, categorías de laboratorio y etapas)."
     }
   }
 }

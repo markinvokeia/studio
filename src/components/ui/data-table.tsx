@@ -111,6 +111,8 @@ interface DataTableProps<TData, TValue> {
    * button calls `onRefresh`.
    */
   loadError?: string | null;
+  /** Replaces the generic "no results" text when there are no rows (e.g. a call to action). */
+  emptyState?: React.ReactNode;
   /**
    * Open on the last page, scrolled to the bottom, so the final row is in view — for lists
    * sorted oldest-first where the most recent entry is what the user wants to see. Applied
@@ -192,6 +194,7 @@ export function DataTable<TData, TValue>({
   initialPageSize,
   footerRow,
   loadError,
+  emptyState,
   startAtEnd = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
@@ -428,7 +431,7 @@ export function DataTable<TData, TValue>({
           ) : loadError && data.length === 0 ? (
             <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
           ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
+            emptyState ?? <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
           )}
         </div>
       ) : null}
@@ -510,7 +513,7 @@ export function DataTable<TData, TValue>({
                 >
                   {loadError && data.length === 0
                     ? <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
-                    : t('noResults')}
+                    : emptyState ?? t('noResults')}
                 </TableCell>
               </TableRow>
             )}

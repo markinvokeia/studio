@@ -908,6 +908,11 @@ export interface LabOrderFilters {
   /** Default true: solo órdenes que no están en etapa final. Se ignora si se filtra por etapa. */
   pending_only?: boolean;
   overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
   /** Solo las que entraron a su etapa actual en los últimos N días ("Cargar más" de una columna final). */
   entered_within_days?: number;
   sort?: LabOrderSort;
@@ -922,6 +927,11 @@ export interface LabOrderBoardFilters {
   doctor_id?: string;
   service_id?: number;
   overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
   /** Tarjetas por columna (default 30). */
   per_column?: number;
   /** Las columnas finales muestran solo lo que llegó en los últimos N días (default 30). */

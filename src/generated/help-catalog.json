@@ -1,5 +1,5 @@
 {
- "version": "a222b1e8df80f8a6",
+ "version": "22d417ab1f6c3e73",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8047,10 +8047,10 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
-     "description": "Cambia la orden de etapa. Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
+     "description": "Menú con todas las demás etapas, para saltar etapas, volver atrás o cerrar la orden (por ejemplo, cancelarla). Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
      "id": "lab-orders.btn.move-to",
      "kind": "btn",
-     "label": "Mover a…",
+     "label": "Otra etapa…",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8059,6 +8059,20 @@
      "kind": "btn",
      "label": "Nueva orden",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Mueve la orden a la etapa que sigue en el orden configurado, con un clic. No aparece si ya está en una etapa final. Si no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
+     "id": "lab-orders.btn.next-stage",
+     "kind": "btn",
+     "label": "Pasar a «siguiente etapa»",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Abre Pacientes buscando al paciente de la orden.",
+     "id": "lab-orders.btn.open-patient",
+     "kind": "btn",
+     "label": "Ver en Pacientes",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
      "id": "lab-orders.btn.refresh",
@@ -8158,7 +8172,14 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio y días en la etapa, en rojo si están atrasadas. Las columnas se pueden colapsar.",
+     "description": "Un chip por cada filtro del botón Filtros que está aplicado; la ✕ lo quita y «Limpiar filtros» los quita todos. En el tablero, los que no se aplican ahí (etapa, paciente, fechas) se ven punteados.",
+     "id": "lab-orders.section.active-filters",
+     "kind": "section",
+     "label": "Filtros aplicados",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio (o «Sin laboratorio»), entrega («Vencida hace N días» si pasó) y días en la etapa, en rojo si superó el máximo. Las columnas se pueden colapsar.",
      "id": "lab-orders.section.board",
      "kind": "section",
      "label": "Tablero",
@@ -8172,7 +8193,7 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Panel con la etapa actual, «Mover a…», los datos y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra.",
+     "description": "Panel con la etapa actual, el progreso, «Pasar a…» y «Otra etapa…», el trabajo, los datos de la orden, las notas y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra.",
      "id": "lab-orders.section.detail",
      "kind": "section",
      "label": "Detalle de la orden",
@@ -8186,21 +8207,35 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada, con el motivo (días en la etapa o entrega vencida).",
+     "description": "Etapa en la que está la orden, los días que lleva ahí (en rojo si superó el máximo) y el motivo si está atrasada. Debajo, el progreso por las etapas y los botones para moverla.",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
      "label": "Etapa actual",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Búsqueda por paciente, trabajo, laboratorio o número; «Solo atrasadas»; y el botón Filtros con etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, fechas de alta y orden.",
+     "description": "Servicios pedidos con cantidad, piezas y nota de cada uno, o la descripción del trabajo si no hay servicios.",
+     "id": "lab-orders.section.detail-work",
+     "kind": "section",
+     "label": "Trabajo",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Cuando todavía no hay órdenes y no hay filtros: botón Nueva orden y accesos para configurar el módulo (servicios de laboratorio, categorías de laboratorio y etapas).",
+     "id": "lab-orders.section.empty",
+     "kind": "section",
+     "label": "Sin órdenes",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Búsqueda por paciente, trabajo, laboratorio o número, y el botón Filtros con etapa (todas, pendientes o una en particular), laboratorio, doctor, paciente, fechas de alta y orden.",
      "id": "lab-orders.section.filters",
      "kind": "section",
      "label": "Búsqueda y filtros",
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
-     "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora.",
+     "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora, y cuánto estuvo la orden en cada etapa («Estuvo 4 días»). El primero marca la etapa actual.",
      "id": "lab-orders.section.history",
      "kind": "section",
      "label": "Historial de etapas",
@@ -8212,6 +8247,13 @@
      "kind": "section",
      "label": "Servicios",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Las etapas del circuito en orden: las ya pasadas con tilde, la actual resaltada y las que faltan en gris.",
+     "id": "lab-orders.section.stage-progress",
+     "kind": "section",
+     "label": "Progreso",
+     "source": "src/components/lab-orders/lab-order-shared.tsx"
     },
     {
      "description": "La lista tiene todos los filtros; el tablero muestra una columna por etapa activa, en el orden configurado.",
@@ -8235,8 +8277,8 @@
    "status": "draft",
    "summary": "Órdenes enviadas a laboratorios externos.",
    "tips": [
-    "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
-    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Al pasar el puntero sobre los días se ve el motivo.",
+    "Por defecto la lista muestra todas las órdenes, también las que llegaron a una etapa final; el filtro Etapa permite ver solo las pendientes o una etapa en particular.",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
     "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
@@ -8841,6 +8883,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Mueve la orden a la etapa que sigue sin abrir el detalle. Si no tiene laboratorio y la etapa lo necesita, primero pregunta a cuál se envía.",
+     "id": "patients.btn.lab-order-next-stage",
+     "kind": "btn",
+     "label": "Pasar a la siguiente etapa",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "id": "patients.btn.ledger-add-payment",
      "kind": "btn",
      "label": "Registrar pago",
@@ -8990,6 +9039,13 @@
      "kind": "btn",
      "label": "Proponer",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el módulo de Órdenes de laboratorio en la lista, filtrado por este paciente.",
+     "id": "patients.btn.open-lab-orders",
+     "kind": "btn",
+     "label": "Ver en Órdenes de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
     },
     {
      "id": "patients.btn.plans-create-appointment",
@@ -9752,10 +9808,31 @@
      "source": "src/components/patients/patient-detail-header.tsx"
     },
     {
-     "description": "Por defecto solo las pendientes; «Mostrar finalizadas» suma las que llegaron a una etapa final. Un clic abre el detalle con «Mover a…» y el historial.",
+     "description": "Atrasadas, que vencen en 7 días o sin laboratorio. Aparecen solo si hay alguna; un clic filtra «En curso» y otro clic lo quita.",
+     "id": "patients.section.lab-order-alerts",
+     "kind": "section",
+     "label": "Avisos de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Las órdenes del paciente en dos grupos: «En curso», con el progreso por etapas, y «Finalizadas», plegado. Un clic en una tarjeta abre el detalle con el historial.",
      "id": "patients.section.lab-orders",
      "kind": "section",
      "label": "Órdenes de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Órdenes en una etapa final (entregada, cancelada…), con la fecha en que llegaron y cuántos días tomó en total. Se despliega con un clic.",
+     "id": "patients.section.lab-orders-finished",
+     "kind": "section",
+     "label": "Finalizadas",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Órdenes que todavía no llegaron a una etapa final, con el progreso por etapas, los días en la etapa y la entrega próxima o vencida.",
+     "id": "patients.section.lab-orders-in-progress",
+     "kind": "section",
+     "label": "En curso",
      "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
     },
     {

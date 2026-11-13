@@ -201,49 +201,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                 </FormItem>
               )} />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField control={form.control} name="doctor_id" render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t('form.doctor')}</FormLabel>
-                    <FormControl>
-                      <DoctorSelector
-                        value={field.value}
-                        selectedDoctorName={doctorName}
-                        onValueChange={(id, doctor) => {
-                          field.onChange(id);
-                          form.setValue('doctor_name', doctor?.name ?? '');
-                        }}
-                        placeholder={t('form.searchDoctor')}
-                        triggerText={t('form.selectDoctor')}
-                        disabled={save.isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="laboratory_id" render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t('form.laboratory')}</FormLabel>
-                    <FormControl>
-                      <LabSelector
-                        value={field.value}
-                        selectedName={laboratoryName}
-                        categoryIds={labCategoryIds}
-                        clearable
-                        onValueChange={(id, lab) => {
-                          field.onChange(id);
-                          form.setValue('laboratory_name', lab?.name ?? '', { shouldDirty: true });
-                        }}
-                        triggerText={t('form.selectLaboratory')}
-                        disabled={save.isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-
+              {/* Primero el trabajo: la categoría de los servicios filtra el selector de laboratorio. */}
               <section data-help-id="lab-orders.section.services" className="space-y-2">
                 <div>
                   <p className="text-sm font-medium">{t('form.services')}</p>
@@ -323,6 +281,51 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                   <FormMessage />
                 </FormItem>
               )} />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{t('form.doctor')}</FormLabel>
+                    <FormControl>
+                      <DoctorSelector
+                        value={field.value}
+                        selectedDoctorName={doctorName}
+                        onValueChange={(id, doctor) => {
+                          field.onChange(id);
+                          form.setValue('doctor_name', doctor?.name ?? '');
+                        }}
+                        placeholder={t('form.searchDoctor')}
+                        triggerText={t('form.selectDoctor')}
+                        disabled={save.isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="laboratory_id" render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{t('form.laboratory')}</FormLabel>
+                    <FormControl>
+                      <LabSelector
+                        value={field.value}
+                        selectedName={laboratoryName}
+                        categoryIds={labCategoryIds}
+                        clearable
+                        onValueChange={(id, lab) => {
+                          field.onChange(id);
+                          form.setValue('laboratory_name', lab?.name ?? '', { shouldDirty: true });
+                        }}
+                        triggerText={t('form.selectLaboratory')}
+                        disabled={save.isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {!hasItems && (

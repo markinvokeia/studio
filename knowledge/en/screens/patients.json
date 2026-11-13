@@ -230,11 +230,31 @@
     },
     "patients.section.lab-orders": {
       "label": "Lab orders",
-      "description": "Pending ones by default; “Show finished” adds the ones that reached a final stage. Click one to open its detail with “Move to…” and the history."
+      "description": "The patient’s orders in two groups: “In progress”, with the stage progress, and “Finished”, collapsed. Click a card to open its detail with the history."
     },
     "patients.btn.new-lab-order": {
       "label": "New order",
       "description": "Records a job sent to the lab for this patient. It starts in the initial stage."
+    },
+    "patients.section.lab-order-alerts": {
+      "label": "Lab alerts",
+      "description": "Overdue, due within 7 days or without a lab. Shown only when there are any; one click filters “In progress”, another click clears it."
+    },
+    "patients.section.lab-orders-in-progress": {
+      "label": "In progress",
+      "description": "Orders that haven’t reached a final stage yet, with the stage progress, days in the stage and the upcoming or past due date."
+    },
+    "patients.section.lab-orders-finished": {
+      "label": "Finished",
+      "description": "Orders in a final stage (delivered, cancelled…), with the date they got there and how many days it took in total. Expands with a click."
+    },
+    "patients.btn.lab-order-next-stage": {
+      "label": "Move to the next stage",
+      "description": "Moves the order to the following stage without opening the detail. If it has no lab and the stage needs one, it first asks where it is sent."
+    },
+    "patients.btn.open-lab-orders": {
+      "label": "View in Lab orders",
+      "description": "Opens the Lab orders module in list view, filtered by this patient."
     },
     "patients.tab.medical-instructions": {
       "label": "Instructions",

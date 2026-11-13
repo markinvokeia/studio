@@ -1,14 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, ArrowRight, FlaskConical, Maximize2, Minimize2, Pencil, Trash2, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { AlertTriangle, ArrowRight, ChevronDown, ExternalLink, FlaskConical, Maximize2, Minimize2, Pencil, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +18,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Can } from '@/components/auth/Can';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
-import { LabOrderDaysInStage, LabStageBadge, labOrderWork, useLabOrderErrorText, useLabOrderOverdueReasons } from '@/components/lab-orders/lab-order-shared';
+import {
+  LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabStageBadge, LabStageProgress, labOrderWork, nextLabStage,
+  useLabOrderErrorText, useLabOrderOverdueReasons, useLabStayText,
+} from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
@@ -27,8 +31,10 @@ import { cn, formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, deleteLabOrder, fetchLabOrderDetail } from '@/services/lab-orders';
 
-import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
+import { LAB_ORDERS_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import type { LabOrder, LabOrderDetail, LabStage } from '@/lib/types';
+
+const SECTION_TITLE = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 export interface LabOrderDetailSheetProps {
   /** Orden a mostrar; null cierra el panel. */
@@ -38,6 +44,8 @@ export interface LabOrderDetailSheetProps {
   onClose: () => void;
   /** Después de editar, mover o eliminar (null) — para refrescar la lista. */
   onChanged: (order: LabOrder | null) => void;
+  /** Solo lectura (historia clínica sin permiso de escritura): sin editar, eliminar ni mover. */
+  readOnly?: boolean;
 }
 
 export interface LabOrderDetailPanelProps extends LabOrderDetailSheetProps {
@@ -58,9 +66,10 @@ export function LabOrderDetailSheet(props: LabOrderDetailSheetProps) {
 
 /** Detalle de una orden: datos, "Mover a…" (alternativa al arrastre, también en celular) e historial de etapas. */
 function LabOrderDetailView({
-  orderId, stages, onClose, onChanged, isExpanded, onToggleExpanded, variant,
+  orderId, stages, onClose, onChanged, isExpanded, onToggleExpanded, variant, readOnly = false,
 }: LabOrderDetailPanelProps & { variant: 'panel' | 'sheet' }) {
   const t = useTranslations('LabOrdersPage');
+  const locale = useLocale();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const errorText = useLabOrderErrorText();
@@ -94,10 +103,13 @@ function LabOrderDetailView({
   // Orden sin laboratorio que va a una etapa no final: primero se elige a dónde se envía.
   const [labRequest, setLabRequest] = React.useState<LabOrderLaboratoryRequest | null>(null);
   const moveTargetRef = React.useRef<number | null>(null);
+  /** Etapa destino del movimiento en curso: qué botón muestra el "cargando". */
+  const [movingTo, setMovingTo] = React.useState<number | null>(null);
 
   const move = useAsyncAction(
     ({ toStageId, laboratoryId }: { toStageId: number; laboratoryId?: string }) => {
       moveTargetRef.current = toStageId;
+      setMovingTo(toStageId);
       return changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, laboratoryId);
     },
     {
@@ -133,8 +145,22 @@ function LabOrderDetailView({
     },
   );
 
-  const canChangeStage = hasPermission(LAB_ORDERS_PERMISSIONS.CHANGE_STAGE);
+  const canChangeStage = !readOnly && hasPermission(LAB_ORDERS_PERMISSIONS.CHANGE_STAGE);
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
+  const nextStage = detail ? nextLabStage(stages, detail.current_stage_id) : null;
+  const stayText = useLabStayText();
+  const detailHistory = detail?.history;
+  const history = React.useMemo(
+    () => [...(detailHistory ?? [])].sort((a, b) => b.changed_at.localeCompare(a.changed_at) || b.id - a.id),
+    [detailHistory],
+  );
+
+  // Sin laboratorio y hacia una etapa no final: primero se pregunta a qué laboratorio va.
+  const requestMove = (target: LabStage) => {
+    if (!detail) return;
+    if (labOrderNeedsLaboratory(detail, target)) setLabRequest({ order: detail, stage: target });
+    else move.run({ toStageId: target.id });
+  };
 
   const title = detail ? detail.patient_name : t('detail.loading');
   const subtitle = detail ? `#${detail.id} · ${labOrderWork(detail)}` : ' ';
@@ -170,105 +196,159 @@ function LabOrderDetailView({
             {overdueReasons(detail).map((reason) => (
               <p key={reason} className="text-xs text-destructive">{reason}</p>
             ))}
-            {canChangeStage && (
-              <Select
-                value=""
-                onValueChange={(value) => {
-                  const target = stages.find((s) => s.id === Number(value));
-                  if (target && labOrderNeedsLaboratory(detail, target)) setLabRequest({ order: detail, stage: target });
-                  else move.run({ toStageId: Number(value) });
-                }}
-                disabled={move.isPending || moveTargets.length === 0}
-              >
-                <SelectTrigger data-help-id="lab-orders.btn.move-to" className="h-9" aria-label={t('moveTo')}>
-                  <SelectValue placeholder={move.isPending ? t('moving') : t('moveTo')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {moveTargets.map((stage) => (
-                    <SelectItem key={stage.id} value={String(stage.id)}>
-                      <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
+            <LabStageProgress stages={stages} currentStageId={detail.current_stage_id} className="pt-1" />
+            {canChangeStage && moveTargets.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {nextStage && (
+                  <Button
+                    data-help-id="lab-orders.btn.next-stage"
+                    size="sm"
+                    className="h-9 min-w-0 flex-1 gap-1.5"
+                    onClick={() => requestMove(nextStage)}
+                    loading={move.isPending && movingTo === nextStage.id}
+                    disabled={move.isPending}
+                  >
+                    <span className="truncate">{t('nextStage', { stage: nextStage.name })}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0" />
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      data-help-id="lab-orders.btn.move-to"
+                      size="sm"
+                      variant="outline"
+                      className={cn('h-9 gap-1.5', !nextStage && 'flex-1')}
+                      disabled={move.isPending}
+                      loading={move.isPending && movingTo !== nextStage?.id}
+                    >
+                      {nextStage ? t('otherStage') : t('moveTo')}
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {moveTargets.map((stage) => (
+                      <DropdownMenuItem key={stage.id} onSelect={() => requestMove(stage)}>
+                        <span className="mr-2 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stage.color }} />
                         {stage.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </section>
 
-          <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">{t('columns.laboratory')}</dt>
-            <dd className="truncate">{detail.laboratory_name || '—'}</dd>
-            <dt className="text-muted-foreground">{t('columns.doctor')}</dt>
-            <dd className="truncate">{detail.doctor_name || '—'}</dd>
+          <section data-help-id="lab-orders.section.detail-work" className="space-y-2">
+            <h3 className={SECTION_TITLE}>{t('columns.work')}</h3>
             {detail.items.length > 0 && (
-              <>
-                <dt className="text-muted-foreground">{t('detail.services')}</dt>
-                <dd>
-                  <ul data-help-id="lab-orders.section.detail-services" className="space-y-1.5">
-                    {detail.items.map((item) => (
-                      <li key={item.id} className="min-w-0">
-                        <p className="break-words font-medium">
-                          {item.service_name}
-                          {item.quantity > 1 && <span className="font-normal text-muted-foreground"> ×{item.quantity}</span>}
-                        </p>
-                        {(item.teeth.length > 0 || item.notes) && (
-                          <p className="break-words text-xs text-muted-foreground">
-                            {[item.teeth.length > 0 ? t('teethShort', { teeth: item.teeth.join(', ') }) : null, item.notes]
-                              .filter(Boolean).join(' · ')}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </>
+              <ul data-help-id="lab-orders.section.detail-services" className="space-y-1.5">
+                {detail.items.map((item) => (
+                  <li key={item.id} className="min-w-0 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                    <p className="break-words font-medium">
+                      {item.service_name}
+                      {item.quantity > 1 && <span className="font-normal text-muted-foreground"> ×{item.quantity}</span>}
+                    </p>
+                    {(item.teeth.length > 0 || item.notes) && (
+                      <p className="break-words text-xs text-muted-foreground">
+                        {[item.teeth.length > 0 ? t('teethShort', { teeth: item.teeth.join(', ') }) : null, item.notes]
+                          .filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
-            {(detail.work_description || detail.items.length === 0) && (
-              <>
-                <dt className="text-muted-foreground">{detail.items.length > 0 ? t('detail.description') : t('columns.work')}</dt>
-                <dd className="whitespace-pre-wrap break-words">{detail.work_description || '—'}</dd>
-              </>
+            {detail.work_description && (
+              <p className="whitespace-pre-wrap break-words text-sm">
+                {detail.items.length > 0 && <span className="text-muted-foreground">{t('detail.description')}: </span>}
+                {detail.work_description}
+              </p>
             )}
-            <dt className="text-muted-foreground">{t('form.teeth')}</dt>
-            <dd>{detail.teeth.length > 0 ? detail.teeth.join(', ') : '—'}</dd>
-            <dt className="text-muted-foreground">{t('form.dueDate')}</dt>
-            <dd className={cn(detail.is_past_due && 'font-medium text-destructive')}>
-              {detail.due_date ? formatDisplayDate(detail.due_date) : '—'}
-              {detail.is_past_due && ` · ${t('pastDue')}`}
-            </dd>
-            <dt className="text-muted-foreground">{t('form.notes')}</dt>
-            <dd className="whitespace-pre-wrap break-words">{detail.notes || '—'}</dd>
-            <dt className="text-muted-foreground">{t('columns.createdAt')}</dt>
-            <dd>{formatUtcDateTime(detail.created_at)}{detail.created_by_name ? ` · ${detail.created_by_name}` : ''}</dd>
-          </dl>
+            {/* Con servicios, las piezas ya van en cada uno: acá solo cuando no hay. */}
+            {detail.items.length === 0 && detail.teeth.length > 0 && (
+              <p className="text-sm text-muted-foreground">{t('teethShort', { teeth: detail.teeth.join(', ') })}</p>
+            )}
+          </section>
+
+          <section className="space-y-2">
+            <h3 className={SECTION_TITLE}>{t('detail.sectionOrder')}</h3>
+            <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">{t('columns.patient')}</dt>
+              <dd className="flex min-w-0 flex-wrap items-center gap-x-2">
+                <span className="truncate">{detail.patient_name}</span>
+                {/* Desde la ficha del paciente (sheet) ya se está en el paciente. */}
+                {variant === 'panel' && (
+                  <Can permission={PATIENTS_PERMISSIONS.VIEW_LIST}>
+                    <Link
+                      data-help-id="lab-orders.btn.open-patient"
+                      href={`/${locale}/patients?q=${encodeURIComponent(detail.patient_name)}`}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      {t('detail.openPatient')}
+                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </Link>
+                  </Can>
+                )}
+              </dd>
+              <dt className="text-muted-foreground">{t('columns.laboratory')}</dt>
+              <dd className="truncate">
+                {detail.laboratory_name || (detail.is_pending ? <LabOrderNoLabBadge order={detail} /> : '—')}
+              </dd>
+              <dt className="text-muted-foreground">{t('columns.doctor')}</dt>
+              <dd className="truncate">{detail.doctor_name || '—'}</dd>
+              <dt className="text-muted-foreground">{t('form.dueDate')}</dt>
+              <dd className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>{detail.due_date ? formatDisplayDate(detail.due_date) : '—'}</span>
+                <LabOrderPastDueBadge order={detail} />
+              </dd>
+            </dl>
+          </section>
+
+          {detail.notes && (
+            <section className="space-y-2">
+              <h3 className={SECTION_TITLE}>{t('form.notes')}</h3>
+              <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm">{detail.notes}</p>
+            </section>
+          )}
 
           <section data-help-id="lab-orders.section.history" className="space-y-2">
-            <h3 className="text-sm font-semibold">{t('detail.history')}</h3>
+            <h3 className={SECTION_TITLE}>{t('detail.history')}</h3>
             <ol className="space-y-2">
-              {detail.history.map((entry) => (
-                <li key={entry.id} className="rounded-lg border border-border bg-card px-3 py-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {entry.from_stage_name ? (
-                      <>
-                        <LabStageBadge name={entry.from_stage_name} color={entry.from_stage_color || '#64748b'} />
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                      </>
-                    ) : (
-                      <span className="text-xs font-medium text-muted-foreground">{t('detail.created')}</span>
-                    )}
-                    <LabStageBadge name={entry.to_stage_name} color={entry.to_stage_color} />
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatUtcDateTime(entry.changed_at)}
-                    {entry.changed_by_name ? ` · ${entry.changed_by_name}` : ''}
-                    {entry.note === 'stage_deactivated' ? ` · ${t('detail.byStageDeactivation')}` : entry.note ? ` · ${entry.note}` : ''}
-                  </p>
-                </li>
-              ))}
+              {history.map((entry, index) => {
+                // El historial va del más nuevo al más viejo: el siguiente movimiento es el anterior en la lista.
+                const isCurrent = index === 0 && entry.to_stage_id === detail.current_stage_id;
+                const stay = index > 0 ? stayText(entry.changed_at, history[index - 1].changed_at) : null;
+                return (
+                  <li key={entry.id} className="rounded-lg border border-border bg-card px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {entry.from_stage_name ? (
+                        <>
+                          <LabStageBadge name={entry.from_stage_name} color={entry.from_stage_color || '#64748b'} />
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                        </>
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground">{t('detail.created')}</span>
+                      )}
+                      <LabStageBadge name={entry.to_stage_name} color={entry.to_stage_color} />
+                      {isCurrent && (
+                        <span className="ml-auto text-xs font-medium text-primary">
+                          {t('detail.current', { days: t('daysInStage', { count: detail.days_in_stage }) })}
+                        </span>
+                      )}
+                      {stay && <span className="ml-auto text-xs font-medium text-muted-foreground">{stay}</span>}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatUtcDateTime(entry.changed_at)}
+                      {entry.changed_by_name ? ` · ${entry.changed_by_name}` : ''}
+                      {entry.note === 'stage_deactivated' ? ` · ${t('detail.byStageDeactivation')}` : entry.note ? ` · ${entry.note}` : ''}
+                    </p>
+                  </li>
+                );
+              })}
             </ol>
           </section>
+
         </>
       )}
     </>
@@ -382,7 +462,7 @@ function LabOrderDetailView({
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">{body}</div>
 
-        {detail && (
+        {detail && !readOnly && (
           <div className="flex items-center justify-end gap-2 border-t px-5 py-3">
             <Can permission={LAB_ORDERS_PERMISSIONS.DELETE}>
               <Button

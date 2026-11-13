@@ -5,18 +5,20 @@ import {
   DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, useDraggable, useDroppable, useSensor, useSensors,
   type Announcements, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
-import { ChevronLeft, ChevronRight, GripVertical, Loader2, MoreVertical } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, GripVertical, Loader2, MoreVertical } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { LabOrderDaysInStage, labOrderWork, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
+import {
+  LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, labOrderWork, nextLabStage, useLabOrderErrorText,
+} from '@/components/lab-orders/lab-order-shared';
 import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatDisplayDate } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, fetchLabOrdersBoard, searchLabOrders } from '@/services/lab-orders';
 
@@ -435,6 +437,7 @@ function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }:
     disabled: !canChangeStage || isPending,
   });
   const targets = stages.filter((s) => s.id !== order.current_stage_id);
+  const next = nextLabStage(stages, order.current_stage_id);
 
   return (
     <div
@@ -474,6 +477,15 @@ function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }:
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              {next && (
+                <>
+                  <DropdownMenuItem onSelect={() => onMove(next.id)} className="font-medium">
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    {t('nextStage', { stage: next.name })}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {targets.map((stage) => (
@@ -491,7 +503,6 @@ function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }:
 }
 
 function CardBody({ order, isPending, className, children }: { order: LabOrder; isPending?: boolean; className?: string; children?: React.ReactNode }) {
-  const t = useTranslations('LabOrdersPage');
   return (
     <div
       className={cn(
@@ -506,17 +517,15 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{order.patient_name}</p>
           <p className="truncate text-xs text-muted-foreground">{labOrderWork(order)}</p>
-          {order.laboratory_name && <p className="truncate text-xs text-muted-foreground">{order.laboratory_name}</p>}
+          {order.laboratory_name
+            ? <p className="truncate text-xs text-muted-foreground">{order.laboratory_name}</p>
+            : <LabOrderNoLabBadge order={order} className="mt-1" />}
         </div>
         {children}
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2 pl-5">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pl-5">
         <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
-        {order.due_date && order.is_pending && (
-          <span className={cn('truncate text-[11px]', order.is_past_due ? 'font-semibold text-destructive' : 'text-muted-foreground')}>
-            {t('dueShort', { date: formatDisplayDate(order.due_date) })}
-          </span>
-        )}
+        <LabOrderDueLabel order={order} />
         {order.is_pending && <LabOrderDaysInStage order={order} />}
       </div>
     </div>

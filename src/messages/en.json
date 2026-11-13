@@ -10498,7 +10498,6 @@
     "saved": "Stages saved",
     "saveError": "Could not save the stages",
     "discard": "Discard changes",
-    "discardConfirm": "Discard unsaved changes?",
     "add": "Add stage",
     "columns": {
       "color": "Color",
@@ -10622,6 +10621,12 @@
         "whatsappTemplate": "Choose the WhatsApp template.",
         "invalidRepeat": "Repeat days must be greater than 0."
       }
+    },
+    "discardDialog": {
+      "title": "Discard changes?",
+      "description": "Unsaved changes to the stages will be lost.",
+      "confirm": "Discard",
+      "cancel": "Keep editing"
     }
   },
   "LabOrdersPage": {
@@ -10636,15 +10641,12 @@
     "deleteError": "Could not delete the order",
     "retry": "Retry",
     "stagesLoadError": "Could not load the stages",
-    "overdue": "Overdue",
-    "pastDue": "Delivery overdue",
     "overdueHint": "More than {days, plural, one {# day} other {# days}} in this stage",
     "pastDueHint": "Delivery overdue by {days, plural, one {# day} other {# days}} ({date})",
     "daysInStage": "{count, plural, =0 {Today} one {# day} other {# days}}",
     "teethShort": "Teeth {teeth}",
     "dueShort": "Due {date}",
     "moveTo": "Move to…",
-    "moving": "Moving…",
     "errors": {
       "NO_INITIAL_STAGE": "There is no initial stage set up. Set it up in Business Setup → Lab Stages.",
       "NOT_FOUND": "The order no longer exists.",
@@ -10683,9 +10685,12 @@
       "createdFrom": "Created from",
       "createdTo": "Created to",
       "sort": "Sort by",
-      "overdueOnly": "Overdue only",
       "clear": "Clear filters",
-      "more": "Filters"
+      "more": "Filters",
+      "notInBoard": "Dashed filters don't apply on the board.",
+      "notInBoardShort": "doesn't apply on the board",
+      "removeChip": "Remove filter: {name}",
+      "overdueOnly": "Overdue only"
     },
     "sort": {
       "created_desc": "Newest first",
@@ -10712,7 +10717,7 @@
       "teethPlaceholder": "E.g. 16, 21",
       "teethHint": "FDI numbers separated by commas.",
       "dueDate": "Expected delivery",
-      "dueDateHint": "Date promised by the lab. Overdue status is measured per stage.",
+      "dueDateHint": "Date promised by the lab. If it passes before the order reaches a final stage, the order is marked overdue.",
       "notes": "Notes",
       "notesPlaceholder": "Shade, material, instructions for the lab…",
       "cancel": "Cancel",
@@ -10749,8 +10754,14 @@
       "expand": "Expand",
       "restore": "Restore",
       "close": "Close",
-      "services": "Services",
-      "description": "Description"
+      "description": "Description",
+      "openPatient": "Open in Patients",
+      "progress": "Progress",
+      "sectionOrder": "Order details",
+      "current": "Current · {days}",
+      "stayedDays": "{days, plural, one {Stayed # day} other {Stayed # days}}",
+      "stayedHours": "{hours, plural, one {Stayed # hour} other {Stayed # hours}}",
+      "stayedLessThanHour": "Stayed less than an hour"
     },
     "deleteDialog": {
       "title": "Delete order",
@@ -10759,9 +10770,19 @@
       "confirm": "Delete"
     },
     "patientTab": {
-      "showFinished": "Show finished",
-      "empty": "This patient has no lab orders.",
-      "emptyPending": "This patient has no pending lab orders."
+      "subtitle": "{pending} in progress · {finished} finished",
+      "inProgress": "In progress",
+      "finished": "Finished",
+      "noneInProgress": "No orders in progress.",
+      "emptyTitle": "No lab orders",
+      "emptyHint": "Record the work sent to the lab (crowns, prostheses, splints…) to track which stage each one is in.",
+      "alertsLabel": "Alerts for orders in progress",
+      "alertOverdue": "{count} overdue",
+      "alertDueSoon": "{count} due within 7 days",
+      "alertNoLab": "{count} without a lab",
+      "showAll": "Show all",
+      "finishedOn": "Since {date} · {days, plural, =0 {done the same day} one {# day in total} other {# days in total}}",
+      "openModule": "View in Lab orders"
     },
     "loadMoreError": "Could not load more orders",
     "view": {
@@ -10814,6 +10835,28 @@
       "hint": "Only laboratories are listed. If it is missing you can create it here.",
       "cancel": "Cancel",
       "confirm": "Move to {stage}"
+    },
+    "pastDueBadge": "{days, plural, one {# day past due} other {# days past due}}",
+    "stageOverdueMax": "max {days}",
+    "noLaboratory": "No lab",
+    "noLaboratoryHint": "You'll be asked for the lab when moving it to a non-final stage.",
+    "daysOverLimit": "Over {days, plural, one {# day} other {# days}}",
+    "nextStage": "Move to “{stage}”",
+    "otherStage": "Other stage…",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "dueInDays": "{days, plural, one {Due in # day} other {Due in # days}}",
+    "empty": {
+      "filtered": "No orders match the filters.",
+      "title": "No lab orders yet",
+      "description": "Record every job you send to a lab to see which stage it is in and know when it runs late.",
+      "create": "New order",
+      "setupTitle": "Module setup",
+      "setup": {
+        "services": "Mark services as lab work",
+        "labs": "Group labs by category",
+        "stages": "Set up the stages"
+      }
     }
   },
   "PatientPortalConfigPage": {

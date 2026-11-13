@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -257,9 +258,10 @@ export default function LabStagesConfigPage() {
     });
   };
 
+  const [discardOpen, setDiscardOpen] = React.useState(false);
   const discard = () => {
-    if (!window.confirm(t('discardConfirm'))) return;
     setStages(JSON.parse(initialJson) as DraftStage[]);
+    setDiscardOpen(false);
   };
 
   const moveDialogStage = stages.find((s) => s.key === moveDialogKey) ?? null;
@@ -303,7 +305,7 @@ export default function LabStagesConfigPage() {
         actions={
           <Can permission={LAB_ORDERS_PERMISSIONS.STAGES_CONFIG}>
             <div className="flex items-center gap-2">
-              <Button data-help-id="config.lab-stages.btn.discard" variant="outline" onClick={discard} disabled={!isDirty || busy} className="gap-1.5">
+              <Button data-help-id="config.lab-stages.btn.discard" variant="outline" onClick={() => setDiscardOpen(true)} disabled={!isDirty || busy} className="gap-1.5">
                 <RotateCcw className="h-4 w-4" />
                 {t('discard')}
               </Button>
@@ -417,6 +419,17 @@ export default function LabStagesConfigPage() {
         onRetryOptions={() => setAlertOptionsKey((k) => k + 1)}
         disabled={busy}
         onApply={(alerts) => { if (alertsDialogKey) update(alertsDialogKey, { alerts }); }}
+      />
+
+      <ConfirmActionDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title={t('discardDialog.title')}
+        description={t('discardDialog.description')}
+        cancelLabel={t('discardDialog.cancel')}
+        confirmLabel={t('discardDialog.confirm')}
+        onConfirm={discard}
+        isPending={false}
       />
 
       <MoveOrdersDialog

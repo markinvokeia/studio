@@ -266,11 +266,31 @@
     },
     "patients.section.lab-orders": {
       "label": "Órdenes de laboratorio",
-      "description": "Por defecto solo las pendientes; «Mostrar finalizadas» suma las que llegaron a una etapa final. Un clic abre el detalle con «Mover a…» y el historial."
+      "description": "Las órdenes del paciente en dos grupos: «En curso», con el progreso por etapas, y «Finalizadas», plegado. Un clic en una tarjeta abre el detalle con el historial."
     },
     "patients.btn.new-lab-order": {
       "label": "Nueva orden",
       "description": "Registra un trabajo enviado al laboratorio para este paciente. Entra en la etapa inicial."
+    },
+    "patients.section.lab-order-alerts": {
+      "label": "Avisos de laboratorio",
+      "description": "Atrasadas, que vencen en 7 días o sin laboratorio. Aparecen solo si hay alguna; un clic filtra «En curso» y otro clic lo quita."
+    },
+    "patients.section.lab-orders-in-progress": {
+      "label": "En curso",
+      "description": "Órdenes que todavía no llegaron a una etapa final, con el progreso por etapas, los días en la etapa y la entrega próxima o vencida."
+    },
+    "patients.section.lab-orders-finished": {
+      "label": "Finalizadas",
+      "description": "Órdenes en una etapa final (entregada, cancelada…), con la fecha en que llegaron y cuántos días tomó en total. Se despliega con un clic."
+    },
+    "patients.btn.lab-order-next-stage": {
+      "label": "Pasar a la siguiente etapa",
+      "description": "Mueve la orden a la etapa que sigue sin abrir el detalle. Si no tiene laboratorio y la etapa lo necesita, primero pregunta a cuál se envía."
+    },
+    "patients.btn.open-lab-orders": {
+      "label": "Ver en Órdenes de laboratorio",
+      "description": "Abre el módulo de Órdenes de laboratorio en la lista, filtrado por este paciente."
     },
     "patients.tab.medical-instructions": {
       "label": "Indicaciones",

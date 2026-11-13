@@ -10498,7 +10498,6 @@
     "saved": "Etapas guardadas",
     "saveError": "No se han podido guardar las etapas",
     "discard": "Descartar cambios",
-    "discardConfirm": "¿Seguro que quieres descartar los cambios sin guardar?",
     "add": "Añadir etapa",
     "columns": {
       "color": "Color",
@@ -10622,6 +10621,12 @@
         "whatsappTemplate": "Elige la plantilla de WhatsApp.",
         "invalidRepeat": "Los días de repetición tienen que ser mayores que 0."
       }
+    },
+    "discardDialog": {
+      "title": "¿Descartar los cambios?",
+      "description": "Se perderán los cambios que no has guardado en las etapas.",
+      "confirm": "Descartar",
+      "cancel": "Seguir editando"
     }
   },
   "LabOrdersPage": {
@@ -10636,15 +10641,12 @@
     "deleteError": "No se ha podido eliminar la orden",
     "retry": "Reintentar",
     "stagesLoadError": "No se han podido cargar las etapas",
-    "overdue": "Retrasada",
-    "pastDue": "Entrega vencida",
     "overdueHint": "Más de {days, plural, one {# día} other {# días}} en esta etapa",
     "pastDueHint": "Entrega vencida hace {days, plural, one {# día} other {# días}} ({date})",
     "daysInStage": "{count, plural, =0 {Hoy} one {# día} other {# días}}",
     "teethShort": "Piezas {teeth}",
     "dueShort": "Entrega {date}",
     "moveTo": "Mover a…",
-    "moving": "Moviendo…",
     "errors": {
       "NO_INITIAL_STAGE": "No hay etapa inicial configurada. Configúrala en Configuración de Negocio → Etapas de Laboratorio.",
       "NOT_FOUND": "La orden ya no existe.",
@@ -10683,9 +10685,12 @@
       "createdFrom": "Alta desde",
       "createdTo": "Alta hasta",
       "sort": "Ordenar por",
-      "overdueOnly": "Solo retrasadas",
       "clear": "Limpiar filtros",
-      "more": "Filtros"
+      "more": "Filtros",
+      "notInBoard": "Los punteados no se aplican en el tablero.",
+      "notInBoardShort": "no se aplica en el tablero",
+      "removeChip": "Quitar filtro: {name}",
+      "overdueOnly": "Solo retrasadas"
     },
     "sort": {
       "created_desc": "Más recientes",
@@ -10712,7 +10717,7 @@
       "teethPlaceholder": "Ej.: 16, 21",
       "teethHint": "Números FDI separados por comas.",
       "dueDate": "Entrega estimada",
-      "dueDateHint": "Fecha que prometió el laboratorio. El retraso se mide por etapa.",
+      "dueDateHint": "Fecha que prometió el laboratorio. Si pasa y la orden no ha llegado a una etapa final, queda retrasada.",
       "notes": "Notas",
       "notesPlaceholder": "Color, material, indicaciones para el laboratorio…",
       "cancel": "Cancelar",
@@ -10749,8 +10754,14 @@
       "expand": "Expandir",
       "restore": "Restaurar",
       "close": "Cerrar",
-      "services": "Servicios",
-      "description": "Descripción"
+      "description": "Descripción",
+      "openPatient": "Ver en Pacientes",
+      "progress": "Progreso",
+      "sectionOrder": "Datos de la orden",
+      "current": "Actual · {days}",
+      "stayedDays": "{days, plural, one {Estuvo # día} other {Estuvo # días}}",
+      "stayedHours": "{hours, plural, one {Estuvo # hora} other {Estuvo # horas}}",
+      "stayedLessThanHour": "Estuvo menos de una hora"
     },
     "deleteDialog": {
       "title": "Eliminar orden",
@@ -10759,9 +10770,19 @@
       "confirm": "Eliminar"
     },
     "patientTab": {
-      "showFinished": "Mostrar finalizadas",
-      "empty": "Este paciente no tiene órdenes de laboratorio.",
-      "emptyPending": "Este paciente no tiene órdenes de laboratorio pendientes."
+      "subtitle": "{pending} en curso · {finished, plural, one {# finalizada} other {# finalizadas}}",
+      "inProgress": "En curso",
+      "finished": "Finalizadas",
+      "noneInProgress": "No hay órdenes en curso.",
+      "emptyTitle": "Sin órdenes de laboratorio",
+      "emptyHint": "Registra aquí los trabajos que se envían al laboratorio (coronas, prótesis, férulas…) para seguir en qué etapa está cada uno.",
+      "alertsLabel": "Avisos de las órdenes en curso",
+      "alertOverdue": "{count, plural, one {# atrasada} other {# atrasadas}}",
+      "alertDueSoon": "{count, plural, one {# vence en 7 días} other {# vencen en 7 días}}",
+      "alertNoLab": "{count} sin laboratorio",
+      "showAll": "Ver todas",
+      "finishedOn": "Desde el {date} · {days, plural, =0 {hecha en el día} one {# día en total} other {# días en total}}",
+      "openModule": "Ver en Órdenes de laboratorio"
     },
     "loadMoreError": "No se han podido cargar más órdenes",
     "view": {
@@ -10814,6 +10835,28 @@
       "hint": "Solo se muestran laboratorios. Si no está, puedes crearlo aquí mismo.",
       "cancel": "Cancelar",
       "confirm": "Mover a {stage}"
+    },
+    "pastDueBadge": "{days, plural, one {Vencida hace # día} other {Vencida hace # días}}",
+    "stageOverdueMax": "máx. {days}",
+    "noLaboratory": "Sin laboratorio",
+    "noLaboratoryHint": "Al pasarla a una etapa no final se pedirá el laboratorio.",
+    "daysOverLimit": "Más de {days, plural, one {# día} other {# días}}",
+    "nextStage": "Pasar a «{stage}»",
+    "otherStage": "Otra etapa…",
+    "dueToday": "Vence hoy",
+    "dueTomorrow": "Vence mañana",
+    "dueInDays": "{days, plural, one {Vence en # día} other {Vence en # días}}",
+    "empty": {
+      "filtered": "Ninguna orden coincide con los filtros.",
+      "title": "Todavía no hay órdenes de laboratorio",
+      "description": "Registra cada trabajo que envías a un laboratorio para saber en qué etapa está y enterarte si se retrasa.",
+      "create": "Nueva orden",
+      "setupTitle": "Configuración del módulo",
+      "setup": {
+        "services": "Marcar servicios como trabajo de laboratorio",
+        "labs": "Agrupar los laboratorios por categoría",
+        "stages": "Configurar las etapas"
+      }
     }
   },
   "PatientPortalConfigPage": {

@@ -1606,7 +1606,7 @@ export default function UsersPage() {
                           />
                         }
                         labOrdersContent={hasPermission(LAB_ORDERS_PERMISSIONS.VIEW) ? (
-                          <PatientLabOrdersTab patientId={selectedUser.id} patientName={selectedUser.name} />
+                          <PatientLabOrdersTab patientId={selectedUser.id} patientName={selectedUser.name} readOnly={isClinicalReadOnly} />
                         ) : undefined}
                         treatmentPlansContent={
                           <UserTreatmentPlans
