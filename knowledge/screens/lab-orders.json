@@ -11,13 +11,14 @@
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
     "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
+    "La fecha de entrega no se carga al crear la orden: se pide al enviarla, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Después se puede cambiar desde «Editar».",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
     "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
   ],
   "elements": {
     "lab-orders.btn.new": {
       "label": "Nueva orden",
-      "description": "Abre el formulario de alta. La orden entra en la etapa inicial."
+      "description": "Abre el formulario de alta. La orden entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio."
     },
     "lab-orders.section.filters": {
       "label": "Búsqueda y filtros",
@@ -101,7 +102,15 @@
     },
     "lab-orders.section.choose-laboratory": {
       "label": "Elegir laboratorio",
-      "description": "Aparece al mover a una etapa no final una orden que no tiene laboratorio: se elige (o se crea) y la orden cambia de etapa con ese laboratorio. A una etapa final se mueve sin pedirlo."
+      "description": "Aparece al enviar la orden (pasarla de la etapa inicial a una no final): pide la fecha de entrega, obligatoria, y el laboratorio si todavía no tiene. También aparece al mover a una etapa no final una orden sin laboratorio. A una etapa final se mueve sin pedir nada."
+    },
+    "lab-orders.field.send-due-date": {
+      "label": "Fecha de entrega",
+      "description": "La fecha que prometió el laboratorio. Es obligatoria y no puede ser anterior a hoy; si la orden ya tenía una que no pasó, aparece cargada. Desde el día siguiente, si la orden no llegó a una etapa final, queda atrasada."
+    },
+    "lab-orders.section.detail-laboratory": {
+      "label": "Laboratorio",
+      "description": "Laboratorio asignado con sus categorías y los datos de su ficha de proveedor: teléfonos (se pueden marcar), correo, dirección y RUT. Si no tiene ninguno, indica que se cargan en Compras → Proveedores."
     },
     "lab-orders.section.active-filters": {
       "label": "Filtros aplicados",

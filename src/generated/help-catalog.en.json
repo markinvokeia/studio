@@ -1,5 +1,5 @@
 {
- "version": "6f8fccd17309c892",
+ "version": "0f449c1f090be968",
  "locale": "en",
  "journey": [
   {
@@ -7965,7 +7965,7 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Opens the new order form. The order starts in the initial stage.",
+     "description": "Opens the new order form. The order starts in the initial stage, without a delivery date: the date is asked for when it is sent to the lab.",
      "id": "lab-orders.btn.new",
      "kind": "btn",
      "label": "New order",
@@ -8071,6 +8071,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "The date the lab promised. It is required and can't be earlier than today; if the order already had one that hasn't passed, it comes filled in. From the next day, if the order hasn't reached a final stage, it becomes overdue.",
+     "id": "lab-orders.field.send-due-date",
+     "kind": "field",
+     "label": "Delivery date",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "id": "lab-orders.field.teeth",
      "kind": "field",
      "label": "Teeth",
@@ -8097,7 +8104,7 @@
      "source": "src/components/lab-orders/lab-orders-board.tsx"
     },
     {
-     "description": "Shows up when an order without a lab is moved to a non-final stage: choose (or create) the lab and the order changes stage with it. Moving to a final stage does not ask.",
+     "description": "Shows up when the order is sent (moved from the initial stage to a non-final one): it asks for the delivery date, which is required, and for the lab if the order has none yet. It also shows up when an order without a lab is moved to a non-final stage. Moving to a final stage asks for nothing.",
      "id": "lab-orders.section.choose-laboratory",
      "kind": "section",
      "label": "Choose laboratory",
@@ -8108,6 +8115,13 @@
      "id": "lab-orders.section.detail",
      "kind": "section",
      "label": "Order detail",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "The assigned lab with its categories and the details from its provider record: phones (you can dial them), email, address and RUT. If it has none, it says they are added in Purchases → Providers.",
+     "id": "lab-orders.section.detail-laboratory",
+     "kind": "section",
+     "label": "Laboratory",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8192,6 +8206,7 @@
     "An order is overdue when it has spent more days in its stage than that stage's limit, or when its due date has passed (from the next day) and it has not reached a final stage. In a final stage it is never overdue. Each reason is shown separately: the days in stage in red next to the stage limit (“5 days · max 3”) and the red “N days past due” tag. Pending orders without a lab carry the amber “No lab” tag.",
     "The lab is chosen from the providers that belong to a laboratory category (provider groups marked as such). If the order’s services all share one category, the selector starts filtered by it. An order can be created without a lab, but to move it to a stage that is not final you must say which lab it is sent to.",
     "Every stage change is recorded in the order history, with the user and the date.",
+    "The delivery date isn't entered when the order is created: it is asked for when the order is sent, that is, moved from the initial stage to a stage that isn't final, and it is required. It can be changed later from “Edit”.",
     "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",
     "Changes made by other users show up on their own, without reloading."
    ],

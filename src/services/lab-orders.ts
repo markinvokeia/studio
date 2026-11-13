@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
   LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderItem,
-  LabCategory, Laboratory, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
+  LabCategory, Laboratory, LabOrderLaboratoryInfo, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -102,6 +102,25 @@ function toOrder(raw: any): LabOrder | null {
   };
 }
 
+/** Texto opcional: vacío → null. */
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function toLaboratoryInfo(raw: any): LabOrderLaboratoryInfo | null {
+  if (!raw || raw.id == null) return null;
+  return {
+    id: String(raw.id),
+    name: raw.name ?? '',
+    phone_number: optionalText(raw.phone_number),
+    alternative_phone: optionalText(raw.alternative_phone),
+    email: optionalText(raw.email),
+    address: optionalText(raw.address),
+    rut: optionalText(raw.rut),
+    categories: toCategoryRefs(raw.categories),
+  };
+}
+
 function toHistory(raw: any): LabOrderHistoryEntry {
   return {
     id: Number(raw.id),
@@ -155,7 +174,11 @@ export async function fetchLabOrderDetail(id: number, options?: ApiRequestOption
   const raw = unwrapRows(data)[0]?.detail;
   const order = toOrder(raw);
   if (!order) throw new LabOrdersError('NOT_FOUND', 'Lab order not found');
-  return { ...order, history: Array.isArray(raw.history) ? raw.history.map(toHistory) : [] };
+  return {
+    ...order,
+    history: Array.isArray(raw.history) ? raw.history.map(toHistory) : [],
+    laboratory: toLaboratoryInfo(raw.laboratory),
+  };
 }
 
 export async function saveLabOrder(payload: LabOrderSavePayload, options?: ApiRequestOptions): Promise<LabOrder> {
@@ -165,19 +188,22 @@ export async function saveLabOrder(payload: LabOrderSavePayload, options?: ApiRe
 /**
  * `expectedFromStageId`: la etapa en la que el usuario vio la orden. Si otro la movió
  * mientras tanto el backend responde STAGE_CONFLICT en vez de pisar el cambio.
- * `laboratoryId`: laboratorio al que se envía, en el mismo cambio. Sin laboratorio, mover
- * a una etapa no final responde LABORATORY_REQUIRED (script 170).
+ * `send`: lo que se fija en el mismo cambio. `laboratoryId`: sin laboratorio, mover a una etapa
+ * no final responde LABORATORY_REQUIRED (script 170). `dueDate` ('YYYY-MM-DD'): al enviar la
+ * orden (salir de la etapa inicial hacia una no final) es obligatoria — DUE_DATE_REQUIRED, o
+ * INVALID_DUE_DATE si es anterior a hoy (script 172).
  */
 export async function changeLabOrderStage(
   id: number,
   toStageId: number,
   expectedFromStageId: number | null,
   options?: ApiRequestOptions,
-  laboratoryId?: string | null,
+  send?: { laboratoryId?: string | null; dueDate?: string | null },
 ): Promise<LabOrder> {
   return firstOrder(await call(() => api.post(API_ROUTES.LAB_ORDERS.CHANGE_STAGE, {
     id, to_stage_id: toStageId, expected_from_stage_id: expectedFromStageId,
-    ...(laboratoryId ? { laboratory_id: laboratoryId } : {}),
+    ...(send?.laboratoryId ? { laboratory_id: send.laboratoryId } : {}),
+    ...(send?.dueDate ? { due_date: send.dueDate } : {}),
   }, undefined, undefined, options)));
 }
 

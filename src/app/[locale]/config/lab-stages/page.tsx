@@ -305,23 +305,24 @@ export default function LabStagesConfigPage() {
         actions={
           <Can permission={LAB_ORDERS_PERMISSIONS.STAGES_CONFIG}>
             <div className="flex items-center gap-2">
-              <Button data-help-id="config.lab-stages.btn.discard" variant="outline" onClick={() => setDiscardOpen(true)} disabled={!isDirty || busy} className="gap-1.5">
+              <Button data-help-id="config.lab-stages.btn.discard" title={t('discard')} variant="outline" onClick={() => setDiscardOpen(true)} disabled={!isDirty || busy} className="gap-1.5 px-2.5 lg:px-4">
                 <RotateCcw className="h-4 w-4" />
-                {t('discard')}
+                <span className="sr-only lg:not-sr-only">{t('discard')}</span>
               </Button>
-              <Button data-help-id="config.lab-stages.btn.add" variant="outline" onClick={addStage} disabled={busy} className="gap-1.5">
+              <Button data-help-id="config.lab-stages.btn.add" title={t('add')} variant="outline" onClick={addStage} disabled={busy} className="gap-1.5 px-2.5 lg:px-4">
                 <Plus className="h-4 w-4" />
-                {t('add')}
+                <span className="sr-only lg:not-sr-only">{t('add')}</span>
               </Button>
               <Button
                 data-help-id="config.lab-stages.btn.save"
+                title={t('save')}
                 onClick={() => save.run()}
                 disabled={!isDirty || issues.length > 0 || busy}
                 loading={save.isPending}
-                className="gap-1.5"
+                className="gap-1.5 px-2.5 lg:px-4"
               >
                 <Save className="h-4 w-4" />
-                {t('save')}
+                <span className="sr-only lg:not-sr-only">{t('save')}</span>
               </Button>
             </div>
           </Can>
@@ -344,7 +345,7 @@ export default function LabStagesConfigPage() {
         )}
 
         <Card data-help-id="config.lab-stages.section.active">
-          <div className="hidden grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_8rem] items-center gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
+          <div className={cn('hidden items-center gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground lg:grid', STAGE_ROW_GRID)}>
             <span />
             <span>{t('columns.color')}</span>
             <span>{t('columns.name')}</span>
@@ -445,6 +446,12 @@ export default function LabStagesConfigPage() {
   );
 }
 
+/**
+ * Columnas de la tabla de etapas (encabezado y filas). Debajo de lg la fila se apila en dos
+ * renglones: con el menú lateral y la barra derecha, en tablet la tabla no entra.
+ */
+const STAGE_ROW_GRID = 'lg:grid-cols-[2rem_3rem_minmax(8rem,1fr)_9rem_8.5rem_6.5rem_7.5rem]';
+
 interface SortableStageRowProps {
   stage: DraftStage;
   position: number;
@@ -472,7 +479,8 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'grid grid-cols-[2rem_3rem_minmax(0,1fr)] items-center gap-2 bg-card px-3 py-2.5 md:grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_8rem]',
+        'grid grid-cols-[2rem_3rem_minmax(0,1fr)] items-center gap-2 bg-card px-3 py-2.5',
+        STAGE_ROW_GRID,
         isDragging && 'relative z-10 rounded-lg shadow-lg ring-1 ring-primary/30',
       )}
     >
@@ -508,7 +516,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
         className={cn(!stage.name.trim() && 'border-destructive/60')}
       />
 
-      <div className="col-span-3 grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-2 pl-[5.5rem] md:col-span-1 md:block md:pl-0">
+      <div className="col-span-3 grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-2 pl-[5.5rem] lg:col-span-1 lg:block lg:pl-0">
         <Select value={stage.kind} onValueChange={(value) => onKindChange(value as LabStageKind)} disabled={disabled}>
           <SelectTrigger aria-label={t('columns.kind')} className="h-9">
             <SelectValue />
@@ -519,19 +527,19 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
             ))}
           </SelectContent>
         </Select>
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <OverdueInput stage={stage} disabled={disabled || isFinal} onChange={onChange} />
         </div>
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <OverdueInput stage={stage} disabled={disabled || isFinal} onChange={onChange} />
       </div>
 
-      <div className="col-span-3 flex items-center justify-between gap-2 pl-[5.5rem] md:contents">
+      <div className="col-span-3 flex items-center justify-between gap-2 pl-[5.5rem] lg:contents">
         <span className="text-sm">
           {stage.ordersCount > 0
-            ? <Badge variant="secondary">{t('ordersCount', { count: stage.ordersCount })}</Badge>
+            ? <Badge variant="outline" className="whitespace-nowrap font-medium">{t('ordersCount', { count: stage.ordersCount })}</Badge>
             : <span className="text-xs text-muted-foreground">{stage.id == null ? t('newBadge') : '—'}</span>}
         </span>
 
@@ -601,6 +609,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
 function OverdueInput({ stage, disabled, onChange }: { stage: DraftStage; disabled: boolean; onChange: (patch: Partial<DraftStage>) => void }) {
   const t = useTranslations('LabStagesPage');
   const isFinal = stage.kind === 'final';
+  const hasValue = !isFinal && stage.overdueDays.trim() !== '';
   return (
     <div className="relative">
       <Input
@@ -613,9 +622,10 @@ function OverdueInput({ stage, disabled, onChange }: { stage: DraftStage; disabl
         disabled={disabled}
         placeholder={isFinal ? t('overdueNotApplicable') : t('overduePlaceholder')}
         aria-label={t('columns.overdueDays')}
-        className="h-9 pr-10"
+        className={cn('h-9', hasValue && 'pr-10')}
       />
-      {!isFinal && (
+      {/* Sin valor se ve el placeholder ("Sin umbral"): el sufijo lo taparía. */}
+      {hasValue && (
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
           {t('daysSuffix')}
         </span>

@@ -10659,7 +10659,9 @@
       "INVALID_SERVICE": "One of the services no longer exists. Remove it and choose it again.",
       "INVALID_QUANTITY": "Each service quantity must be between 1 and 99.",
       "LABORATORY_REQUIRED": "Choose the laboratory the order is sent to before moving it to this stage.",
-      "INVALID_LABORATORY": "That laboratory is no longer an active supplier. Choose another one."
+      "INVALID_LABORATORY": "That laboratory is no longer an active supplier. Choose another one.",
+      "DUE_DATE_REQUIRED": "Enter the delivery date the laboratory promised: it's required once the order is sent.",
+      "INVALID_DUE_DATE": "The delivery date can't be earlier than today."
     },
     "columns": {
       "id": "#",
@@ -10728,7 +10730,8 @@
         "patient": "Choose the patient.",
         "work": "Add at least one service or describe the job.",
         "teeth": "Use FDI numbers (11–48 or 51–85) separated by commas.",
-        "quantity": "Between 1 and 99."
+        "quantity": "Between 1 and 99.",
+        "dueDate": "Enter the delivery date: the order has already been sent to the laboratory."
       },
       "services": "Lab services",
       "servicesHint": "The jobs being ordered, from the services marked as lab work.",
@@ -10761,7 +10764,16 @@
       "current": "Current · {days}",
       "stayedDays": "{days, plural, one {Stayed # day} other {Stayed # days}}",
       "stayedHours": "{hours, plural, one {Stayed # hour} other {Stayed # hours}}",
-      "stayedLessThanHour": "Stayed less than an hour"
+      "stayedLessThanHour": "Stayed less than an hour",
+      "sectionLaboratory": "Laboratory",
+      "labPhone": "Phone",
+      "labAlternativePhone": "Other phone",
+      "labEmail": "Email",
+      "labAddress": "Address",
+      "labRut": "Tax ID (RUT)",
+      "labNoContact": "The laboratory has no phone, email or address on file. Add them in its provider record (Purchases → Providers).",
+      "labCall": "Call {name}",
+      "labWriteTo": "Email {name}"
     },
     "deleteDialog": {
       "title": "Delete order",
@@ -10834,7 +10846,13 @@
       "laboratory": "Laboratory",
       "hint": "Only laboratories are listed. If it is missing you can create it here.",
       "cancel": "Cancel",
-      "confirm": "Move to {stage}"
+      "confirm": "Move to {stage}",
+      "sendTitle": "Send to the laboratory",
+      "sendDescription": "Order #{id} · {patient}. Enter the delivery date the laboratory promised.",
+      "dueDate": "Delivery date",
+      "dueDateHint": "The date the laboratory promised. If it passes and the order hasn't reached a final stage, it becomes overdue.",
+      "dueDatePast": "The delivery date can't be earlier than today.",
+      "dueDatePreviousPassed": "The order's previous date ({date}) has already passed. Enter the new one."
     },
     "pastDueBadge": "{days, plural, one {# day past due} other {# days past due}}",
     "stageOverdueMax": "max {days}",

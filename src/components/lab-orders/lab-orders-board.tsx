@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, labOrderWork, nextLabStage, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
-import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
+import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -149,19 +149,21 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
     return null;
   };
 
-  // Orden sin laboratorio que va a una etapa no final: primero se elige a dónde se envía.
-  const [labRequest, setLabRequest] = React.useState<LabOrderLaboratoryRequest | null>(null);
+  // Enviarla al laboratorio (fecha de entrega) o moverla sin laboratorio: primero el modal.
+  const [labRequest, setLabRequest] = React.useState<LabOrderMoveRequest | null>(null);
 
-  const move = async (orderId: number, toStageId: number, laboratory?: Laboratory) => {
+  const move = async (orderId: number, toStageId: number, details?: LabOrderMoveDetails) => {
     const found = findOrder(orderId);
     if (!found || found.stageId === toStageId || inFlightRef.current.has(orderId)) return;
     const { order, stageId: fromStageId, index } = found;
     const target = stageById.get(toStageId);
-    if (!laboratory && target && labOrderNeedsLaboratory(order, target)) {
+    const needs = details ? null : labOrderMoveNeeds(order, target);
+    if (needs && target) {
       // La tarjeta queda donde estaba hasta que se confirme.
-      setLabRequest({ order, stage: target });
+      setLabRequest({ order, stage: target, needs });
       return;
     }
+    const laboratory = details?.laboratory ?? null;
     inFlightRef.current.add(orderId);
 
     // Optimista: la tarjeta pasa ya a la columna destino, marcada como "guardando".
@@ -181,19 +183,23 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       days_past_due: stillPastDue ? order.days_past_due : 0,
       is_pending: target ? target.kind !== 'final' : order.is_pending,
       ...(laboratory ? { laboratory_id: laboratory.id, laboratory_name: laboratory.name } : {}),
+      ...(details?.dueDate ? { due_date: details.dueDate } : {}),
     }, toStageId, fromStageId));
     setPending((prev) => new Set(prev).add(orderId));
 
     try {
-      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, laboratory?.id);
+      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: laboratory?.id, dueDate: details?.dueDate });
       setData((prev) => prev && placeOrder(prev, saved, saved.current_stage_id, toStageId));
       onMoved?.(saved);
     } catch (error) {
       // Vuelve a su columna y a su lugar.
       setData((prev) => prev && placeOrder(prev, order, fromStageId, toStageId, index));
-      if (error instanceof LabOrdersError && error.code === 'LABORATORY_REQUIRED' && target) {
-        // Las etapas cambiaron desde que se cargó el tablero: se pide el laboratorio.
-        setLabRequest({ order, stage: target });
+      const retryNeeds = error instanceof LabOrdersError
+        && (error.code === 'LABORATORY_REQUIRED' || error.code === 'DUE_DATE_REQUIRED')
+        ? labOrderMoveNeeds(order, target, error.code) : null;
+      if (retryNeeds && target) {
+        // Las etapas cambiaron desde que se cargó el tablero: se pide lo que falta.
+        setLabRequest({ order, stage: target, needs: retryNeeds });
         return;
       }
       toast({ variant: 'destructive', title: t('moveError'), description: errorText(error) });
@@ -332,13 +338,13 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
       <DragOverlay dropAnimation={null}>
         {dragging && <CardBody order={dragging} className="rotate-1 shadow-xl ring-1 ring-primary/30" />}
       </DragOverlay>
-      <LabOrderLaboratoryDialog
+      <LabOrderMoveDialog
         request={labRequest}
         onCancel={() => setLabRequest(null)}
-        onConfirm={(laboratory) => {
+        onConfirm={(details) => {
           const request = labRequest;
           setLabRequest(null);
-          if (request) void move(request.order.id, request.stage.id, laboratory);
+          if (request) void move(request.order.id, request.stage.id, details);
         }}
       />
     </DndContext>

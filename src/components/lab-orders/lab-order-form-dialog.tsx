@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { addDays, format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
@@ -27,10 +26,17 @@ import { saveLabOrder } from '@/services/lab-orders';
 
 import type { LabOrder } from '@/lib/types';
 
-/** Entrega estimada por defecto al crear una orden: días desde hoy. */
-const DEFAULT_DUE_DAYS = 7;
+/**
+ * La fecha de entrega se fija al enviar la orden al laboratorio (salir de la etapa inicial,
+ * script 172). En el formulario solo aparece al editar una orden ya enviada, y mientras siga
+ * pendiente no se puede dejar vacía.
+ */
+function dueDateMode(order?: LabOrder | null): 'hidden' | 'required' | 'optional' {
+  if (!order || order.stage_kind === 'initial') return 'hidden';
+  return order.stage_kind === 'final' ? 'optional' : 'required';
+}
 
-const labOrderSchema = (t: (key: string) => string) => z.object({
+const labOrderSchema = (t: (key: string) => string, dueDateRequired: boolean) => z.object({
   patient_id: z.string().min(1, t('form.validation.patient')),
   patient_name: z.string().optional(),
   doctor_id: z.string().optional(),
@@ -55,6 +61,9 @@ const labOrderSchema = (t: (key: string) => string) => z.object({
 }).refine((v) => v.items.length > 0 || v.work_description.length > 0, {
   path: ['work_description'],
   message: t('form.validation.work'),
+}).refine((v) => !dueDateRequired || !!v.due_date, {
+  path: ['due_date'],
+  message: t('form.validation.dueDate'),
 });
 
 type LabOrderFormValues = z.infer<ReturnType<typeof labOrderSchema>>;
@@ -77,8 +86,7 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
     })),
     work_description: order?.work_description ?? '',
     teeth: order?.teeth.join(', ') ?? '',
-    // Alta: entrega estimada a una semana (fecha local de hoy + 7). En edición, la guardada.
-    due_date: order ? (order.due_date ?? '') : format(addDays(new Date(), DEFAULT_DUE_DAYS), 'yyyy-MM-dd'),
+    due_date: order?.due_date ?? '',
     notes: order?.notes ?? '',
   };
 }
@@ -100,9 +108,10 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const isEdit = Boolean(order);
   const patientLocked = Boolean(patient) && !isEdit;
+  const dueMode = dueDateMode(order);
 
   const form = useForm<LabOrderFormValues>({
-    resolver: zodResolver(labOrderSchema(t)),
+    resolver: zodResolver(labOrderSchema(t, dueMode === 'required')),
     defaultValues: toFormValues(order, patient),
   });
 
@@ -149,7 +158,8 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
       work_description: values.work_description.trim() || null,
       // Con servicios, el backend calcula las piezas de la orden (unión de las de cada servicio).
       teeth: values.items.length > 0 ? [] : parseTeeth(values.teeth) ?? [],
-      due_date: values.due_date || null,
+      // Sin la clave el backend deja la fecha guardada (alta u orden todavía no enviada).
+      ...(dueMode !== 'hidden' ? { due_date: values.due_date || null } : {}),
       notes: values.notes?.trim() || null,
       items: values.items.map((item) => ({
         service_id: Number(item.service_id),
@@ -325,33 +335,35 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, onSaved
                 )} />
               </div>
 
+              {(!hasItems || dueMode !== 'hidden') && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {!hasItems && (
+                    <FormField control={form.control} name="teeth" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('form.teeth')}</FormLabel>
+                        <FormControl>
+                          <Input {...field} inputMode="numeric" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
+                        </FormControl>
+                        <FormDescription>{t('form.teethHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
 
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {!hasItems && (
-                  <FormField control={form.control} name="teeth" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('form.teeth')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} inputMode="numeric" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
-                      </FormControl>
-                      <FormDescription>{t('form.teethHint')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                )}
-
-                <FormField control={form.control} name="due_date" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('form.dueDate')}</FormLabel>
-                    <FormControl>
-                      <DatePickerInput value={field.value} onChange={field.onChange} disabled={save.isPending} />
-                    </FormControl>
-                    <FormDescription>{t('form.dueDateHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
+                  {dueMode !== 'hidden' && (
+                    <FormField control={form.control} name="due_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('form.dueDate')}</FormLabel>
+                        <FormControl>
+                          <DatePickerInput value={field.value} onChange={field.onChange} disabled={save.isPending} />
+                        </FormControl>
+                        <FormDescription>{t('form.dueDateHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
+                </div>
+              )}
 
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>

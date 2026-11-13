@@ -10659,7 +10659,9 @@
       "INVALID_SERVICE": "Uno de los servicios ya no existe. Quitalo y volvé a elegirlo.",
       "INVALID_QUANTITY": "La cantidad de cada servicio tiene que estar entre 1 y 99.",
       "LABORATORY_REQUIRED": "Elegí a qué laboratorio se envía la orden antes de pasarla a esta etapa.",
-      "INVALID_LABORATORY": "Ese laboratorio ya no es un proveedor activo. Elegí otro."
+      "INVALID_LABORATORY": "Ese laboratorio ya no es un proveedor activo. Elegí otro.",
+      "DUE_DATE_REQUIRED": "Indicá la fecha de entrega que prometió el laboratorio: es obligatoria desde que la orden se envía.",
+      "INVALID_DUE_DATE": "La fecha de entrega no puede ser anterior a hoy."
     },
     "columns": {
       "id": "#",
@@ -10728,7 +10730,8 @@
         "patient": "Elegí el paciente.",
         "work": "Agregá al menos un servicio o describí el trabajo.",
         "teeth": "Usá números FDI (11–48 o 51–85) separados por comas.",
-        "quantity": "Entre 1 y 99."
+        "quantity": "Entre 1 y 99.",
+        "dueDate": "Indicá la fecha de entrega: la orden ya se envió al laboratorio."
       },
       "services": "Servicios de laboratorio",
       "servicesHint": "Los trabajos que se piden, del catálogo de servicios marcados como trabajo de laboratorio.",
@@ -10761,7 +10764,16 @@
       "current": "Actual · {days}",
       "stayedDays": "{days, plural, one {Estuvo # día} other {Estuvo # días}}",
       "stayedHours": "{hours, plural, one {Estuvo # hora} other {Estuvo # horas}}",
-      "stayedLessThanHour": "Estuvo menos de una hora"
+      "stayedLessThanHour": "Estuvo menos de una hora",
+      "sectionLaboratory": "Laboratorio",
+      "labPhone": "Teléfono",
+      "labAlternativePhone": "Otro teléfono",
+      "labEmail": "Correo",
+      "labAddress": "Dirección",
+      "labRut": "RUT",
+      "labNoContact": "El laboratorio no tiene teléfono, correo ni dirección cargados. Se completan en su ficha de proveedor (Compras → Proveedores).",
+      "labCall": "Llamar a {name}",
+      "labWriteTo": "Escribir a {name}"
     },
     "deleteDialog": {
       "title": "Eliminar orden",
@@ -10834,7 +10846,13 @@
       "laboratory": "Laboratorio",
       "hint": "Solo se listan laboratorios. Si no está, lo podés crear acá mismo.",
       "cancel": "Cancelar",
-      "confirm": "Mover a {stage}"
+      "confirm": "Mover a {stage}",
+      "sendTitle": "Enviar al laboratorio",
+      "sendDescription": "Orden #{id} · {patient}. Indicá cuándo prometió entregarla el laboratorio.",
+      "dueDate": "Fecha de entrega",
+      "dueDateHint": "La que prometió el laboratorio. Si pasa y la orden no llegó a una etapa final, queda atrasada.",
+      "dueDatePast": "La fecha de entrega no puede ser anterior a hoy.",
+      "dueDatePreviousPassed": "La fecha que tenía la orden ({date}) ya pasó. Indicá la nueva."
     },
     "pastDueBadge": "{days, plural, one {Vencida hace # día} other {Vencida hace # días}}",
     "stageOverdueMax": "máx. {days}",

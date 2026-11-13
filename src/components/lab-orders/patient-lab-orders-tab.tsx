@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Can } from '@/components/auth/Can';
 import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
-import { LabOrderLaboratoryDialog, labOrderNeedsLaboratory, type LabOrderLaboratoryRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
+import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
   DUE_SOON_DAYS, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabStageBadge, LabStageProgress,
   daysUntilDue, labOrderWork, nextLabStage, useLabOrderErrorText,
@@ -119,24 +119,28 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
   // "Pasar a «X»" desde la tarjeta: una orden a la vez.
   const [movingId, setMovingId] = React.useState<number | null>(null);
   const movingRef = React.useRef(false);
-  const [labRequest, setLabRequest] = React.useState<LabOrderLaboratoryRequest | null>(null);
+  const [labRequest, setLabRequest] = React.useState<LabOrderMoveRequest | null>(null);
 
-  const moveOrder = async (order: LabOrder, target: LabStage, laboratory?: Laboratory) => {
+  const moveOrder = async (order: LabOrder, target: LabStage, details?: LabOrderMoveDetails) => {
     if (movingRef.current) return;
-    // Sin laboratorio y hacia una etapa no final: primero se pregunta a qué laboratorio va.
-    if (!laboratory && labOrderNeedsLaboratory(order, target)) {
-      setLabRequest({ order, stage: target });
+    // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero el modal.
+    const needs = details ? null : labOrderMoveNeeds(order, target);
+    if (needs) {
+      setLabRequest({ order, stage: target, needs });
       return;
     }
     movingRef.current = true;
     setMovingId(order.id);
     try {
-      const saved = await changeLabOrderStage(order.id, target.id, order.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, laboratory?.id);
+      const saved = await changeLabOrderStage(order.id, target.id, order.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: details?.laboratory?.id, dueDate: details?.dueDate });
       setOrders((prev) => prev && prev.map((o) => (o.id === saved.id ? saved : o)));
       toast({ title: t('moved', { stage: saved.stage_name }) });
     } catch (error) {
-      if (error instanceof LabOrdersError && error.code === 'LABORATORY_REQUIRED') {
-        setLabRequest({ order, stage: target });
+      const retryNeeds = error instanceof LabOrdersError
+        && (error.code === 'LABORATORY_REQUIRED' || error.code === 'DUE_DATE_REQUIRED')
+        ? labOrderMoveNeeds(order, target, error.code) : null;
+      if (retryNeeds) {
+        setLabRequest({ order, stage: target, needs: retryNeeds });
         return;
       }
       toast({ variant: 'destructive', title: t('moveError'), description: errorText(error) });
@@ -383,15 +387,15 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
         onChanged={() => reload()}
       />
 
-      <LabOrderLaboratoryDialog
+      <LabOrderMoveDialog
         request={labRequest}
         onCancel={() => setLabRequest(null)}
-        onConfirm={(laboratory) => {
+        onConfirm={(details) => {
           const request = labRequest;
           setLabRequest(null);
           const order = request && orders?.find((o) => o.id === request.order.id);
           const target = request && stages.find((s) => s.id === request.stage.id);
-          if (order && target) void moveOrder(order, target, laboratory);
+          if (order && target) void moveOrder(order, target, details);
         }}
       />
     </div>

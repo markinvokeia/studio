@@ -887,8 +887,17 @@ export interface LabOrderHistoryEntry {
   note: string | null;
 }
 
+/** Laboratorio asignado, con sus datos de contacto (ficha del proveedor). Solo en el detalle (script 172). */
+export interface LabOrderLaboratoryInfo extends Laboratory {
+  alternative_phone: string | null;
+  address: string | null;
+  rut: string | null;
+}
+
 export interface LabOrderDetail extends LabOrder {
   history: LabOrderHistoryEntry[];
+  /** null sin laboratorio, o si el backend todavía no tiene el script 172 (solo se ve el nombre). */
+  laboratory: LabOrderLaboratoryInfo | null;
 }
 
 export type LabOrderSort = 'created_desc' | 'created_asc' | 'days_desc' | 'days_asc';
@@ -954,7 +963,11 @@ export interface LabOrderSavePayload {
   work_description: string | null;
   /** Piezas de la orden. Con servicios las calcula el backend (unión de las de cada servicio). */
   teeth: number[];
-  due_date: string | null;
+  /**
+   * Solo en la edición de una orden ya enviada (script 172): sin la clave, el backend deja la
+   * guardada. En el alta se ignora: la fecha se fija al enviar (changeLabOrderStage).
+   */
+  due_date?: string | null;
   notes: string | null;
   /** Reemplaza los servicios de la orden. */
   items: LabOrderItemInput[];
@@ -971,7 +984,7 @@ export interface LabOrderItemInput {
 export type LabOrdersErrorCode =
   | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
   | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
-  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'UNKNOWN';
+  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE' | 'UNKNOWN';
 
 /** Códigos de error de lab_stages_save (script 147). */
 export type LabStagesSaveErrorCode =
