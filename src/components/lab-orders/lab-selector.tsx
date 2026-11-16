@@ -11,21 +11,16 @@ import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
-import { saveProviderGroups } from '@/components/providers/provider-groups-field';
+import { useLaboratoryCreator } from '@/components/lab-orders/lab-create';
 
-import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatPhoneNumber } from '@/lib/phone-text';
-import { normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
-import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { REQUEST_TIMEOUT_MS } from '@/services/api';
 import { fetchLabCategories, searchLaboratories } from '@/services/lab-orders';
-import { extractCreatedUserId } from '@/services/users';
 
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
-import { API_ROUTES } from '@/constants/routes';
-import type { DuplicateContactOwners, LabCategory, Laboratory, UniqueConflict } from '@/lib/types';
+import type { LabCategory, Laboratory } from '@/lib/types';
 
 /** Filtro "todas las categorías". */
 const ALL = 'all';
@@ -74,7 +69,6 @@ export function LabSelector({
 }: LabSelectorProps) {
   const t = useTranslations('LabOrdersPage.labSelector');
   const tEntity = useTranslations('EntitySelectors');
-  const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const canCreate = allowCreate && hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_CREATE);
 
@@ -90,14 +84,13 @@ export function LabSelector({
   const [selectedCache, setSelectedCache] = React.useState<Laboratory | null>(null);
 
   const [isCreating, setIsCreating] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
   const [createName, setCreateName] = React.useState('');
   const [createPhone, setCreatePhone] = React.useState('');
   const [createEmail, setCreateEmail] = React.useState('');
   const [createCategories, setCreateCategories] = React.useState<string[]>([]);
-  const [createError, setCreateError] = React.useState<string | null>(null);
-  const [duplicateOwners, setDuplicateOwners] = React.useState<DuplicateContactOwners | null>(null);
-  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+
+  const creator = useLaboratoryCreator({ categories, onCreated: (lab) => handleSelect(lab) });
+  const { setError: setCreateError, error: createError, isSaving } = creator;
 
   // La categoría de la orden puede llegar después (servicios agregados): se respeta mientras esté cerrado.
   React.useEffect(() => {
@@ -157,7 +150,7 @@ export function LabSelector({
 
   const handleOpenChange = (next: boolean) => {
     // Los avisos de contacto repetido se abren encima: no perder lo tecleado.
-    if (!next && (duplicateOwners || uniqueConflict || isSaving)) return;
+    if (!next && (creator.isAsking || creator.isSaving)) return;
     if (!next) { resetCreate(); setSearch(''); }
     setOpen(next);
   };
@@ -185,70 +178,9 @@ export function LabSelector({
     setCreateError(null);
   };
 
-  /** Busca el proveedor recién creado cuando el upsert no devuelve el id. */
-  const findCreatedProvider = async (name: string): Promise<string | null> => {
-    const data = await api.get(API_ROUTES.USERS, { filter_type: 'PROVEEDOR', search: name });
-    const first = Array.isArray(data) ? data[0] : data;
-    const rows: any[] = first?.json?.data || first?.data || [];
-    const match = rows.find((u) => String(u.name ?? '').toLowerCase() === name.toLowerCase());
-    return match?.id != null ? String(match.id) : null;
-  };
-
-  const handleCreate = async (confirmDuplicates = false) => {
-    const name = normalizePersonName(createName);
-    if (!name || isSaving) return;
-    if (createCategories.length === 0) {
-      setCreateError(t('categoriesRequired'));
-      return;
-    }
-    setIsSaving(true);
-    setCreateError(null);
-    try {
-      const response = await api.post(API_ROUTES.USERS_UPSERT, {
-        name,
-        phone: createPhone.trim() || '',
-        email: createEmail.trim() || '',
-        filter_type: 'PROVEEDOR',
-        is_sales: false,
-        is_active: true,
-        ...(confirmDuplicates ? { confirm_duplicates: true } : {}),
-      }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-
-      const errPayload = response?.error;
-      if (errPayload?.code === 'duplicate_contact' && errPayload.owners) { setDuplicateOwners(errPayload.owners); return; }
-      if (errPayload?.code === 'unique_conflict') {
-        setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
-        return;
-      }
-      if (errPayload) { setCreateError(tEntity('invalidData')); return; }
-
-      const id = extractCreatedUserId(response) ?? await findCreatedProvider(name);
-      if (!id) { setCreateError(t('createError')); return; }
-
-      const chosen = (categories ?? []).filter((c) => createCategories.includes(c.id));
-      try {
-        await saveProviderGroups(id, createCategories);
-      } catch {
-        // El proveedor ya existe: se elige igual (el backend acepta cualquier proveedor) y se avisa.
-        toast({ variant: 'destructive', title: t('categoriesFailedTitle'), description: t('categoriesFailedDescription', { name }) });
-      }
-      handleSelect({
-        id,
-        name,
-        phone_number: createPhone.trim() || null,
-        email: createEmail.trim() || null,
-        categories: chosen.map((c) => ({ id: c.id, name: c.name })),
-      });
-    } catch (error: any) {
-      const errPayload = error?.data?.error || error?.error;
-      if (errPayload?.code === 'duplicate_contact' && errPayload.owners) setDuplicateOwners(errPayload.owners);
-      else if (errPayload?.code === 'unique_conflict') {
-        setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
-      } else setCreateError(t('createError'));
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const handleCreate = () => creator.create({
+    name: createName, phone: createPhone, email: createEmail, categoryIds: createCategories,
+  });
 
   const noCategories = categories !== null && categories.length === 0;
 
@@ -414,12 +346,7 @@ export function LabSelector({
           </Command>
         </PopoverContent>
       </Popover>
-      <DuplicateContactDialog
-        owners={duplicateOwners}
-        onCancel={() => setDuplicateOwners(null)}
-        onConfirm={() => { setDuplicateOwners(null); void handleCreate(true); }}
-      />
-      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+      {creator.dialogs}
     </>
   );
 }

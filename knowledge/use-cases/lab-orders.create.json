@@ -78,7 +78,7 @@
       "action": "fill",
       "target": "lab-orders.field.items.teeth",
       "title": "Piezas",
-      "details": "Las piezas de ese servicio. Las de la orden son la suma de todos sus servicios.",
+      "details": "Las piezas de ese servicio: escribilas o tocalas en el odontograma de al lado. Las de la orden son la suma de todos sus servicios.",
       "value": "{{values.teeth}}",
       "optional": true,
       "skipIfMissing": true

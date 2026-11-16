@@ -33,37 +33,31 @@
       "id": "enter",
       "action": "highlight",
       "target": "config.lab-stages.section.alert-enter",
-      "title": "Al entrar a la etapa",
-      "details": "Avisa cada vez que una orden llega a esta etapa. Ejemplo: en «Recibido en clínica», al doctor, para que agende la colocación."
+      "title": "Cuando una orden llega",
+      "details": "La frase dice a quién se avisa y por dónde. Ejemplo: en «Recibido en clínica», al doctor, para que agende la colocación. Tocá «Doctor de la orden» o «Quien creó la orden» para sumarlos o quitarlos."
     },
     {
       "id": "dwell",
       "action": "highlight",
       "target": "config.lab-stages.section.alert-dwell",
-      "title": "Por permanencia",
-      "details": "Cuando la orden pasa los días de atraso de la etapa; una vez o repetido cada X días.",
+      "title": "Si pasa más días de los previstos",
+      "details": "Cuando la orden supera los días de atraso de la etapa. En «Personalizar» se elige repetirlo cada X días.",
       "skipIfMissing": true
     },
     {
       "id": "due",
       "action": "highlight",
       "target": "config.lab-stages.section.alert-due",
-      "title": "Entrega vencida",
+      "title": "Si se pasa la fecha de entrega",
       "details": "Al día siguiente de la fecha de entrega, si la orden sigue en esta etapa.",
       "skipIfMissing": true
     },
     {
       "id": "apply",
-      "action": "click",
-      "target": "config.lab-stages.btn.apply-alerts",
-      "title": "Aplicar",
-      "details": "Destinatarios: roles, usuarios, el doctor de la orden o quien la creó. Canales: en el sistema, email o WhatsApp con plantilla. Los avisos también quedan en el Centro de alertas."
-    },
-    {
-      "id": "save",
       "action": "confirm",
-      "target": "config.lab-stages.btn.save",
-      "title": "Guardar"
+      "target": "config.lab-stages.btn.apply-alerts",
+      "title": "Guardar",
+      "details": "«Personalizar» suma roles, usuarios, email o WhatsApp con plantilla. Si la página tenía otros cambios, el botón dice «Aplicar» y después hay que pulsar Guardar arriba."
     }
   ]
 }

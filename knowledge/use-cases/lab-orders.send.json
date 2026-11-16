@@ -2,7 +2,7 @@
   "id": "lab-orders.send",
   "title": "Enviar la orden al laboratorio o pasarla a la siguiente etapa",
   "module": "Historia Clínica",
-  "summary": "Mover una orden a la etapa que sigue. Al enviarla al laboratorio se pide la fecha de entrega y, si falta, el laboratorio.",
+  "summary": "Mover una orden a la etapa que sigue. Al enviarla al laboratorio se completan la fecha de entrega (ya propuesta) y, si falta, el laboratorio, en el mismo panel.",
   "screens": [
     "lab-orders"
   ],
@@ -65,7 +65,7 @@
       "action": "click",
       "target": "lab-orders.btn.send",
       "title": "Enviar al laboratorio",
-      "details": "Si la orden está en la etapa inicial (o no tiene laboratorio), se abre la ventana de envío.",
+      "details": "Si la orden está en la etapa inicial (o no tiene laboratorio), debajo aparece el envío con la fecha ya propuesta.",
       "until": "lab-orders.section.choose-laboratory",
       "skipIfMissing": true
     },
@@ -93,7 +93,7 @@
       "action": "fill",
       "target": "lab-orders.field.send-due-date",
       "title": "Fecha de entrega",
-      "details": "La fecha que prometió el laboratorio. Desde el día siguiente, si no llegó a una etapa final, la orden queda atrasada y se avisa.",
+      "details": "Viene propuesta según el plazo de la etapa; los atajos la cambian con un toque. Desde el día siguiente, si no llegó a una etapa final, la orden queda atrasada y se avisa.",
       "value": "{{values.due_date}}",
       "optional": true,
       "ask": true,

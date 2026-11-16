@@ -164,10 +164,12 @@ export interface LabOrderAttachmentPickerProps {
   files: File[];
   onChange: (files: File[]) => void;
   disabled?: boolean;
+  /** Zona chica y sin la explicación (al lado de otro control). */
+  compact?: boolean;
 }
 
 /** Archivos elegidos en el alta: se suben después de crear la orden. */
-export function LabOrderAttachmentPicker({ files, onChange, disabled }: LabOrderAttachmentPickerProps) {
+export function LabOrderAttachmentPicker({ files, onChange, disabled, compact = false }: LabOrderAttachmentPickerProps) {
   const t = useTranslations('LabOrdersPage.attachments');
   const filterFiles = useFilterAttachments();
   const [rejected, setRejected] = React.useState<string[]>([]);
@@ -177,7 +179,7 @@ export function LabOrderAttachmentPicker({ files, onChange, disabled }: LabOrder
     <section data-help-id="lab-orders.section.form-attachments" className="space-y-2">
       <div>
         <p className="text-sm font-medium">{t('title')}</p>
-        <p className="text-xs text-muted-foreground">{t('formHint')}</p>
+        {!compact && <p className="text-xs text-muted-foreground">{t('formHint')}</p>}
       </div>
       {files.length > 0 && (
         <ul className="space-y-1.5">
@@ -208,7 +210,7 @@ export function LabOrderAttachmentPicker({ files, onChange, disabled }: LabOrder
         <AttachmentDropZone
           helpId="lab-orders.btn.add-attachment"
           disabled={disabled}
-          compact={files.length > 0}
+          compact={compact || files.length > 0}
           onFiles={(picked) => {
             const { accepted, problems } = filterFiles(picked, LAB_ATTACHMENT_MAX_FILES - files.length);
             setRejected(problems);

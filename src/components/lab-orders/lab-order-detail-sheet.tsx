@@ -19,7 +19,7 @@ import { Can } from '@/components/auth/Can';
 import { LabOrderAttachmentsSection } from '@/components/lab-orders/lab-order-attachments';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderHistory } from '@/components/lab-orders/lab-order-history';
-import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
+import { LabOrderMoveInline, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
   LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabOrderUrgentBadge, LabStageBadge, LabStageProgress, labOrderWork,
   nextLabStage,
@@ -193,8 +193,10 @@ function LabOrderDetailView({
   // Si otro usuario la mueve o la edita mientras está abierta, se ve sin cerrar el panel.
   useLabOrdersLive(() => { if (orderId != null) reload(); });
 
-  // Enviarla al laboratorio (fecha de entrega) o moverla sin laboratorio: primero el modal.
+  // Enviarla al laboratorio (fecha de entrega) o moverla sin laboratorio: primero se completa
+  // en línea, dentro del panel (con la fecha y el laboratorio ya propuestos).
   const [labRequest, setLabRequest] = React.useState<LabOrderMoveRequest | null>(null);
+  React.useEffect(() => { setLabRequest(null); }, [orderId]);
   const moveTargetRef = React.useRef<number | null>(null);
   /** Etapa destino del movimiento en curso: qué botón muestra el "cargando". */
   const [movingTo, setMovingTo] = React.useState<number | null>(null);
@@ -207,6 +209,7 @@ function LabOrderDetailView({
     },
     {
       onSuccess: (order) => {
+        setLabRequest(null);
         toast({ title: t('moved', { stage: order.stage_name }) });
         onChanged(order);
         reload();
@@ -254,7 +257,7 @@ function LabOrderDetailView({
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
   const nextStage = detail ? nextLabStage(stages, detail.current_stage_id) : null;
 
-  // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero el modal.
+  // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero en línea.
   const requestMove = (target: LabStage) => {
     if (!detail) return;
     const needs = labOrderMoveNeeds(detail, target);
@@ -300,11 +303,19 @@ function LabOrderDetailView({
               <p key={reason} className="text-xs text-destructive">{reason}</p>
             ))}
             <LabStageProgress stages={stages} currentStageId={detail.current_stage_id} className="pt-1" />
-            {canChangeStage && moveTargets.length > 0 && (
+            {canChangeStage && labRequest && (
+              <LabOrderMoveInline
+                request={labRequest}
+                isPending={move.isPending}
+                onCancel={() => setLabRequest(null)}
+                onConfirm={({ laboratory, dueDate }) => move.run({ toStageId: labRequest.stage.id, laboratoryId: laboratory?.id, dueDate })}
+              />
+            )}
+            {canChangeStage && !labRequest && moveTargets.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {nextStage && (
                   <Button
-                    // Si abre el modal (enviar al laboratorio) todavía no guarda: la guía lo puede pulsar.
+                    // Si pide datos (enviar al laboratorio) todavía no guarda: la guía lo puede pulsar.
                     data-help-id={detail && labOrderMoveNeeds(detail, nextStage) ? 'lab-orders.btn.send' : 'lab-orders.btn.next-stage'}
                     size="sm"
                     className="h-9 min-w-0 flex-1 gap-1.5"
@@ -445,15 +456,6 @@ function LabOrderDetailView({
 
   const dialogs = (
     <>
-      <LabOrderMoveDialog
-        request={labRequest}
-        onCancel={() => setLabRequest(null)}
-        onConfirm={({ laboratory, dueDate }) => {
-          const request = labRequest;
-          setLabRequest(null);
-          if (request) move.run({ toStageId: request.stage.id, laboratoryId: laboratory?.id, dueDate });
-        }}
-      />
       <LabOrderFormDialog
         open={editOpen}
         onOpenChange={setEditOpen}

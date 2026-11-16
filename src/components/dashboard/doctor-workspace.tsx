@@ -14,6 +14,7 @@ import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { LabOrderFormDialog, type LabOrderDraft } from '@/components/lab-orders/lab-order-form-dialog';
 import { findLabItemsInTreatments } from '@/components/lab-orders/lab-order-from-session';
+import { LabOrderQuickCreateDialog } from '@/components/lab-orders/lab-order-quick-create';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
@@ -901,6 +902,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   /** Alta de orden de laboratorio: a mano (botón) o propuesta al guardar una sesión con trabajos de laboratorio. */
   const [labOrderRequest, setLabOrderRequest] = React.useState<{ draft: LabOrderDraft; fromSession: boolean } | null>(null);
   const [labOrderOpen, setLabOrderOpen] = React.useState(false);
+  /** Orden propuesta al guardar la sesión: primero una confirmación de un clic, no el formulario. */
+  const [quickLabDraft, setQuickLabDraft] = React.useState<LabOrderDraft | null>(null);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
@@ -1239,13 +1242,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       await completeSelectedAppointment(selectedAppointment);
     }
 
-    // Trabajos de laboratorio en la sesión → se abre el alta de la orden ya cargada.
+    // Trabajos de laboratorio en la sesión → se propone la orden ya cargada (un clic la crea).
     if (canCreateLabOrder) {
       const draft = await labOrderDraftFromSession(data, linkedSession?.tratamientos);
-      if (draft) {
-        setLabOrderRequest({ draft, fromSession: true });
-        setLabOrderOpen(true);
-      }
+      if (draft) setQuickLabDraft(draft);
     }
 
     await loadLinkedSession(selectedAppointment);
@@ -1253,8 +1253,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   }, [
     canCreateLabOrder,
     completeSelectedAppointment,
-    setLabOrderOpen,
-    setLabOrderRequest,
+    setQuickLabDraft,
     createSession,
     isSessionEditingBlockedByDate,
     linkedSession,
@@ -1899,6 +1898,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
           lockDoctor
+        />
+      )}
+
+      {selectedAppointment && canCreateLabOrder && (
+        <LabOrderQuickCreateDialog
+          draft={quickLabDraft}
+          patient={{ id: selectedAppointment.patientId, name: selectedAppointment.patientName || '' }}
+          onClose={() => setQuickLabDraft(null)}
+          onEdit={(draft) => {
+            setQuickLabDraft(null);
+            setLabOrderRequest({ draft, fromSession: true });
+            setLabOrderOpen(true);
+          }}
+          onSaved={(order) => toast({ title: t('focus.labOrderCreated', { id: order.id }) })}
         />
       )}
 

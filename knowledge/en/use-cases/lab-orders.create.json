@@ -56,7 +56,7 @@
     {
       "id": "teeth",
       "title": "Teeth",
-      "details": "The teeth for that service. The order’s teeth are the sum of all its services."
+      "details": "The teeth for that service: type them or tap them on the chart next to it. The order’s teeth are all its services’ teeth combined."
     },
     {
       "id": "item-notes",

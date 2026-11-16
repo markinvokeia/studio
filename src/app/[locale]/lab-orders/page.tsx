@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, ArrowRight, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
-import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { format, startOfToday } from 'date-fns';
+import { AlertTriangle, CalendarClock, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,9 @@ import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
 import {
+  LabCreateDialog, LabOrdersSetupCard, LabOrdersSetupMenu, LabServicesDialog, useLabSetupStatus, type LabSetupDialog,
+} from '@/components/lab-orders/lab-orders-setup';
+import {
   LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge, LabStageBadge, isUrgentPending,
   labOrderWork, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
@@ -34,16 +37,28 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
 import { searchLabOrders } from '@/services/lab-orders';
 import { fetchLabStages } from '@/services/lab-stages';
 
-import { BUSINESS_CONFIG_PERMISSIONS, LAB_ORDERS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type { LabOrder, LabOrderFilters, LabOrderSort, LabStage } from '@/lib/types';
 
-/** Filtro de etapa: 'all' (default, incluye las finalizadas); 'pending' = las que no están en etapa final. */
+/** Filtro de etapa: 'pending' (default) = las que no están en etapa final; 'all' incluye las finalizadas. */
 type StageFilter = 'pending' | 'all' | `stage-${number}`;
+
+/** Lo que se ve al entrar y al limpiar: lo que todavía hay que seguir. */
+const DEFAULT_STAGE_FILTER: StageFilter = 'pending';
+
+/** Cuántas pendientes hay en cada filtro rápido (sin los demás filtros): se ven en el botón. */
+interface QuickCounts {
+  overdue: number;
+  urgent: number;
+  dueToday: number;
+}
+
+const todayKey = () => format(startOfToday(), 'yyyy-MM-dd');
 
 type ViewMode = 'list' | 'board';
 
@@ -115,7 +130,7 @@ export default function LabOrdersPage() {
   const [reloadKey, setReloadKey] = React.useState(0);
 
   const [search, setSearch] = React.useState('');
-  const [stageFilter, setStageFilter] = React.useState<StageFilter>('all');
+  const [stageFilter, setStageFilter] = React.useState<StageFilter>(DEFAULT_STAGE_FILTER);
   const [laboratory, setLaboratory] = React.useState<PickedEntity | null>(null);
   const [doctor, setDoctor] = React.useState<PickedEntity | null>(null);
   const [patient, setPatient] = React.useState<PickedEntity | null>(null);
@@ -123,10 +138,17 @@ export default function LabOrdersPage() {
   const [dateTo, setDateTo] = React.useState('');
   const [overdueOnly, setOverdueOnly] = React.useState(false);
   const [urgentOnly, setUrgentOnly] = React.useState(false);
+  const [dueTodayOnly, setDueTodayOnly] = React.useState(false);
+  const [quickCounts, setQuickCounts] = React.useState<QuickCounts | null>(null);
   const [sort, setSort] = React.useState<LabOrderSort>('created_desc');
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
 
   const [createOpen, setCreateOpen] = React.useState(false);
+  // Puesta en marcha: laboratorios y trabajos de laboratorio se resuelven sin salir del módulo.
+  const [setupKey, setSetupKey] = React.useState(0);
+  const [setupDialog, setSetupDialog] = React.useState<LabSetupDialog | null>(null);
+  const setupStatus = useLabSetupStatus(setupKey);
+  const setupIncomplete = !!setupStatus && (!setupStatus.hasLabs || !setupStatus.hasLabServices);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
@@ -169,8 +191,9 @@ export default function LabOrdersPage() {
     date_to: dateTo || undefined,
     overdue_only: overdueOnly || undefined,
     urgent_only: urgentOnly || undefined,
+    ...(dueTodayOnly ? { due_from: todayKey(), due_to: todayKey() } : {}),
     sort,
-  }), [debouncedSearch, stageFilter, laboratory, doctor, patient, dateFrom, dateTo, overdueOnly, urgentOnly, sort]);
+  }), [debouncedSearch, stageFilter, laboratory, doctor, patient, dateFrom, dateTo, overdueOnly, urgentOnly, dueTodayOnly, sort]);
 
   // Un filtro nuevo vuelve a la primera página.
   React.useEffect(() => {
@@ -199,6 +222,23 @@ export default function LabOrdersPage() {
     return () => controller.abort();
   }, [filters, pagination, reloadKey, errorText]);
 
+  // Contadores de los filtros rápidos: pendientes atrasadas, urgentes y con entrega hoy.
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const count = (extra: LabOrderFilters) => searchLabOrders(
+      { pending_only: true, ...extra, limit: 1, offset: 0 },
+      { signal: controller.signal },
+    ).then((result) => result.total);
+    Promise.all([
+      count({ overdue_only: true }),
+      count({ urgent_only: true }),
+      count({ due_from: todayKey(), due_to: todayKey() }),
+    ])
+      .then(([overdue, urgent, dueToday]) => { if (!controller.signal.aborted) setQuickCounts({ overdue, urgent, dueToday }); })
+      .catch(() => { /* sin contadores: los botones se ven igual */ });
+    return () => controller.abort();
+  }, [reloadKey]);
+
   const reload = () => {
     setReloadKey((k) => k + 1);
     setBoardKey((k) => k + 1);
@@ -218,29 +258,32 @@ export default function LabOrdersPage() {
 
   // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora etapa, paciente y fechas).
   const activeFilterCount = [
-    view === 'list' && stageFilter !== 'all',
+    view === 'list' && stageFilter !== DEFAULT_STAGE_FILTER,
     laboratory,
     doctor,
     view === 'list' && patient,
     view === 'list' && dateFrom,
     view === 'list' && dateTo,
   ].filter(Boolean).length;
-  const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || urgentOnly || search || stageFilter !== 'all');
+  const hasExtraFilters = Boolean(
+    laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || urgentOnly || dueTodayOnly || search
+    || stageFilter !== DEFAULT_STAGE_FILTER,
+  );
   const clearFilters = () => {
-    setSearch(''); setStageFilter('all'); setLaboratory(null); setDoctor(null); setPatient(null);
-    setDateFrom(''); setDateTo(''); setOverdueOnly(false); setUrgentOnly(false);
+    setSearch(''); setStageFilter(DEFAULT_STAGE_FILTER); setLaboratory(null); setDoctor(null); setPatient(null);
+    setDateFrom(''); setDateTo(''); setOverdueOnly(false); setUrgentOnly(false); setDueTodayOnly(false);
   };
 
   // Filtros del popover aplicados, a la vista como chips. En el tablero, los que no se aplican
   // (etapa, paciente, fechas) quedan atenuados en vez de desaparecer.
   const filterChips = ([
-    stageFilter !== 'all' && {
+    stageFilter !== DEFAULT_STAGE_FILTER && {
       key: 'stage',
-      label: `${t('filters.stage')}: ${stageFilter === 'pending'
-        ? t('filters.pending')
+      label: `${t('filters.stage')}: ${stageFilter === 'all'
+        ? t('filters.allStages')
         : stages.find((s) => `stage-${s.id}` === stageFilter)?.name ?? ''}`,
       listOnly: true,
-      onRemove: () => setStageFilter('all'),
+      onRemove: () => setStageFilter(DEFAULT_STAGE_FILTER),
     },
     laboratory && { key: 'laboratory', label: `${t('filters.laboratory')}: ${laboratory.name}`, listOnly: false, onRemove: () => setLaboratory(null) },
     doctor && { key: 'doctor', label: `${t('filters.doctor')}: ${doctor.name}`, listOnly: false, onRemove: () => setDoctor(null) },
@@ -296,31 +339,18 @@ export default function LabOrdersPage() {
       cell: ({ row }) => row.original.doctor_name || <span className="text-muted-foreground">—</span>,
     },
     {
-      accessorKey: 'stage_name',
-      header: t('columns.stage'),
-      cell: ({ row }) => <LabStageBadge name={row.original.stage_name} color={row.original.stage_color} />,
-    },
-    {
-      accessorKey: 'days_in_stage',
-      header: t('columns.daysInStage'),
-      cell: ({ row }) => <LabOrderDaysInStage order={row.original} />,
-    },
-    {
-      accessorKey: 'due_date',
-      header: t('columns.dueDate'),
-      cell: ({ row }) => (row.original.due_date
-        ? (
-          <div className="flex flex-col items-start gap-1">
-            <span className="whitespace-nowrap">{formatDisplayDate(row.original.due_date)}</span>
-            <LabOrderDueLabel order={row.original} onlySoon />
+      // Etapa, días en ella y entrega en una sola columna: el estado de un vistazo.
+      id: 'status',
+      header: t('columns.status'),
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <LabStageBadge name={row.original.stage_name} color={row.original.stage_color} />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {row.original.is_pending && <LabOrderDaysInStage order={row.original} />}
+            <LabOrderDueLabel order={row.original} />
           </div>
-        )
-        : <span className="text-muted-foreground">—</span>),
-    },
-    {
-      accessorKey: 'created_at',
-      header: t('columns.createdAt'),
-      cell: ({ row }) => <span className="whitespace-nowrap text-xs">{formatUtcDateTime(row.original.created_at)}</span>,
+        </div>
+      ),
     },
   ], [t]);
 
@@ -343,6 +373,7 @@ export default function LabOrdersPage() {
             <CardDescription className="text-xs">{t('description')}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            <LabOrdersSetupMenu onOpen={setSetupDialog} compact={isRightOpen} />
             <div data-help-id="lab-orders.section.view" role="group" aria-label={t('view.label')} className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
               {([['list', LayoutList], ['board', SquareKanban]] as const).map(([mode, Icon]) => (
                 <Button
@@ -369,6 +400,9 @@ export default function LabOrdersPage() {
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0 bg-card">
+        {setupIncomplete && setupStatus && (
+          <LabOrdersSetupCard status={setupStatus} onOpen={setSetupDialog} className="mb-3 flex-none" />
+        )}
         {/* Barra compacta: búsqueda, "Solo atrasadas" y el resto de los filtros en un popover, para
             que la lista tenga lugar también con el panel de detalle abierto. */}
         <div data-help-id="lab-orders.section.filters" className="flex flex-none flex-wrap items-center gap-2 pb-3">
@@ -394,6 +428,7 @@ export default function LabOrdersPage() {
           >
             <AlertTriangle className="h-4 w-4" />
             <span className={cn(isRightOpen && 'hidden')}>{t('filters.overdueOnly')}</span>
+            <QuickCount value={quickCounts?.overdue} active={overdueOnly} />
           </Button>
           <Button
             data-help-id="lab-orders.field.urgent-only"
@@ -407,6 +442,21 @@ export default function LabOrdersPage() {
           >
             <Zap className={cn('h-4 w-4', urgentOnly && 'fill-current')} />
             <span className={cn(isRightOpen && 'hidden')}>{t('filters.urgentOnly')}</span>
+            <QuickCount value={quickCounts?.urgent} active={urgentOnly} />
+          </Button>
+          <Button
+            data-help-id="lab-orders.field.due-today"
+            variant={dueTodayOnly ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-9 gap-1.5"
+            aria-pressed={dueTodayOnly}
+            aria-label={t('filters.dueToday')}
+            title={t('filters.dueTodayHint')}
+            onClick={() => setDueTodayOnly((v) => !v)}
+          >
+            <CalendarClock className="h-4 w-4" />
+            <span className={cn(isRightOpen && 'hidden')}>{t('filters.dueToday')}</span>
+            <QuickCount value={quickCounts?.dueToday} active={dueTodayOnly} />
           </Button>
           <Popover>
             <PopoverTrigger asChild>
@@ -563,6 +613,7 @@ export default function LabOrdersPage() {
               doctor_id: doctor?.id,
               overdue_only: overdueOnly || undefined,
               urgent_only: urgentOnly || undefined,
+              ...(dueTodayOnly ? { due_from: todayKey(), due_to: todayKey() } : {}),
             }}
             finalDays={finalDays}
             reloadKey={boardKey}
@@ -594,7 +645,7 @@ export default function LabOrdersPage() {
                     <Button variant="outline" size="sm" onClick={clearFilters}>{t('filters.clear')}</Button>
                   </div>
                 )
-                : <LabOrdersEmptyState onCreate={() => setCreateOpen(true)} />}
+                : <LabOrdersEmptyState onCreate={() => setCreateOpen(true)} onShowAll={() => setStageFilter('all')} />}
               getRowClassName={(row) => cn(
                 row.is_overdue && 'bg-destructive/5',
                 // Franja roja a la izquierda: las urgentes se ven de un vistazo (y van primero).
@@ -658,19 +709,42 @@ export default function LabOrdersPage() {
           setSelectedId(order.id);
         }}
       />
+
+      <LabCreateDialog
+        open={setupDialog === 'laboratory'}
+        onOpenChange={(open) => { if (!open) setSetupDialog(null); }}
+        onCreated={() => setSetupKey((k) => k + 1)}
+      />
+      <LabServicesDialog
+        open={setupDialog === 'services'}
+        onOpenChange={(open) => { if (!open) setSetupDialog(null); }}
+        onChanged={() => setSetupKey((k) => k + 1)}
+      />
     </div>
   );
 }
 
-/** Lista vacía sin filtros: qué es esto, cómo empezar y qué conviene configurar antes. */
-function LabOrdersEmptyState({ onCreate }: { onCreate: () => void }) {
+/** Cantidad dentro de un filtro rápido; nada si es 0 o todavía no llegó. */
+function QuickCount({ value, active }: { value: number | undefined; active: boolean }) {
+  if (!value) return null;
+  return (
+    <span
+      className={cn(
+        'grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums',
+        active ? 'bg-background/25 text-current' : 'bg-muted text-foreground',
+      )}
+    >
+      {value}
+    </span>
+  );
+}
+
+/**
+ * Lista vacía sin filtros: no hay nada pendiente. Las finalizadas no se ven por defecto, así
+ * que se ofrece verlas. La configuración la resuelve la tarjeta de primeros pasos.
+ */
+function LabOrdersEmptyState({ onCreate, onShowAll }: { onCreate: () => void; onShowAll: () => void }) {
   const t = useTranslations('LabOrdersPage.empty');
-  const locale = useLocale();
-  const setupLinks = [
-    { key: 'services', href: '/sales/services', permission: SALES_PERMISSIONS.SERVICES_VIEW_MENU },
-    { key: 'labs', href: '/config/provider-groups', permission: BUSINESS_CONFIG_PERMISSIONS.PROVIDER_GROUPS_VIEW_MENU },
-    { key: 'stages', href: '/config/lab-stages', permission: LAB_ORDERS_PERMISSIONS.STAGES_CONFIG },
-  ] as const;
   return (
     <div data-help-id="lab-orders.section.empty" className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-8 text-center">
       <div className="header-icon-circle"><FlaskConical className="h-5 w-5" /></div>
@@ -678,26 +752,16 @@ function LabOrdersEmptyState({ onCreate }: { onCreate: () => void }) {
         <p className="text-sm font-semibold text-foreground">{t('title')}</p>
         <p className="text-sm text-muted-foreground">{t('description')}</p>
       </div>
-      <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
-        <Button size="sm" className="gap-1.5" onClick={onCreate}>
-          <Plus className="h-4 w-4" />
-          {t('create')}
+      <div className="flex flex-wrap justify-center gap-2">
+        <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
+          <Button size="sm" className="gap-1.5" onClick={onCreate}>
+            <Plus className="h-4 w-4" />
+            {t('create')}
+          </Button>
+        </Can>
+        <Button data-help-id="lab-orders.btn.show-all" size="sm" variant="outline" onClick={onShowAll}>
+          {t('showAll')}
         </Button>
-      </Can>
-      <div className="w-full space-y-1.5 border-t pt-3 text-left">
-        <p className="text-xs font-medium text-muted-foreground">{t('setupTitle')}</p>
-        <ul className="space-y-1">
-          {setupLinks.map((link) => (
-            <Can key={link.key} permission={link.permission}>
-              <li>
-                <Link href={`/${locale}${link.href}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                  {t(`setup.${link.key}`)}
-                  <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                </Link>
-              </li>
-            </Can>
-          ))}
-        </ul>
       </div>
     </div>
   );

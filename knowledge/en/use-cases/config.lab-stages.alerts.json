@@ -24,27 +24,23 @@
     },
     {
       "id": "enter",
-      "title": "On entering the stage",
-      "details": "Alerts every time an order reaches this stage. Example: on “Received at clinic”, the doctor, so they book the fitting."
+      "title": "When an order arrives",
+      "details": "The sentence says who is alerted and how. Example: on “Received at clinic”, the doctor, so they book the fitting. Tap “Order’s doctor” or “Order creator” to add or remove them."
     },
     {
       "id": "dwell",
-      "title": "Time in stage",
-      "details": "When the order goes past the stage’s overdue days; once or every X days."
+      "title": "If it spends more days than expected",
+      "details": "When the order goes past the stage’s overdue days. In “Customize” you can repeat it every X days."
     },
     {
       "id": "due",
-      "title": "Past due date",
+      "title": "If the due date passes",
       "details": "The day after the due date, if the order is still in this stage."
     },
     {
       "id": "apply",
-      "title": "Apply",
-      "details": "Recipients: roles, users, the order’s doctor or its creator. Channels: in-app, email or WhatsApp with a template. Alerts also appear in the Alert Center."
-    },
-    {
-      "id": "save",
-      "title": "Save"
+      "title": "Save",
+      "details": "“Customize” adds roles, users, email or WhatsApp with a template. If the page had other changes, the button says “Apply” and you then press Save at the top."
     }
   ]
 }

@@ -268,6 +268,28 @@ export default function LabStagesConfigPage() {
   const alertsDialogStage = stages.find((s) => s.key === alertsDialogKey) ?? null;
   const alertsDialogOverdue = alertsDialogStage ? Number.parseInt(alertsDialogStage.overdueDays, 10) : NaN;
 
+  // Etapa ya guardada y sin otros cambios en la página: las alertas se guardan desde la ventana,
+  // sin tener que acordarse de "Guardar" después. Con cambios pendientes se aplican y van juntas.
+  const alertsSaveNow = alertsDialogStage?.id != null && !isDirty;
+  const saveAlerts = async (alerts: LabStageAlerts) => {
+    if (!alertsDialogKey) return;
+    if (!alertsSaveNow) {
+      update(alertsDialogKey, { alerts });
+      return;
+    }
+    const next = stages.map((s) => (s.key === alertsDialogKey ? { ...s, alerts } : s));
+    try {
+      const saved = await saveLabStages(next.map(toSaveItem), { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      setData(saved);
+      toast({ title: t('alerts.saved') });
+    } catch (error) {
+      // Tras un timeout pudo guardarse igual: se relee para ver el estado real.
+      if (isTimeoutError(error)) reload();
+      if (error instanceof LabStagesSaveError) throw new Error(t(`errors.${error.code}`, { name: error.detail ?? '' }));
+      throw error;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -419,7 +441,8 @@ export default function LabStagesConfigPage() {
         optionsError={alertOptionsError}
         onRetryOptions={() => setAlertOptionsKey((k) => k + 1)}
         disabled={busy}
-        onApply={(alerts) => { if (alertsDialogKey) update(alertsDialogKey, { alerts }); }}
+        savesNow={alertsSaveNow}
+        onSave={saveAlerts}
       />
 
       <ConfirmActionDialog

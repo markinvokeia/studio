@@ -10570,24 +10570,24 @@
     },
     "alerts": {
       "open": "{count, plural, =0 {Set up alerts} one {# alert set up} other {# alerts set up}}",
-      "title": "Alerts for \"{stage}\"",
-      "description": "Alerts also show in the Alert Center, where they can be completed, snoozed or ignored. They apply when you save the configuration.",
+      "title": "“{stage}” alerts",
+      "description": "Choose when to alert and who. Alerts also show up in the Alert center. They apply when you save the setup.",
       "retry": "Retry",
       "cancel": "Cancel",
       "apply": "Apply",
       "enter": {
-        "title": "On entering the stage",
-        "hint": "Notifies every time an order moves into this stage (for example, to book the fitting)."
+        "title": "When an order reaches this stage",
+        "hint": "For example, to schedule the fitting with the patient."
       },
       "dwell": {
-        "title": "Time in stage",
-        "hint": "Notifies when an order has been in this stage for more than {days, plural, one {# day} other {# days}} (the overdue limit).",
+        "title": "{days, plural, =0 {If an order stays too long in this stage} one {If an order spends more than # day in this stage} other {If an order spends more than # days in this stage}}",
+        "hint": "It's the stage's overdue threshold: after that the order also shows as overdue.",
         "notForFinal": "Final stages are never overdue, so they have no time-in-stage alert.",
         "needsThreshold": "Set the stage overdue days to notify on time in stage."
       },
       "due": {
-        "title": "Delivery overdue",
-        "hint": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered.",
+        "title": "If the due date passes",
+        "hint": "The day after the due date, if the order is still in this stage.",
         "notForFinal": "Final stages have no pending delivery, so they have no overdue-delivery alert."
       },
       "repeat": {
@@ -10624,6 +10624,24 @@
         "noChannel": "Choose at least one channel.",
         "whatsappTemplate": "Choose the WhatsApp template.",
         "invalidRepeat": "Repeat days must be greater than 0."
+      },
+      "descriptionNow": "Choose when to alert and who. Alerts also show up in the Alert center.",
+      "save": "Save",
+      "saved": "Alerts saved",
+      "saveError": "Couldn't save the alerts",
+      "customize": "Customize",
+      "summary": {
+        "each": "Alerts {who} {channels}.",
+        "once": "Alerts {who} {channels}, once.",
+        "repeat": "Alerts {who} {channels} and repeats {days, plural, one {every day} other {every # days}} while it stays that way.",
+        "orderDoctor": "the order's doctor",
+        "orderCreator": "whoever created it",
+        "role": "the {name} role",
+        "roles": "{count, plural, one {# role} other {# roles}}",
+        "users": "{count, plural, one {# more user} other {# more users}}",
+        "inApp": "in the app",
+        "email": "by email",
+        "whatsapp": "on WhatsApp"
       }
     },
     "discardDialog": {
@@ -10682,7 +10700,8 @@
       "stage": "Stage",
       "daysInStage": "In stage",
       "dueDate": "Due",
-      "createdAt": "Created"
+      "createdAt": "Created",
+      "status": "Status"
     },
     "filters": {
       "search": "Search",
@@ -10704,7 +10723,9 @@
       "removeChip": "Remove filter: {name}",
       "overdueOnly": "Overdue only",
       "urgentOnly": "Urgent",
-      "urgentOnlyHint": "Show only pending urgent orders"
+      "urgentOnlyHint": "Show only pending urgent orders",
+      "dueToday": "Due today",
+      "dueTodayHint": "Pending orders the lab has to deliver today"
     },
     "sort": {
       "created_desc": "Newest first",
@@ -10759,7 +10780,9 @@
       "workHint": "If the job is not in the catalog, describe it here.",
       "noLabServicesYet": "There are no lab services yet.",
       "urgent": "Urgent",
-      "urgentHint": "Shown first in the list, in its board column and in the patient record."
+      "urgentHint": "Shown first in the list, in its board column and in the patient record.",
+      "quantityLess": "One less",
+      "quantityMore": "One more"
     },
     "detail": {
       "loading": "Loading…",
@@ -10874,7 +10897,11 @@
       "dueDate": "Delivery date",
       "dueDateHint": "The date the laboratory promised. If it passes and the order hasn't reached a final stage, it becomes overdue.",
       "dueDatePast": "The delivery date can't be earlier than today.",
-      "dueDatePreviousPassed": "The order's previous date ({date}) has already passed. Enter the new one."
+      "dueDatePreviousPassed": "The order's previous date ({date}) has already passed. Enter the new one.",
+      "dueShortcuts": "Delivery date shortcuts",
+      "dueIn": "{days, plural, =7 {In 1 week} =14 {In 2 weeks} one {In # day} other {In # days}}",
+      "inlineSendHint": "We suggested a date based on the stage deadline: confirm it or change it.",
+      "inlineHint": "Choose the lab to be able to move it."
     },
     "pastDueBadge": "{days, plural, one {# day past due} other {# days past due}}",
     "stageOverdueMax": "max {days}",
@@ -10888,15 +10915,10 @@
     "dueInDays": "{days, plural, one {Due in # day} other {Due in # days}}",
     "empty": {
       "filtered": "No orders match the filters.",
-      "title": "No lab orders yet",
-      "description": "Record every job you send to a lab to see which stage it is in and know when it runs late.",
+      "title": "No pending orders",
+      "description": "Here you see the jobs that are at a lab or about to be sent. Finished ones are hidden.",
       "create": "New order",
-      "setupTitle": "Module setup",
-      "setup": {
-        "services": "Mark services as lab work",
-        "labs": "Group labs by category",
-        "stages": "Set up the stages"
-      }
+      "showAll": "Show finished ones too"
     },
     "urgent": "Urgent",
     "urgentHint": "Urgent order: shown first in the list, the board and the patient record while it is pending.",
@@ -10980,6 +11002,82 @@
         "sendDueDate": "Enter the expected delivery date.",
         "sendDuePast": "The delivery date cannot be earlier than today."
       }
+    },
+    "quickCreate": {
+      "title": "Create the lab order?",
+      "description": "{patient}'s session includes these jobs. Everything is already filled in.",
+      "labLater": "Choose later",
+      "labHint": "If you don't know which lab it goes to yet, leave it for when you send it.",
+      "skip": "Not now",
+      "edit": "Edit details",
+      "create": "Create order"
+    },
+    "setup": {
+      "title": "Getting started",
+      "progress": "{done} of {total} done",
+      "askAdmin": "Ask an administrator",
+      "menu": "Set up",
+      "laboratory": {
+        "title": "Add your labs",
+        "hint": "Who you send the jobs to: name, contact and what each one does.",
+        "action": "Add lab",
+        "again": "Add another",
+        "dialogTitle": "New lab",
+        "dialogDescription": "With its contact details at hand and what it does, so it is suggested on each order.",
+        "name": "Name",
+        "namePlaceholder": "E.g. Southside Dental Lab",
+        "save": "Save lab",
+        "created": "Lab \"{name}\" added"
+      },
+      "services": {
+        "title": "Choose which jobs go to the lab",
+        "hint": "Mark the services (crowns, prostheses, splints…) that are requested on an order.",
+        "action": "Choose jobs",
+        "again": "Review",
+        "menu": "Lab jobs",
+        "dialogTitle": "Lab jobs",
+        "dialogDescription": "Turn on the services that are sent to a lab. Changes save instantly.",
+        "search": "Search service",
+        "count": "{count, plural, =0 {None marked} one {# marked} other {# marked}}",
+        "loadError": "The services could not be loaded.",
+        "empty": "There are no services in the catalog yet.",
+        "noResults": "No service matches the search.",
+        "saveError": "\"{name}\" could not be saved. Try again.",
+        "saveErrorTitle": "Change not saved",
+        "specialtyFor": "Specialty of {name}",
+        "anySpecialty": "Any lab",
+        "toggle": "{name} is lab work",
+        "footerHint": "With a specialty, only the labs that do it are suggested when creating the order."
+      },
+      "stages": {
+        "title": "Workflow stages",
+        "hint": "They come ready (impression, at the lab, try-in, received…). You can adjust them anytime.",
+        "action": "Review",
+        "menu": "Stages and alerts"
+      },
+      "specialties": "What it does",
+      "specialtiesHint": "Choose one or more specialties: that is how it gets suggested on orders for those jobs.",
+      "newSpecialty": "New specialty",
+      "noSpecialties": "There are no specialties yet: create the first one (for example, \"Fixed prosthesis\").",
+      "noSpecialtiesAsk": "There are no specialties yet. Ask an administrator to create one.",
+      "specialtyPlaceholder": "E.g. Fixed prosthesis",
+      "addSpecialty": "Add",
+      "specialtyError": "The specialty could not be created.",
+      "specialtyErrorTitle": "Specialty not created",
+      "cancel": "Cancel",
+      "done": "Done",
+      "retry": "Retry"
+    },
+    "teethPicker": {
+      "open": "Pick teeth on the chart",
+      "title": "Tap the teeth",
+      "dentition": "Dentition",
+      "permanent": "Permanent",
+      "primary": "Primary",
+      "tooth": "Tooth {tooth}",
+      "selected": "Selected: {teeth}",
+      "none": "None selected",
+      "clear": "Clear"
     }
   },
   "PatientPortalConfigPage": {

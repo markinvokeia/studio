@@ -1,7 +1,7 @@
 {
   "id": "lab-orders.send",
   "title": "Send the order to the lab or move it to the next stage",
-  "summary": "Move an order to the next stage. When it is sent to the lab, the due date (and the lab, if missing) is asked for.",
+  "summary": "Move an order to the next stage. When sending it to the lab, the delivery date (already suggested) and, if missing, the lab are filled in the same panel.",
   "module": "Clinic History",
   "inputs": {
     "query": "Search",
@@ -44,7 +44,7 @@
     {
       "id": "send",
       "title": "Send to the lab",
-      "details": "If the order is in the initial stage (or has no lab), the send window opens."
+      "details": "If the order is in the initial stage (or has no lab), the send form appears below with the date already suggested."
     },
     {
       "id": "next",
@@ -59,7 +59,7 @@
     {
       "id": "due-date",
       "title": "Due date",
-      "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out."
+      "details": "It is suggested from the stage deadline; the shortcuts change it with one tap. From the next day, if it has not reached a final stage, the order is overdue and an alert is sent."
     },
     {
       "id": "confirm-move",

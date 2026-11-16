@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, BellRing, CalendarX, Clock } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { AlertTriangle, BellRing, CalendarX, ChevronDown, Clock, SlidersHorizontal } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { cn } from '@/lib/utils';
 import type { LabStageAlertOptions } from '@/services/lab-stage-alert-options';
 
@@ -65,13 +66,27 @@ export interface LabStageAlertsDialogProps {
   optionsError: string | null;
   onRetryOptions: () => void;
   disabled?: boolean;
-  /** Aplica a la etapa en edición; se guarda con el resto de la configuración. */
-  onApply: (alerts: LabStageAlerts) => void;
+  /**
+   * true: "Guardar" guarda las alertas de esta etapa en el momento (etapa ya guardada y sin otros
+   * cambios pendientes). false: "Aplicar" las deja en la etapa y se guardan con la página.
+   */
+  savesNow: boolean;
+  /** Guarda (o aplica) las alertas. Si falla, la ventana queda abierta con lo elegido. */
+  onSave: (alerts: LabStageAlerts) => Promise<void> | void;
+}
+
+/** Sin destinatarios extra, solo en el sistema y una sola vez: se ve como una frase, sin el detalle. */
+function isSimpleAlert(alert: LabStageAlertConfig | null): boolean {
+  return !alert || (
+    alert.recipient_role_ids.length === 0 && alert.recipient_user_ids.length === 0
+    && alert.channel_in_app && !alert.channel_email && !alert.channel_whatsapp
+    && alert.repeat_every_days == null
+  );
 }
 
 /** Alertas de una etapa: al entrar, por permanencia y por entrega vencida, cada una con destinatarios y canales. */
 export function LabStageAlertsDialog({
-  open, onOpenChange, stageName, stageKind, overdueDays, value, options, optionsError, onRetryOptions, disabled = false, onApply,
+  open, onOpenChange, stageName, stageKind, overdueDays, value, options, optionsError, onRetryOptions, disabled = false, savesNow, onSave,
 }: LabStageAlertsDialogProps) {
   const t = useTranslations('LabStagesPage.alerts');
   const [draft, setDraft] = React.useState<LabStageAlerts>(value);
@@ -95,21 +110,31 @@ export function LabStageAlertsDialog({
   const hasIssues = [effective.enter, effective.dwell, effective.due].some((alert) => labStageAlertIssues(alert).length > 0);
   const isDirty = JSON.stringify(effective) !== JSON.stringify(value);
 
+  const save = useAsyncAction(async (alerts: LabStageAlerts) => { await onSave(alerts); }, {
+    onSuccess: () => onOpenChange(false),
+    errorTitle: t('saveError'),
+  });
+
   const apply = () => {
     if (hasIssues) {
       setShowIssues(true);
       return;
     }
-    onApply(effective);
-    onOpenChange(false);
+    if (!isDirty) {
+      onOpenChange(false);
+      return;
+    }
+    void save.run(effective);
   };
 
+  const busy = disabled || save.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" confirmOnClose isDirty={isDirty}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && save.isPending) return; onOpenChange(next); }}>
+      <DialogContent className="sm:max-w-2xl" confirmOnClose isDirty={isDirty && !save.isPending}>
         <DialogHeader>
           <DialogTitle>{t('title', { stage: stageName })}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+          <DialogDescription>{savesNow ? t('descriptionNow') : t('description')}</DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4 px-6 py-4">
           {optionsError && (
@@ -125,7 +150,7 @@ export function LabStageAlertsDialog({
             value={draft.enter}
             onChange={(enter) => setDraft((d) => ({ ...d, enter }))}
             options={options}
-            disabled={disabled}
+            disabled={busy}
             showIssues={showIssues}
           />
 
@@ -137,14 +162,14 @@ export function LabStageAlertsDialog({
               value={draft.dwell}
               onChange={(dwell) => setDraft((d) => ({ ...d, dwell }))}
               options={options}
-              disabled={disabled}
+              disabled={busy}
               showIssues={showIssues}
             />
           ) : (
             <section className="rounded-xl border border-dashed border-border p-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                {t('dwell.title')}
+                {t('dwell.title', { days: 0 })}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {stageKind === 'final' ? t('dwell.notForFinal') : t('dwell.needsThreshold')}
@@ -159,7 +184,7 @@ export function LabStageAlertsDialog({
               value={draft.due}
               onChange={(due) => setDraft((d) => ({ ...d, due }))}
               options={options}
-              disabled={disabled}
+              disabled={busy}
               showIssues={showIssues}
               defaultValue={DEFAULT_LAB_DUE_ALERT}
             />
@@ -174,8 +199,10 @@ export function LabStageAlertsDialog({
           )}
         </DialogBody>
         <DialogFooter>
-          <DialogCancelButton>{t('cancel')}</DialogCancelButton>
-          <Button data-help-id="config.lab-stages.btn.apply-alerts" onClick={apply} disabled={disabled}>{t('apply')}</Button>
+          <DialogCancelButton disabled={save.isPending}>{t('cancel')}</DialogCancelButton>
+          <Button data-help-id="config.lab-stages.btn.apply-alerts" onClick={apply} disabled={disabled} loading={save.isPending}>
+            {savesNow ? t('save') : t('apply')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -199,9 +226,15 @@ function AlertSection({
   trigger, icon, overdueDays, value, onChange, options, disabled, showIssues, defaultValue = DEFAULT_LAB_STAGE_ALERT,
 }: AlertSectionProps) {
   const t = useTranslations('LabStagesPage.alerts');
+  const locale = useLocale();
   const [userFilter, setUserFilter] = React.useState('');
   const enabled = value !== null;
   const issues = labStageAlertIssues(value);
+  // Lo avanzado (frecuencia, roles, usuarios, canales) queda plegado salvo que ya se use.
+  const [customizing, setCustomizing] = React.useState(() => !isSimpleAlert(value));
+  React.useEffect(() => {
+    if (showIssues && issues.length > 0) setCustomizing(true);
+  }, [showIssues, issues.length]);
   const patch = (p: Partial<LabStageAlertConfig>) => value && onChange({ ...value, ...p });
   const toggleIn = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
@@ -214,21 +247,63 @@ function AlertSection({
     <section data-help-id={`config.lab-stages.section.alert-${trigger}`} className={cn('space-y-3 rounded-xl border p-3', enabled ? 'border-border bg-card' : 'border-dashed border-border')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold">{icon}{t(`${trigger}.title`)}</div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {trigger === 'dwell' ? t('dwell.hint', { days: overdueDays ?? 0 }) : t(`${trigger}.hint`)}
-          </p>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {icon}
+            {trigger === 'dwell' ? t('dwell.title', { days: overdueDays ?? 0 }) : t(`${trigger}.title`)}
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t(`${trigger}.hint`)}</p>
         </div>
         <Switch
           checked={enabled}
           onCheckedChange={(on) => onChange(on ? { ...defaultValue } : null)}
           disabled={disabled}
-          aria-label={t(`${trigger}.title`)}
+          aria-label={trigger === 'dwell' ? t('dwell.title', { days: overdueDays ?? 0 }) : t(`${trigger}.title`)}
         />
       </div>
 
       {value && (
-        <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={cn('min-w-0 flex-1 basis-60 text-sm', issues.includes('noRecipients') || issues.includes('noChannel') ? 'text-destructive' : 'text-foreground')}>
+            {alertSummary(value, trigger, options, locale, t)}
+          </p>
+          {!customizing && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('recipients.title')}>
+              {([['notify_order_doctor', 'orderDoctor'], ['notify_order_creator', 'orderCreator']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => patch({ [key]: !value[key] })}
+                  aria-pressed={value[key]}
+                  disabled={disabled}
+                  data-help-id={`config.lab-stages.toggle.alert-${label === 'orderDoctor' ? 'doctor' : 'creator'}`}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60',
+                    value[key] ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted',
+                  )}
+                >
+                  {t(`recipients.${label}`)}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            data-help-id={`config.lab-stages.btn.customize-${trigger}`}
+            aria-expanded={customizing}
+            onClick={() => setCustomizing((v) => !v)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {t('customize')}
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', customizing && 'rotate-180')} />
+          </Button>
+        </div>
+      )}
+
+      {value && customizing && (
+        <div className="space-y-4 border-t border-border pt-3">
           {trigger !== 'enter' && (
             <div className="grid gap-2 sm:grid-cols-[12rem_8rem] sm:items-end">
               <div className="space-y-1">
@@ -374,6 +449,41 @@ function AlertSection({
       )}
     </section>
   );
+}
+
+/** "Se avisa al doctor de la orden en el sistema, una sola vez.": la alerta en una frase. */
+function alertSummary(
+  alert: LabStageAlertConfig,
+  trigger: LabStageAlertTrigger,
+  options: LabStageAlertOptions | null,
+  locale: string,
+  t: ReturnType<typeof useTranslations<'LabStagesPage.alerts'>>,
+): string {
+  const list = (items: string[]) => new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(items);
+  const roleNames = alert.recipient_role_ids
+    .map((id) => options?.roles.find((r) => r.id === id)?.name)
+    .filter((name): name is string => !!name);
+  const roles = roleNames.length === alert.recipient_role_ids.length
+    ? roleNames.map((name) => t('summary.role', { name }))
+    : [t('summary.roles', { count: alert.recipient_role_ids.length })];
+  const who = [
+    alert.notify_order_doctor ? t('summary.orderDoctor') : null,
+    alert.notify_order_creator ? t('summary.orderCreator') : null,
+    ...(alert.recipient_role_ids.length > 0 ? roles : []),
+    alert.recipient_user_ids.length > 0 ? t('summary.users', { count: alert.recipient_user_ids.length }) : null,
+  ].filter((x): x is string => !!x);
+  if (who.length === 0) return t('issues.noRecipients');
+  const channels = [
+    alert.channel_in_app ? t('summary.inApp') : null,
+    alert.channel_email ? t('summary.email') : null,
+    alert.channel_whatsapp ? t('summary.whatsapp') : null,
+  ].filter((x): x is string => !!x);
+  if (channels.length === 0) return t('issues.noChannel');
+  if (trigger === 'enter') return t('summary.each', { who: list(who), channels: list(channels) });
+  const repeats = alert.repeat_every_days != null && alert.repeat_every_days > 0;
+  return repeats
+    ? t('summary.repeat', { who: list(who), channels: list(channels), days: alert.repeat_every_days ?? 0 })
+    : t('summary.once', { who: list(who), channels: list(channels) });
 }
 
 function CheckRow({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {

@@ -10570,24 +10570,24 @@
     },
     "alerts": {
       "open": "{count, plural, =0 {Configurar alertas} one {# alerta configurada} other {# alertas configuradas}}",
-      "title": "Alertas de «{stage}»",
-      "description": "Los avisos también aparecen en el Centro de alertas, donde se pueden completar, posponer o ignorar. Se aplican al guardar la configuración.",
+      "title": "Avisos de «{stage}»",
+      "description": "Elige cuándo avisar y a quién. Los avisos también aparecen en el Centro de alertas. Se aplican al guardar la configuración.",
       "retry": "Reintentar",
       "cancel": "Cancelar",
       "apply": "Aplicar",
       "enter": {
-        "title": "Al entrar a la etapa",
-        "hint": "Avisa cada vez que una orden pasa a esta etapa (por ejemplo, para agendar la colocación)."
+        "title": "Cuando una orden llega a esta etapa",
+        "hint": "Por ejemplo, para programar la colocación con el paciente."
       },
       "dwell": {
-        "title": "Por permanencia",
-        "hint": "Avisa cuando una orden lleva más de {days, plural, one {# día} other {# días}} en esta etapa (el umbral de retraso).",
+        "title": "{days, plural, =0 {Si una orden se retrasa en esta etapa} one {Si una orden pasa más de # día en esta etapa} other {Si una orden pasa más de # días en esta etapa}}",
+        "hint": "Son los días de retraso de la etapa: pasado ese plazo la orden también figura como retrasada.",
         "notForFinal": "Las etapas finales no tienen retraso, así que no llevan alerta por permanencia.",
         "needsThreshold": "Indica los días de retraso de la etapa para poder avisar por permanencia."
       },
       "due": {
-        "title": "Entrega vencida",
-        "hint": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa, sin importar cuándo se registró.",
+        "title": "Si se pasa la fecha de entrega",
+        "hint": "Al día siguiente de la fecha, si la orden sigue en esta etapa.",
         "notForFinal": "Las etapas finales no tienen entrega pendiente, así que no llevan esta alerta."
       },
       "repeat": {
@@ -10624,6 +10624,24 @@
         "noChannel": "Elige al menos un canal.",
         "whatsappTemplate": "Elige la plantilla de WhatsApp.",
         "invalidRepeat": "Los días de repetición tienen que ser mayores que 0."
+      },
+      "descriptionNow": "Elige cuándo avisar y a quién. Los avisos también aparecen en el Centro de alertas.",
+      "save": "Guardar",
+      "saved": "Avisos guardados",
+      "saveError": "No se han podido guardar los avisos",
+      "customize": "Personalizar",
+      "summary": {
+        "each": "Se avisa {who} {channels}.",
+        "once": "Se avisa {who} {channels}, una sola vez.",
+        "repeat": "Se avisa {who} {channels} y se repite {days, plural, one {cada día} other {cada # días}} mientras siga igual.",
+        "orderDoctor": "al doctor de la orden",
+        "orderCreator": "a quien la creó",
+        "role": "al rol {name}",
+        "roles": "a {count, plural, one {# rol} other {# roles}}",
+        "users": "a {count, plural, one {# usuario más} other {# usuarios más}}",
+        "inApp": "en el sistema",
+        "email": "por correo",
+        "whatsapp": "por WhatsApp"
       }
     },
     "discardDialog": {
@@ -10682,7 +10700,8 @@
       "stage": "Etapa",
       "daysInStage": "En la etapa",
       "dueDate": "Entrega",
-      "createdAt": "Alta"
+      "createdAt": "Alta",
+      "status": "Estado"
     },
     "filters": {
       "search": "Buscar",
@@ -10704,7 +10723,9 @@
       "removeChip": "Quitar filtro: {name}",
       "overdueOnly": "Solo retrasadas",
       "urgentOnly": "Urgentes",
-      "urgentOnlyHint": "Mostrar solo las órdenes urgentes pendientes"
+      "urgentOnlyHint": "Mostrar solo las órdenes urgentes pendientes",
+      "dueToday": "Entregas de hoy",
+      "dueTodayHint": "Órdenes pendientes que el laboratorio tiene que entregar hoy"
     },
     "sort": {
       "created_desc": "Más recientes",
@@ -10759,7 +10780,9 @@
       "workHint": "Si el trabajo no está en el catálogo, descríbelo aquí.",
       "noLabServicesYet": "Todavía no hay servicios de laboratorio.",
       "urgent": "Urgente",
-      "urgentHint": "Aparece primero en la lista, en su columna del tablero y en la ficha del paciente."
+      "urgentHint": "Aparece primero en la lista, en su columna del tablero y en la ficha del paciente.",
+      "quantityLess": "Uno menos",
+      "quantityMore": "Uno más"
     },
     "detail": {
       "loading": "Cargando…",
@@ -10874,7 +10897,11 @@
       "dueDate": "Fecha de entrega",
       "dueDateHint": "La que ha prometido el laboratorio. Si pasa y la orden no ha llegado a una etapa final, queda atrasada.",
       "dueDatePast": "La fecha de entrega no puede ser anterior a hoy.",
-      "dueDatePreviousPassed": "La fecha que tenía la orden ({date}) ya ha pasado. Indica la nueva."
+      "dueDatePreviousPassed": "La fecha que tenía la orden ({date}) ya ha pasado. Indica la nueva.",
+      "dueShortcuts": "Atajos de fecha de entrega",
+      "dueIn": "{days, plural, =7 {En 1 semana} =14 {En 2 semanas} one {En # día} other {En # días}}",
+      "inlineSendHint": "Te hemos propuesto una fecha según el plazo de la etapa: confírmala o cámbiala.",
+      "inlineHint": "Selecciona el laboratorio para poder moverla."
     },
     "pastDueBadge": "{days, plural, one {Vencida hace # día} other {Vencida hace # días}}",
     "stageOverdueMax": "máx. {days}",
@@ -10888,15 +10915,10 @@
     "dueInDays": "{days, plural, one {Vence en # día} other {Vence en # días}}",
     "empty": {
       "filtered": "Ninguna orden coincide con los filtros.",
-      "title": "Todavía no hay órdenes de laboratorio",
-      "description": "Registra cada trabajo que envías a un laboratorio para saber en qué etapa está y enterarte si se retrasa.",
+      "title": "No hay órdenes pendientes",
+      "description": "Aquí ves los trabajos que están en un laboratorio o por enviarse. Las finalizadas no se muestran.",
       "create": "Nueva orden",
-      "setupTitle": "Configuración del módulo",
-      "setup": {
-        "services": "Marcar servicios como trabajo de laboratorio",
-        "labs": "Agrupar los laboratorios por categoría",
-        "stages": "Configurar las etapas"
-      }
+      "showAll": "Ver también las finalizadas"
     },
     "urgent": "Urgente",
     "urgentHint": "Orden urgente: aparece primero en la lista, el tablero y la ficha del paciente mientras esté pendiente.",
@@ -10980,6 +11002,82 @@
         "sendDueDate": "Indica la fecha de entrega.",
         "sendDuePast": "La fecha de entrega no puede ser anterior a hoy."
       }
+    },
+    "quickCreate": {
+      "title": "¿Creamos la orden de laboratorio?",
+      "description": "La sesión de {patient} incluye estos trabajos. Ya está todo cargado.",
+      "labLater": "Elegir después",
+      "labHint": "Si aún no sabes a qué laboratorio va, déjalo para cuando la envíes.",
+      "skip": "Ahora no",
+      "edit": "Editar detalles",
+      "create": "Crear orden"
+    },
+    "setup": {
+      "title": "Primeros pasos",
+      "progress": "{done} de {total} listos",
+      "askAdmin": "Pídeselo a un administrador",
+      "menu": "Configurar",
+      "laboratory": {
+        "title": "Añade tus laboratorios",
+        "hint": "A quiénes envías los trabajos: nombre, contacto y qué hace cada uno.",
+        "action": "Añadir laboratorio",
+        "again": "Añadir otro",
+        "dialogTitle": "Nuevo laboratorio",
+        "dialogDescription": "Con su contacto a mano y lo que hace, para proponerlo en cada orden.",
+        "name": "Nombre",
+        "namePlaceholder": "Ej.: Laboratorio Dental Sur",
+        "save": "Guardar laboratorio",
+        "created": "Laboratorio «{name}» añadido"
+      },
+      "services": {
+        "title": "Elige qué trabajos se envían al laboratorio",
+        "hint": "Marca los servicios (coronas, prótesis, férulas…) que se piden en una orden.",
+        "action": "Elegir trabajos",
+        "again": "Revisar",
+        "menu": "Trabajos de laboratorio",
+        "dialogTitle": "Trabajos de laboratorio",
+        "dialogDescription": "Activa los servicios que se envían a un laboratorio. Se guarda al instante.",
+        "search": "Buscar servicio",
+        "count": "{count, plural, =0 {Ninguno marcado} one {# marcado} other {# marcados}}",
+        "loadError": "No se han podido cargar los servicios.",
+        "empty": "Aún no hay servicios en el catálogo.",
+        "noResults": "Ningún servicio coincide con la búsqueda.",
+        "saveError": "No se ha podido guardar «{name}». Inténtalo de nuevo.",
+        "saveErrorTitle": "No se ha guardado el cambio",
+        "specialtyFor": "Especialidad de {name}",
+        "anySpecialty": "Cualquier laboratorio",
+        "toggle": "{name} es trabajo de laboratorio",
+        "footerHint": "Con especialidad, al crear la orden se proponen solo los laboratorios que la hacen."
+      },
+      "stages": {
+        "title": "Etapas del circuito",
+        "hint": "Ya vienen listas (toma de impresión, en laboratorio, prueba, recibido…). Puedes ajustarlas cuando quieras.",
+        "action": "Revisar",
+        "menu": "Etapas y avisos"
+      },
+      "specialties": "Qué hace",
+      "specialtiesHint": "Selecciona una o más especialidades: así se propone en las órdenes de esos trabajos.",
+      "newSpecialty": "Nueva especialidad",
+      "noSpecialties": "Aún no hay especialidades: crea la primera (por ejemplo, «Prótesis fija»).",
+      "noSpecialtiesAsk": "Aún no hay especialidades. Pide a un administrador que cree una.",
+      "specialtyPlaceholder": "Ej.: Prótesis fija",
+      "addSpecialty": "Añadir",
+      "specialtyError": "No se ha podido crear la especialidad.",
+      "specialtyErrorTitle": "Especialidad sin crear",
+      "cancel": "Cancelar",
+      "done": "Listo",
+      "retry": "Reintentar"
+    },
+    "teethPicker": {
+      "open": "Elegir piezas en el odontograma",
+      "title": "Toca las piezas",
+      "dentition": "Dentición",
+      "permanent": "Permanente",
+      "primary": "Temporal",
+      "tooth": "Pieza {tooth}",
+      "selected": "Elegidas: {teeth}",
+      "none": "Ninguna elegida",
+      "clear": "Limpiar"
     }
   },
   "PatientPortalConfigPage": {

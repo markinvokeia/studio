@@ -6,8 +6,8 @@
     "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
-    "Nothing applies until you press Save.",
-    "Each stage can notify when an order enters it, on time in stage (when it goes over its overdue days) and when delivery is overdue (the day after the due date, if the order is still in the stage), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
+    "List changes apply when you press Save. Alerts of an already saved stage are saved from their window, unless the page has other pending changes.",
+    "Each stage can alert when an order arrives, when it spends more days than expected and when the due date passes. Each alert reads as a sentence (“Alerts the order’s doctor in the app”); “Customize” adds roles, users, email or WhatsApp and repetition. Alerts also go to the Alert Center."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -39,16 +39,16 @@
       "description": "Opens the stage alerts. The number shows how many are set up."
     },
     "config.lab-stages.section.alert-enter": {
-      "label": "On entering the stage",
-      "description": "Notifies every time an order moves into this stage. Choose who (roles, users, the order doctor or its creator) and which channel."
+      "label": "When an order reaches this stage",
+      "description": "Alerts every time an order moves into this stage. The sentence says who and how; the buttons pick the order’s doctor or its creator."
     },
     "config.lab-stages.section.alert-dwell": {
-      "label": "Time in stage",
-      "description": "Notifies when the order goes over the stage overdue days; once or every X days while it stays. Only for non-final stages with a limit."
+      "label": "If an order spends more days than expected",
+      "description": "Alerts when the order goes over the stage’s overdue days; once or every X days (in Customize). Only for non-final stages with overdue days."
     },
     "config.lab-stages.section.alert-due": {
-      "label": "Delivery overdue",
-      "description": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered; once or every X days while it stays. Not available for final stages. New stages have it on (order doctor and creator, in the app)."
+      "label": "If the due date passes",
+      "description": "Alerts the day after the due date if the order is still in this stage; once or repeated. Not available for final stages. New stages have it on (order doctor and creator, in the app)."
     },
     "config.lab-stages.section.new-stage": {
       "label": "New stage",
@@ -67,8 +67,28 @@
       "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none."
     },
     "config.lab-stages.btn.apply-alerts": {
-      "label": "Apply",
-      "description": "Applies the alerts to the stage; they are saved with everything else when you click Save."
+      "label": "Save / Apply",
+      "description": "If the stage is already saved and the page has no other changes, “Save” saves the alerts right away. Otherwise “Apply” keeps them on the stage and they are saved with the page’s Save."
+    },
+    "config.lab-stages.toggle.alert-doctor": {
+      "label": "Order’s doctor",
+      "description": "Turns the alert to the order’s doctor on or off."
+    },
+    "config.lab-stages.toggle.alert-creator": {
+      "label": "Order creator",
+      "description": "Turns the alert to whoever registered the order on or off."
+    },
+    "config.lab-stages.btn.customize-enter": {
+      "label": "Customize",
+      "description": "Shows the alert’s roles, users and channels (app, email, WhatsApp with a template)."
+    },
+    "config.lab-stages.btn.customize-dwell": {
+      "label": "Customize",
+      "description": "Shows the alert’s repetition, roles, users and channels."
+    },
+    "config.lab-stages.btn.customize-due": {
+      "label": "Customize",
+      "description": "Shows the alert’s repetition, roles, users and channels."
     }
   }
 }

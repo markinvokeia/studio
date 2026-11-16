@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { format, startOfToday } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowRight, Check, FlaskConical, Pencil, Phone, Send, Trash2, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, FlaskConical, Minus, Pencil, Phone, Plus, Send, Trash2, Zap } from 'lucide-react';
 import { useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
@@ -24,12 +24,15 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { LabOrderAttachmentPicker } from '@/components/lab-orders/lab-order-attachments';
 import { LabStageBadge, nextLabStage, parseTeeth, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
+import { LabTeethPicker } from '@/components/lab-orders/lab-teeth-picker';
 
+import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { toast } from '@/hooks/use-toast';
 import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { fetchDoctors } from '@/services/doctors';
 import { changeLabOrderStage, saveLabOrder, searchLaboratories, uploadLabOrderAttachments } from '@/services/lab-orders';
 import { fetchLabStages } from '@/services/lab-stages';
 
@@ -96,6 +99,8 @@ type LabOrderFormValues = z.infer<ReturnType<typeof labOrderSchema>>;
 /** Datos con los que arranca un alta (desde Mi consultorio o al guardar una sesión clínica). */
 export interface LabOrderDraft {
   doctor?: { id: string; name: string } | null;
+  /** Laboratorio ya elegido (desde la tarjeta de la sesión → "Editar detalles"). */
+  laboratory?: { id: string; name: string } | null;
   items?: Array<{ service_id: string; service_name: string; quantity: number; teeth: number[]; lab_category_id?: string | null }>;
   notes?: string;
 }
@@ -107,8 +112,8 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
     patient_name: order?.patient_name ?? patient?.name ?? '',
     doctor_id: order?.doctor_id ?? fromDraft?.doctor?.id ?? '',
     doctor_name: order?.doctor_name ?? fromDraft?.doctor?.name ?? '',
-    laboratory_id: order?.laboratory_id ?? '',
-    laboratory_name: order?.laboratory_name ?? '',
+    laboratory_id: order?.laboratory_id ?? fromDraft?.laboratory?.id ?? '',
+    laboratory_name: order?.laboratory_name ?? fromDraft?.laboratory?.name ?? '',
     items: order
       ? order.items.map((item) => ({
         service_id: String(item.service_id),
@@ -199,6 +204,8 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
   const [visited, setVisited] = React.useState<Set<WizardStep>>(new Set());
   /** Etapa inicial y la siguiente (a la que va "Crear y enviar"); null si no hay a dónde enviarla. */
   const [stages, setStages] = React.useState<{ initial: LabStage; send: LabStage } | null>(null);
+  /** La persona quitó el laboratorio: no volver a proponer el único sugerido. */
+  const [labCleared, setLabCleared] = React.useState(false);
 
   const form = useForm<LabOrderFormValues>({
     resolver: zodResolver(labOrderSchema(t, dueMode === 'required')),
@@ -236,9 +243,25 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     setVisited(new Set(progress.visited));
     setSubmissionError(null);
     setPendingFiles([]);
+    setLabCleared(false);
     // Solo al abrir: un refetch de la orden mientras se edita no debe pisar lo escrito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Alta sin doctor: si quien la crea es doctor, la orden es suya (se puede cambiar).
+  const { user } = useAuth();
+  const userId = user?.id != null ? String(user.id) : '';
+  React.useEffect(() => {
+    if (!open || isEdit || !userId || form.getValues('doctor_id')) return;
+    let active = true;
+    fetchDoctors().then((doctors) => {
+      const me = doctors.find((d) => d.id === userId);
+      if (!active || !me || form.getValues('doctor_id')) return;
+      form.setValue('doctor_id', me.id);
+      form.setValue('doctor_name', me.name);
+    });
+    return () => { active = false; };
+  }, [open, isEdit, userId, form]);
 
   // Alta: a qué etapa la llevaría "Crear y enviar". Sin respuesta, la opción no aparece.
   React.useEffect(() => {
@@ -493,13 +516,52 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                         {items.fields.map((item, index) => (
                           <div key={item.id} className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="min-w-0 break-words text-sm font-medium">{item.service_name}</p>
+                              <p className="min-w-0 flex-1 break-words pt-1 text-sm font-medium">{item.service_name}</p>
+                              {/* Cantidad compacta junto al nombre: casi siempre es 1. No se calcula de
+                                  las piezas porque un puente de 3 piezas es 1 trabajo, no 3. */}
+                              <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <div className="flex items-center rounded-md border border-border bg-background">
+                                    <button
+                                      type="button"
+                                      className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+                                      aria-label={t('form.quantityLess')}
+                                      disabled={save.isPending || Number(field.value) <= 1}
+                                      onClick={() => field.onChange(Math.max(1, Number(field.value) - 1))}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </button>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        type="number"
+                                        min={1}
+                                        max={99}
+                                        inputMode="numeric"
+                                        aria-label={t('form.quantity')}
+                                        className="h-7 w-9 border-0 px-0 text-center text-sm shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none"
+                                        disabled={save.isPending}
+                                      />
+                                    </FormControl>
+                                    <button
+                                      type="button"
+                                      className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+                                      aria-label={t('form.quantityMore')}
+                                      disabled={save.isPending || Number(field.value) >= 99}
+                                      onClick={() => field.onChange(Math.min(99, Number(field.value) + 1))}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 data-help-id="lab-orders.btn.remove-service"
-                                className="-mr-1 -mt-1 h-7 w-7 shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                                className="-mr-1 h-7 w-7 shrink-0 hover:bg-destructive/10 hover:text-destructive"
                                 aria-label={t('form.removeService', { name: item.service_name })}
                                 onClick={() => items.remove(index)}
                                 disabled={save.isPending}
@@ -507,22 +569,20 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-                            <div className="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1.4fr)]">
-                              <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs">{t('form.quantity')}</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} type="number" min={1} max={99} inputMode="numeric" className="h-9" disabled={save.isPending} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )} />
+                            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                               <FormField control={form.control} name={`items.${index}.teeth`} render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs">{t('form.teeth')}</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} inputMode="numeric" className="h-9" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
-                                  </FormControl>
+                                  <div className="flex gap-1.5">
+                                    <FormControl>
+                                      <Input {...field} inputMode="numeric" className="h-9" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
+                                    </FormControl>
+                                    <LabTeethPicker
+                                      value={field.value}
+                                      onChange={(next) => form.setValue(`items.${index}.teeth`, next, { shouldDirty: true, shouldValidate: true })}
+                                      disabled={save.isPending}
+                                    />
+                                  </div>
                                   <FormMessage />
                                 </FormItem>
                               )} />
@@ -554,6 +614,9 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                         {hasItems && <p className="text-xs text-muted-foreground">{t('form.teethHint')}</p>}
                       </section>
 
+                      {/* Con servicios, lo extra va en Notas (Revisar): la descripción solo se ve si
+                          ya tenía algo. Sin servicios es la forma de describir el trabajo. */}
+                      {(!hasItems || !!values.work_description?.trim()) && (
                       <FormField control={form.control} name="work_description" render={({ field }) => (
                         <FormItem>
                           <FormLabel>{hasItems ? t('form.workOptional') : t('wizard.workAlternative')}</FormLabel>
@@ -574,14 +637,22 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                           <FormMessage />
                         </FormItem>
                       )} />
+                      )}
 
                       {!hasItems && (
                         <FormField control={form.control} name="teeth" render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('form.teeth')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} inputMode="numeric" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
-                            </FormControl>
+                            <div className="flex gap-1.5">
+                              <FormControl>
+                                <Input {...field} inputMode="numeric" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
+                              </FormControl>
+                              <LabTeethPicker
+                                value={field.value}
+                                onChange={(next) => form.setValue('teeth', next, { shouldDirty: true, shouldValidate: true })}
+                                disabled={save.isPending}
+                              />
+                            </div>
                             <FormDescription>{t('form.teethHint')}</FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -605,6 +676,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                               onValueChange={(id, lab) => {
                                 field.onChange(id);
                                 form.setValue('laboratory_name', lab?.name ?? '', { shouldDirty: true });
+                                if (!id) setLabCleared(true);
                               }}
                               triggerText={t('form.selectLaboratory')}
                               disabled={save.isPending}
@@ -617,6 +689,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                         categoryIds={labCategoryIds}
                         value={values.laboratory_id ?? ''}
                         disabled={save.isPending}
+                        autoPickSingle={!isEdit && !labCleared}
                         onPick={(lab) => {
                           form.setValue('laboratory_id', lab.id, { shouldDirty: true });
                           form.setValue('laboratory_name', lab.name, { shouldDirty: true });
@@ -725,14 +798,16 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                         </FormItem>
                       )} />
 
+                      {/* Adjuntos y urgente, lado a lado: son opcionales y no deberían alargar el paso. */}
+                      <div className={cn('grid gap-3', !isEdit && 'sm:grid-cols-2 sm:items-start')}>
                       {!isEdit && (
-                        <LabOrderAttachmentPicker files={pendingFiles} onChange={setPendingFiles} disabled={save.isPending} />
+                        <LabOrderAttachmentPicker files={pendingFiles} onChange={setPendingFiles} disabled={save.isPending} compact />
                       )}
 
                       <FormField control={form.control} name="is_urgent" render={({ field }) => (
                         <FormItem
                           className={cn(
-                            'flex flex-row items-center justify-between gap-3 space-y-0 rounded-lg border p-3 transition-colors',
+                            'flex flex-row items-center justify-between gap-3 space-y-0 rounded-lg border p-3 transition-colors sm:mt-6',
                             field.value ? 'border-destructive/50 bg-destructive/5' : 'border-border',
                           )}
                         >
@@ -753,6 +828,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                           </FormControl>
                         </FormItem>
                       )} />
+                      </div>
 
                       {submissionError && (
                         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -902,11 +978,13 @@ function SendOption({ value, checked, title, hint, stage }: { value: string; che
  * Laboratorios para elegir con un toque: los de la categoría de los servicios (si es una sola)
  * o los primeros de la lista. El selector de arriba queda para buscar o dar de alta otro.
  */
-function LabSuggestions({ categoryIds, value, onPick, disabled }: {
+function LabSuggestions({ categoryIds, value, onPick, disabled, autoPickSingle = false }: {
   categoryIds: string[];
   value: string;
   onPick: (lab: Laboratory) => void;
   disabled?: boolean;
+  /** Si hay uno solo posible y no hay ninguno elegido, se elige solo (se puede quitar). */
+  autoPickSingle?: boolean;
 }) {
   const t = useTranslations('LabOrdersPage');
   const categoryId = categoryIds.length === 1 ? categoryIds[0] : null;
@@ -920,6 +998,12 @@ function LabSuggestions({ categoryIds, value, onPick, disabled }: {
       .catch(() => { if (!controller.signal.aborted) setLabs([]); });
     return () => controller.abort();
   }, [categoryId]);
+
+  React.useEffect(() => {
+    if (autoPickSingle && !value && labs?.length === 1) onPick(labs[0]);
+    // onPick cambia en cada render; alcanza con reaccionar a la lista y a lo elegido.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labs, value, autoPickSingle]);
 
   const categoryName = categoryId
     ? labs?.flatMap((lab) => lab.categories).find((c) => c.id === categoryId)?.name
