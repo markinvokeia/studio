@@ -48,8 +48,8 @@
       "description": "Menú con todas las demás etapas, para saltar etapas, volver atrás o cerrar la orden (por ejemplo, cancelarla). Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo."
     },
     "lab-orders.section.history": {
-      "label": "Historial de etapas",
-      "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora, y cuánto estuvo la orden en cada etapa («Estuvo 4 días»). El primero marca la etapa actual."
+      "label": "Historial",
+      "description": "Línea de tiempo de la orden, de lo más nuevo a lo más viejo: cada cambio de etapa (origen, destino, usuario, fecha y hora, y cuánto estuvo en cada etapa, «Estuvo 4 días») y cada edición (laboratorio, doctor, fecha de entrega, urgente, servicios, descripción, notas) con el valor anterior y el nuevo. Arriba, el tiempo total desde el alta. El primero marca la etapa actual."
     },
     "lab-orders.btn.edit": {
       "label": "Editar",

@@ -1,6 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
-  LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderItem,
+  LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderChange, LabOrderChangeItem, LabOrderDetail, LabOrderFilters,
+  LabOrderHistoryEntry, LabOrderItem,
   LabCategory, Laboratory, LabOrderAttachment, LabOrderLaboratoryInfo, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
@@ -157,6 +158,32 @@ function toHistory(raw: any): LabOrderHistoryEntry {
   };
 }
 
+function toChangeItems(value: unknown): LabOrderChangeItem[] {
+  return Array.isArray(value)
+    ? value.map((raw: any) => ({
+      service_name: raw?.service_name ?? '',
+      quantity: Number(raw?.quantity) || 1,
+      teeth: Array.isArray(raw?.teeth) ? raw.teeth.map(Number) : [],
+      notes: optionalText(raw?.notes),
+    }))
+    : [];
+}
+
+function toChange(raw: any): LabOrderChange | null {
+  if (!raw || raw.id == null || !Array.isArray(raw.fields)) return null;
+  return {
+    id: Number(raw.id),
+    changed_at: toUtcIso(raw.changed_at),
+    changed_by: raw.changed_by ?? null,
+    changed_by_name: raw.changed_by_name ?? null,
+    fields: raw.fields
+      .filter((f: any) => typeof f?.field === 'string')
+      .map((f: any) => (f.field === 'items'
+        ? { field: 'items', old: toChangeItems(f.old), new: toChangeItems(f.new) }
+        : { field: f.field, old: f.old ?? null, new: f.new ?? null })),
+  };
+}
+
 function firstOrder(data: unknown): LabOrder {
   const order = unwrapRows(data).map(toOrder).find((o): o is LabOrder => o !== null);
   if (!order) throw new LabOrdersError('NOT_FOUND', 'Lab order not found');
@@ -197,6 +224,10 @@ export async function fetchLabOrderDetail(id: number, options?: ApiRequestOption
   return {
     ...order,
     history: Array.isArray(raw.history) ? raw.history.map(toHistory) : [],
+    // Sin el script 175 no llega: solo se ve el historial de etapas.
+    changes: Array.isArray(raw.changes)
+      ? raw.changes.map(toChange).filter((c: LabOrderChange | null): c is LabOrderChange => c !== null)
+      : [],
     laboratory: toLaboratoryInfo(raw.laboratory),
     attachments: toAttachments(raw.attachments),
   };

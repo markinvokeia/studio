@@ -18,11 +18,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Can } from '@/components/auth/Can';
 import { LabOrderAttachmentsSection } from '@/components/lab-orders/lab-order-attachments';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
+import { LabOrderHistory } from '@/components/lab-orders/lab-order-history';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
   LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabOrderUrgentBadge, LabStageBadge, LabStageProgress, labOrderWork,
   nextLabStage,
-  useLabOrderErrorText, useLabOrderOverdueReasons, useLabStayText,
+  useLabOrderErrorText, useLabOrderOverdueReasons,
 } from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -30,7 +31,7 @@ import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { formatPhoneNumber } from '@/lib/phone-text';
-import { cn, formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, deleteLabOrder, fetchLabOrderDetail } from '@/services/lab-orders';
 
@@ -252,12 +253,6 @@ function LabOrderDetailView({
   };
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
   const nextStage = detail ? nextLabStage(stages, detail.current_stage_id) : null;
-  const stayText = useLabStayText();
-  const detailHistory = detail?.history;
-  const history = React.useMemo(
-    () => [...(detailHistory ?? [])].sort((a, b) => b.changed_at.localeCompare(a.changed_at) || b.id - a.id),
-    [detailHistory],
-  );
 
   // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero el modal.
   const requestMove = (target: LabStage) => {
@@ -441,42 +436,7 @@ function LabOrderDetailView({
             />
           </section>
 
-          <section data-help-id="lab-orders.section.history" className="space-y-2">
-            <h3 className={SECTION_TITLE}>{t('detail.history')}</h3>
-            <ol className="space-y-2">
-              {history.map((entry, index) => {
-                // El historial va del más nuevo al más viejo: el siguiente movimiento es el anterior en la lista.
-                const isCurrent = index === 0 && entry.to_stage_id === detail.current_stage_id;
-                const stay = index > 0 ? stayText(entry.changed_at, history[index - 1].changed_at) : null;
-                return (
-                  <li key={entry.id} className="rounded-lg border border-border bg-card px-3 py-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {entry.from_stage_name ? (
-                        <>
-                          <LabStageBadge name={entry.from_stage_name} color={entry.from_stage_color || '#64748b'} />
-                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        </>
-                      ) : (
-                        <span className="text-xs font-medium text-muted-foreground">{t('detail.created')}</span>
-                      )}
-                      <LabStageBadge name={entry.to_stage_name} color={entry.to_stage_color} />
-                      {isCurrent && (
-                        <span className="ml-auto text-xs font-medium text-primary">
-                          {t('detail.current', { days: t('daysInStage', { count: detail.days_in_stage }) })}
-                        </span>
-                      )}
-                      {stay && <span className="ml-auto text-xs font-medium text-muted-foreground">{stay}</span>}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatUtcDateTime(entry.changed_at)}
-                      {entry.changed_by_name ? ` · ${entry.changed_by_name}` : ''}
-                      {entry.note === 'stage_deactivated' ? ` · ${t('detail.byStageDeactivation')}` : entry.note ? ` · ${entry.note}` : ''}
-                    </p>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
+          <LabOrderHistory detail={detail} />
 
         </>
       )}

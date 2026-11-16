@@ -34,8 +34,8 @@
       "description": "Menu with every other stage, to skip stages, go back or close the order (for example, cancel it). It is recorded in the history. If the order has no lab and the stage is not final, it asks for the lab first."
     },
     "lab-orders.section.history": {
-      "label": "Stage history",
-      "description": "Each stage change with source, target, user, date and time, and how long the order stayed in each stage (“Stayed 4 days”). The first one marks the current stage."
+      "label": "History",
+      "description": "The order timeline, newest first: each stage change (source, target, user, date and time, and how long it stayed in each stage, “Stayed 4 days”) and each edit (laboratory, doctor, expected delivery, urgent, services, description, notes) with the old and new value. At the top, the total time since it was created. The first one marks the current stage."
     },
     "lab-orders.btn.edit": {
       "label": "Edit",

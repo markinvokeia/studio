@@ -10762,7 +10762,7 @@
     },
     "detail": {
       "loading": "Cargando…",
-      "history": "Historial de etapas",
+      "history": "Historial",
       "created": "Alta en",
       "byStageDeactivation": "etapa desactivada",
       "delete": "Eliminar",
@@ -10786,7 +10786,15 @@
       "labRut": "RUT",
       "labNoContact": "El laboratorio no tiene teléfono, correo ni dirección. Se completan en su ficha de proveedor (Compras → Proveedores).",
       "labCall": "Llamar a {name}",
-      "labWriteTo": "Escribir a {name}"
+      "labWriteTo": "Escribir a {name}",
+      "edited": "Edición",
+      "yes": "Sí",
+      "no": "No",
+      "totalPending": "En curso · {duration} desde el alta",
+      "totalFinished": "{duration} desde el alta hasta «{stage}»",
+      "durationDays": "{days, plural, one {# día} other {# días}}",
+      "durationHours": "{hours, plural, one {# hora} other {# horas}}",
+      "durationLessThanHour": "menos de una hora"
     },
     "deleteDialog": {
       "title": "Eliminar orden",

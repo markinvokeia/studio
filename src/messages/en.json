@@ -10762,7 +10762,7 @@
     },
     "detail": {
       "loading": "Loading…",
-      "history": "Stage history",
+      "history": "History",
       "created": "Created in",
       "byStageDeactivation": "stage deactivated",
       "delete": "Delete",
@@ -10786,7 +10786,15 @@
       "labRut": "Tax ID (RUT)",
       "labNoContact": "The laboratory has no phone, email or address on file. Add them in its provider record (Purchases → Providers).",
       "labCall": "Call {name}",
-      "labWriteTo": "Email {name}"
+      "labWriteTo": "Email {name}",
+      "edited": "Edited",
+      "yes": "Yes",
+      "no": "No",
+      "totalPending": "In progress · {duration} since created",
+      "totalFinished": "{duration} from creation to “{stage}”",
+      "durationDays": "{days, plural, one {# day} other {# days}}",
+      "durationHours": "{hours, plural, one {# hour} other {# hours}}",
+      "durationLessThanHour": "less than an hour"
     },
     "deleteDialog": {
       "title": "Delete order",

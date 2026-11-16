@@ -180,6 +180,19 @@ function utcMs(iso: string): number {
   return parseISO(iso.endsWith('Z') ? iso : `${iso}Z`).getTime();
 }
 
+/** "4 días" / "5 horas": tiempo entre dos momentos (ISO UTC), sin el "Estuvo". */
+export function useLabDurationText() {
+  const t = useTranslations('LabOrdersPage');
+  return React.useCallback((fromIso: string, toIso: string): string | null => {
+    const ms = utcMs(toIso) - utcMs(fromIso);
+    if (!Number.isFinite(ms) || ms < 0) return null;
+    const hours = Math.floor(ms / 3_600_000);
+    if (hours >= 24) return t('detail.durationDays', { days: Math.floor(hours / 24) });
+    if (hours >= 1) return t('detail.durationHours', { hours });
+    return t('detail.durationLessThanHour');
+  }, [t]);
+}
+
 /** "Estuvo 4 días" / "Estuvo 5 horas": cuánto pasó entre dos movimientos del historial. */
 export function useLabStayText() {
   const t = useTranslations('LabOrdersPage');

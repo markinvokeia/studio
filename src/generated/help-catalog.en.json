@@ -1,5 +1,5 @@
 {
- "version": "4ed07c56d600f521",
+ "version": "6baa82bbf9dbb776",
  "locale": "en",
  "journey": [
   {
@@ -8333,11 +8333,11 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Each stage change with source, target, user, date and time, and how long the order stayed in each stage (“Stayed 4 days”). The first one marks the current stage.",
+     "description": "The order timeline, newest first: each stage change (source, target, user, date and time, and how long it stayed in each stage, “Stayed 4 days”) and each edit (laboratory, doctor, expected delivery, urgent, services, description, notes) with the old and new value. At the top, the total time since it was created. The first one marks the current stage.",
      "id": "lab-orders.section.history",
      "kind": "section",
-     "label": "Stage history",
-     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+     "label": "History",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Every stage except the current one, in circuit order.",

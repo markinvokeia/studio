@@ -903,6 +903,35 @@ export interface LabOrderHistoryEntry {
   note: string | null;
 }
 
+/** Un servicio tal como quedó en la auditoría (lista completa antes y después de un guardado). */
+export interface LabOrderChangeItem {
+  service_name: string;
+  quantity: number;
+  teeth: number[];
+  notes: string | null;
+}
+
+/**
+ * Un dato cambiado en una edición. `field` es la columna de lab_orders ('laboratory_id',
+ * 'due_date', 'is_urgent', …) o 'items'. Doctor, laboratorio y paciente llegan con el nombre;
+ * 'items' llega como LabOrderChangeItem[].
+ */
+export interface LabOrderChangeField {
+  field: string;
+  old: unknown;
+  new: unknown;
+}
+
+/** Una edición de la orden: lo que cambió en un mismo guardado (audit_log, script 175). */
+export interface LabOrderChange {
+  id: number;
+  /** ISO UTC. Igual al de un movimiento de etapa si se guardó en ese movimiento. */
+  changed_at: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  fields: LabOrderChangeField[];
+}
+
 /** Laboratorio asignado, con sus datos de contacto (ficha del proveedor). Solo en el detalle (script 172). */
 export interface LabOrderLaboratoryInfo extends Laboratory {
   alternative_phone: string | null;
@@ -912,6 +941,8 @@ export interface LabOrderLaboratoryInfo extends Laboratory {
 
 export interface LabOrderDetail extends LabOrder {
   history: LabOrderHistoryEntry[];
+  /** Ediciones de la orden y sus servicios, de la más nueva a la más vieja. Vacío sin el script 175. */
+  changes: LabOrderChange[];
   /** null sin laboratorio, o si el backend todavía no tiene el script 172 (solo se ve el nombre). */
   laboratory: LabOrderLaboratoryInfo | null;
   /** Adjuntos de la orden, del más viejo al más nuevo (script 173). */

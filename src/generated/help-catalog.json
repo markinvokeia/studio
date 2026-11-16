@@ -1,5 +1,5 @@
 {
- "version": "0f402fefb52ab838",
+ "version": "63882507f04ebc2f",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8422,11 +8422,11 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora, y cuánto estuvo la orden en cada etapa («Estuvo 4 días»). El primero marca la etapa actual.",
+     "description": "Línea de tiempo de la orden, de lo más nuevo a lo más viejo: cada cambio de etapa (origen, destino, usuario, fecha y hora, y cuánto estuvo en cada etapa, «Estuvo 4 días») y cada edición (laboratorio, doctor, fecha de entrega, urgente, servicios, descripción, notas) con el valor anterior y el nuevo. Arriba, el tiempo total desde el alta. El primero marca la etapa actual.",
      "id": "lab-orders.section.history",
      "kind": "section",
-     "label": "Historial de etapas",
-     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+     "label": "Historial",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Todas las etapas menos la actual, en el orden del circuito.",
