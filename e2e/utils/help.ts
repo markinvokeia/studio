@@ -60,7 +60,7 @@ export function useCaseRoute(useCase: UseCase): string {
  * afuera las que son lecturas por POST o telemetría (asistente, sugerencias de IA,
  * filtros de la agenda).
  */
-const READ_ONLY_POST = /help\/|catalog|alerts\/occurrences|ai\/treatments|appointments\/filter-ids|__nextjs|_next\/|youtube|google/i;
+const READ_ONLY_POST = /help\/|catalog|alerts\/occurrences|ai\/treatments|appointments\/filter-ids|lab-orders\/(search|board)|__nextjs|_next\/|youtube|google/i;
 
 type Bridge = {
   ready: boolean;

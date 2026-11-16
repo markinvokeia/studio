@@ -1813,7 +1813,8 @@
       "labOrder": "Orden de laboratorio",
       "labOrderFromSession": "La sesión incluye trabajos de laboratorio. Revisa los datos y crea la orden, o cierra esta ventana si no hace falta.",
       "labOrderCreated": "Orden de laboratorio #{id} creada",
-      "aestheticSession": "Sesión estética"
+      "aestheticSession": "Sesión estética",
+      "labOrderCreatedAndSent": "Orden de laboratorio #{id} creada y enviada a «{stage}»"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -10714,7 +10715,7 @@
     "form": {
       "createTitle": "Nueva orden de laboratorio",
       "editTitle": "Editar orden #{id}",
-      "createDescription": "La orden entra en la etapa inicial. Después se mueve desde el detalle de la orden.",
+      "createDescription": "Te guiamos paso a paso: paciente, trabajo, laboratorio y revisión.",
       "patient": "Paciente",
       "searchPatient": "Buscar paciente…",
       "selectPatient": "Seleccionar paciente",
@@ -10924,6 +10925,61 @@
       "cancel": "Cancelar",
       "createdWithoutFilesTitle": "La orden se ha creado sin los adjuntos",
       "createdWithoutFiles": "No se han podido subir los archivos. Añádelos desde el detalle de la orden #{id}."
+    },
+    "createdAndSent": "Orden #{id} creada y enviada a «{stage}»",
+    "wizard": {
+      "stepsLabel": "Pasos de la orden",
+      "steps": {
+        "patient": "Paciente",
+        "work": "Trabajo",
+        "laboratory": "Laboratorio",
+        "review": "Revisar"
+      },
+      "continue": "Continuar",
+      "back": "Atrás",
+      "backToReview": "Volver a revisar",
+      "edit": "Editar",
+      "missing": "Falta: {items}",
+      "missingItems": {
+        "patient": "el paciente",
+        "work": "un servicio o la descripción del trabajo",
+        "laboratory": "el laboratorio para enviarla",
+        "dueDate": "la fecha de entrega"
+      },
+      "ready": "Lista para crear.",
+      "readySend": "Lista para crear y enviar a «{stage}».",
+      "readyEdit": "Revisa los cambios y guarda.",
+      "summaryTitle": "Resumen",
+      "patientTitle": "¿Para quién es el trabajo?",
+      "patientHint": "Elige el paciente y el doctor que pide el trabajo.",
+      "doctorHint": "Le llegan los avisos de la orden (atrasos, cuando llega a la clínica).",
+      "workTitle": "¿Qué se le pide al laboratorio?",
+      "workAlternative": "¿No está en la lista? Describe el trabajo",
+      "labTitle": "¿A qué laboratorio va?",
+      "labHint": "Puedes dejarlo para después: se pide al enviar la orden.",
+      "labSuggested": "Laboratorios",
+      "labSuggestedFor": "Laboratorios de {category}",
+      "labNone": "No hay laboratorios para este trabajo. Busca otro o dalo de alta desde el selector.",
+      "labLater": "Decidir el laboratorio después",
+      "labPending": "Se elige al enviarla",
+      "reviewTitle": "Revisa y completa",
+      "reviewHint": "Comprueba los datos, añade notas o adjuntos y decide si la envías ahora.",
+      "reviewHintEdit": "Comprueba los datos y guarda los cambios.",
+      "sendTitle": "¿Qué hacemos con la orden?",
+      "keepOption": "Guardarla para enviar después",
+      "keepHint": "Queda en la etapa inicial; la envías desde la orden cuando el trabajo salga para el laboratorio.",
+      "sendOption": "Enviarla ahora",
+      "sendHint": "Se registra el envío al laboratorio con la fecha de entrega que prometió.",
+      "sendDueDateHint": "La fecha en que el laboratorio prometió entregar el trabajo. Desde el día siguiente la orden figura como atrasada.",
+      "chooseLab": "Elegir laboratorio",
+      "createAndSend": "Crear y enviar",
+      "sendFailedTitle": "La orden se ha creado, pero no se ha enviado",
+      "sendFailed": "La orden #{id} ha quedado en la etapa inicial ({error}). Envíala desde el detalle de la orden.",
+      "validation": {
+        "sendLab": "Para enviarla falta elegir el laboratorio.",
+        "sendDueDate": "Indica la fecha de entrega.",
+        "sendDuePast": "La fecha de entrega no puede ser anterior a hoy."
+      }
     }
   },
   "PatientPortalConfigPage": {

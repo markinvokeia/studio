@@ -385,7 +385,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false, 
         draft={defaultDoctor ? { doctor: defaultDoctor } : null}
         lockDoctor={!canChangeDoctor}
         onSaved={(order) => {
-          toast({ title: t('created', { id: order.id }) });
+          toast({ title: order.stage_kind === 'initial' ? t('created', { id: order.id }) : t('createdAndSent', { id: order.id, stage: order.stage_name }) });
           reload();
         }}
       />

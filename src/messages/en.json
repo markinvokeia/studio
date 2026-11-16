@@ -1813,7 +1813,8 @@
       "labOrder": "Lab order",
       "labOrderFromSession": "This session includes lab work. Review the details and create the order, or close this window if it isn't needed.",
       "labOrderCreated": "Lab order #{id} created",
-      "aestheticSession": "Aesthetic session"
+      "aestheticSession": "Aesthetic session",
+      "labOrderCreatedAndSent": "Lab order #{id} created and sent to “{stage}”"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -10714,7 +10715,7 @@
     "form": {
       "createTitle": "New lab order",
       "editTitle": "Edit order #{id}",
-      "createDescription": "The order starts in the initial stage. You then move it from the order detail.",
+      "createDescription": "We guide you step by step: patient, job, laboratory and review.",
       "patient": "Patient",
       "searchPatient": "Search patient…",
       "selectPatient": "Select patient",
@@ -10924,6 +10925,61 @@
       "cancel": "Cancel",
       "createdWithoutFilesTitle": "The order was created without its attachments",
       "createdWithoutFiles": "The files could not be uploaded. Add them from the details of order #{id}."
+    },
+    "createdAndSent": "Order #{id} created and sent to “{stage}”",
+    "wizard": {
+      "stepsLabel": "Order steps",
+      "steps": {
+        "patient": "Patient",
+        "work": "Job",
+        "laboratory": "Laboratory",
+        "review": "Review"
+      },
+      "continue": "Continue",
+      "back": "Back",
+      "backToReview": "Back to review",
+      "edit": "Edit",
+      "missing": "Missing: {items}",
+      "missingItems": {
+        "patient": "the patient",
+        "work": "a service or a job description",
+        "laboratory": "the laboratory to send it",
+        "dueDate": "the expected delivery date"
+      },
+      "ready": "Ready to create.",
+      "readySend": "Ready to create and send to “{stage}”.",
+      "readyEdit": "Check the changes and save.",
+      "summaryTitle": "Summary",
+      "patientTitle": "Who is the job for?",
+      "patientHint": "Choose the patient and the doctor requesting the job.",
+      "doctorHint": "They get the order alerts (delays, when it arrives at the clinic).",
+      "workTitle": "What are you asking the laboratory for?",
+      "workAlternative": "Not on the list? Describe the job",
+      "labTitle": "Which laboratory is it going to?",
+      "labHint": "You can leave it for later: it is asked for when the order is sent.",
+      "labSuggested": "Laboratories",
+      "labSuggestedFor": "{category} laboratories",
+      "labNone": "There are no laboratories for this job. Search for another one or add it from the selector.",
+      "labLater": "Choose the laboratory later",
+      "labPending": "Chosen when it is sent",
+      "reviewTitle": "Review and complete",
+      "reviewHint": "Check the details, add notes or attachments and decide whether to send it now.",
+      "reviewHintEdit": "Check the details and save the changes.",
+      "sendTitle": "What should happen to the order?",
+      "keepOption": "Save it to send later",
+      "keepHint": "It stays in the initial stage; send it from the order when the job leaves for the laboratory.",
+      "sendOption": "Send it now",
+      "sendHint": "The shipment to the laboratory is recorded with the delivery date it promised.",
+      "sendDueDateHint": "The date the laboratory promised to deliver the job. From the next day the order shows as overdue.",
+      "chooseLab": "Choose laboratory",
+      "createAndSend": "Create and send",
+      "sendFailedTitle": "The order was created but not sent",
+      "sendFailed": "Order #{id} stayed in the initial stage ({error}). Send it from the order details.",
+      "validation": {
+        "sendLab": "Choose the laboratory to send it.",
+        "sendDueDate": "Enter the expected delivery date.",
+        "sendDuePast": "The delivery date cannot be earlier than today."
+      }
     }
   },
   "PatientPortalConfigPage": {

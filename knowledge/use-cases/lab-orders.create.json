@@ -2,7 +2,7 @@
   "id": "lab-orders.create",
   "title": "Registrar una orden de laboratorio",
   "module": "Historia Clínica",
-  "summary": "Cargar un trabajo para el laboratorio: paciente, servicios con piezas, doctor, laboratorio y notas.",
+  "summary": "Cargar un trabajo para el laboratorio paso a paso: paciente, servicios con piezas, laboratorio y revisión; se puede enviar en el mismo alta.",
   "screens": [
     "lab-orders"
   ],
@@ -14,7 +14,8 @@
     "doctor": "Doctor",
     "laboratory": "Laboratorio",
     "notes": "Notas",
-    "urgent": "Urgente (sí/no)"
+    "urgent": "Urgente (sí/no)",
+    "send_due_date": "Fecha de entrega si se envía ahora (AAAA-MM-DD)"
   },
   "keywords": [
     "nueva orden de laboratorio",
@@ -22,7 +23,8 @@
     "enviar trabajo al laboratorio",
     "pedir corona",
     "pedir protesis",
-    "registrar trabajo"
+    "registrar trabajo",
+    "crear y enviar orden"
   ],
   "steps": [
     {
@@ -37,15 +39,31 @@
       "action": "click",
       "target": "lab-orders.btn.new",
       "title": "Nueva orden",
-      "until": "lab-orders.btn.submit"
+      "until": "lab-orders.btn.step-next"
     },
     {
       "id": "patient",
       "action": "fill",
       "target": "lab-orders.field.patient_id",
       "title": "Paciente",
-      "details": "Para quién es el trabajo.",
+      "details": "Para quién es el trabajo. Desde la ficha del paciente ya viene elegido.",
       "value": "{{values.patient}}"
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "lab-orders.field.doctor_id",
+      "title": "Doctor",
+      "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
+      "value": "{{values.doctor}}",
+      "optional": true
+    },
+    {
+      "id": "next-work",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa al trabajo. Si falta el paciente, lo marca en rojo."
     },
     {
       "id": "service",
@@ -76,22 +94,53 @@
       "skipIfMissing": true
     },
     {
-      "id": "doctor",
-      "action": "fill",
-      "target": "lab-orders.field.doctor_id",
-      "title": "Doctor",
-      "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
-      "value": "{{values.doctor}}",
-      "optional": true
+      "id": "next-laboratory",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa al laboratorio. Hace falta al menos un servicio o la descripción del trabajo."
     },
     {
       "id": "laboratory",
       "action": "fill",
       "target": "lab-orders.field.laboratory_id",
       "title": "Laboratorio",
-      "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Solo aparecen los proveedores de una categoría de laboratorio.",
+      "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Abajo aparecen los laboratorios de la categoría de los servicios para elegir con un toque.",
       "value": "{{values.laboratory}}",
       "optional": true
+    },
+    {
+      "id": "next-review",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa a revisar la orden antes de crearla.",
+      "until": "lab-orders.btn.submit"
+    },
+    {
+      "id": "review",
+      "action": "highlight",
+      "target": "lab-orders.section.review",
+      "title": "Revisá la orden",
+      "details": "Paciente, trabajo y laboratorio. «Editar» vuelve a ese paso sin perder lo cargado."
+    },
+    {
+      "id": "send",
+      "action": "highlight",
+      "target": "lab-orders.field.send",
+      "title": "¿La enviás ahora?",
+      "details": "«Guardarla para enviar después» la deja en la etapa inicial. «Enviarla ahora» la crea y la pasa a la etapa siguiente: pide el laboratorio y la fecha de entrega.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "send-due",
+      "action": "fill",
+      "target": "lab-orders.field.send_due_date",
+      "title": "Fecha de entrega",
+      "details": "La que prometió el laboratorio; desde el día siguiente la orden figura como atrasada.",
+      "value": "{{values.send_due_date}}",
+      "optional": true,
+      "skipIfMissing": true
     },
     {
       "id": "notes",
@@ -123,7 +172,7 @@
       "action": "confirm",
       "target": "lab-orders.btn.submit",
       "title": "Crear la orden",
-      "details": "Entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio."
+      "details": "Sin enviarla, entra en la etapa inicial sin fecha de entrega. Con «Enviarla ahora», queda en la etapa siguiente con el laboratorio y la fecha."
     }
   ]
 }

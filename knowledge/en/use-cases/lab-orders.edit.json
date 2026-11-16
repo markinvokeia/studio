@@ -38,13 +38,9 @@
       "title": "Edit"
     },
     {
-      "id": "services",
-      "title": "Services",
-      "details": "Add or remove jobs and change quantity, teeth or note."
-    },
-    {
-      "id": "laboratory",
-      "title": "Lab"
+      "id": "review",
+      "title": "Review the order",
+      "details": "It opens on Review. “Edit” on each row (or the steps above) takes you to change the patient, services or laboratory; “Back to review” returns here."
     },
     {
       "id": "due",

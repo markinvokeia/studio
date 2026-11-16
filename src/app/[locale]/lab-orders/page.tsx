@@ -653,7 +653,7 @@ export default function LabOrdersPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSaved={(order) => {
-          toast({ title: t('created', { id: order.id }) });
+          toast({ title: order.stage_kind === 'initial' ? t('created', { id: order.id }) : t('createdAndSent', { id: order.id, stage: order.stage_name }) });
           reload();
           setSelectedId(order.id);
         }}

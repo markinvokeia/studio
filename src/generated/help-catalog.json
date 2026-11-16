@@ -1,5 +1,5 @@
 {
- "version": "63882507f04ebc2f",
+ "version": "92245099972d418c",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8116,6 +8116,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Sigue sin laboratorio: la orden se crea igual y el laboratorio se pide al enviarla.",
+     "id": "lab-orders.btn.lab-later",
+     "kind": "btn",
+     "label": "Decidir el laboratorio después",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "description": "Mueve la orden a esa etapa. A una etapa final se mueve sin preguntar; a una no final pide laboratorio o fecha de entrega si faltan.",
      "id": "lab-orders.btn.move-option",
      "kind": "btn",
@@ -8179,10 +8186,49 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Crea la orden o guarda los cambios.",
+     "id": "lab-orders.btn.step-0",
+     "kind": "btn",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "A qué laboratorio va. Opcional al crearla: se pide al enviarla.",
+     "id": "lab-orders.btn.step-laboratory",
+     "kind": "btn",
+     "label": "Paso Laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Valida el paso y pasa al siguiente. Al editar, vuelve a Revisar.",
+     "id": "lab-orders.btn.step-next",
+     "kind": "btn",
+     "label": "Continuar",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Paciente y doctor que pide el trabajo.",
+     "id": "lab-orders.btn.step-patient",
+     "kind": "btn",
+     "label": "Paso Paciente",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Resumen con «Editar» por sección, notas, adjuntos, urgente y si se envía ahora.",
+     "id": "lab-orders.btn.step-review",
+     "kind": "btn",
+     "label": "Paso Revisar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Servicios de laboratorio (con cantidad, piezas y nota) o, si no está en el catálogo, la descripción del trabajo.",
+     "id": "lab-orders.btn.step-work",
+     "kind": "btn",
+     "label": "Paso Trabajo",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "En el último paso (Revisar): crea la orden (o la crea y la envía, si se eligió «Enviarla ahora») o guarda los cambios.",
      "id": "lab-orders.btn.submit",
      "kind": "btn",
-     "label": "Guardar cambios",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
@@ -8286,6 +8332,20 @@
      "id": "lab-orders.field.patient_id",
      "kind": "field",
      "label": "Paciente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Guardarla en la etapa inicial para enviarla después, o enviarla ahora a la etapa siguiente. Enviarla pide el laboratorio y la fecha de entrega.",
+     "id": "lab-orders.field.send",
+     "kind": "field",
+     "label": "¿Qué hacemos con la orden?",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Fecha que prometió el laboratorio; no puede ser anterior a hoy. Desde el día siguiente la orden figura como atrasada.",
+     "id": "lab-orders.field.send_due_date",
+     "kind": "field",
+     "label": "Entrega estimada (al enviarla)",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
@@ -8429,6 +8489,13 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
+     "description": "Laboratorios para elegir con un toque: los de la categoría de los servicios si es una sola, o los primeros de la lista. Para otro, el selector de arriba busca o da de alta.",
+     "id": "lab-orders.section.lab-suggestions",
+     "kind": "section",
+     "label": "Laboratorios sugeridos",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "description": "Todas las etapas menos la actual, en el orden del circuito.",
      "id": "lab-orders.section.move-menu",
      "kind": "section",
@@ -8436,11 +8503,24 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "Paciente, trabajo y laboratorio de la orden; «Editar» vuelve a ese paso.",
+     "id": "lab-orders.section.review",
+     "kind": "section",
+     "label": "Revisión",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
      "description": "Una orden de la lista. Un clic abre su detalle.",
      "id": "lab-orders.section.row",
      "kind": "section",
      "label": "Orden",
      "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "id": "lab-orders.section.send-choice",
+     "kind": "section",
+     "label": "¿Qué hacemos con la orden?",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "Los trabajos que se piden al laboratorio, elegidos de los servicios marcados como «Trabajo de laboratorio». Se pueden sumar varios; cada uno con cantidad, piezas y nota.",
@@ -8462,6 +8542,20 @@
      "kind": "section",
      "label": "Lista o tablero",
      "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Paciente → Trabajo → Laboratorio → Revisar. El paso actual va resaltado y los completos llevan ✓. Se puede volver a cualquier paso; hacia adelante, solo si los anteriores están completos. Debajo dice qué falta para crearla.",
+     "id": "lab-orders.section.wizard-steps",
+     "kind": "section",
+     "label": "Pasos de la orden",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Lo cargado hasta ahora (paciente, doctor, trabajo, laboratorio). Se ve en pantallas anchas.",
+     "id": "lab-orders.section.wizard-summary",
+     "kind": "section",
+     "label": "Resumen",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
      "description": "Marca la orden como urgente (al crearla o al editarla). Mientras esté pendiente sale primero y lleva la etiqueta roja «Urgente»; en una etapa final ya no se destaca.",
@@ -8489,10 +8583,11 @@
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
     "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
-    "La fecha de entrega no se carga al crear la orden: se pide al enviarla, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Después se puede cambiar desde «Editar».",
+    "La fecha de entrega se pide al enviar la orden, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Se puede enviar en el mismo alta («Enviarla ahora», en el paso Revisar) o después desde el detalle. Luego se cambia desde «Editar».",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
     "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
-    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas."
+    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas.",
+    "El alta va por pasos: Paciente → Trabajo → Laboratorio → Revisar. Si se abre desde la ficha del paciente o desde una sesión clínica, lo que ya viene cargado se da por hecho y arranca en el paso siguiente. «Editar» abre directamente en Revisar."
    ],
    "title": "Órdenes de Laboratorio",
    "useCases": [
@@ -31148,6 +31243,7 @@
     "laboratory": "Laboratorio",
     "notes": "Notas",
     "patient": "Paciente",
+    "send_due_date": "Fecha de entrega si se envía ahora (AAAA-MM-DD)",
     "service": "Servicio de laboratorio",
     "teeth": "Piezas (números separados por coma, p. ej. 11, 21)",
     "urgent": "Urgente (sí/no)"
@@ -31158,7 +31254,8 @@
     "enviar trabajo al laboratorio",
     "pedir corona",
     "pedir protesis",
-    "registrar trabajo"
+    "registrar trabajo",
+    "crear y enviar orden"
    ],
    "module": "Historia Clínica",
    "screens": [
@@ -31178,15 +31275,31 @@
      "id": "new",
      "target": "lab-orders.btn.new",
      "title": "Nueva orden",
-     "until": "lab-orders.btn.submit"
+     "until": "lab-orders.btn.step-next"
     },
     {
      "action": "fill",
-     "details": "Para quién es el trabajo.",
+     "details": "Para quién es el trabajo. Desde la ficha del paciente ya viene elegido.",
      "id": "patient",
      "target": "lab-orders.field.patient_id",
      "title": "Paciente",
      "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
+     "id": "doctor",
+     "optional": true,
+     "target": "lab-orders.field.doctor_id",
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "click",
+     "details": "Pasa al trabajo. Si falta el paciente, lo marca en rojo.",
+     "id": "next-work",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar"
     },
     {
      "action": "fill",
@@ -31217,22 +31330,53 @@
      "value": "{{values.item_notes}}"
     },
     {
-     "action": "fill",
-     "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
-     "id": "doctor",
-     "optional": true,
-     "target": "lab-orders.field.doctor_id",
-     "title": "Doctor",
-     "value": "{{values.doctor}}"
+     "action": "click",
+     "details": "Pasa al laboratorio. Hace falta al menos un servicio o la descripción del trabajo.",
+     "id": "next-laboratory",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar"
     },
     {
      "action": "fill",
-     "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Solo aparecen los proveedores de una categoría de laboratorio.",
+     "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Abajo aparecen los laboratorios de la categoría de los servicios para elegir con un toque.",
      "id": "laboratory",
      "optional": true,
      "target": "lab-orders.field.laboratory_id",
      "title": "Laboratorio",
      "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "click",
+     "details": "Pasa a revisar la orden antes de crearla.",
+     "id": "next-review",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar",
+     "until": "lab-orders.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "details": "Paciente, trabajo y laboratorio. «Editar» vuelve a ese paso sin perder lo cargado.",
+     "id": "review",
+     "target": "lab-orders.section.review",
+     "title": "Revisá la orden"
+    },
+    {
+     "action": "highlight",
+     "details": "«Guardarla para enviar después» la deja en la etapa inicial. «Enviarla ahora» la crea y la pasa a la etapa siguiente: pide el laboratorio y la fecha de entrega.",
+     "id": "send",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send",
+     "title": "¿La enviás ahora?"
+    },
+    {
+     "action": "fill",
+     "details": "La que prometió el laboratorio; desde el día siguiente la orden figura como atrasada.",
+     "id": "send-due",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send_due_date",
+     "title": "Fecha de entrega",
+     "value": "{{values.send_due_date}}"
     },
     {
      "action": "fill",
@@ -31262,13 +31406,13 @@
     },
     {
      "action": "confirm",
-     "details": "Entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio.",
+     "details": "Sin enviarla, entra en la etapa inicial sin fecha de entrega. Con «Enviarla ahora», queda en la etapa siguiente con el laboratorio y la fecha.",
      "id": "save",
      "target": "lab-orders.btn.submit",
      "title": "Crear la orden"
     }
    ],
-   "summary": "Cargar un trabajo para el laboratorio: paciente, servicios con piezas, doctor, laboratorio y notas.",
+   "summary": "Cargar un trabajo para el laboratorio paso a paso: paciente, servicios con piezas, laboratorio y revisión; se puede enviar en el mismo alta.",
    "title": "Registrar una orden de laboratorio"
   },
   {
@@ -31400,17 +31544,10 @@
     },
     {
      "action": "highlight",
-     "details": "Sumá o quitá trabajos y cambiá cantidad, piezas o nota.",
-     "id": "services",
-     "target": "lab-orders.section.services",
-     "title": "Servicios"
-    },
-    {
-     "action": "highlight",
-     "details": "A qué laboratorio se envía. Opcional al crear. Solo lista laboratorios; se pueden filtrar por categoría y, si no existe, crearlo ahí mismo eligiendo su categoría.",
-     "id": "laboratory",
-     "target": "lab-orders.field.laboratory_id",
-     "title": "Laboratorio"
+     "details": "Se abre en Revisar. «Editar» en cada fila (o los pasos de arriba) lleva a cambiar el paciente, los servicios o el laboratorio; «Volver a revisar» regresa acá.",
+     "id": "review",
+     "target": "lab-orders.section.review",
+     "title": "Revisá la orden"
     },
     {
      "action": "highlight",

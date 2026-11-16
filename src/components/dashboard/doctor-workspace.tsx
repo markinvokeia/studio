@@ -1911,7 +1911,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           lockDoctor={!canChangeLabOrderDoctor}
           description={labOrderRequest?.fromSession ? t('focus.labOrderFromSession') : undefined}
           onSaved={(order) => {
-            toast({ title: t('focus.labOrderCreated', { id: order.id }) });
+            toast({
+              title: order.stage_kind === 'initial'
+                ? t('focus.labOrderCreated', { id: order.id })
+                : t('focus.labOrderCreatedAndSent', { id: order.id, stage: order.stage_name }),
+            });
           }}
         />
       )}

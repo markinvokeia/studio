@@ -11,10 +11,11 @@
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
     "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
     "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
-    "La fecha de entrega no se carga al crear la orden: se pide al enviarla, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Después se puede cambiar desde «Editar».",
+    "La fecha de entrega se pide al enviar la orden, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Se puede enviar en el mismo alta («Enviarla ahora», en el paso Revisar) o después desde el detalle. Luego se cambia desde «Editar».",
     "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
     "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
-    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas."
+    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas.",
+    "El alta va por pasos: Paciente → Trabajo → Laboratorio → Revisar. Si se abre desde la ficha del paciente o desde una sesión clínica, lo que ya viene cargado se da por hecho y arranca en el paso siguiente. «Editar» abre directamente en Revisar."
   ],
   "useCases": [
     "lab-orders.overview",
@@ -241,7 +242,7 @@
       "description": "Marca la orden como urgente."
     },
     "lab-orders.btn.submit": {
-      "description": "Crea la orden o guarda los cambios."
+      "description": "En el último paso (Revisar): crea la orden (o la crea y la envía, si se eligió «Enviarla ahora») o guarda los cambios."
     },
     "lab-orders.btn.refresh": {
       "description": "Vuelve a cargar la lista."
@@ -249,6 +250,54 @@
     "lab-orders.btn.send": {
       "label": "Enviar al laboratorio",
       "description": "El botón de la siguiente etapa cuando la orden sale de la etapa inicial o no tiene laboratorio: abre la ventana para elegir el laboratorio y la fecha de entrega."
+    },
+    "lab-orders.section.wizard-steps": {
+      "label": "Pasos de la orden",
+      "description": "Paciente → Trabajo → Laboratorio → Revisar. El paso actual va resaltado y los completos llevan ✓. Se puede volver a cualquier paso; hacia adelante, solo si los anteriores están completos. Debajo dice qué falta para crearla."
+    },
+    "lab-orders.btn.step-patient": {
+      "label": "Paso Paciente",
+      "description": "Paciente y doctor que pide el trabajo."
+    },
+    "lab-orders.btn.step-work": {
+      "label": "Paso Trabajo",
+      "description": "Servicios de laboratorio (con cantidad, piezas y nota) o, si no está en el catálogo, la descripción del trabajo."
+    },
+    "lab-orders.btn.step-laboratory": {
+      "label": "Paso Laboratorio",
+      "description": "A qué laboratorio va. Opcional al crearla: se pide al enviarla."
+    },
+    "lab-orders.btn.step-review": {
+      "label": "Paso Revisar",
+      "description": "Resumen con «Editar» por sección, notas, adjuntos, urgente y si se envía ahora."
+    },
+    "lab-orders.btn.step-next": {
+      "label": "Continuar",
+      "description": "Valida el paso y pasa al siguiente. Al editar, vuelve a Revisar."
+    },
+    "lab-orders.section.wizard-summary": {
+      "label": "Resumen",
+      "description": "Lo cargado hasta ahora (paciente, doctor, trabajo, laboratorio). Se ve en pantallas anchas."
+    },
+    "lab-orders.section.lab-suggestions": {
+      "label": "Laboratorios sugeridos",
+      "description": "Laboratorios para elegir con un toque: los de la categoría de los servicios si es una sola, o los primeros de la lista. Para otro, el selector de arriba busca o da de alta."
+    },
+    "lab-orders.btn.lab-later": {
+      "label": "Decidir el laboratorio después",
+      "description": "Sigue sin laboratorio: la orden se crea igual y el laboratorio se pide al enviarla."
+    },
+    "lab-orders.section.review": {
+      "label": "Revisión",
+      "description": "Paciente, trabajo y laboratorio de la orden; «Editar» vuelve a ese paso."
+    },
+    "lab-orders.field.send": {
+      "label": "¿Qué hacemos con la orden?",
+      "description": "Guardarla en la etapa inicial para enviarla después, o enviarla ahora a la etapa siguiente. Enviarla pide el laboratorio y la fecha de entrega."
+    },
+    "lab-orders.field.send_due_date": {
+      "label": "Entrega estimada (al enviarla)",
+      "description": "Fecha que prometió el laboratorio; no puede ser anterior a hoy. Desde el día siguiente la orden figura como atrasada."
     }
   }
 }

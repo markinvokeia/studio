@@ -1,7 +1,7 @@
 {
   "id": "lab-orders.create",
   "title": "Record a lab order",
-  "summary": "Enter a job for the lab: patient, services with teeth, doctor, lab and notes.",
+  "summary": "Enter a job for the lab step by step: patient, services with teeth, laboratory and review; it can be sent while creating it.",
   "module": "Clinic History",
   "inputs": {
     "patient": "Patient",
@@ -11,7 +11,8 @@
     "doctor": "Doctor",
     "laboratory": "Lab",
     "notes": "Notes",
-    "urgent": "Urgent (yes/no)"
+    "urgent": "Urgent (yes/no)",
+    "send_due_date": "Expected delivery date if sent now (YYYY-MM-DD)"
   },
   "keywords": [
     "new lab order",
@@ -19,7 +20,8 @@
     "send job to lab",
     "order a crown",
     "order a prosthesis",
-    "record a job"
+    "record a job",
+    "create and send order"
   ],
   "steps": [
     {
@@ -34,7 +36,17 @@
     {
       "id": "patient",
       "title": "Patient",
-      "details": "Who the job is for."
+      "details": "Who the job is for. From the patient record it is already selected."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Who requested the job; the order’s alerts go to them."
+    },
+    {
+      "id": "next-work",
+      "title": "Continue",
+      "details": "Moves on to the job. If the patient is missing, it is marked in red."
     },
     {
       "id": "service",
@@ -52,14 +64,34 @@
       "details": "Shade, material or any instruction for the lab."
     },
     {
-      "id": "doctor",
-      "title": "Doctor",
-      "details": "Who requested the job; the order’s alerts go to them."
+      "id": "next-laboratory",
+      "title": "Continue",
+      "details": "Moves on to the laboratory. At least one service or a job description is needed."
     },
     {
       "id": "laboratory",
       "title": "Lab",
-      "details": "Optional now: if you skip it, it is asked for when the order is sent. Only providers in a lab category show up."
+      "details": "Optional for now: if you leave it empty, it is asked for when the order is sent. Below are the laboratories of the services’ category to pick with one tap."
+    },
+    {
+      "id": "next-review",
+      "title": "Continue",
+      "details": "Moves on to review the order before creating it."
+    },
+    {
+      "id": "review",
+      "title": "Review the order",
+      "details": "Patient, job and laboratory. “Edit” goes back to that step without losing what you entered."
+    },
+    {
+      "id": "send",
+      "title": "Send it now?",
+      "details": "“Save it to send later” leaves it in the initial stage. “Send it now” creates it and moves it to the next stage: it asks for the laboratory and the expected delivery date."
+    },
+    {
+      "id": "send-due",
+      "title": "Expected delivery",
+      "details": "The date the laboratory promised; from the next day the order shows as overdue."
     },
     {
       "id": "notes",
@@ -78,7 +110,7 @@
     {
       "id": "save",
       "title": "Create the order",
-      "details": "It starts in the initial stage with no due date: the date is asked for when it is sent to the lab."
+      "details": "If not sent, it enters the initial stage with no delivery date. With “Send it now”, it lands in the next stage with the laboratory and the date."
     }
   ]
 }

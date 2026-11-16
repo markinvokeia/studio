@@ -58,17 +58,11 @@
       "until": "lab-orders.btn.submit"
     },
     {
-      "id": "services",
+      "id": "review",
       "action": "highlight",
-      "target": "lab-orders.section.services",
-      "title": "Servicios",
-      "details": "Sumá o quitá trabajos y cambiá cantidad, piezas o nota."
-    },
-    {
-      "id": "laboratory",
-      "action": "highlight",
-      "target": "lab-orders.field.laboratory_id",
-      "title": "Laboratorio"
+      "target": "lab-orders.section.review",
+      "title": "Revisá la orden",
+      "details": "Se abre en Revisar. «Editar» en cada fila (o los pasos de arriba) lleva a cambiar el paciente, los servicios o el laboratorio; «Volver a revisar» regresa acá."
     },
     {
       "id": "due",
