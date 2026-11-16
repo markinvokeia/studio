@@ -341,6 +341,18 @@ const SAMPLE_VALUES: Record<string, Record<string, unknown>> = {
   'sales.quotes.invoice': { demo: true },
   'sales.quotes.items': { demo: true },
   'sales.quotes.overview': { demo: true },
+  'lab-orders.overview': { demo: true },
+  'lab-orders.create': { patient: 'Paciente E2E', service: 'Corona de zirconio', teeth: '11', item_notes: 'E2E', notes: 'E2E', demo: true },
+  'lab-orders.send': { query: 'Paciente E2E', due_date: '2099-12-31', demo: true },
+  'lab-orders.change-stage': { query: 'Paciente E2E', demo: true },
+  'lab-orders.board': { demo: true },
+  'lab-orders.overdue': { demo: true },
+  'lab-orders.edit': { query: 'Paciente E2E', notes: 'E2E editada', demo: true },
+  'lab-orders.delete': { query: 'Paciente E2E', demo: true },
+  'config.lab-stages.overview': { demo: true },
+  'config.lab-stages.add': { name: 'Etapa E2E', kind: 'Intermedia', overdue_days: 2, demo: true },
+  'config.lab-stages.alerts': { demo: true },
+  'patients.lab-orders': { patient: 'Paciente E2E', demo: true },
   'sales.quotes.send': { demo: true },
 };
 

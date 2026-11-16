@@ -473,10 +473,13 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
   const canRemove = !stage.inUse;
   const isFinal = stage.kind === 'final';
   const alertCount = [stage.alerts.enter, stage.alerts.dwell, stage.alerts.due].filter(Boolean).length;
+  // Ids de ayuda solo en la etapa recién agregada (sin guardar): la guía de alta la completa.
+  const isNew = stage.id == null;
 
   return (
     <li
       ref={setNodeRef}
+      data-help-id={isNew ? 'config.lab-stages.section.new-stage' : undefined}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         'grid grid-cols-[2rem_3rem_minmax(0,1fr)] items-center gap-2 bg-card px-3 py-2.5',
@@ -506,6 +509,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
       />
 
       <Input
+        data-help-id={isNew ? 'config.lab-stages.field.new-name' : undefined}
         value={stage.name}
         onChange={(e) => onChange({ name: e.target.value })}
         disabled={disabled}
@@ -518,7 +522,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
 
       <div className="col-span-3 grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-2 pl-[5.5rem] lg:col-span-1 lg:block lg:pl-0">
         <Select value={stage.kind} onValueChange={(value) => onKindChange(value as LabStageKind)} disabled={disabled}>
-          <SelectTrigger aria-label={t('columns.kind')} className="h-9">
+          <SelectTrigger data-help-id={isNew ? 'config.lab-stages.field.new-kind' : undefined} aria-label={t('columns.kind')} className="h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -532,7 +536,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
         </div>
       </div>
 
-      <div className="hidden lg:block">
+      <div className="hidden lg:block" data-help-id={isNew ? 'config.lab-stages.field.new-overdue-days' : undefined}>
         <OverdueInput stage={stage} disabled={disabled || isFinal} onChange={onChange} />
       </div>
 

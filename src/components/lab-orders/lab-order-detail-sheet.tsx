@@ -309,7 +309,8 @@ function LabOrderDetailView({
               <div className="flex flex-wrap gap-2 pt-1">
                 {nextStage && (
                   <Button
-                    data-help-id="lab-orders.btn.next-stage"
+                    // Si abre el modal (enviar al laboratorio) todavía no guarda: la guía lo puede pulsar.
+                    data-help-id={detail && labOrderMoveNeeds(detail, nextStage) ? 'lab-orders.btn.send' : 'lab-orders.btn.next-stage'}
                     size="sm"
                     className="h-9 min-w-0 flex-1 gap-1.5"
                     onClick={() => requestMove(nextStage)}
@@ -334,9 +335,9 @@ function LabOrderDetailView({
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" data-help-id="lab-orders.section.move-menu">
                     {moveTargets.map((stage) => (
-                      <DropdownMenuItem key={stage.id} onSelect={() => requestMove(stage)}>
+                      <DropdownMenuItem key={stage.id} data-help-id="lab-orders.btn.move-option" onSelect={() => requestMove(stage)}>
                         <span className="mr-2 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stage.color }} />
                         {stage.name}
                       </DropdownMenuItem>

@@ -31,6 +31,7 @@
     "patients.clinical-session",
     "patients.odontogram",
     "patients.treatment-plans",
+    "patients.lab-orders",
     "patients.prescription",
     "patients.medical-instruction",
     "patients.documents",

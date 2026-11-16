@@ -27,7 +27,8 @@
       "description": "Adds an intermediate stage before the final ones."
     },
     "config.lab-stages.btn.discard": {
-      "label": "Discard changes"
+      "label": "Discard changes",
+      "description": "Goes back to the saved setup and drops unsaved changes."
     },
     "config.lab-stages.btn.save": {
       "label": "Save",
@@ -48,6 +49,26 @@
     "config.lab-stages.section.alert-due": {
       "label": "Delivery overdue",
       "description": "Notifies the day after the due date if the order is still in this stage, no matter when it was registered; once or every X days while it stays. Not available for final stages. New stages have it on (order doctor and creator, in the app)."
+    },
+    "config.lab-stages.section.new-stage": {
+      "label": "New stage",
+      "description": "The stage just added, not saved yet. Drag it by the left handle into place."
+    },
+    "config.lab-stages.field.new-name": {
+      "label": "Name",
+      "description": "Stage name; written by the clinic and not translated."
+    },
+    "config.lab-stages.field.new-kind": {
+      "label": "Type",
+      "description": "Initial (only one: every new order starts there), intermediate or final (the order ends and is no longer pending)."
+    },
+    "config.lab-stages.field.new-overdue-days": {
+      "label": "Overdue days",
+      "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none."
+    },
+    "config.lab-stages.btn.apply-alerts": {
+      "label": "Apply",
+      "description": "Applies the alerts to the stage; they are saved with everything else when you click Save."
     }
   }
 }

@@ -16,6 +16,16 @@
     "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
     "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas."
   ],
+  "useCases": [
+    "lab-orders.overview",
+    "lab-orders.create",
+    "lab-orders.send",
+    "lab-orders.change-stage",
+    "lab-orders.board",
+    "lab-orders.overdue",
+    "lab-orders.edit",
+    "lab-orders.delete"
+  ],
   "elements": {
     "lab-orders.btn.new": {
       "label": "Nueva orden",
@@ -168,6 +178,77 @@
     "lab-orders.btn.remove-attachment": {
       "label": "Quitar",
       "description": "Borra el adjunto de la orden (pide confirmación; no se puede deshacer)."
+    },
+    "lab-orders.filter.search": {
+      "label": "Buscar",
+      "description": "Busca por paciente, trabajo, laboratorio o número de orden."
+    },
+    "lab-orders.btn.view-list": {
+      "label": "Lista",
+      "description": "Muestra las órdenes en la tabla, con todos los filtros."
+    },
+    "lab-orders.btn.view-board": {
+      "label": "Tablero",
+      "description": "Muestra una columna por etapa activa; las tarjetas se arrastran para cambiar la etapa."
+    },
+    "lab-orders.section.first-row": {
+      "label": "Primera orden",
+      "description": "La primera orden de la lista según el orden elegido. Un clic abre su detalle."
+    },
+    "lab-orders.section.row": {
+      "label": "Orden",
+      "description": "Una orden de la lista. Un clic abre su detalle."
+    },
+    "lab-orders.section.move-menu": {
+      "label": "Etapas",
+      "description": "Todas las etapas menos la actual, en el orden del circuito."
+    },
+    "lab-orders.btn.move-option": {
+      "label": "Etapa destino",
+      "description": "Mueve la orden a esa etapa. A una etapa final se mueve sin preguntar; a una no final pide laboratorio o fecha de entrega si faltan."
+    },
+    "lab-orders.field.send-laboratory": {
+      "label": "Laboratorio",
+      "description": "A qué laboratorio se envía la orden. Aparece solo si todavía no tiene."
+    },
+    "lab-orders.btn.confirm-move": {
+      "label": "Confirmar",
+      "description": "Mueve la orden a la etapa elegida con el laboratorio y la fecha de entrega cargados."
+    },
+    "lab-orders.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "Confirma la eliminación de la orden."
+    },
+    "lab-orders.field.patient_id": {
+      "description": "Paciente para quien es el trabajo. Desde la ficha del paciente ya viene elegido."
+    },
+    "lab-orders.field.doctor_id": {
+      "description": "Doctor que pidió el trabajo; los avisos de la orden pueden ir a él."
+    },
+    "lab-orders.field.work_description": {
+      "description": "Descripción del trabajo cuando no hay un servicio del catálogo (o un detalle extra si lo hay)."
+    },
+    "lab-orders.field.teeth": {
+      "description": "Piezas dentales de la orden cuando no tiene servicios (números separados por coma)."
+    },
+    "lab-orders.field.due_date": {
+      "description": "Fecha de entrega prometida por el laboratorio. Aparece al editar una orden ya enviada."
+    },
+    "lab-orders.field.notes": {
+      "description": "Notas internas de la orden."
+    },
+    "lab-orders.field.is_urgent": {
+      "description": "Marca la orden como urgente."
+    },
+    "lab-orders.btn.submit": {
+      "description": "Crea la orden o guarda los cambios."
+    },
+    "lab-orders.btn.refresh": {
+      "description": "Vuelve a cargar la lista."
+    },
+    "lab-orders.btn.send": {
+      "label": "Enviar al laboratorio",
+      "description": "El botón de la siguiente etapa cuando la orden sale de la etapa inicial o no tiene laboratorio: abre la ventana para elegir el laboratorio y la fecha de entrega."
     }
   }
 }

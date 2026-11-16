@@ -107,7 +107,7 @@ export function LabOrderMoveDialog({ request, onCancel, onConfirm }: LabOrderMov
             </div>
 
             {needs.laboratory ? (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-help-id="lab-orders.field.send-laboratory">
                 <Label>{t('laboratory')}</Label>
                 <LabSelector
                   value={laboratory?.id ?? ''}
@@ -151,6 +151,7 @@ export function LabOrderMoveDialog({ request, onCancel, onConfirm }: LabOrderMov
           <DialogCancelButton>{t('cancel')}</DialogCancelButton>
           <Button
             type="button"
+            data-help-id="lab-orders.btn.confirm-move"
             disabled={!ready}
             onClick={() => { if (ready) onConfirm({ laboratory, dueDate: needs?.dueDate ? dueDate : null }); }}
           >

@@ -1,0 +1,70 @@
+{
+  "id": "lab-orders.overview",
+  "title": "Tour Lab Orders",
+  "summary": "What the screen shows: list and board, search, overdue, urgent, filters and an order’s details.",
+  "module": "Clinic History",
+  "inputs": {},
+  "keywords": [
+    "lab orders",
+    "lab work",
+    "prosthesis",
+    "crowns",
+    "which stage",
+    "lab tracking"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "view",
+      "title": "List or board",
+      "details": "The list has every filter; the board shows one column per stage and cards are dragged between them."
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "details": "By patient, job, lab or order number."
+    },
+    {
+      "id": "overdue",
+      "title": "Overdue only",
+      "details": "Orders past their stage’s day limit or past their due date. An order in a final stage is never overdue."
+    },
+    {
+      "id": "urgent",
+      "title": "Urgent",
+      "details": "Pending urgent orders; they also come first in the list and on the board."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "Stage (all, pending or a specific one), lab, doctor, patient, creation dates and sort order (for example, most days in stage)."
+    },
+    {
+      "id": "row",
+      "title": "An order",
+      "details": "Patient, lab, job, doctor, stage, days in stage (red when over the limit) and due date."
+    },
+    {
+      "id": "board",
+      "title": "Board"
+    },
+    {
+      "id": "columns",
+      "title": "One column per stage",
+      "details": "Drag a card to another column to change its stage; it is saved when you drop it."
+    },
+    {
+      "id": "new",
+      "title": "New order",
+      "details": "Records a new job; it starts in the initial stage."
+    }
+  ]
+}

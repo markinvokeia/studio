@@ -1,0 +1,84 @@
+{
+  "id": "lab-orders.create",
+  "title": "Record a lab order",
+  "summary": "Enter a job for the lab: patient, services with teeth, doctor, lab and notes.",
+  "module": "Clinic History",
+  "inputs": {
+    "patient": "Patient",
+    "service": "Lab service",
+    "teeth": "Teeth (comma-separated numbers, e.g. 11, 21)",
+    "item_notes": "Service note (shade, material…)",
+    "doctor": "Doctor",
+    "laboratory": "Lab",
+    "notes": "Notes",
+    "urgent": "Urgent (yes/no)"
+  },
+  "keywords": [
+    "new lab order",
+    "create order",
+    "send job to lab",
+    "order a crown",
+    "order a prosthesis",
+    "record a job"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "new",
+      "title": "New order"
+    },
+    {
+      "id": "patient",
+      "title": "Patient",
+      "details": "Who the job is for."
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "details": "Pick the job from the lab services list. You can add several; if it does not exist, create it from here."
+    },
+    {
+      "id": "teeth",
+      "title": "Teeth",
+      "details": "The teeth for that service. The order’s teeth are the sum of all its services."
+    },
+    {
+      "id": "item-notes",
+      "title": "Service note",
+      "details": "Shade, material or any instruction for the lab."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Who requested the job; the order’s alerts go to them."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "Optional now: if you skip it, it is asked for when the order is sent. Only providers in a lab category show up."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "attachments",
+      "title": "Attachments",
+      "details": "Photos, PDFs or 3D scans for the lab; they are uploaded when the order is created."
+    },
+    {
+      "id": "urgent",
+      "title": "Urgent",
+      "details": "If you turn it on, it comes first in the list, on the board and in the patient file."
+    },
+    {
+      "id": "save",
+      "title": "Create the order",
+      "details": "It starts in the initial stage with no due date: the date is asked for when it is sent to the lab."
+    }
+  ]
+}

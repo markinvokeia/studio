@@ -175,7 +175,7 @@ export function LabStageAlertsDialog({
         </DialogBody>
         <DialogFooter>
           <DialogCancelButton>{t('cancel')}</DialogCancelButton>
-          <Button onClick={apply} disabled={disabled}>{t('apply')}</Button>
+          <Button data-help-id="config.lab-stages.btn.apply-alerts" onClick={apply} disabled={disabled}>{t('apply')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

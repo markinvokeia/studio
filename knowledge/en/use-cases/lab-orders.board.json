@@ -1,0 +1,39 @@
+{
+  "id": "lab-orders.board",
+  "title": "Use the orders board",
+  "summary": "See orders in columns by stage, move them by dragging and limit final columns to recent days.",
+  "module": "Clinic History",
+  "inputs": {},
+  "keywords": [
+    "board",
+    "kanban",
+    "drag order",
+    "columns by stage",
+    "move card"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "board",
+      "title": "Board"
+    },
+    {
+      "id": "columns",
+      "title": "Drag the card",
+      "details": "Drop it in another column to change its stage: it is saved right away and goes back if saving fails. On a phone, use “Move to…” in the card menu."
+    },
+    {
+      "id": "filters",
+      "title": "Filters"
+    },
+    {
+      "id": "final-days",
+      "title": "Final columns",
+      "details": "Final stages only show what arrived in the last 7, 30 or 90 days, so they do not grow forever."
+    }
+  ]
+}

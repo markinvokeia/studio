@@ -1,0 +1,66 @@
+{
+  "id": "lab-orders.delete",
+  "title": "Eliminar una orden de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Quitar una orden cargada por error de la lista y del tablero.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar orden de laboratorio",
+    "borrar orden",
+    "orden cargada por error"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "lab-orders.filter.search",
+      "title": "Buscá la orden",
+      "details": "Por paciente, trabajo, laboratorio o número de orden.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Abrí la orden",
+      "details": "Tocala en la lista. Se abre su detalle a la derecha.",
+      "until": "lab-orders.section.detail-stage",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "lab-orders.btn.delete",
+      "title": "Eliminar",
+      "details": "Si el trabajo se suspendió, mejor movela a una etapa final como Cancelado: queda el historial.",
+      "until": "lab-orders.btn.confirm-action"
+    },
+    {
+      "id": "confirm",
+      "action": "confirm",
+      "target": "lab-orders.btn.confirm-action",
+      "title": "Confirmar"
+    }
+  ]
+}

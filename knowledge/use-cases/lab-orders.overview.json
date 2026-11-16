@@ -1,0 +1,99 @@
+{
+  "id": "lab-orders.overview",
+  "title": "Recorrer Órdenes de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Qué muestra la pantalla: lista y tablero, búsqueda, atrasadas, urgentes, filtros y el detalle de una orden.",
+  "screens": [
+    "lab-orders"
+  ],
+  "keywords": [
+    "ordenes de laboratorio",
+    "trabajos de laboratorio",
+    "protesis",
+    "coronas",
+    "en que etapa esta",
+    "seguimiento laboratorio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "view",
+      "action": "highlight",
+      "target": "lab-orders.section.view",
+      "title": "Lista o tablero",
+      "details": "La lista tiene todos los filtros; el tablero muestra una columna por etapa y se arrastran las tarjetas."
+    },
+    {
+      "id": "search",
+      "action": "highlight",
+      "target": "lab-orders.filter.search",
+      "title": "Búsqueda",
+      "details": "Por paciente, trabajo, laboratorio o número de orden."
+    },
+    {
+      "id": "overdue",
+      "action": "highlight",
+      "target": "lab-orders.field.overdue-only",
+      "title": "Solo atrasadas",
+      "details": "Las que pasaron los días máximos de su etapa o tienen la entrega vencida. Una orden en etapa final nunca está atrasada."
+    },
+    {
+      "id": "urgent",
+      "action": "highlight",
+      "target": "lab-orders.field.urgent-only",
+      "title": "Urgentes",
+      "details": "Las urgentes pendientes; también salen primero en la lista y en el tablero.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "lab-orders.btn.filters",
+      "title": "Filtros",
+      "details": "Etapa (todas, pendientes o una en particular), laboratorio, doctor, paciente, fechas de alta y orden (por ejemplo, más días en la etapa)."
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Una orden",
+      "details": "Paciente, laboratorio, trabajo, doctor, etapa, días en la etapa (en rojo si se pasó) y fecha de entrega.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "board",
+      "action": "click",
+      "target": "lab-orders.btn.view-board",
+      "title": "Tablero",
+      "until": "lab-orders.section.board"
+    },
+    {
+      "id": "columns",
+      "action": "highlight",
+      "target": "lab-orders.section.board",
+      "title": "Una columna por etapa",
+      "details": "Arrastrá una tarjeta a otra columna para cambiarle la etapa; se guarda al soltarla."
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "lab-orders.btn.new",
+      "title": "Nueva orden",
+      "details": "Registra un trabajo nuevo; entra en la etapa inicial.",
+      "skipIfMissing": true
+    }
+  ]
+}

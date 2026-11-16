@@ -1,0 +1,64 @@
+{
+  "id": "lab-orders.edit",
+  "title": "Edit a lab order",
+  "summary": "Change an order’s services, doctor, lab, due date, notes or urgent flag.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search",
+    "notes": "Notes"
+  },
+  "keywords": [
+    "edit lab order",
+    "change due date",
+    "change lab",
+    "modify order"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "By patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "services",
+      "title": "Services",
+      "details": "Add or remove jobs and change quantity, teeth or note."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab"
+    },
+    {
+      "id": "due",
+      "title": "Due date",
+      "details": "Shown once the order is sent; if the lab gives a new date, change it here."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "save",
+      "title": "Save changes",
+      "details": "The stage is not changed here: use “Move to…” or “Other stage…”."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "id": "patients.lab-orders",
+  "title": "See the patient’s lab orders",
+  "summary": "In the patient file: their orders in progress and finished, the overdue ones and how to create a new one.",
+  "module": "Patients",
+  "group": "Clinical history",
+  "inputs": {
+    "patient": "Patient"
+  },
+  "keywords": [
+    "patient lab orders",
+    "patient orders",
+    "has the job arrived",
+    "patient crown",
+    "book fitting"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; click one to open their file on the right."
+    },
+    {
+      "id": "search",
+      "title": "Search for the patient",
+      "details": "By name, email or ID document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their file",
+      "details": "Click the patient in the list. The guide continues once their file is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "lab",
+      "title": "Lab"
+    },
+    {
+      "id": "in-progress",
+      "title": "In progress",
+      "details": "Each order with its progress through the stages, days in stage and due date. Before booking the fitting, check the job has arrived."
+    },
+    {
+      "id": "alerts",
+      "title": "Alerts",
+      "details": "Overdue, due within 7 days or without a lab; one click filters them."
+    },
+    {
+      "id": "finished",
+      "title": "Finished",
+      "details": "Delivered or cancelled, with how many days each one took."
+    },
+    {
+      "id": "new",
+      "title": "New order",
+      "details": "Records a job for this patient without leaving their file."
+    },
+    {
+      "id": "module",
+      "title": "View in Lab Orders",
+      "details": "Opens the module filtered by this patient."
+    }
+  ]
+}

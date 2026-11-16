@@ -1,0 +1,107 @@
+{
+  "id": "lab-orders.change-stage",
+  "title": "Mover la orden a otra etapa",
+  "module": "Historia Clínica",
+  "summary": "Saltar etapas, volver atrás (por ejemplo, de la prueba al laboratorio para un ajuste) o cerrar la orden, como cancelarla.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "query": "Buscar",
+    "laboratory": "Laboratorio",
+    "due_date": "Fecha de entrega (AAAA-MM-DD)"
+  },
+  "keywords": [
+    "otra etapa",
+    "volver al laboratorio",
+    "cancelar orden de laboratorio",
+    "mover orden",
+    "saltar etapa",
+    "ajuste"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "lab-orders.filter.search",
+      "title": "Buscá la orden",
+      "details": "Por paciente, trabajo, laboratorio o número de orden.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Abrí la orden",
+      "details": "Tocala en la lista. Se abre su detalle a la derecha.",
+      "until": "lab-orders.section.detail-stage",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "lab-orders.btn.move-to",
+      "title": "Otra etapa…",
+      "until": "lab-orders.section.move-menu"
+    },
+    {
+      "id": "option",
+      "action": "highlight",
+      "target": "lab-orders.btn.move-option",
+      "title": "Elegí la etapa",
+      "details": "Todas las etapas menos la actual, en el orden del circuito. A una etapa final (Completado, Cancelado) se mueve sin preguntar nada."
+    },
+    {
+      "id": "laboratory",
+      "action": "fill",
+      "target": "lab-orders.field.send-laboratory",
+      "title": "Laboratorio",
+      "details": "Solo si la orden todavía no tiene laboratorio. La lista arranca filtrada por la categoría de sus servicios.",
+      "value": "{{values.laboratory}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "due-date",
+      "action": "fill",
+      "target": "lab-orders.field.send-due-date",
+      "title": "Fecha de entrega",
+      "details": "La fecha que prometió el laboratorio. Desde el día siguiente, si no llegó a una etapa final, la orden queda atrasada y se avisa.",
+      "value": "{{values.due_date}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "confirm-move",
+      "action": "confirm",
+      "target": "lab-orders.btn.confirm-move",
+      "title": "Confirmá el cambio de etapa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "history",
+      "action": "highlight",
+      "target": "lab-orders.section.history",
+      "title": "Historial de etapas",
+      "details": "El cambio queda registrado con el usuario, la fecha y cuánto estuvo en la etapa anterior."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "id": "config.lab-stages.add",
+  "title": "Add a lab stage",
+  "summary": "Add a stage to the circuit (for example, “Try-in”), with its type and overdue days.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name",
+    "kind": "Type (Initial, Intermediate or Final)",
+    "overdue_days": "Overdue days"
+  },
+  "keywords": [
+    "add stage",
+    "new stage",
+    "create lab stage",
+    "try-in",
+    "cancelled"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Lab Stages",
+      "details": "The stages every lab order goes through, in order."
+    },
+    {
+      "id": "add",
+      "title": "Add stage",
+      "details": "It is added as intermediate, before the final stages."
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "Written by the clinic; it is not translated."
+    },
+    {
+      "id": "kind",
+      "title": "Type",
+      "details": "Intermediate: one more step in the circuit. Final: the order ends there (Completed, Cancelled) and stops being pending. Marking another as initial replaces the current one."
+    },
+    {
+      "id": "overdue",
+      "title": "Overdue days",
+      "details": "More days than this in the stage and the order turns red. Empty: no limit. Final stages have none."
+    },
+    {
+      "id": "position",
+      "title": "Place it in the circuit",
+      "details": "Drag it by the left handle into place. The bell sets up its alerts."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "The board gets the new column in the chosen order."
+    }
+  ]
+}

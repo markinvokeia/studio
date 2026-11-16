@@ -1,0 +1,71 @@
+{
+  "id": "lab-orders.overdue",
+  "title": "Ver las órdenes atrasadas",
+  "module": "Historia Clínica",
+  "summary": "Filtrar las órdenes atrasadas y entender por qué lo están: días de más en la etapa o entrega vencida.",
+  "screens": [
+    "lab-orders"
+  ],
+  "keywords": [
+    "atrasadas",
+    "demoradas",
+    "vencidas",
+    "entrega vencida",
+    "que trabajos no llegaron",
+    "ordenes en rojo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "overdue",
+      "action": "click",
+      "target": "lab-orders.field.overdue-only",
+      "title": "Solo atrasadas",
+      "details": "Una orden se atrasa cuando pasa los días máximos de su etapa o cuando se vence su fecha de entrega sin llegar a una etapa final."
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Abrí una orden atrasada",
+      "details": "Los días en rojo marcan el atraso por etapa; la etiqueta «Vencida» la entrega pasada.",
+      "until": "lab-orders.section.detail-stage",
+      "autoClick": true
+    },
+    {
+      "id": "reason",
+      "action": "highlight",
+      "target": "lab-orders.section.detail-stage",
+      "title": "Por qué está atrasada",
+      "details": "Muestra los días en la etapa junto al máximo («5 días · máx. 3») y, si pasó la entrega, hace cuántos días venció."
+    },
+    {
+      "id": "laboratory",
+      "action": "highlight",
+      "target": "lab-orders.section.detail-laboratory",
+      "title": "Contacto del laboratorio",
+      "details": "Teléfonos y correo del laboratorio para reclamar el trabajo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "history",
+      "action": "highlight",
+      "target": "lab-orders.section.history",
+      "title": "Historial de etapas",
+      "details": "El cambio queda registrado con el usuario, la fecha y cuánto estuvo en la etapa anterior."
+    }
+  ]
+}

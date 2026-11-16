@@ -1,0 +1,129 @@
+{
+  "id": "lab-orders.create",
+  "title": "Registrar una orden de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Cargar un trabajo para el laboratorio: paciente, servicios con piezas, doctor, laboratorio y notas.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "patient": "Paciente",
+    "service": "Servicio de laboratorio",
+    "teeth": "Piezas (números separados por coma, p. ej. 11, 21)",
+    "item_notes": "Nota del servicio (color, material…)",
+    "doctor": "Doctor",
+    "laboratory": "Laboratorio",
+    "notes": "Notas",
+    "urgent": "Urgente (sí/no)"
+  },
+  "keywords": [
+    "nueva orden de laboratorio",
+    "crear orden",
+    "enviar trabajo al laboratorio",
+    "pedir corona",
+    "pedir protesis",
+    "registrar trabajo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "lab-orders.btn.new",
+      "title": "Nueva orden",
+      "until": "lab-orders.btn.submit"
+    },
+    {
+      "id": "patient",
+      "action": "fill",
+      "target": "lab-orders.field.patient_id",
+      "title": "Paciente",
+      "details": "Para quién es el trabajo.",
+      "value": "{{values.patient}}"
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "lab-orders.btn.add-service",
+      "title": "Servicio",
+      "details": "Elegí el trabajo de la lista de servicios de laboratorio. Podés sumar varios; si no existe, se crea desde acá.",
+      "value": "{{values.service}}"
+    },
+    {
+      "id": "teeth",
+      "action": "fill",
+      "target": "lab-orders.field.items.teeth",
+      "title": "Piezas",
+      "details": "Las piezas de ese servicio. Las de la orden son la suma de todos sus servicios.",
+      "value": "{{values.teeth}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "item-notes",
+      "action": "fill",
+      "target": "lab-orders.field.items.notes",
+      "title": "Nota del servicio",
+      "details": "Color, material o cualquier indicación para el laboratorio.",
+      "value": "{{values.item_notes}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "lab-orders.field.doctor_id",
+      "title": "Doctor",
+      "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
+      "value": "{{values.doctor}}",
+      "optional": true
+    },
+    {
+      "id": "laboratory",
+      "action": "fill",
+      "target": "lab-orders.field.laboratory_id",
+      "title": "Laboratorio",
+      "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Solo aparecen los proveedores de una categoría de laboratorio.",
+      "value": "{{values.laboratory}}",
+      "optional": true
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "lab-orders.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true
+    },
+    {
+      "id": "attachments",
+      "action": "highlight",
+      "target": "lab-orders.section.form-attachments",
+      "title": "Adjuntos",
+      "details": "Fotos, PDF o escaneos 3D para el laboratorio; se suben al crear la orden.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "urgent",
+      "action": "fill",
+      "target": "lab-orders.toggle.urgent",
+      "title": "Urgente",
+      "details": "Si la marcás, sale primero en la lista, en el tablero y en la ficha del paciente.",
+      "value": "{{values.urgent}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "lab-orders.btn.submit",
+      "title": "Crear la orden",
+      "details": "Entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio."
+    }
+  ]
+}

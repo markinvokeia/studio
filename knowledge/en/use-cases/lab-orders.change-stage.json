@@ -1,0 +1,68 @@
+{
+  "id": "lab-orders.change-stage",
+  "title": "Move the order to another stage",
+  "summary": "Skip stages, go back (for example, from the try-in back to the lab for an adjustment) or close the order, such as cancelling it.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search",
+    "laboratory": "Lab",
+    "due_date": "Due date (YYYY-MM-DD)"
+  },
+  "keywords": [
+    "another stage",
+    "back to the lab",
+    "cancel lab order",
+    "move order",
+    "skip stage",
+    "adjustment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "By patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "menu",
+      "title": "Other stage…"
+    },
+    {
+      "id": "option",
+      "title": "Choose the stage",
+      "details": "Every stage except the current one, in circuit order. Moving to a final stage (Completed, Cancelled) asks nothing."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "Only if the order has no lab yet. The list starts filtered by its services’ category."
+    },
+    {
+      "id": "due-date",
+      "title": "Due date",
+      "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out."
+    },
+    {
+      "id": "confirm-move",
+      "title": "Confirm the stage change"
+    },
+    {
+      "id": "history",
+      "title": "Stage history",
+      "details": "The change is recorded with the user, the date and how long the order spent in the previous stage."
+    }
+  ]
+}

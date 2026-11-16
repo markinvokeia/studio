@@ -1,0 +1,74 @@
+{
+  "id": "lab-orders.send",
+  "title": "Send the order to the lab or move it to the next stage",
+  "summary": "Move an order to the next stage. When it is sent to the lab, the due date (and the lab, if missing) is asked for.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search",
+    "laboratory": "Lab",
+    "due_date": "Due date (YYYY-MM-DD)"
+  },
+  "keywords": [
+    "send to lab",
+    "next stage",
+    "move order forward",
+    "due date",
+    "received from lab",
+    "change stage"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "By patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "stage",
+      "title": "Current stage",
+      "details": "Where the order is, how many days it has been there and its progress through the stages."
+    },
+    {
+      "id": "send",
+      "title": "Send to the lab",
+      "details": "If the order is in the initial stage (or has no lab), the send window opens."
+    },
+    {
+      "id": "next",
+      "title": "Move to the next stage",
+      "details": "The order was already sent: the change is saved when you click, with no questions."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "Only if the order has no lab yet. The list starts filtered by its services’ category."
+    },
+    {
+      "id": "due-date",
+      "title": "Due date",
+      "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out."
+    },
+    {
+      "id": "confirm-move",
+      "title": "Confirm the stage change"
+    },
+    {
+      "id": "history",
+      "title": "Stage history",
+      "details": "The change is recorded with the user, the date and how long the order spent in the previous stage."
+    }
+  ]
+}

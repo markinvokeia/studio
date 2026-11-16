@@ -164,6 +164,77 @@
     "lab-orders.btn.remove-attachment": {
       "label": "Remove",
       "description": "Deletes the attachment from the order (asks for confirmation; cannot be undone)."
+    },
+    "lab-orders.filter.search": {
+      "label": "Search",
+      "description": "Searches by patient, job, lab or order number."
+    },
+    "lab-orders.btn.view-list": {
+      "label": "List",
+      "description": "Shows the orders in the table, with every filter."
+    },
+    "lab-orders.btn.view-board": {
+      "label": "Board",
+      "description": "Shows one column per active stage; cards are dragged to change the stage."
+    },
+    "lab-orders.section.first-row": {
+      "label": "First order",
+      "description": "The first order in the list in the chosen sort order. Click to open its details."
+    },
+    "lab-orders.section.row": {
+      "label": "Order",
+      "description": "An order in the list. Click to open its details."
+    },
+    "lab-orders.section.move-menu": {
+      "label": "Stages",
+      "description": "Every stage except the current one, in circuit order."
+    },
+    "lab-orders.btn.move-option": {
+      "label": "Target stage",
+      "description": "Moves the order to that stage. A final stage asks nothing; a non-final one asks for the lab or due date if missing."
+    },
+    "lab-orders.field.send-laboratory": {
+      "label": "Lab",
+      "description": "Which lab the order is sent to. Shown only if it has none yet."
+    },
+    "lab-orders.btn.confirm-move": {
+      "label": "Confirm",
+      "description": "Moves the order to the chosen stage with the lab and due date entered."
+    },
+    "lab-orders.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "Confirms deleting the order."
+    },
+    "lab-orders.field.patient_id": {
+      "description": "Patient the job is for. From the patient file it is already chosen."
+    },
+    "lab-orders.field.doctor_id": {
+      "description": "Doctor who requested the job; the order’s alerts can go to them."
+    },
+    "lab-orders.field.work_description": {
+      "description": "Job description when there is no catalog service (or extra detail if there is)."
+    },
+    "lab-orders.field.teeth": {
+      "description": "The order’s teeth when it has no services (comma-separated numbers)."
+    },
+    "lab-orders.field.due_date": {
+      "description": "Due date promised by the lab. Shown when editing an order that was already sent."
+    },
+    "lab-orders.field.notes": {
+      "description": "Internal notes on the order."
+    },
+    "lab-orders.field.is_urgent": {
+      "description": "Marks the order as urgent."
+    },
+    "lab-orders.btn.submit": {
+      "description": "Creates the order or saves the changes."
+    },
+    "lab-orders.btn.refresh": {
+      "description": "Reloads the list."
+    },
+    "lab-orders.btn.send": {
+      "label": "Send to the lab",
+      "description": "The next-stage button when the order is leaving the initial stage or has no lab: opens the window to choose the lab and the due date."
     }
   }
 }

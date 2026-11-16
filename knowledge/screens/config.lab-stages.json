@@ -10,6 +10,11 @@
     "Nada se aplica hasta pulsar Guardar.",
     "Cada etapa puede avisar al entrar una orden, por permanencia (cuando supera sus días de atraso) y por entrega vencida (al día siguiente de la fecha de entrega, si la orden sigue en la etapa), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
   ],
+  "useCases": [
+    "config.lab-stages.overview",
+    "config.lab-stages.add",
+    "config.lab-stages.alerts"
+  ],
   "elements": {
     "config.lab-stages.section.active": {
       "label": "Etapas activas",
@@ -28,7 +33,8 @@
       "description": "Agrega una etapa intermedia antes de las finales."
     },
     "config.lab-stages.btn.discard": {
-      "label": "Descartar cambios"
+      "label": "Descartar cambios",
+      "description": "Vuelve a la configuración guardada y descarta lo que no se guardó."
     },
     "config.lab-stages.btn.save": {
       "label": "Guardar",
@@ -49,6 +55,26 @@
     "config.lab-stages.section.alert-due": {
       "label": "Entrega vencida",
       "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa, sin importar cuándo se registró; una vez o repetido cada X días mientras siga. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema)."
+    },
+    "config.lab-stages.section.new-stage": {
+      "label": "Etapa nueva",
+      "description": "La etapa recién agregada, todavía sin guardar. Se arrastra por el ícono de la izquierda hasta su lugar."
+    },
+    "config.lab-stages.field.new-name": {
+      "label": "Nombre",
+      "description": "Nombre de la etapa; lo escribe la clínica y no se traduce."
+    },
+    "config.lab-stages.field.new-kind": {
+      "label": "Tipo",
+      "description": "Inicial (una sola: ahí entra toda orden nueva), intermedia o final (la orden termina y deja de estar pendiente)."
+    },
+    "config.lab-stages.field.new-overdue-days": {
+      "label": "Días de atraso",
+      "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan."
+    },
+    "config.lab-stages.btn.apply-alerts": {
+      "label": "Aplicar",
+      "description": "Aplica las alertas a la etapa; se guardan con el resto al pulsar Guardar."
     }
   }
 }

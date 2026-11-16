@@ -1,5 +1,5 @@
 {
- "version": "ed8968956159c387",
+ "version": "4ed07c56d600f521",
  "locale": "en",
  "journey": [
   {
@@ -6601,6 +6601,14 @@
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
     },
     {
+     "description": "Applies the alerts to the stage; they are saved with everything else when you click Save.",
+     "id": "config.lab-stages.btn.apply-alerts",
+     "kind": "btn",
+     "label": "Apply",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Goes back to the saved setup and drops unsaved changes.",
      "id": "config.lab-stages.btn.discard",
      "kind": "btn",
      "label": "Discard changes",
@@ -6612,6 +6620,27 @@
      "kind": "btn",
      "label": "Save",
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Initial (only one: every new order starts there), intermediate or final (the order ends and is no longer pending).",
+     "id": "config.lab-stages.field.new-kind",
+     "kind": "field",
+     "label": "Type",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Stage name; written by the clinic and not translated.",
+     "id": "config.lab-stages.field.new-name",
+     "kind": "field",
+     "label": "Name",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none.",
+     "id": "config.lab-stages.field.new-overdue-days",
+     "kind": "field",
+     "label": "Overdue days",
+     "source": "knowledge/screens/config.lab-stages.json"
     },
     {
      "description": "One row per stage, in workflow order: drag them by the handle on the left. Each has a color, name, type (initial, intermediate or final) and the number of days after which an order in that stage is overdue (empty = no limit; final stages have none).",
@@ -6660,6 +6689,13 @@
      "kind": "section",
      "label": "Review the configuration",
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "The stage just added, not saved yet. Drag it by the left handle into place.",
+     "id": "config.lab-stages.section.new-stage",
+     "kind": "section",
+     "label": "New stage",
+     "source": "knowledge/screens/config.lab-stages.json"
     }
    ],
    "id": "config.lab-stages",
@@ -6679,7 +6715,12 @@
     "Nothing applies until you press Save.",
     "Each stage can notify when an order enters it, on time in stage (when it goes over its overdue days) and when delivery is overdue (the day after the due date, if the order is still in the stage), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
    ],
-   "title": "Lab Stages"
+   "title": "Lab Stages",
+   "useCases": [
+    "config.lab-stages.overview",
+    "config.lab-stages.add",
+    "config.lab-stages.alerts"
+   ]
   },
   {
    "elements": [
@@ -7944,6 +7985,20 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Confirms deleting the order.",
+     "id": "lab-orders.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirm",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Moves the order to the chosen stage with the lab and due date entered.",
+     "id": "lab-orders.btn.confirm-move",
+     "kind": "btn",
+     "label": "Confirm",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Removes the order from the list and the board.",
      "id": "lab-orders.btn.delete",
      "kind": "btn",
@@ -7972,6 +8027,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Moves the order to that stage. A final stage asks nothing; a non-final one asks for the lab or due date if missing.",
+     "id": "lab-orders.btn.move-option",
+     "kind": "btn",
+     "label": "Target stage",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
      "description": "Menu with every other stage, to skip stages, go back or close the order (for example, cancel it). It is recorded in the history. If the order has no lab and the stage is not final, it asks for the lab first.",
      "id": "lab-orders.btn.move-to",
      "kind": "btn",
@@ -7990,7 +8052,7 @@
      "id": "lab-orders.btn.next-stage",
      "kind": "btn",
      "label": "Move to “next stage”",
-     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "Opens Patients searching for the order's patient.",
@@ -8000,6 +8062,7 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "Reloads the list.",
      "id": "lab-orders.btn.refresh",
      "kind": "btn",
      "label": "Refresh",
@@ -8020,6 +8083,14 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "The next-stage button when the order is leaving the initial stage or has no lab: opens the window to choose the lab and the due date.",
+     "id": "lab-orders.btn.send",
+     "kind": "btn",
+     "label": "Send to the lab",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Creates the order or saves the changes.",
      "id": "lab-orders.btn.submit",
      "kind": "btn",
      "label": "Save changes",
@@ -8033,12 +8104,33 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
+     "id": "lab-orders.btn.view-0",
+     "kind": "btn",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Shows one column per active stage; cards are dragged to change the stage.",
+     "id": "lab-orders.btn.view-board",
+     "kind": "btn",
+     "label": "Board",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Shows the orders in the table, with every filter.",
+     "id": "lab-orders.btn.view-list",
+     "kind": "btn",
+     "label": "List",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Doctor who requested the job; the order’s alerts can go to them.",
      "id": "lab-orders.field.doctor_id",
      "kind": "field",
      "label": "Doctor",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Due date promised by the lab. Shown when editing an order that was already sent.",
      "id": "lab-orders.field.due_date",
      "kind": "field",
      "label": "Expected delivery",
@@ -8052,6 +8144,7 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Marks the order as urgent.",
      "id": "lab-orders.field.is_urgent",
      "kind": "field",
      "label": "Urgent",
@@ -8086,6 +8179,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Internal notes on the order.",
      "id": "lab-orders.field.notes",
      "kind": "field",
      "label": "Notes",
@@ -8099,6 +8193,7 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Patient the job is for. From the patient file it is already chosen.",
      "id": "lab-orders.field.patient_id",
      "kind": "field",
      "label": "Patient",
@@ -8112,6 +8207,14 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
+     "description": "Which lab the order is sent to. Shown only if it has none yet.",
+     "id": "lab-orders.field.send-laboratory",
+     "kind": "field",
+     "label": "Lab",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "The order’s teeth when it has no services (comma-separated numbers).",
      "id": "lab-orders.field.teeth",
      "kind": "field",
      "label": "Teeth",
@@ -8125,10 +8228,18 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Job description when there is no catalog service (or extra detail if there is).",
      "id": "lab-orders.field.work_description",
      "kind": "field",
      "label": "Additional description (optional)",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Searches by patient, job, lab or order number.",
+     "id": "lab-orders.filter.search",
+     "kind": "filter",
+     "label": "Search",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
      "description": "One chip per applied filter from the Filters button; the ✕ removes it and \"Clear filters\" removes them all. On the board, filters that do not apply there (stage, patient, dates) are dashed.",
@@ -8208,6 +8319,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "The first order in the list in the chosen sort order. Click to open its details.",
+     "id": "lab-orders.section.first-row",
+     "kind": "section",
+     "label": "First order",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
      "description": "Photos, PDFs or 3D scans (STL, PLY, OBJ) for the lab, up to 10 files of 10 MB. They are uploaded when the order is created; if they fail, the order is still created and they can be added from the details.",
      "id": "lab-orders.section.form-attachments",
      "kind": "section",
@@ -8220,6 +8338,20 @@
      "kind": "section",
      "label": "Stage history",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Every stage except the current one, in circuit order.",
+     "id": "lab-orders.section.move-menu",
+     "kind": "section",
+     "label": "Stages",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "An order in the list. Click to open its details.",
+     "id": "lab-orders.section.row",
+     "kind": "section",
+     "label": "Order",
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "description": "The work requested from the lab, picked from services flagged as “Lab work”. You can add several, each with its own quantity, teeth and note.",
@@ -8273,7 +8405,17 @@
     "Changes made by other users show up on their own, without reloading.",
     "Turn on «Urgent» in the form so the order shows first in the list, in its board column and in the patient record; the Urgent button shows only those."
    ],
-   "title": "Lab Orders"
+   "title": "Lab Orders",
+   "useCases": [
+    "lab-orders.overview",
+    "lab-orders.create",
+    "lab-orders.send",
+    "lab-orders.change-stage",
+    "lab-orders.board",
+    "lab-orders.overdue",
+    "lab-orders.edit",
+    "lab-orders.delete"
+   ]
   },
   {
    "elements": [
@@ -10035,6 +10177,7 @@
     "patients.clinical-session",
     "patients.odontogram",
     "patients.treatment-plans",
+    "patients.lab-orders",
     "patients.prescription",
     "patients.medical-instruction",
     "patients.documents",
@@ -25814,6 +25957,218 @@
    "title": "Tour Exception Schedules"
   },
   {
+   "id": "config.lab-stages.add",
+   "inputs": {
+    "kind": "Type (Initial, Intermediate or Final)",
+    "name": "Name",
+    "overdue_days": "Overdue days"
+   },
+   "keywords": [
+    "add stage",
+    "new stage",
+    "create lab stage",
+    "try-in",
+    "cancelled"
+   ],
+   "module": "Business Setup",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The stages every lab order goes through, in order.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menu → Business Setup → Lab Stages"
+    },
+    {
+     "action": "click",
+     "details": "It is added as intermediate, before the final stages.",
+     "id": "add",
+     "target": "config.lab-stages.btn.add",
+     "title": "Add stage",
+     "until": "config.lab-stages.section.new-stage"
+    },
+    {
+     "action": "fill",
+     "details": "Written by the clinic; it is not translated.",
+     "id": "name",
+     "target": "config.lab-stages.field.new-name",
+     "title": "Name",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Intermediate: one more step in the circuit. Final: the order ends there (Completed, Cancelled) and stops being pending. Marking another as initial replaces the current one.",
+     "id": "kind",
+     "optional": true,
+     "target": "config.lab-stages.field.new-kind",
+     "title": "Type",
+     "value": "{{values.kind}}"
+    },
+    {
+     "action": "fill",
+     "details": "More days than this in the stage and the order turns red. Empty: no limit. Final stages have none.",
+     "id": "overdue",
+     "optional": true,
+     "target": "config.lab-stages.field.new-overdue-days",
+     "title": "Overdue days",
+     "value": "{{values.overdue_days}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Drag it by the left handle into place. The bell sets up its alerts.",
+     "id": "position",
+     "target": "config.lab-stages.section.new-stage",
+     "title": "Place it in the circuit"
+    },
+    {
+     "action": "confirm",
+     "details": "The board gets the new column in the chosen order.",
+     "id": "save",
+     "target": "config.lab-stages.btn.save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Add a stage to the circuit (for example, “Try-in”), with its type and overdue days.",
+   "title": "Add a lab stage"
+  },
+  {
+   "id": "config.lab-stages.alerts",
+   "inputs": {},
+   "keywords": [
+    "lab alerts",
+    "notify the doctor",
+    "overdue order alert",
+    "received from the lab",
+    "stage notification"
+   ],
+   "module": "Business Setup",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The stages every lab order goes through, in order.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menu → Business Setup → Lab Stages"
+    },
+    {
+     "action": "highlight",
+     "details": "Each stage has its own, on its row.",
+     "id": "bell",
+     "target": "config.lab-stages.btn.alerts",
+     "title": "Click the stage’s bell",
+     "until": "config.lab-stages.section.alert-enter"
+    },
+    {
+     "action": "highlight",
+     "details": "Alerts every time an order reaches this stage. Example: on “Received at clinic”, the doctor, so they book the fitting.",
+     "id": "enter",
+     "target": "config.lab-stages.section.alert-enter",
+     "title": "On entering the stage"
+    },
+    {
+     "action": "highlight",
+     "details": "When the order goes past the stage’s overdue days; once or every X days.",
+     "id": "dwell",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.alert-dwell",
+     "title": "Time in stage"
+    },
+    {
+     "action": "highlight",
+     "details": "The day after the due date, if the order is still in this stage.",
+     "id": "due",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.alert-due",
+     "title": "Past due date"
+    },
+    {
+     "action": "click",
+     "details": "Recipients: roles, users, the order’s doctor or its creator. Channels: in-app, email or WhatsApp with a template. Alerts also appear in the Alert Center.",
+     "id": "apply",
+     "target": "config.lab-stages.btn.apply-alerts",
+     "title": "Apply"
+    },
+    {
+     "action": "confirm",
+     "details": "Saves the whole configuration at once. If a stage with orders was deactivated, its orders move to the chosen stage at that moment.",
+     "id": "save",
+     "target": "config.lab-stages.btn.save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Choose who is alerted and how when an order enters the stage, stays too long or misses its due date.",
+   "title": "Set up a stage’s alerts"
+  },
+  {
+   "id": "config.lab-stages.overview",
+   "inputs": {},
+   "keywords": [
+    "lab stages",
+    "lab circuit",
+    "set up stages",
+    "overdue days"
+   ],
+   "module": "Business Setup",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The stages every lab order goes through, in order.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menu → Business Setup → Lab Stages"
+    },
+    {
+     "action": "highlight",
+     "details": "In circuit order (drag them by the left handle). Exactly one initial stage, where every new order starts, and at least one final. The days set when an order in that stage becomes overdue.",
+     "id": "active",
+     "target": "config.lab-stages.section.active",
+     "title": "Active stages"
+    },
+    {
+     "action": "highlight",
+     "details": "The bell shows how many alerts it has: on entry, by time in stage and by past due date.",
+     "id": "alerts",
+     "target": "config.lab-stages.btn.alerts",
+     "title": "Stage alerts"
+    },
+    {
+     "action": "highlight",
+     "details": "A stage that had orders is not deleted: it is deactivated and can be reactivated.",
+     "id": "inactive",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.inactive",
+     "title": "Deactivated stages"
+    },
+    {
+     "action": "highlight",
+     "details": "Adds an intermediate stage before the final ones.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.btn.add",
+     "title": "Add stage"
+    },
+    {
+     "action": "highlight",
+     "details": "Nothing applies until you save; the whole setup is saved together.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.btn.save",
+     "title": "Save"
+    }
+   ],
+   "summary": "How the circuit is set up: stage types, overdue days, alerts and deactivated stages.",
+   "title": "Tour lab stages"
+  },
+  {
    "id": "config.medical-instruction-templates.create",
    "inputs": {
     "content": "Instruction content (text, variables allowed)",
@@ -30534,6 +30889,766 @@
    "title": "Side bar: TV display and quick payment"
   },
   {
+   "id": "lab-orders.board",
+   "inputs": {},
+   "keywords": [
+    "board",
+    "kanban",
+    "drag order",
+    "columns by stage",
+    "move card"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows one column per active stage; cards are dragged to change the stage.",
+     "id": "board",
+     "target": "lab-orders.btn.view-board",
+     "title": "Board",
+     "until": "lab-orders.section.board"
+    },
+    {
+     "action": "highlight",
+     "details": "Drop it in another column to change its stage: it is saved right away and goes back if saving fails. On a phone, use “Move to…” in the card menu.",
+     "id": "columns",
+     "target": "lab-orders.section.board",
+     "title": "Drag the card"
+    },
+    {
+     "action": "click",
+     "details": "Opens the rest of the filters. The number shows how many are applied.",
+     "id": "filters",
+     "target": "lab-orders.btn.filters",
+     "title": "Filters",
+     "until": "lab-orders.field.final-days"
+    },
+    {
+     "action": "highlight",
+     "details": "Final stages only show what arrived in the last 7, 30 or 90 days, so they do not grow forever.",
+     "id": "final-days",
+     "target": "lab-orders.field.final-days",
+     "title": "Final columns"
+    }
+   ],
+   "summary": "See orders in columns by stage, move them by dragging and limit final columns to recent days.",
+   "title": "Use the orders board"
+  },
+  {
+   "id": "lab-orders.change-stage",
+   "inputs": {
+    "due_date": "Due date (YYYY-MM-DD)",
+    "laboratory": "Lab",
+    "query": "Search"
+   },
+   "keywords": [
+    "another stage",
+    "back to the lab",
+    "cancel lab order",
+    "move order",
+    "skip stage",
+    "adjustment"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By patient, job, lab or order number.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Search for the order",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Click it in the list. Its details open on the right.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Open the order",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "Menu with every other stage, to skip stages, go back or close the order (for example, cancel it). It is recorded in the history. If the order has no lab and the stage is not final, it asks for the lab first.",
+     "id": "menu",
+     "target": "lab-orders.btn.move-to",
+     "title": "Other stage…",
+     "until": "lab-orders.section.move-menu"
+    },
+    {
+     "action": "highlight",
+     "details": "Every stage except the current one, in circuit order. Moving to a final stage (Completed, Cancelled) asks nothing.",
+     "id": "option",
+     "target": "lab-orders.btn.move-option",
+     "title": "Choose the stage"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Only if the order has no lab yet. The list starts filtered by its services’ category.",
+     "id": "laboratory",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-laboratory",
+     "title": "Lab",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out.",
+     "id": "due-date",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-due-date",
+     "title": "Due date",
+     "value": "{{values.due_date}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Moves the order to the chosen stage with the lab and due date entered.",
+     "id": "confirm-move",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.confirm-move",
+     "title": "Confirm the stage change"
+    },
+    {
+     "action": "highlight",
+     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Stage history"
+    }
+   ],
+   "summary": "Skip stages, go back (for example, from the try-in back to the lab for an adjustment) or close the order, such as cancelling it.",
+   "title": "Move the order to another stage"
+  },
+  {
+   "id": "lab-orders.create",
+   "inputs": {
+    "doctor": "Doctor",
+    "item_notes": "Service note (shade, material…)",
+    "laboratory": "Lab",
+    "notes": "Notes",
+    "patient": "Patient",
+    "service": "Lab service",
+    "teeth": "Teeth (comma-separated numbers, e.g. 11, 21)",
+    "urgent": "Urgent (yes/no)"
+   },
+   "keywords": [
+    "new lab order",
+    "create order",
+    "send job to lab",
+    "order a crown",
+    "order a prosthesis",
+    "record a job"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Opens the new order form. The order starts in the initial stage, without a delivery date: the date is asked for when it is sent to the lab.",
+     "id": "new",
+     "target": "lab-orders.btn.new",
+     "title": "New order",
+     "until": "lab-orders.btn.submit"
+    },
+    {
+     "action": "fill",
+     "details": "Who the job is for.",
+     "id": "patient",
+     "target": "lab-orders.field.patient_id",
+     "title": "Patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Pick the job from the lab services list. You can add several; if it does not exist, create it from here.",
+     "id": "service",
+     "target": "lab-orders.btn.add-service",
+     "title": "Service",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "The teeth for that service. The order’s teeth are the sum of all its services.",
+     "id": "teeth",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.items.teeth",
+     "title": "Teeth",
+     "value": "{{values.teeth}}"
+    },
+    {
+     "action": "fill",
+     "details": "Shade, material or any instruction for the lab.",
+     "id": "item-notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.items.notes",
+     "title": "Service note",
+     "value": "{{values.item_notes}}"
+    },
+    {
+     "action": "fill",
+     "details": "Who requested the job; the order’s alerts go to them.",
+     "id": "doctor",
+     "optional": true,
+     "target": "lab-orders.field.doctor_id",
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "fill",
+     "details": "Optional now: if you skip it, it is asked for when the order is sent. Only providers in a lab category show up.",
+     "id": "laboratory",
+     "optional": true,
+     "target": "lab-orders.field.laboratory_id",
+     "title": "Lab",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "fill",
+     "details": "Internal notes on the order.",
+     "id": "notes",
+     "optional": true,
+     "target": "lab-orders.field.notes",
+     "title": "Notes",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Photos, PDFs or 3D scans for the lab; they are uploaded when the order is created.",
+     "id": "attachments",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.form-attachments",
+     "title": "Attachments"
+    },
+    {
+     "action": "fill",
+     "details": "If you turn it on, it comes first in the list, on the board and in the patient file.",
+     "id": "urgent",
+     "optional": true,
+     "target": "lab-orders.toggle.urgent",
+     "title": "Urgent",
+     "value": "{{values.urgent}}"
+    },
+    {
+     "action": "confirm",
+     "details": "It starts in the initial stage with no due date: the date is asked for when it is sent to the lab.",
+     "id": "save",
+     "target": "lab-orders.btn.submit",
+     "title": "Create the order"
+    }
+   ],
+   "summary": "Enter a job for the lab: patient, services with teeth, doctor, lab and notes.",
+   "title": "Record a lab order"
+  },
+  {
+   "id": "lab-orders.delete",
+   "inputs": {
+    "query": "Search"
+   },
+   "keywords": [
+    "delete lab order",
+    "remove order",
+    "order entered by mistake"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By patient, job, lab or order number.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Search for the order",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Click it in the list. Its details open on the right.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Open the order",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "If the job was called off, better move it to a final stage such as Cancelled: the history is kept.",
+     "id": "delete",
+     "target": "lab-orders.btn.delete",
+     "title": "Delete",
+     "until": "lab-orders.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "Confirms deleting the order.",
+     "id": "confirm",
+     "target": "lab-orders.btn.confirm-action",
+     "title": "Confirm"
+    }
+   ],
+   "summary": "Remove an order entered by mistake from the list and the board.",
+   "title": "Delete a lab order"
+  },
+  {
+   "id": "lab-orders.edit",
+   "inputs": {
+    "notes": "Notes",
+    "query": "Search"
+   },
+   "keywords": [
+    "edit lab order",
+    "change due date",
+    "change lab",
+    "modify order"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By patient, job, lab or order number.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Search for the order",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Click it in the list. Its details open on the right.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Open the order",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "Changes the order details (not the stage).",
+     "id": "edit",
+     "target": "lab-orders.btn.edit",
+     "title": "Edit",
+     "until": "lab-orders.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "details": "Add or remove jobs and change quantity, teeth or note.",
+     "id": "services",
+     "target": "lab-orders.section.services",
+     "title": "Services"
+    },
+    {
+     "action": "highlight",
+     "details": "Which lab the order is sent to. Optional when creating. Only labs are listed; they can be filtered by category and, if missing, created right there by choosing its category.",
+     "id": "laboratory",
+     "target": "lab-orders.field.laboratory_id",
+     "title": "Lab"
+    },
+    {
+     "action": "highlight",
+     "details": "Shown once the order is sent; if the lab gives a new date, change it here.",
+     "id": "due",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.due_date",
+     "title": "Due date"
+    },
+    {
+     "action": "fill",
+     "details": "Internal notes on the order.",
+     "id": "notes",
+     "optional": true,
+     "target": "lab-orders.field.notes",
+     "title": "Notes",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "The stage is not changed here: use “Move to…” or “Other stage…”.",
+     "id": "save",
+     "target": "lab-orders.btn.submit",
+     "title": "Save changes"
+    }
+   ],
+   "summary": "Change an order’s services, doctor, lab, due date, notes or urgent flag.",
+   "title": "Edit a lab order"
+  },
+  {
+   "id": "lab-orders.overdue",
+   "inputs": {},
+   "keywords": [
+    "overdue",
+    "delayed",
+    "past due",
+    "late delivery",
+    "jobs that have not arrived",
+    "red orders"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "click",
+     "details": "An order is overdue when it goes past its stage’s day limit or its due date passes before it reaches a final stage.",
+     "id": "overdue",
+     "target": "lab-orders.field.overdue-only",
+     "title": "Overdue only"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Red days mark the stage delay; the “Past due” tag marks the missed due date.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Open an overdue order",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "highlight",
+     "details": "Shows the days in stage next to the limit (“5 days · max 3”) and, if the due date passed, how many days ago.",
+     "id": "reason",
+     "target": "lab-orders.section.detail-stage",
+     "title": "Why it is overdue"
+    },
+    {
+     "action": "highlight",
+     "details": "The lab’s phones and email to chase the job.",
+     "id": "laboratory",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.detail-laboratory",
+     "title": "Lab contact"
+    },
+    {
+     "action": "highlight",
+     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Stage history"
+    }
+   ],
+   "summary": "Filter overdue orders and see why they are overdue: too many days in the stage or a past due date.",
+   "title": "See overdue orders"
+  },
+  {
+   "id": "lab-orders.overview",
+   "inputs": {},
+   "keywords": [
+    "lab orders",
+    "lab work",
+    "prosthesis",
+    "crowns",
+    "which stage",
+    "lab tracking"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "highlight",
+     "details": "The list has every filter; the board shows one column per stage and cards are dragged between them.",
+     "id": "view",
+     "target": "lab-orders.section.view",
+     "title": "List or board"
+    },
+    {
+     "action": "highlight",
+     "details": "By patient, job, lab or order number.",
+     "id": "search",
+     "target": "lab-orders.filter.search",
+     "title": "Search"
+    },
+    {
+     "action": "highlight",
+     "details": "Orders past their stage’s day limit or past their due date. An order in a final stage is never overdue.",
+     "id": "overdue",
+     "target": "lab-orders.field.overdue-only",
+     "title": "Overdue only"
+    },
+    {
+     "action": "highlight",
+     "details": "Pending urgent orders; they also come first in the list and on the board.",
+     "id": "urgent",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.urgent-only",
+     "title": "Urgent"
+    },
+    {
+     "action": "highlight",
+     "details": "Stage (all, pending or a specific one), lab, doctor, patient, creation dates and sort order (for example, most days in stage).",
+     "id": "filters",
+     "target": "lab-orders.btn.filters",
+     "title": "Filters"
+    },
+    {
+     "action": "highlight",
+     "details": "Patient, lab, job, doctor, stage, days in stage (red when over the limit) and due date.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.first-row",
+     "title": "An order"
+    },
+    {
+     "action": "click",
+     "details": "Shows one column per active stage; cards are dragged to change the stage.",
+     "id": "board",
+     "target": "lab-orders.btn.view-board",
+     "title": "Board",
+     "until": "lab-orders.section.board"
+    },
+    {
+     "action": "highlight",
+     "details": "Drag a card to another column to change its stage; it is saved when you drop it.",
+     "id": "columns",
+     "target": "lab-orders.section.board",
+     "title": "One column per stage"
+    },
+    {
+     "action": "highlight",
+     "details": "Records a new job; it starts in the initial stage.",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.new",
+     "title": "New order"
+    }
+   ],
+   "summary": "What the screen shows: list and board, search, overdue, urgent, filters and an order’s details.",
+   "title": "Tour Lab Orders"
+  },
+  {
+   "id": "lab-orders.send",
+   "inputs": {
+    "due_date": "Due date (YYYY-MM-DD)",
+    "laboratory": "Lab",
+    "query": "Search"
+   },
+   "keywords": [
+    "send to lab",
+    "next stage",
+    "move order forward",
+    "due date",
+    "received from lab",
+    "change stage"
+   ],
+   "module": "Clinic History",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The jobs sent to external labs and the stage each one is in.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menu → Clinic History → Lab Orders"
+    },
+    {
+     "action": "click",
+     "details": "Shows the orders in the table, with every filter.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "List view"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By patient, job, lab or order number.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Search for the order",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Click it in the list. Its details open on the right.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Open the order",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "highlight",
+     "details": "Where the order is, how many days it has been there and its progress through the stages.",
+     "id": "stage",
+     "target": "lab-orders.section.detail-stage",
+     "title": "Current stage"
+    },
+    {
+     "action": "click",
+     "details": "If the order is in the initial stage (or has no lab), the send window opens.",
+     "id": "send",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.send",
+     "title": "Send to the lab",
+     "until": "lab-orders.section.choose-laboratory"
+    },
+    {
+     "action": "confirm",
+     "details": "The order was already sent: the change is saved when you click, with no questions.",
+     "id": "next",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.next-stage",
+     "title": "Move to the next stage"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Only if the order has no lab yet. The list starts filtered by its services’ category.",
+     "id": "laboratory",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-laboratory",
+     "title": "Lab",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out.",
+     "id": "due-date",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-due-date",
+     "title": "Due date",
+     "value": "{{values.due_date}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Moves the order to the chosen stage with the lab and due date entered.",
+     "id": "confirm-move",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.confirm-move",
+     "title": "Confirm the stage change"
+    },
+    {
+     "action": "highlight",
+     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Stage history"
+    }
+   ],
+   "summary": "Move an order to the next stage. When it is sent to the lab, the due date (and the lab, if missing) is asked for.",
+   "title": "Send the order to the lab or move it to the next stage"
+  },
+  {
    "id": "onboarding.availability",
    "inputs": {
     "days_of_week": "List of ISO days, 1=Monday … 7=Sunday (e.g. [1,3,5])",
@@ -33770,6 +34885,109 @@
    ],
    "summary": "Create → Invoice: date, due date, currency, branch and invoiced services.",
    "title": "Make an invoice from the record"
+  },
+  {
+   "group": "Clinical history",
+   "id": "patients.lab-orders",
+   "inputs": {
+    "patient": "Patient"
+   },
+   "keywords": [
+    "patient lab orders",
+    "patient orders",
+    "has the job arrived",
+    "patient crown",
+    "book fitting"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; click one to open their file on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Search for the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Click the patient in the list. The guide continues once their file is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their file",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Clinical history",
+     "until": "patients.tab.lab-orders"
+    },
+    {
+     "action": "click",
+     "details": "The patient’s lab orders and the stage each one is in. Overdue ones are shown in red.",
+     "id": "lab",
+     "target": "patients.tab.lab-orders",
+     "title": "Lab",
+     "until": "patients.section.lab-orders"
+    },
+    {
+     "action": "highlight",
+     "details": "Each order with its progress through the stages, days in stage and due date. Before booking the fitting, check the job has arrived.",
+     "id": "in-progress",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-orders-in-progress",
+     "title": "In progress"
+    },
+    {
+     "action": "highlight",
+     "details": "Overdue, due within 7 days or without a lab; one click filters them.",
+     "id": "alerts",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-order-alerts",
+     "title": "Alerts"
+    },
+    {
+     "action": "highlight",
+     "details": "Delivered or cancelled, with how many days each one took.",
+     "id": "finished",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-orders-finished",
+     "title": "Finished"
+    },
+    {
+     "action": "highlight",
+     "details": "Records a job for this patient without leaving their file.",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "patients.btn.new-lab-order",
+     "title": "New order"
+    },
+    {
+     "action": "highlight",
+     "details": "Opens the module filtered by this patient.",
+     "id": "module",
+     "skipIfMissing": true,
+     "target": "patients.btn.open-lab-orders",
+     "title": "View in Lab Orders"
+    }
+   ],
+   "summary": "In the patient file: their orders in progress and finished, the overdue ones and how to create a new one.",
+   "title": "See the patient’s lab orders"
   },
   {
    "group": "Clinical history",

@@ -1,0 +1,51 @@
+{
+  "id": "lab-orders.overdue",
+  "title": "See overdue orders",
+  "summary": "Filter overdue orders and see why they are overdue: too many days in the stage or a past due date.",
+  "module": "Clinic History",
+  "inputs": {},
+  "keywords": [
+    "overdue",
+    "delayed",
+    "past due",
+    "late delivery",
+    "jobs that have not arrived",
+    "red orders"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "overdue",
+      "title": "Overdue only",
+      "details": "An order is overdue when it goes past its stage’s day limit or its due date passes before it reaches a final stage."
+    },
+    {
+      "id": "pick",
+      "title": "Open an overdue order",
+      "details": "Red days mark the stage delay; the “Past due” tag marks the missed due date."
+    },
+    {
+      "id": "reason",
+      "title": "Why it is overdue",
+      "details": "Shows the days in stage next to the limit (“5 days · max 3”) and, if the due date passed, how many days ago."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab contact",
+      "details": "The lab’s phones and email to chase the job."
+    },
+    {
+      "id": "history",
+      "title": "Stage history",
+      "details": "The change is recorded with the user, the date and how long the order spent in the previous stage."
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "id": "config.lab-stages.alerts",
+  "title": "Configurar las alertas de una etapa",
+  "module": "Configuración de Negocio",
+  "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa, se queda de más o se le vence la entrega.",
+  "screens": [
+    "config.lab-stages"
+  ],
+  "keywords": [
+    "alertas de laboratorio",
+    "avisar al doctor",
+    "aviso orden atrasada",
+    "recibido del laboratorio",
+    "notificar etapa"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/lab-stages",
+      "title": "Menú → Configuración de Negocio → Etapas de Laboratorio",
+      "details": "Las etapas por las que pasa cada orden de laboratorio, en orden."
+    },
+    {
+      "id": "bell",
+      "action": "highlight",
+      "target": "config.lab-stages.btn.alerts",
+      "title": "Tocá la campana de la etapa",
+      "details": "Cada etapa tiene la suya, en su fila.",
+      "until": "config.lab-stages.section.alert-enter"
+    },
+    {
+      "id": "enter",
+      "action": "highlight",
+      "target": "config.lab-stages.section.alert-enter",
+      "title": "Al entrar a la etapa",
+      "details": "Avisa cada vez que una orden llega a esta etapa. Ejemplo: en «Recibido en clínica», al doctor, para que agende la colocación."
+    },
+    {
+      "id": "dwell",
+      "action": "highlight",
+      "target": "config.lab-stages.section.alert-dwell",
+      "title": "Por permanencia",
+      "details": "Cuando la orden pasa los días de atraso de la etapa; una vez o repetido cada X días.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "due",
+      "action": "highlight",
+      "target": "config.lab-stages.section.alert-due",
+      "title": "Entrega vencida",
+      "details": "Al día siguiente de la fecha de entrega, si la orden sigue en esta etapa.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "apply",
+      "action": "click",
+      "target": "config.lab-stages.btn.apply-alerts",
+      "title": "Aplicar",
+      "details": "Destinatarios: roles, usuarios, el doctor de la orden o quien la creó. Canales: en el sistema, email o WhatsApp con plantilla. Los avisos también quedan en el Centro de alertas."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.lab-stages.btn.save",
+      "title": "Guardar"
+    }
+  ]
+}
