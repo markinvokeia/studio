@@ -60,7 +60,7 @@ export function useCaseRoute(useCase: UseCase): string {
  * afuera las que son lecturas por POST o telemetría (asistente, sugerencias de IA,
  * filtros de la agenda).
  */
-const READ_ONLY_POST = /help\/|catalog|alerts\/occurrences|ai\/treatments|appointments\/filter-ids|__nextjs|_next\/|youtube|google/i;
+const READ_ONLY_POST = /help\/|catalog|alerts\/occurrences|ai\/treatments|appointments\/filter-ids|lab-orders\/(search|board)|__nextjs|_next\/|youtube|google/i;
 
 type Bridge = {
   ready: boolean;
@@ -89,7 +89,7 @@ export const sendsToPeople = (id: string) => SENDS_TO_PEOPLE.test(id);
  * hasta el OK pero no lo pulsan. Las demás altas, ediciones y bajas sí confirman,
  * siempre sobre lo que creó la guía de alta de esa pantalla.
  */
-const KEEPS_EXISTING = /^(patients\.aesthetic-[a-z]+|patients\.perio-settings|system\.alert-rules\.perio-maintenance|workspace\.aesthetic-session|sales\.services\.(aesthetic|consent-template)|clinic-catalog\.measurement-units\.(create|edit|delete)|onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|block-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.(mascot|identity-document)|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
+const KEEPS_EXISTING = /^(patients\.aesthetic-[a-z]+|patients\.perio-settings|system\.alert-rules\.perio-maintenance|workspace\.aesthetic-session|sales\.services\.(aesthetic|consent-template)|clinic-catalog\.measurement-units\.(create|edit|delete)|onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|block-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.(mascot|identity-document)|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import|lab-orders\.(send|change-stage|edit|delete)|config\.lab-stages\.(add|alerts))$/;
 /** ¿Esta guía pulsa su OK en tests y videos? */
 export const confirmsInRuns = (id: string) => !SENDS_TO_PEOPLE.test(id) && !KEEPS_EXISTING.test(id);
 

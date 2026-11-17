@@ -1,0 +1,44 @@
+{
+  "id": "config.lab-stages.overview",
+  "title": "Tour lab stages",
+  "summary": "How the circuit is set up: stage types, overdue days, alerts and deactivated stages.",
+  "module": "Business Setup",
+  "inputs": {},
+  "keywords": [
+    "lab stages",
+    "lab circuit",
+    "set up stages",
+    "overdue days"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Lab Stages",
+      "details": "The stages every lab order goes through, in order."
+    },
+    {
+      "id": "active",
+      "title": "Active stages",
+      "details": "In the order of the workflow; drag the icon on the left to reorder. There is one initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage becomes overdue."
+    },
+    {
+      "id": "alerts",
+      "title": "Stage alerts",
+      "details": "The bell shows how many alerts it has: when an order arrives, if it takes too long, and if the due date passes."
+    },
+    {
+      "id": "inactive",
+      "title": "Deactivated stages",
+      "details": "A stage that had orders is not deleted: it is deactivated and can be reactivated."
+    },
+    {
+      "id": "add",
+      "title": "Add stage"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "List changes apply when you save, all together."
+    }
+  ]
+}

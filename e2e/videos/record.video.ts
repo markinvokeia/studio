@@ -138,9 +138,13 @@ async function showOutro(page: Page, outro: Outro, tipsLabel: string) {
   await page.waitForTimeout(ms + 100);
 }
 
+/** Botones repetidos por fila donde va la primera (no la última visible). */
+const FIRST_MATCH: string[] = [];
+
 /** Marca el clic del grabador: un círculo que late sobre el elemento antes de pulsarlo. */
 async function showClick(page: Page, target: string) {
-  const el = page.locator(`[data-help-id="${target}"]:visible, [data-help-item="${target}"]:visible`).last();
+  const all = page.locator(`[data-help-id="${target}"]:visible, [data-help-item="${target}"]:visible`);
+  const el = FIRST_MATCH.includes(target) ? all.first() : all.last();
   await el.scrollIntoViewIfNeeded().catch(() => {});
   const box = await el.boundingBox().catch(() => null);
   if (!box) return;
@@ -256,6 +260,27 @@ const PERIO_GESTURES: Record<string, Record<string, (page: Page) => Promise<void
   },
 };
 
+/**
+ * Gestos de la persona en guías que no son de estética (la guía sólo señala y la persona elige).
+ * Cambiar de etapa: se elige «Prueba en boca» (intermedia, nunca final: una final se mueve sin
+ * preguntar y escribiría). Con la orden de demo-values (inicial, sin laboratorio) abre el modal de
+ * laboratorio y fecha, que no guarda hasta su OK.
+ */
+const PERSON_GESTURES: Record<string, Record<string, (page: Page) => Promise<boolean>>> = {
+  'lab-orders.change-stage': {
+    option: async (page) => {
+      const item = page.locator('[data-help-id="lab-orders.btn.move-option"]:visible').filter({ hasText: /^\s*Prueba en boca\s*$/ }).first();
+      if (!(await item.count())) return false;
+      await item.hover().catch(() => {});
+      await page.waitForTimeout(900);
+      await item.click({ timeout: 5000 });
+      await page.locator('[data-help-id="lab-orders.btn.confirm-move"]:visible').first().waitFor({ timeout: 10_000 }).catch(() => {});
+      await page.waitForTimeout(800);
+      return true;
+    },
+  },
+};
+
 const usesAestheticSession = (id: string) => /^patients\.aesthetic-|^workspace\.aesthetic-session$/.test(id);
 
 let alertsAsToast = false;
@@ -315,6 +340,10 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
     // Editar y eliminar sólo sobre lo que creó la guía de alta (valor `query` de demo-values).
     expectRow: /\.(edit|delete)$/.test(rec.id) && typeof rec.values?.query === 'string' ? rec.values.query : undefined,
     beforeClick: showClick,
+    firstMatch: FIRST_MATCH,
+    ...(PERSON_GESTURES[rec.id] ? {
+      personActs: async (p: Page, step: { id: string }) => (await PERSON_GESTURES[rec.id][step.id]?.(p)) ?? false,
+    } : {}),
     ...(usesAestheticSession(rec.id) && CONFIRM ? {
       confirmStep: (step: { id: string }) => step.id === 'sign',
       personActs: async (p: Page, step: { id: string }) => {
@@ -322,7 +351,7 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
         await gesture?.(p);
         return !!gesture;
       },
-      firstMatch: ['patients.btn.timeline-open-aesthetic'],
+      firstMatch: [...FIRST_MATCH, 'patients.btn.timeline-open-aesthetic'],
     } : {}),
     ...(PERIO_GESTURES[rec.id] ? {
       personActs: async (p: Page, step: { id: string }) => {

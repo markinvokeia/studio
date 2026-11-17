@@ -1,0 +1,46 @@
+{
+  "id": "config.lab-stages.alerts",
+  "title": "Set up a stage’s alerts",
+  "summary": "Choose who is alerted and how when an order enters the stage, stays too long or misses its due date.",
+  "module": "Business Setup",
+  "inputs": {},
+  "keywords": [
+    "lab alerts",
+    "notify the doctor",
+    "overdue order alert",
+    "received from the lab",
+    "stage notification"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Lab Stages",
+      "details": "The stages every lab order goes through, in order."
+    },
+    {
+      "id": "bell",
+      "title": "Click the stage’s bell",
+      "details": "Each stage has its own, on its row."
+    },
+    {
+      "id": "enter",
+      "title": "When an order arrives",
+      "details": "The sentence says who is alerted and how. Example: on “Received at clinic”, the doctor, so they book the fitting. Tap “Order’s doctor” or “Order creator” to add or remove them."
+    },
+    {
+      "id": "dwell",
+      "title": "If it spends more days than expected",
+      "details": "When the order goes past the stage’s overdue days. In “Customize” you can repeat it every X days."
+    },
+    {
+      "id": "due",
+      "title": "If the due date passes",
+      "details": "The day after the due date, if the order is still in this stage."
+    },
+    {
+      "id": "apply",
+      "title": "Save",
+      "details": "“Customize” adds roles, users, email or WhatsApp with a template. If the page had other changes, the button says “Apply” and you then press Save at the top."
+    }
+  ]
+}

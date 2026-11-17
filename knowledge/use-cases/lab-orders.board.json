@@ -1,0 +1,53 @@
+{
+  "id": "lab-orders.board",
+  "title": "Usar el tablero de órdenes",
+  "module": "Historia Clínica",
+  "summary": "Ver las órdenes en columnas por etapa, moverlas arrastrando y limitar las columnas finales a los últimos días.",
+  "screens": [
+    "lab-orders"
+  ],
+  "keywords": [
+    "tablero",
+    "kanban",
+    "arrastrar orden",
+    "columnas por etapa",
+    "mover tarjeta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "board",
+      "action": "click",
+      "target": "lab-orders.btn.view-board",
+      "title": "Tablero",
+      "until": "lab-orders.section.board"
+    },
+    {
+      "id": "columns",
+      "action": "highlight",
+      "target": "lab-orders.section.board",
+      "title": "Arrastrá la tarjeta",
+      "details": "Soltala en otra columna para cambiarle la etapa. Si esa etapa pide laboratorio o fecha de entrega, se abre una ventana con la fecha ya propuesta. En el celular, usá Mover a, en el menú de la tarjeta."
+    },
+    {
+      "id": "filters",
+      "action": "click",
+      "target": "lab-orders.btn.filters",
+      "title": "Filtros",
+      "until": "lab-orders.field.final-days"
+    },
+    {
+      "id": "final-days",
+      "action": "highlight",
+      "target": "lab-orders.field.final-days",
+      "title": "Columnas finales",
+      "details": "Las etapas finales muestran solo lo de los últimos 7, 30 o 90 días, para que no crezcan sin límite."
+    }
+  ]
+}

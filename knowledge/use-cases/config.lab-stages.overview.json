@@ -1,0 +1,61 @@
+{
+  "id": "config.lab-stages.overview",
+  "title": "Recorrer las etapas de laboratorio",
+  "module": "Configuración de Negocio",
+  "summary": "Cómo está armado el circuito: tipos de etapa, días de atraso, alertas y etapas desactivadas.",
+  "screens": [
+    "config.lab-stages"
+  ],
+  "keywords": [
+    "etapas de laboratorio",
+    "circuito de laboratorio",
+    "configurar etapas",
+    "dias de atraso"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/lab-stages",
+      "title": "Menú → Configuración de Negocio → Etapas de Laboratorio",
+      "details": "Las etapas por las que pasa cada orden de laboratorio, en orden."
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "config.lab-stages.section.active",
+      "title": "Etapas activas",
+      "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada."
+    },
+    {
+      "id": "alerts",
+      "action": "highlight",
+      "target": "config.lab-stages.btn.alerts-first",
+      "title": "Avisos de la etapa",
+      "details": "La campana dice cuántos avisos tiene: cuando llega una orden, si se demora, y si se pasa la fecha de entrega."
+    },
+    {
+      "id": "inactive",
+      "action": "highlight",
+      "target": "config.lab-stages.section.inactive",
+      "title": "Etapas desactivadas",
+      "details": "Una etapa que tuvo órdenes no se borra: se desactiva y se puede reactivar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "config.lab-stages.btn.add",
+      "title": "Agregar etapa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "highlight",
+      "target": "config.lab-stages.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios de la lista se aplican al guardar, todos juntos.",
+      "skipIfMissing": true
+    }
+  ]
+}

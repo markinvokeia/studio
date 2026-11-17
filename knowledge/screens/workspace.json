@@ -114,6 +114,10 @@
       "label": "Periodontograma",
       "description": "Abre un periodontograma nuevo para el paciente de la cita, ligado a esa cita."
     },
+    "workspace.btn.lab-order": {
+      "label": "Orden de laboratorio",
+      "description": "Crea una orden de laboratorio para el paciente de la cita, con el doctor ya elegido (solo quien edita órdenes puede cambiarlo). Al guardar una sesión con servicios de laboratorio, la orden se abre sola, ya cargada."
+    },
     "workspace.btn.agent-chat": {
       "label": "Consulta al agente",
       "description": "Agente clínico con IA de la cita."
@@ -228,6 +232,26 @@
     "workspace.btn.aesthetic": {
       "label": "Sesión estética",
       "description": "Abre la sesión de estética vinculada a esta cita y su profesional."
+    },
+    "workspace.section.lab-order-quick": {
+      "label": "Orden de laboratorio propuesta",
+      "description": "Al guardar una sesión con trabajos de laboratorio: los trabajos con sus piezas, el doctor y el laboratorio (elegido si hay uno solo posible). «Crear orden» la crea con un clic; «Editar detalles» abre el formulario completo; «Ahora no» la descarta."
+    },
+    "workspace.field.lab-order-laboratory": {
+      "label": "Laboratorio",
+      "description": "A qué laboratorio va. Opcional: se puede elegir al enviarla."
+    },
+    "workspace.btn.lab-order-create": {
+      "label": "Crear orden",
+      "description": "Crea la orden de laboratorio con lo propuesto."
+    },
+    "workspace.btn.lab-order-edit": {
+      "label": "Editar detalles",
+      "description": "Abre el formulario completo con lo propuesto, para cambiar piezas, notas, urgencia o adjuntos."
+    },
+    "workspace.btn.lab-order-skip": {
+      "label": "Ahora no",
+      "description": "No crea la orden. Se puede crear después con el botón Orden de laboratorio."
     }
   }
 }

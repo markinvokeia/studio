@@ -1,0 +1,118 @@
+{
+  "id": "lab-orders.send",
+  "title": "Enviar la orden al laboratorio o pasarla a la siguiente etapa",
+  "module": "Historia Clínica",
+  "summary": "Mover una orden a la etapa que sigue. Al mandarla al laboratorio, la fecha de entrega ya viene propuesta, en el mismo panel.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "query": "Buscar",
+    "laboratory": "Laboratorio",
+    "due_date": "Fecha de entrega (AAAA-MM-DD)"
+  },
+  "keywords": [
+    "enviar al laboratorio",
+    "siguiente etapa",
+    "avanzar orden",
+    "fecha de entrega",
+    "recibido del laboratorio",
+    "cambiar etapa"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "lab-orders.filter.search",
+      "title": "Buscá la orden",
+      "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Abrí la orden",
+      "details": "Tocala en la lista. Su detalle se abre a la derecha.",
+      "until": "lab-orders.section.detail-stage",
+      "autoClick": true
+    },
+    {
+      "id": "stage",
+      "action": "highlight",
+      "target": "lab-orders.section.detail-stage",
+      "title": "Etapa actual",
+      "details": "En qué etapa está, cuántos días lleva ahí y el camino que le falta."
+    },
+    {
+      "id": "send",
+      "action": "click",
+      "target": "lab-orders.btn.send",
+      "title": "Enviar al laboratorio",
+      "details": "Debajo se abre el envío, en el mismo panel, con la fecha de entrega ya propuesta.",
+      "until": "lab-orders.section.choose-laboratory",
+      "skipIfMissing": true
+    },
+    {
+      "id": "next",
+      "action": "confirm",
+      "target": "lab-orders.btn.next-stage",
+      "title": "Pasar a la siguiente etapa",
+      "details": "Si la orden ya está en el laboratorio, este botón la pasa a la etapa siguiente. Se guarda al tocarlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "laboratory",
+      "action": "fill",
+      "target": "lab-orders.field.send-laboratory",
+      "title": "Laboratorio",
+      "details": "Solo si todavía no tiene laboratorio. Si uno solo hace ese trabajo, ya viene elegido.",
+      "value": "{{values.laboratory}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "due-date",
+      "action": "fill",
+      "target": "lab-orders.field.send-due-date",
+      "title": "Fecha de entrega",
+      "details": "Viene propuesta según el plazo de la etapa. Los atajos de tres días, una semana o dos semanas la cambian con un toque. Si pasa la fecha y no llegó, la orden queda atrasada y se avisa.",
+      "value": "{{values.due_date}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "confirm-move",
+      "action": "confirm",
+      "target": "lab-orders.btn.confirm-move",
+      "title": "Confirmá el envío",
+      "skipIfMissing": true,
+      "details": "Al tocarlo se guarda el cambio de etapa, con el laboratorio y la fecha."
+    },
+    {
+      "id": "history",
+      "action": "highlight",
+      "target": "lab-orders.section.history",
+      "title": "Historial de etapas",
+      "details": "Cada cambio queda registrado: quién lo hizo, cuándo, y cuánto estuvo en la etapa anterior."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
- "version": "b3ad89771b7cc282",
+ "version": "ca81fabf0f7f4d1d",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -906,6 +906,36 @@
    "code": "IMPORT_DATA_VIEW_MENU",
    "constant": "SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU",
    "description": "Data Import"
+  },
+  {
+   "code": "LAB_ORDERS_CHANGE_STAGE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CHANGE_STAGE",
+   "description": "Mover órdenes entre etapas (arrastre en el tablero y menú \"Mover a…\")."
+  },
+  {
+   "code": "LAB_ORDERS_CREATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CREATE"
+  },
+  {
+   "code": "LAB_ORDERS_DELETE",
+   "constant": "LAB_ORDERS_PERMISSIONS.DELETE"
+  },
+  {
+   "code": "LAB_ORDERS_UPDATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.UPDATE"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW_MENU",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW_MENU"
+  },
+  {
+   "code": "LAB_STAGES_CONFIG",
+   "constant": "LAB_ORDERS_PERMISSIONS.STAGES_CONFIG",
+   "description": "Configuración → Etapas de laboratorio (etapas y sus alertas)."
   },
   {
    "code": "LICENSING_GENERATE",
@@ -2300,6 +2330,12 @@
      "label": "Horarios de Excepción"
     },
     {
+     "description": "/config/lab-stages",
+     "id": "nav.config.lab-stages",
+     "kind": "nav",
+     "label": "Etapas de Laboratorio"
+    },
+    {
      "description": "/config/medical-instruction-templates",
      "id": "nav.config.medical-instruction-templates",
      "kind": "nav",
@@ -2404,6 +2440,12 @@
      "id": "nav.group.System",
      "kind": "nav",
      "label": "Sistema"
+    },
+    {
+     "description": "/lab-orders",
+     "id": "nav.lab-orders",
+     "kind": "nav",
+     "label": "Órdenes de Laboratorio"
     },
     {
      "description": "/patients",
@@ -6678,6 +6720,197 @@
   {
    "elements": [
     {
+     "description": "Agrega una etapa intermedia antes de las finales.",
+     "id": "config.lab-stages.btn.add",
+     "kind": "btn",
+     "label": "Agregar etapa",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Abre las alertas de la etapa. El número indica cuántas tiene configuradas.",
+     "id": "config.lab-stages.btn.alerts",
+     "kind": "btn",
+     "label": "Alertas",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "La campana de la primera etapa que no es final. Igual que las demás: abre los avisos de esa etapa.",
+     "id": "config.lab-stages.btn.alerts-first",
+     "kind": "btn",
+     "label": "Alertas (primera etapa)",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Si la etapa ya está guardada y la página no tiene otros cambios, «Guardar» guarda los avisos en el momento. Si no, «Aplicar» los deja en la etapa y se guardan con Guardar de la página.",
+     "id": "config.lab-stages.btn.apply-alerts",
+     "kind": "btn",
+     "label": "Guardar / Aplicar",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "id": "config.lab-stages.btn.customize-0",
+     "kind": "btn",
+     "label": "Personalizar",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Muestra la repetición, los roles, usuarios y canales del aviso.",
+     "id": "config.lab-stages.btn.customize-due",
+     "kind": "btn",
+     "label": "Personalizar",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Muestra la repetición, los roles, usuarios y canales del aviso.",
+     "id": "config.lab-stages.btn.customize-dwell",
+     "kind": "btn",
+     "label": "Personalizar",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Muestra los roles, usuarios y canales (sistema, email, WhatsApp con plantilla) del aviso.",
+     "id": "config.lab-stages.btn.customize-enter",
+     "kind": "btn",
+     "label": "Personalizar",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Vuelve a la configuración guardada y descarta lo que no se guardó.",
+     "id": "config.lab-stages.btn.discard",
+     "kind": "btn",
+     "label": "Descartar cambios",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Guarda toda la configuración junta. Si se desactivó una etapa con órdenes, en ese momento las órdenes pasan a la etapa elegida.",
+     "id": "config.lab-stages.btn.save",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Inicial (una sola: ahí entra toda orden nueva), intermedia o final (la orden termina y deja de estar pendiente).",
+     "id": "config.lab-stages.field.new-kind",
+     "kind": "field",
+     "label": "Tipo",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Nombre de la etapa; lo escribe la clínica y no se traduce.",
+     "id": "config.lab-stages.field.new-name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan.",
+     "id": "config.lab-stages.field.new-overdue-days",
+     "kind": "field",
+     "label": "Días de atraso",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Una fila por etapa, en el orden del circuito: se arrastran por el ícono de la izquierda. Cada una tiene color, nombre, tipo (inicial, intermedia o final) y los días a partir de los cuales una orden en esa etapa queda atrasada (vacío = sin umbral; las finales no llevan).",
+     "id": "config.lab-stages.section.active",
+     "kind": "section",
+     "label": "Etapas activas",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "id": "config.lab-stages.section.alert-0",
+     "kind": "section",
+     "label": "{days, plural, =0 {Si una orden se demora en esta etapa} one {Si una orden pasa más de # día en esta etapa} other {Si una orden pasa más de # días en esta etapa}}",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa; una vez o repetido. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema).",
+     "id": "config.lab-stages.section.alert-due",
+     "kind": "section",
+     "label": "Si se pasa la fecha de entrega",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso.",
+     "id": "config.lab-stages.section.alert-dwell",
+     "kind": "section",
+     "label": "Si una orden pasa más días de los previstos",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Avisa cada vez que una orden pasa a esta etapa. La frase dice a quién y por dónde; con los botones se elige el doctor de la orden o quien la creó.",
+     "id": "config.lab-stages.section.alert-enter",
+     "kind": "section",
+     "label": "Cuando una orden llega a esta etapa",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Etapas que ya no se usan y no aparecen en el tablero. Se pueden reactivar.",
+     "id": "config.lab-stages.section.inactive",
+     "kind": "section",
+     "label": "Etapas desactivadas",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Lo que falta para poder guardar: una sola etapa inicial, al menos una final, nombres completos y sin repetir.",
+     "id": "config.lab-stages.section.issues",
+     "kind": "section",
+     "label": "Revisar la configuración",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "La etapa recién agregada, todavía sin guardar. Se arrastra por el ícono de la izquierda hasta su lugar.",
+     "id": "config.lab-stages.section.new-stage",
+     "kind": "section",
+     "label": "Etapa nueva",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "id": "config.lab-stages.toggle.alert-0",
+     "kind": "section",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Prende o apaga el aviso a quien registró la orden.",
+     "id": "config.lab-stages.toggle.alert-creator",
+     "kind": "section",
+     "label": "Quien creó la orden",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Prende o apaga el aviso al doctor de la orden.",
+     "id": "config.lab-stages.toggle.alert-doctor",
+     "kind": "section",
+     "label": "Doctor de la orden",
+     "source": "knowledge/screens/config.lab-stages.json"
+    }
+   ],
+   "id": "config.lab-stages",
+   "inMenu": true,
+   "module": "Configuración de Negocio",
+   "permissions": [
+    "LAB_STAGES_CONFIG"
+   ],
+   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
+   "route": "/config/lab-stages",
+   "status": "draft",
+   "summary": "Etapas del circuito de órdenes de laboratorio.",
+   "tips": [
+    "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
+    "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
+    "Los nombres de las etapas los escribe la clínica y no se traducen.",
+    "Los cambios de la lista se aplican al pulsar Guardar. Los avisos de una etapa ya guardada se guardan desde su ventana, salvo que la página tenga otros cambios pendientes.",
+    "Cada etapa puede avisar cuando una orden llega, cuando pasa más días de los previstos y cuando se pasa la fecha de entrega. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
+   ],
+   "title": "Etapas de Laboratorio",
+   "useCases": [
+    "config.lab-stages.overview",
+    "config.lab-stages.add",
+    "config.lab-stages.alerts"
+   ]
+  },
+  {
+   "elements": [
+    {
      "description": "No se puede deshacer.",
      "id": "config.medical-instruction-templates.btn.confirm-action",
      "kind": "btn",
@@ -7301,6 +7534,13 @@
      "source": "src/app/[locale]/config/provider-groups/page.tsx"
     },
     {
+     "description": "Sus proveedores son laboratorios y se ofrecen en las órdenes de laboratorio.",
+     "id": "config.provider-groups.field.is_lab_category",
+     "kind": "field",
+     "label": "Categoría de laboratorio",
+     "source": "src/app/[locale]/config/provider-groups/page.tsx"
+    },
+    {
      "id": "config.provider-groups.field.name",
      "kind": "field",
      "label": "Nombre",
@@ -7356,6 +7596,9 @@
    "route": "/config/provider-groups",
    "status": "draft",
    "summary": "Grupos de proveedores.",
+   "tips": [
+    "Marcá «Categoría de laboratorio» en los grupos de laboratorios (prótesis, ortodoncia…): sus proveedores son los que se ofrecen al elegir el laboratorio de una orden."
+   ],
    "title": "Grupos de Proveedores",
    "useCases": [
     "config.provider-groups.overview",
@@ -7909,6 +8152,733 @@
    "title": "Plantillas",
    "useCases": [
     "config.templates.overview"
+   ]
+  },
+  {
+   "elements": [
+    {
+     "description": "Elige archivos para adjuntar a la orden nueva (también se pueden arrastrar a la zona punteada).",
+     "id": "lab-orders.btn.add-attachment",
+     "kind": "btn",
+     "label": "Agregar archivos",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Busca un servicio de laboratorio y lo suma a la orden. Si no existe, se puede crear desde acá y queda marcado como de laboratorio.",
+     "id": "lab-orders.btn.add-service",
+     "kind": "btn",
+     "label": "Agregar servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Confirma la eliminación de la orden.",
+     "id": "lab-orders.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Mueve la orden a la etapa elegida con el laboratorio y la fecha de entrega cargados.",
+     "id": "lab-orders.btn.confirm-move",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Quita la orden de la lista y del tablero.",
+     "id": "lab-orders.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Descarga el archivo adjunto.",
+     "id": "lab-orders.btn.download-attachment",
+     "kind": "btn",
+     "label": "Descargar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Cambia los datos de la orden (no la etapa).",
+     "id": "lab-orders.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Abre el resto de los filtros. El número indica cuántos están aplicados.",
+     "id": "lab-orders.btn.filters",
+     "kind": "btn",
+     "label": "Filtros",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Sigue sin laboratorio: la orden se crea igual y el laboratorio se pide al enviarla.",
+     "id": "lab-orders.btn.lab-later",
+     "kind": "btn",
+     "label": "Decidir el laboratorio después",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Cierra la lista; los cambios ya están guardados.",
+     "id": "lab-orders.btn.lab-services-done",
+     "kind": "btn",
+     "label": "Listo",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Abre el alta de un laboratorio.",
+     "id": "lab-orders.btn.menu-laboratory",
+     "kind": "btn",
+     "label": "Agregar laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Abre la lista de servicios para marcar cuáles se mandan al laboratorio.",
+     "id": "lab-orders.btn.menu-services",
+     "kind": "btn",
+     "label": "Trabajos de laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Va a Etapas de laboratorio.",
+     "id": "lab-orders.btn.menu-stages",
+     "kind": "btn",
+     "label": "Etapas y avisos",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Mueve la orden a esa etapa. A una etapa final se mueve sin preguntar; a una no final pide laboratorio o fecha de entrega si faltan.",
+     "id": "lab-orders.btn.move-option",
+     "kind": "btn",
+     "label": "Etapa destino",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Menú con todas las demás etapas, para saltar etapas, volver atrás o cerrar la orden (por ejemplo, cancelarla). Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
+     "id": "lab-orders.btn.move-to",
+     "kind": "btn",
+     "label": "Otra etapa…",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Abre el formulario de alta. La orden entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio.",
+     "id": "lab-orders.btn.new",
+     "kind": "btn",
+     "label": "Nueva orden",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Crea una especialidad escribiendo su nombre (es un grupo de proveedores marcado como categoría de laboratorio).",
+     "id": "lab-orders.btn.new-specialty",
+     "kind": "btn",
+     "label": "Nueva especialidad",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Mueve la orden a la etapa que sigue en el orden configurado, con un clic. No aparece si ya está en una etapa final. Si no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
+     "id": "lab-orders.btn.next-stage",
+     "kind": "btn",
+     "label": "Pasar a «siguiente etapa»",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Abre Pacientes buscando al paciente de la orden.",
+     "id": "lab-orders.btn.open-patient",
+     "kind": "btn",
+     "label": "Ver en Pacientes",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Vuelve a cargar la lista.",
+     "id": "lab-orders.btn.refresh",
+     "kind": "btn",
+     "label": "Refrescar",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Borra el adjunto de la orden (pide confirmación; no se puede deshacer).",
+     "id": "lab-orders.btn.remove-attachment",
+     "kind": "btn",
+     "label": "Quitar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Saca ese servicio de la orden.",
+     "id": "lab-orders.btn.remove-service",
+     "kind": "btn",
+     "label": "Quitar servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Crea el laboratorio. Si el teléfono o el correo ya son de otro contacto, primero lo avisa.",
+     "id": "lab-orders.btn.save-laboratory",
+     "kind": "btn",
+     "label": "Guardar laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "El botón de la siguiente etapa cuando la orden sale de la etapa inicial o no tiene laboratorio: muestra, en el mismo panel, el laboratorio y la fecha de entrega para confirmar.",
+     "id": "lab-orders.btn.send",
+     "kind": "btn",
+     "label": "Enviar al laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "id": "lab-orders.btn.setup-0",
+     "kind": "btn",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Abre el alta de un laboratorio sin salir del módulo.",
+     "id": "lab-orders.btn.setup-laboratory",
+     "kind": "btn",
+     "label": "Agregar laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Menú con Agregar laboratorio, Trabajos de laboratorio y Etapas y avisos.",
+     "id": "lab-orders.btn.setup-menu",
+     "kind": "btn",
+     "label": "Configurar",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Abre la lista de servicios para marcar cuáles se mandan al laboratorio.",
+     "id": "lab-orders.btn.setup-services",
+     "kind": "btn",
+     "label": "Elegir trabajos",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Va a Etapas de laboratorio para ajustar las etapas, los plazos y los avisos.",
+     "id": "lab-orders.btn.setup-stages",
+     "kind": "btn",
+     "label": "Revisar etapas",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Cambia el filtro de etapa a «Todas» para ver también las órdenes completadas o canceladas.",
+     "id": "lab-orders.btn.show-all",
+     "kind": "btn",
+     "label": "Ver también las finalizadas",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.step-0",
+     "kind": "btn",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "A qué laboratorio va. Opcional al crearla: se pide al enviarla.",
+     "id": "lab-orders.btn.step-laboratory",
+     "kind": "btn",
+     "label": "Paso Laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Valida el paso y pasa al siguiente. Al editar, vuelve a Revisar.",
+     "id": "lab-orders.btn.step-next",
+     "kind": "btn",
+     "label": "Continuar",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Paciente y doctor que pide el trabajo.",
+     "id": "lab-orders.btn.step-patient",
+     "kind": "btn",
+     "label": "Paso Paciente",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Resumen con «Editar» por sección, notas, adjuntos, urgente y si se envía ahora.",
+     "id": "lab-orders.btn.step-review",
+     "kind": "btn",
+     "label": "Paso Revisar",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Servicios de laboratorio (con cantidad, piezas y nota) o, si no está en el catálogo, la descripción del trabajo.",
+     "id": "lab-orders.btn.step-work",
+     "kind": "btn",
+     "label": "Paso Trabajo",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "En el último paso (Revisar): crea la orden (o la crea y la envía, si se eligió «Enviarla ahora») o guarda los cambios.",
+     "id": "lab-orders.btn.submit",
+     "kind": "btn",
+     "label": "Guardar laboratorio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Abre un odontograma chico para tocar las piezas en vez de escribirlas. Escribe en el mismo campo, con dentición permanente o temporal.",
+     "id": "lab-orders.btn.teeth-picker",
+     "kind": "btn",
+     "label": "Odontograma",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Sube más archivos a la orden desde el detalle.",
+     "id": "lab-orders.btn.upload-attachment",
+     "kind": "btn",
+     "label": "Agregar archivos",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "id": "lab-orders.btn.view-0",
+     "kind": "btn",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Muestra una columna por etapa activa; las tarjetas se arrastran para cambiar la etapa.",
+     "id": "lab-orders.btn.view-board",
+     "kind": "btn",
+     "label": "Tablero",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "lab-orders.btn.view-list",
+     "kind": "btn",
+     "label": "Lista",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Doctor que pidió el trabajo; los avisos de la orden pueden ir a él. Si quien crea la orden es doctor, viene elegido (se puede cambiar).",
+     "id": "lab-orders.field.doctor_id",
+     "kind": "field",
+     "label": "Doctor",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Fecha de entrega prometida por el laboratorio. Aparece al editar una orden ya enviada.",
+     "id": "lab-orders.field.due_date",
+     "kind": "field",
+     "label": "Entrega estimada",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Muestra solo las órdenes pendientes cuya fecha de entrega es hoy: lo que tiene que llegar del laboratorio en el día. El número es cuántas hay.",
+     "id": "lab-orders.field.due-today",
+     "kind": "field",
+     "label": "Entregas de hoy",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite.",
+     "id": "lab-orders.field.final-days",
+     "kind": "field",
+     "label": "Columnas finales",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Marca la orden como urgente.",
+     "id": "lab-orders.field.is_urgent",
+     "kind": "field",
+     "label": "Urgente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Indicaciones para ese servicio en particular (color, material…).",
+     "id": "lab-orders.field.items.notes",
+     "kind": "field",
+     "label": "Nota del servicio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Junto al nombre del servicio, con − y +. Casi siempre es 1: un puente de 3 piezas es 1 trabajo, por eso no se calcula de las piezas.",
+     "id": "lab-orders.field.items.quantity",
+     "kind": "field",
+     "label": "Cantidad",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Las piezas dentales de ese servicio. Las piezas de la orden son la suma de las de todos sus servicios.",
+     "id": "lab-orders.field.items.teeth",
+     "kind": "field",
+     "label": "Piezas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "A qué laboratorio se envía. Opcional al crear. Si un solo laboratorio hace esos trabajos, viene elegido (se puede quitar). Se filtran por especialidad y, si no existe, se crea ahí mismo.",
+     "id": "lab-orders.field.laboratory_id",
+     "kind": "field",
+     "label": "Laboratorio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Nombre del laboratorio, como aparece en las órdenes.",
+     "id": "lab-orders.field.laboratory-name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Especialidades del laboratorio (por ejemplo, Prótesis fija). Al menos una: es lo que lo hace laboratorio y lo que permite proponerlo en las órdenes de esos trabajos.",
+     "id": "lab-orders.field.laboratory-specialties",
+     "kind": "field",
+     "label": "Qué hace",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Se crea con Enter o «Agregar» y queda marcada.",
+     "id": "lab-orders.field.new-specialty",
+     "kind": "field",
+     "label": "Nombre de la especialidad",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Notas internas de la orden.",
+     "id": "lab-orders.field.notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Muestra solo las órdenes atrasadas: las que superaron los días configurados en su etapa actual o tienen la fecha de entrega vencida. En rojo cuando está activo.",
+     "id": "lab-orders.field.overdue-only",
+     "kind": "field",
+     "label": "Solo atrasadas",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Paciente para quien es el trabajo. Desde la ficha del paciente ya viene elegido.",
+     "id": "lab-orders.field.patient_id",
+     "kind": "field",
+     "label": "Paciente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Guardarla en la etapa inicial para enviarla después, o enviarla ahora a la etapa siguiente. Enviarla pide el laboratorio y la fecha de entrega.",
+     "id": "lab-orders.field.send",
+     "kind": "field",
+     "label": "¿Qué hacemos con la orden?",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Fecha que prometió el laboratorio; no puede ser anterior a hoy. Desde el día siguiente la orden figura como atrasada.",
+     "id": "lab-orders.field.send_due_date",
+     "kind": "field",
+     "label": "Entrega estimada (al enviarla)",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "La fecha que prometió el laboratorio. Es obligatoria y no puede ser anterior a hoy; si la orden ya tenía una que no pasó, aparece cargada. Desde el día siguiente, si la orden no llegó a una etapa final, queda atrasada.",
+     "id": "lab-orders.field.send-due-date",
+     "kind": "field",
+     "label": "Fecha de entrega",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "A qué laboratorio se envía la orden. Aparece solo si todavía no tiene.",
+     "id": "lab-orders.field.send-laboratory",
+     "kind": "field",
+     "label": "Laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Piezas dentales de la orden cuando no tiene servicios (números separados por coma).",
+     "id": "lab-orders.field.teeth",
+     "kind": "field",
+     "label": "Piezas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Muestra solo las órdenes urgentes que siguen pendientes, en la lista y en el tablero. En rojo cuando está activo.",
+     "id": "lab-orders.field.urgent-only",
+     "kind": "field",
+     "label": "Urgentes",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Descripción del trabajo cuando no hay un servicio del catálogo. Con servicios no se muestra: lo extra va en Notas.",
+     "id": "lab-orders.field.work_description",
+     "kind": "field",
+     "label": "Descripción adicional (opcional)",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Filtra la lista de servicios por nombre.",
+     "id": "lab-orders.filter.lab-services-search",
+     "kind": "filter",
+     "label": "Buscar servicio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Busca por paciente, trabajo, laboratorio o número de orden.",
+     "id": "lab-orders.filter.search",
+     "kind": "filter",
+     "label": "Buscar",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Un chip por cada filtro del botón Filtros que está aplicado; la ✕ lo quita y «Limpiar filtros» los quita todos. En el tablero, los que no se aplican ahí (etapa, paciente, fechas) se ven punteados.",
+     "id": "lab-orders.section.active-filters",
+     "kind": "section",
+     "label": "Filtros aplicados",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio (o «Sin laboratorio»), entrega («Vencida hace N días» si pasó) y días en la etapa, en rojo si superó el máximo. Las columnas se pueden colapsar.",
+     "id": "lab-orders.section.board",
+     "kind": "section",
+     "label": "Tablero",
+     "source": "src/components/lab-orders/lab-orders-board.tsx"
+    },
+    {
+     "description": "Aparece en el detalle, debajo del progreso, al enviar la orden (pasarla de la etapa inicial a una no final): la fecha de entrega, obligatoria y ya propuesta, y el laboratorio si todavía no tiene (elegido solo si hay uno posible). También aparece al mover a una etapa no final una orden sin laboratorio. A una etapa final se mueve sin pedir nada. En el tablero y la ficha del paciente es una ventana.",
+     "id": "lab-orders.section.choose-laboratory",
+     "kind": "section",
+     "label": "Enviar al laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Panel con la etapa actual, el progreso, «Pasar a…» y «Otra etapa…», el trabajo, los datos de la orden, las notas y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra.",
+     "id": "lab-orders.section.detail",
+     "kind": "section",
+     "label": "Detalle de la orden",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Archivos de la orden: se descargan con el ícono de la flecha. Con permiso de editar se agregan más o se quitan.",
+     "id": "lab-orders.section.detail-attachments",
+     "kind": "section",
+     "label": "Adjuntos",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Laboratorio asignado con sus categorías y los datos de su ficha de proveedor: teléfonos (se pueden marcar), correo, dirección y RUT. Si no tiene ninguno, indica que se cargan en Compras → Proveedores.",
+     "id": "lab-orders.section.detail-laboratory",
+     "kind": "section",
+     "label": "Laboratorio",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Lista de servicios pedidos con cantidad, piezas y nota.",
+     "id": "lab-orders.section.detail-services",
+     "kind": "section",
+     "label": "Servicios de la orden",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Etapa en la que está la orden, los días que lleva ahí (en rojo si superó el máximo) y el motivo si está atrasada. Debajo, el progreso por las etapas y los botones para moverla.",
+     "id": "lab-orders.section.detail-stage",
+     "kind": "section",
+     "label": "Etapa actual",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Servicios pedidos con cantidad, piezas y nota de cada uno, o la descripción del trabajo si no hay servicios.",
+     "id": "lab-orders.section.detail-work",
+     "kind": "section",
+     "label": "Trabajo",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "«En 3 días», «En 1 semana», «En 2 semanas» y el plazo de la etapa: un toque completa la fecha de entrega. El marcado es el que está elegido.",
+     "id": "lab-orders.section.due-shortcuts",
+     "kind": "section",
+     "label": "Atajos de fecha",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Cuando no hay órdenes pendientes y no hay filtros: botón Nueva orden y «Ver también las finalizadas».",
+     "id": "lab-orders.section.empty",
+     "kind": "section",
+     "label": "Sin órdenes pendientes",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Búsqueda por paciente, trabajo, laboratorio o número; los botones rápidos Solo atrasadas, Urgentes y Entregas de hoy (con cuántas hay de cada una) y el botón Filtros con etapa, laboratorio, doctor, paciente, fechas de alta y orden.",
+     "id": "lab-orders.section.filters",
+     "kind": "section",
+     "label": "Búsqueda y filtros",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "La primera orden de la lista según el orden elegido. Un clic abre su detalle.",
+     "id": "lab-orders.section.first-row",
+     "kind": "section",
+     "label": "Primera orden",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Fotos, PDF o escaneos 3D (STL, PLY, OBJ) para el laboratorio, hasta 10 archivos de 10 MB. Se suben al crear la orden; si fallan, la orden queda creada y se agregan desde el detalle.",
+     "id": "lab-orders.section.form-attachments",
+     "kind": "section",
+     "label": "Adjuntos (alta)",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Línea de tiempo de la orden, de lo más nuevo a lo más viejo: cada cambio de etapa (origen, destino, usuario, fecha y hora, y cuánto estuvo en cada etapa, «Estuvo 4 días») y cada edición (laboratorio, doctor, fecha de entrega, urgente, servicios, descripción, notas) con el valor anterior y el nuevo. Arriba, el tiempo total desde el alta. El primero marca la etapa actual.",
+     "id": "lab-orders.section.history",
+     "kind": "section",
+     "label": "Historial",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Un servicio del catálogo.",
+     "id": "lab-orders.section.lab-service-first",
+     "kind": "section",
+     "label": "Servicio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Los servicios del catálogo, con los de laboratorio arriba. Cada uno tiene un interruptor que guarda al instante y, si está prendido, su especialidad (opcional).",
+     "id": "lab-orders.section.lab-services",
+     "kind": "section",
+     "label": "Trabajos de laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Laboratorios para elegir con un toque: los de la categoría de los servicios si es una sola, o los primeros de la lista. Para otro, el selector de arriba busca o da de alta.",
+     "id": "lab-orders.section.lab-suggestions",
+     "kind": "section",
+     "label": "Laboratorios sugeridos",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Todas las etapas menos la actual, en el orden del circuito.",
+     "id": "lab-orders.section.move-menu",
+     "kind": "section",
+     "label": "Etapas",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Nombre, teléfono, correo y qué hace (especialidades). Por detrás crea el proveedor y lo asigna a esas especialidades.",
+     "id": "lab-orders.section.new-laboratory",
+     "kind": "section",
+     "label": "Nuevo laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Paciente, trabajo y laboratorio de la orden; «Editar» vuelve a ese paso.",
+     "id": "lab-orders.section.review",
+     "kind": "section",
+     "label": "Revisión",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Una orden de la lista. Un clic abre su detalle.",
+     "id": "lab-orders.section.row",
+     "kind": "section",
+     "label": "Orden",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "id": "lab-orders.section.send-choice",
+     "kind": "section",
+     "label": "¿Qué hacemos con la orden?",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Los trabajos que se piden al laboratorio, elegidos de los servicios marcados como «Trabajo de laboratorio». Se pueden sumar varios; cada uno con cantidad, piezas y nota.",
+     "id": "lab-orders.section.services",
+     "kind": "section",
+     "label": "Servicios",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Lo que falta para usar el módulo: laboratorios y trabajos de laboratorio, cada uno con su botón; las etapas ya vienen listas. Desaparece cuando está todo.",
+     "id": "lab-orders.section.setup",
+     "kind": "section",
+     "label": "Primeros pasos",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Opciones para preparar el módulo.",
+     "id": "lab-orders.section.setup-menu",
+     "kind": "section",
+     "label": "Configurar",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Las etapas del circuito en orden: las ya pasadas con tilde, la actual resaltada y las que faltan en gris.",
+     "id": "lab-orders.section.stage-progress",
+     "kind": "section",
+     "label": "Progreso",
+     "source": "src/components/lab-orders/lab-order-shared.tsx"
+    },
+    {
+     "description": "Cuadrantes como se ven de frente al paciente. Tocar una pieza la suma o la quita; «Limpiar» borra todas.",
+     "id": "lab-orders.section.teeth-picker",
+     "kind": "section",
+     "label": "Elegir piezas",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "La lista tiene todos los filtros; el tablero muestra una columna por etapa activa, en el orden configurado.",
+     "id": "lab-orders.section.view",
+     "kind": "section",
+     "label": "Lista o tablero",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Paciente → Trabajo → Laboratorio → Revisar. El paso actual va resaltado y los completos llevan ✓. Se puede volver a cualquier paso; hacia adelante, solo si los anteriores están completos. Debajo dice qué falta para crearla.",
+     "id": "lab-orders.section.wizard-steps",
+     "kind": "section",
+     "label": "Pasos de la orden",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Lo cargado hasta ahora (paciente, doctor, trabajo, laboratorio). Se ve en pantallas anchas.",
+     "id": "lab-orders.section.wizard-summary",
+     "kind": "section",
+     "label": "Resumen",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Prendido, el servicio se puede pedir en una orden de laboratorio y al guardar una sesión con él se propone la orden. Guarda al instante.",
+     "id": "lab-orders.toggle.lab-service",
+     "kind": "section",
+     "label": "Trabajo de laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Marca la orden como urgente (al crearla o al editarla). Mientras esté pendiente sale primero y lleva la etiqueta roja «Urgente»; en una etapa final ya no se destaca.",
+     "id": "lab-orders.toggle.urgent",
+     "kind": "section",
+     "label": "Urgente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    }
+   ],
+   "id": "lab-orders",
+   "inMenu": true,
+   "module": "Pacientes",
+   "permissions": [
+    "LAB_ORDERS_VIEW_MENU"
+   ],
+   "prerequisites": [
+    "config.lab-stages"
+   ],
+   "purpose": "Registra cada trabajo que la clínica envía a un laboratorio (prótesis, coronas, alineadores, placas…) y muestra en qué etapa está, cuántos días lleva ahí y si está atrasado, para no perder solicitudes ni agendar una colocación antes de que llegue el trabajo.",
+   "route": "/lab-orders",
+   "status": "draft",
+   "summary": "Órdenes enviadas a laboratorios externos.",
+   "tips": [
+    "Por defecto la lista muestra solo las pendientes (las que no llegaron a una etapa final). En Filtros → Etapa se eligen «Todas» o una etapa en particular; si no hay pendientes, «Ver también las finalizadas» las muestra.",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral de esa etapa o cuando su fecha de entrega ya pasó (desde el día siguiente) y todavía no llegó a una etapa final. En una etapa final nunca está atrasada. Cada motivo se ve aparte: los días en la etapa en rojo junto al máximo de la etapa («5 días · máx. 3») y la etiqueta roja «Vencida hace N días». Las órdenes pendientes sin laboratorio llevan la etiqueta ámbar «Sin laboratorio».",
+    "El laboratorio se elige entre los proveedores que están en una categoría de laboratorio (grupos de proveedores marcados así). Si los servicios de la orden son de una sola categoría, el selector arranca filtrado por ella. La orden se puede crear sin laboratorio, pero para pasarla a una etapa que no sea final hay que indicar a qué laboratorio se envía.",
+    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
+    "La fecha de entrega se pide al enviar la orden, es decir, al pasarla de la etapa inicial a otra que no sea final, y es obligatoria. Se puede enviar en el mismo alta («Enviarla ahora», en el paso Revisar) o después desde el detalle. Luego se cambia desde «Editar».",
+    "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
+    "Los cambios que hacen otros usuarios aparecen solos, sin recargar.",
+    "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas.",
+    "El alta va por pasos: Paciente → Trabajo → Laboratorio → Revisar. Si se abre desde la ficha del paciente o desde una sesión clínica, lo que ya viene cargado se da por hecho y arranca en el paso siguiente. «Editar» abre directamente en Revisar.",
+    "Mientras falten laboratorios o trabajos de laboratorio, arriba de la lista aparece «Primeros pasos»: cada paso se resuelve ahí mismo (agregar un laboratorio con sus especialidades, prender los servicios que se mandan al laboratorio). Después, lo mismo está en el botón «Configurar».",
+    "Al enviar la orden desde el detalle, el laboratorio y la fecha se completan en el mismo panel, sin ventanas: la fecha viene propuesta según el plazo de la etapa (atajos «En 3 días», «En 1 semana», «En 2 semanas») y, si hay un solo laboratorio posible, ya viene elegido. Suele alcanzar con confirmar."
+   ],
+   "title": "Órdenes de Laboratorio",
+   "useCases": [
+    "lab-orders.overview",
+    "lab-orders.create",
+    "lab-orders.send",
+    "lab-orders.change-stage",
+    "lab-orders.board",
+    "lab-orders.overdue",
+    "lab-orders.edit",
+    "lab-orders.delete"
    ]
   },
   {
@@ -8508,6 +9478,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Mueve la orden a la etapa que sigue sin abrir el detalle. Si no tiene laboratorio y la etapa lo necesita, primero pregunta a cuál se envía.",
+     "id": "patients.btn.lab-order-next-stage",
+     "kind": "btn",
+     "label": "Pasar a la siguiente etapa",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "id": "patients.btn.ledger-add-payment",
      "kind": "btn",
      "label": "Registrar pago",
@@ -8595,6 +9572,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Registra un trabajo enviado al laboratorio para este paciente. Entra en la etapa inicial.",
+     "id": "patients.btn.new-lab-order",
+     "kind": "btn",
+     "label": "Nueva orden",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "id": "patients.btn.new-odontogram",
      "kind": "btn",
      "label": "Sesión de odontograma",
@@ -8657,6 +9641,13 @@
      "kind": "btn",
      "label": "Proponer",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el módulo de Órdenes de laboratorio en la lista, filtrado por este paciente.",
+     "id": "patients.btn.open-lab-orders",
+     "kind": "btn",
+     "label": "Ver en Órdenes de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
     },
     {
      "id": "patients.btn.plans-create-appointment",
@@ -9461,6 +10452,34 @@
      "source": "src/components/patients/patient-detail-header.tsx"
     },
     {
+     "description": "Atrasadas, que vencen en 7 días o sin laboratorio. Aparecen solo si hay alguna; un clic filtra «En curso» y otro clic lo quita.",
+     "id": "patients.section.lab-order-alerts",
+     "kind": "section",
+     "label": "Avisos de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Las órdenes del paciente en dos grupos: «En curso», con el progreso por etapas, y «Finalizadas», plegado. Un clic en una tarjeta abre el detalle con el historial.",
+     "id": "patients.section.lab-orders",
+     "kind": "section",
+     "label": "Órdenes de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Órdenes en una etapa final (entregada, cancelada…), con la fecha en que llegaron y cuántos días tomó en total. Se despliega con un clic.",
+     "id": "patients.section.lab-orders-finished",
+     "kind": "section",
+     "label": "Finalizadas",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
+     "description": "Órdenes que todavía no llegaron a una etapa final, con el progreso por etapas, los días en la etapa y la entrega próxima o vencida.",
+     "id": "patients.section.lab-orders-in-progress",
+     "kind": "section",
+     "label": "En curso",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "description": "Presupuestos, tratamientos y pagos con su saldo.",
      "id": "patients.section.ledger",
      "kind": "section",
@@ -9578,6 +10597,13 @@
      "id": "patients.tab.invoices",
      "kind": "tab",
      "label": "Facturas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Órdenes de laboratorio del paciente y la etapa en que está cada una. Las atrasadas se marcan en rojo.",
+     "id": "patients.tab.lab-orders",
+     "kind": "tab",
+     "label": "Laboratorio",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -10224,6 +11250,7 @@
     "patients.clinical-session",
     "patients.odontogram",
     "patients.treatment-plans",
+    "patients.lab-orders",
     "patients.prescription",
     "patients.medical-instruction",
     "patients.documents",
@@ -16732,6 +17759,26 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Si lo marcás, el servicio aparece para elegir en las órdenes de laboratorio.",
+     "id": "sales.services.field.is_lab",
+     "kind": "field",
+     "label": "Trabajo de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.is-lab",
+     "kind": "field",
+     "label": "Trabajo de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "description": "Opcional, solo para trabajos de laboratorio. Las órdenes con este servicio filtran los laboratorios por esa categoría.",
+     "id": "sales.services.field.lab_category_id",
+     "kind": "field",
+     "label": "Categoría de laboratorio",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "description": "Nombre del servicio.",
      "id": "sales.services.field.name",
      "kind": "field",
@@ -17107,6 +18154,13 @@
   },
   {
    "elements": [
+    {
+     "description": "La regla la maneja otro módulo (por ejemplo, Etapas de laboratorio) y se configura allá. Acá no se puede editar, duplicar, probar ni eliminar.",
+     "id": "system.alert-rules.badge.managed",
+     "kind": "section",
+     "label": "Regla gestionada",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
     {
      "id": "system.alert-rules.btn.confirm-action",
      "kind": "btn",
@@ -18689,6 +19743,34 @@
      "source": "knowledge/screens/workspace.json"
     },
     {
+     "description": "Crea una orden de laboratorio para el paciente de la cita, con el doctor ya elegido (solo quien edita órdenes puede cambiarlo). Al guardar una sesión con servicios de laboratorio, la orden se abre sola, ya cargada.",
+     "id": "workspace.btn.lab-order",
+     "kind": "btn",
+     "label": "Orden de laboratorio",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Crea la orden de laboratorio con lo propuesto.",
+     "id": "workspace.btn.lab-order-create",
+     "kind": "btn",
+     "label": "Crear orden",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Abre el formulario completo con lo propuesto, para cambiar piezas, notas, urgencia o adjuntos.",
+     "id": "workspace.btn.lab-order-edit",
+     "kind": "btn",
+     "label": "Editar detalles",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "No crea la orden. Se puede crear después con el botón Orden de laboratorio.",
+     "id": "workspace.btn.lab-order-skip",
+     "kind": "btn",
+     "label": "Ahora no",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
      "description": "Registra en el odontograma todas las propuestas de la bandeja. «Descartar» las saca sin guardar nada.",
      "id": "workspace.btn.odontogram-confirm-proposals",
      "kind": "btn",
@@ -18766,6 +19848,13 @@
      "kind": "btn",
      "label": "Hoy",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "A qué laboratorio va. Opcional: se puede elegir al enviarla.",
+     "id": "workspace.field.lab-order-laboratory",
+     "kind": "field",
+     "label": "Laboratorio",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "description": "Pieza, condición, caras y estado: «indicada», «existente» o «hoy». Admite rangos para puentes («del 24 al 26»).",
@@ -19002,6 +20091,13 @@
      "kind": "section",
      "label": "Paciente en foco",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Al guardar una sesión con trabajos de laboratorio: los trabajos con sus piezas, el doctor y el laboratorio (elegido si hay uno solo posible). «Crear orden» la crea con un clic; «Editar detalles» abre el formulario completo; «Ahora no» la descarta.",
+     "id": "workspace.section.lab-order-quick",
+     "kind": "section",
+     "label": "Orden de laboratorio propuesta",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "id": "workspace.section.odontogram",
@@ -25994,6 +27090,209 @@
    "title": "Recorrer Horarios de Excepción"
   },
   {
+   "id": "config.lab-stages.add",
+   "inputs": {
+    "kind": "Tipo (Inicial, Intermedia o Final)",
+    "name": "Nombre",
+    "overdue_days": "Días de atraso"
+   },
+   "keywords": [
+    "agregar etapa",
+    "nueva etapa",
+    "crear etapa de laboratorio",
+    "prueba en boca",
+    "cancelado"
+   ],
+   "module": "Configuración de Negocio",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Las etapas por las que pasa cada orden de laboratorio, en orden.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menú → Configuración de Negocio → Etapas de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Se agrega como intermedia, antes de las etapas finales.",
+     "id": "add",
+     "target": "config.lab-stages.btn.add",
+     "title": "Agregar etapa",
+     "until": "config.lab-stages.section.new-stage"
+    },
+    {
+     "action": "fill",
+     "details": "Lo escribe la clínica y no se traduce.",
+     "id": "name",
+     "target": "config.lab-stages.field.new-name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Intermedia: un paso más del circuito. Final: la orden termina ahí (Completado, Cancelado) y deja de estar pendiente. Marcar otra como inicial reemplaza a la actual.",
+     "id": "kind",
+     "optional": true,
+     "target": "config.lab-stages.field.new-kind",
+     "title": "Tipo",
+     "value": "{{values.kind}}"
+    },
+    {
+     "action": "fill",
+     "details": "Más días que estos en la etapa y la orden se marca en rojo. Vacío: sin límite. Las finales no llevan.",
+     "id": "overdue",
+     "optional": true,
+     "target": "config.lab-stages.field.new-overdue-days",
+     "title": "Días de atraso",
+     "value": "{{values.overdue_days}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Arrastrala por el ícono de la izquierda hasta su lugar. La campana configura sus alertas.",
+     "id": "position",
+     "target": "config.lab-stages.section.new-stage",
+     "title": "Ubicala en el circuito"
+    },
+    {
+     "action": "confirm",
+     "details": "El tablero suma la columna nueva en el orden elegido.",
+     "id": "save",
+     "target": "config.lab-stages.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Sumar una etapa al circuito (por ejemplo, «Prueba en boca»), con su tipo y sus días de atraso.",
+   "title": "Agregar una etapa de laboratorio"
+  },
+  {
+   "id": "config.lab-stages.alerts",
+   "keywords": [
+    "alertas de laboratorio",
+    "avisar al doctor",
+    "aviso orden atrasada",
+    "recibido del laboratorio",
+    "notificar etapa"
+   ],
+   "module": "Configuración de Negocio",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Las etapas por las que pasa cada orden de laboratorio, en orden.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menú → Configuración de Negocio → Etapas de Laboratorio"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada etapa tiene la suya, en su fila.",
+     "id": "bell",
+     "target": "config.lab-stages.btn.alerts-first",
+     "title": "Tocá la campana de la etapa",
+     "until": "config.lab-stages.section.alert-enter"
+    },
+    {
+     "action": "highlight",
+     "details": "La frase dice a quién se avisa y por dónde. Ejemplo: en «Recibido en clínica», al doctor, para que agende la colocación. Tocá «Doctor de la orden» o «Quien creó la orden» para sumarlos o quitarlos.",
+     "id": "enter",
+     "target": "config.lab-stages.section.alert-enter",
+     "title": "Cuando una orden llega"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuando la orden supera los días de atraso de la etapa. En «Personalizar» se elige repetirlo cada X días.",
+     "id": "dwell",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.alert-dwell",
+     "title": "Si pasa más días de los previstos"
+    },
+    {
+     "action": "highlight",
+     "details": "Al día siguiente de la fecha de entrega, si la orden sigue en esta etapa.",
+     "id": "due",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.alert-due",
+     "title": "Si se pasa la fecha de entrega"
+    },
+    {
+     "action": "confirm",
+     "details": "«Personalizar» suma roles, usuarios, email o WhatsApp con plantilla. Si la página tenía otros cambios, el botón dice «Aplicar» y después hay que pulsar Guardar arriba.",
+     "id": "apply",
+     "target": "config.lab-stages.btn.apply-alerts",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa, se queda de más o se le vence la entrega.",
+   "title": "Configurar las alertas de una etapa"
+  },
+  {
+   "id": "config.lab-stages.overview",
+   "keywords": [
+    "etapas de laboratorio",
+    "circuito de laboratorio",
+    "configurar etapas",
+    "dias de atraso"
+   ],
+   "module": "Configuración de Negocio",
+   "screens": [
+    "config.lab-stages"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Las etapas por las que pasa cada orden de laboratorio, en orden.",
+     "id": "go",
+     "route": "/config/lab-stages",
+     "title": "Menú → Configuración de Negocio → Etapas de Laboratorio"
+    },
+    {
+     "action": "highlight",
+     "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada.",
+     "id": "active",
+     "target": "config.lab-stages.section.active",
+     "title": "Etapas activas"
+    },
+    {
+     "action": "highlight",
+     "details": "La campana dice cuántos avisos tiene: cuando llega una orden, si se demora, y si se pasa la fecha de entrega.",
+     "id": "alerts",
+     "target": "config.lab-stages.btn.alerts-first",
+     "title": "Avisos de la etapa"
+    },
+    {
+     "action": "highlight",
+     "details": "Una etapa que tuvo órdenes no se borra: se desactiva y se puede reactivar.",
+     "id": "inactive",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.section.inactive",
+     "title": "Etapas desactivadas"
+    },
+    {
+     "action": "highlight",
+     "details": "Agrega una etapa intermedia antes de las finales.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.btn.add",
+     "title": "Agregar etapa"
+    },
+    {
+     "action": "highlight",
+     "details": "Los cambios de la lista se aplican al guardar, todos juntos.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "config.lab-stages.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Cómo está armado el circuito: tipos de etapa, días de atraso, alertas y etapas desactivadas.",
+   "title": "Recorrer las etapas de laboratorio"
+  },
+  {
    "id": "config.medical-instruction-templates.create",
    "inputs": {
     "content": "Contenido de la indicación (texto, admite variables)",
@@ -30714,6 +32013,822 @@
    "title": "Barra lateral: pantalla TV y cobro rápido"
   },
   {
+   "id": "lab-orders.board",
+   "keywords": [
+    "tablero",
+    "kanban",
+    "arrastrar orden",
+    "columnas por etapa",
+    "mover tarjeta"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra una columna por etapa activa; las tarjetas se arrastran para cambiar la etapa.",
+     "id": "board",
+     "target": "lab-orders.btn.view-board",
+     "title": "Tablero",
+     "until": "lab-orders.section.board"
+    },
+    {
+     "action": "highlight",
+     "details": "Soltala en otra columna para cambiarle la etapa. Si esa etapa pide laboratorio o fecha de entrega, se abre una ventana con la fecha ya propuesta. En el celular, usá Mover a, en el menú de la tarjeta.",
+     "id": "columns",
+     "target": "lab-orders.section.board",
+     "title": "Arrastrá la tarjeta"
+    },
+    {
+     "action": "click",
+     "details": "Abre el resto de los filtros. El número indica cuántos están aplicados.",
+     "id": "filters",
+     "target": "lab-orders.btn.filters",
+     "title": "Filtros",
+     "until": "lab-orders.field.final-days"
+    },
+    {
+     "action": "highlight",
+     "details": "Las etapas finales muestran solo lo de los últimos 7, 30 o 90 días, para que no crezcan sin límite.",
+     "id": "final-days",
+     "target": "lab-orders.field.final-days",
+     "title": "Columnas finales"
+    }
+   ],
+   "summary": "Ver las órdenes en columnas por etapa, moverlas arrastrando y limitar las columnas finales a los últimos días.",
+   "title": "Usar el tablero de órdenes"
+  },
+  {
+   "id": "lab-orders.change-stage",
+   "inputs": {
+    "due_date": "Fecha de entrega (AAAA-MM-DD)",
+    "laboratory": "Laboratorio",
+    "query": "Buscar"
+   },
+   "keywords": [
+    "otra etapa",
+    "volver al laboratorio",
+    "cancelar orden de laboratorio",
+    "mover orden",
+    "saltar etapa",
+    "ajuste"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Buscá la orden",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocala en la lista. Su detalle se abre a la derecha.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Abrí la orden",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "Menú con todas las demás etapas, para saltar etapas, volver atrás o cerrar la orden (por ejemplo, cancelarla). Queda registrado en el historial. Si la orden no tiene laboratorio y la etapa no es final, primero pide elegirlo.",
+     "id": "menu",
+     "target": "lab-orders.btn.move-to",
+     "title": "Otra etapa…",
+     "until": "lab-orders.section.move-menu"
+    },
+    {
+     "action": "highlight",
+     "details": "Están todas menos la actual, en orden. A una etapa final, como Completado o Cancelado, se mueve sin preguntar.",
+     "doneOnClose": true,
+     "id": "option",
+     "target": "lab-orders.section.move-menu",
+     "title": "Elegí la etapa"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Solo si todavía no tiene laboratorio. Si uno solo hace ese trabajo, ya viene elegido.",
+     "id": "laboratory",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-laboratory",
+     "title": "Laboratorio",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Viene propuesta según el plazo de la etapa, y los atajos la cambian con un toque. Si pasa la fecha y no llegó, la orden queda atrasada.",
+     "id": "due-date",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-due-date",
+     "title": "Fecha de entrega",
+     "value": "{{values.due_date}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Se abre debajo, en el mismo panel. Al tocar el botón se guarda el cambio.",
+     "id": "confirm-move",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.confirm-move",
+     "title": "Confirmá el cambio de etapa"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada cambio queda registrado: quién lo hizo, cuándo, y cuánto estuvo en la etapa anterior.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Historial de etapas"
+    }
+   ],
+   "summary": "Saltar etapas, volver atrás (por ejemplo, de la prueba al laboratorio para un ajuste) o cerrar la orden, como cancelarla.",
+   "title": "Mover la orden a otra etapa"
+  },
+  {
+   "id": "lab-orders.create",
+   "inputs": {
+    "doctor": "Doctor",
+    "item_notes": "Nota del servicio (color, material…)",
+    "laboratory": "Laboratorio",
+    "notes": "Notas",
+    "patient": "Paciente",
+    "send_due_date": "Fecha de entrega si se envía ahora (AAAA-MM-DD)",
+    "service": "Servicio de laboratorio",
+    "teeth": "Piezas (números separados por coma, p. ej. 11, 21)",
+    "urgent": "Urgente (sí/no)"
+   },
+   "keywords": [
+    "nueva orden de laboratorio",
+    "crear orden",
+    "enviar trabajo al laboratorio",
+    "pedir corona",
+    "pedir protesis",
+    "registrar trabajo",
+    "crear y enviar orden"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Abre el formulario de alta. La orden entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio.",
+     "id": "new",
+     "target": "lab-orders.btn.new",
+     "title": "Nueva orden",
+     "until": "lab-orders.btn.step-next"
+    },
+    {
+     "action": "fill",
+     "details": "Para quién es el trabajo. Desde la ficha del paciente ya viene elegido.",
+     "id": "patient",
+     "target": "lab-orders.field.patient_id",
+     "title": "Paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Quién pidió el trabajo. Le llegan los avisos de la orden. Si sos doctor, ya venís elegido.",
+     "id": "doctor",
+     "optional": true,
+     "target": "lab-orders.field.doctor_id",
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "click",
+     "details": "Pasa al trabajo.",
+     "id": "next-work",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar"
+    },
+    {
+     "action": "fill",
+     "details": "Elegí el trabajo de la lista. Podés sumar varios. La cantidad está al lado del nombre, y casi siempre es uno.",
+     "id": "service",
+     "target": "lab-orders.btn.add-service",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "Las piezas de ese servicio: escribilas o tocalas en el odontograma de al lado. Las de la orden son la suma de todos sus servicios.",
+     "id": "teeth",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.items.teeth",
+     "title": "Piezas",
+     "value": "{{values.teeth}}"
+    },
+    {
+     "action": "fill",
+     "details": "Color, material o cualquier indicación para el laboratorio.",
+     "id": "item-notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.items.notes",
+     "title": "Nota del servicio",
+     "value": "{{values.item_notes}}"
+    },
+    {
+     "action": "click",
+     "details": "Pasa al laboratorio. Hace falta al menos un servicio.",
+     "id": "next-laboratory",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar"
+    },
+    {
+     "action": "fill",
+     "details": "Si un solo laboratorio hace ese trabajo, ya viene elegido. Si no, tocá uno de los sugeridos, o dejalo para cuando la envíes.",
+     "id": "laboratory",
+     "optional": true,
+     "target": "lab-orders.field.laboratory_id",
+     "title": "Laboratorio",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "click",
+     "details": "Pasa a revisar la orden antes de crearla.",
+     "id": "next-review",
+     "target": "lab-orders.btn.step-next",
+     "title": "Continuar",
+     "until": "lab-orders.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "details": "Paciente, trabajo y laboratorio. Con Editar volvés a ese paso sin perder nada.",
+     "id": "review",
+     "target": "lab-orders.section.review",
+     "title": "Revisá la orden"
+    },
+    {
+     "action": "highlight",
+     "details": "Guardarla para enviar después la deja en la primera etapa. Enviarla ahora la crea y la pasa a la etapa siguiente, y pide la fecha de entrega.",
+     "id": "send",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send",
+     "title": "¿La enviás ahora?"
+    },
+    {
+     "action": "fill",
+     "details": "La que prometió el laboratorio. Desde el día siguiente, si no llegó, la orden figura atrasada.",
+     "id": "send-due",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send_due_date",
+     "title": "Fecha de entrega",
+     "value": "{{values.send_due_date}}"
+    },
+    {
+     "action": "fill",
+     "details": "Notas internas de la orden.",
+     "id": "notes",
+     "optional": true,
+     "target": "lab-orders.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Fotos, PDF o escaneos 3D para el laboratorio. Se suben al crear la orden.",
+     "id": "attachments",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.form-attachments",
+     "title": "Adjuntos"
+    },
+    {
+     "action": "fill",
+     "details": "Si la marcás, sale primero en la lista, en el tablero y en la ficha del paciente.",
+     "id": "urgent",
+     "optional": true,
+     "target": "lab-orders.toggle.urgent",
+     "title": "Urgente",
+     "value": "{{values.urgent}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Sin enviarla, queda en la primera etapa. Si elegiste enviarla ahora, queda en la etapa siguiente con el laboratorio y la fecha.",
+     "id": "save",
+     "target": "lab-orders.btn.submit",
+     "title": "Crear la orden"
+    }
+   ],
+   "summary": "Cargar un trabajo para el laboratorio paso a paso: paciente, servicios con piezas, laboratorio y revisión; se puede enviar en el mismo alta.",
+   "title": "Registrar una orden de laboratorio"
+  },
+  {
+   "id": "lab-orders.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar orden de laboratorio",
+    "borrar orden",
+    "orden cargada por error"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por paciente, trabajo, laboratorio o número de orden.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Buscá la orden",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocala en la lista. Se abre su detalle a la derecha.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Abrí la orden",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "Si el trabajo se suspendió, mejor movela a una etapa final como Cancelado: queda el historial.",
+     "id": "delete",
+     "target": "lab-orders.btn.delete",
+     "title": "Eliminar",
+     "until": "lab-orders.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "Confirma la eliminación de la orden.",
+     "id": "confirm",
+     "target": "lab-orders.btn.confirm-action",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Quitar una orden cargada por error de la lista y del tablero.",
+   "title": "Eliminar una orden de laboratorio"
+  },
+  {
+   "id": "lab-orders.edit",
+   "inputs": {
+    "notes": "Notas",
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar orden de laboratorio",
+    "cambiar fecha de entrega",
+    "cambiar laboratorio",
+    "modificar orden"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Buscá la orden",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocala en la lista. Su detalle se abre a la derecha.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Abrí la orden",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "click",
+     "details": "Cambia los datos de la orden (no la etapa).",
+     "id": "edit",
+     "target": "lab-orders.btn.edit",
+     "title": "Editar",
+     "until": "lab-orders.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "details": "Se abre en Revisar. Con Editar, en cada fila, cambiás el paciente, los servicios o el laboratorio.",
+     "id": "review",
+     "target": "lab-orders.section.review",
+     "title": "Revisá la orden"
+    },
+    {
+     "action": "highlight",
+     "details": "Aparece cuando la orden ya se envió. Si el laboratorio avisa otra fecha, se cambia acá.",
+     "id": "due",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.due_date",
+     "title": "Fecha de entrega"
+    },
+    {
+     "action": "fill",
+     "details": "Notas internas de la orden.",
+     "id": "notes",
+     "optional": true,
+     "target": "lab-orders.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "La etapa no se cambia desde acá. Para eso están los botones de etapa del detalle.",
+     "id": "save",
+     "target": "lab-orders.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar servicios, doctor, laboratorio, fecha de entrega, notas o la marca de urgente de una orden.",
+   "title": "Editar una orden de laboratorio"
+  },
+  {
+   "id": "lab-orders.overdue",
+   "keywords": [
+    "atrasadas",
+    "demoradas",
+    "vencidas",
+    "entrega vencida",
+    "que trabajos no llegaron",
+    "ordenes en rojo"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "click",
+     "details": "Tocalo para ver solo las atrasadas. El número dice cuántas hay. Una orden se atrasa si pasa los días de su etapa, o si se vence la entrega sin llegar.",
+     "id": "overdue",
+     "target": "lab-orders.field.overdue-only",
+     "title": "Solo atrasadas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "En la columna Estado, los días en rojo marcan el atraso en la etapa. La etiqueta Vencida marca la entrega pasada.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Abrí una orden atrasada",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "highlight",
+     "details": "Muestra los días en la etapa junto al máximo. Si pasó la entrega, dice hace cuántos días venció.",
+     "id": "reason",
+     "target": "lab-orders.section.detail-stage",
+     "title": "Por qué está atrasada"
+    },
+    {
+     "action": "highlight",
+     "details": "Los teléfonos y el correo del laboratorio, para reclamar el trabajo.",
+     "id": "laboratory",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.detail-laboratory",
+     "title": "Contacto del laboratorio"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada cambio queda registrado: quién lo hizo, cuándo, y cuánto estuvo en la etapa anterior.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Historial de etapas"
+    }
+   ],
+   "summary": "Filtrar las órdenes atrasadas y entender por qué lo están: días de más en la etapa o entrega vencida.",
+   "title": "Ver las órdenes atrasadas"
+  },
+  {
+   "id": "lab-orders.overview",
+   "keywords": [
+    "ordenes de laboratorio",
+    "trabajos de laboratorio",
+    "protesis",
+    "coronas",
+    "en que etapa esta",
+    "seguimiento laboratorio"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "highlight",
+     "details": "La lista muestra solo las órdenes pendientes. El tablero tiene una columna por etapa.",
+     "id": "view",
+     "target": "lab-orders.section.view",
+     "title": "Lista o tablero"
+    },
+    {
+     "action": "highlight",
+     "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+     "id": "search",
+     "target": "lab-orders.filter.search",
+     "title": "Búsqueda"
+    },
+    {
+     "action": "highlight",
+     "details": "El número dice cuántas hay. Una orden se atrasa si pasa los días de su etapa, o si se vence la entrega.",
+     "id": "overdue",
+     "target": "lab-orders.field.overdue-only",
+     "title": "Solo atrasadas"
+    },
+    {
+     "action": "highlight",
+     "details": "Las urgentes pendientes. También salen primero en la lista.",
+     "id": "urgent",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.urgent-only",
+     "title": "Urgentes"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que los laboratorios tienen que entregar hoy. Sirve para llamar a primera hora.",
+     "id": "due-today",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.due-today",
+     "title": "Entregas de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Etapa, laboratorio, doctor, paciente y fechas. Para ver también las terminadas, elegí la etapa Todas.",
+     "id": "filters",
+     "target": "lab-orders.btn.filters",
+     "title": "Más filtros"
+    },
+    {
+     "action": "highlight",
+     "details": "Paciente, laboratorio, trabajo y doctor. La columna Estado junta la etapa, los días que lleva ahí y la entrega. Lo atrasado se ve en rojo.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "lab-orders.section.first-row",
+     "title": "Una orden"
+    },
+    {
+     "action": "click",
+     "details": "Muestra una columna por etapa activa; las tarjetas se arrastran para cambiar la etapa.",
+     "id": "board",
+     "target": "lab-orders.btn.view-board",
+     "title": "Tablero",
+     "until": "lab-orders.section.board"
+    },
+    {
+     "action": "highlight",
+     "details": "Arrastrá una tarjeta a otra columna para cambiarle la etapa.",
+     "id": "columns",
+     "target": "lab-orders.section.board",
+     "title": "Una columna por etapa"
+    },
+    {
+     "action": "highlight",
+     "details": "Registra un trabajo nuevo, que entra en la primera etapa.",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.new",
+     "title": "Nueva orden"
+    },
+    {
+     "action": "highlight",
+     "details": "Para sumar laboratorios, marcar qué servicios son trabajos de laboratorio y ajustar las etapas.",
+     "id": "setup",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.setup-menu",
+     "title": "Configurar"
+    }
+   ],
+   "summary": "Qué muestra la pantalla: las órdenes pendientes, los filtros rápidos, el detalle de una orden y el tablero.",
+   "title": "Recorrer Órdenes de laboratorio"
+  },
+  {
+   "id": "lab-orders.send",
+   "inputs": {
+    "due_date": "Fecha de entrega (AAAA-MM-DD)",
+    "laboratory": "Laboratorio",
+    "query": "Buscar"
+   },
+   "keywords": [
+    "enviar al laboratorio",
+    "siguiente etapa",
+    "avanzar orden",
+    "fecha de entrega",
+    "recibido del laboratorio",
+    "cambiar etapa"
+   ],
+   "module": "Historia Clínica",
+   "screens": [
+    "lab-orders"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno.",
+     "id": "go",
+     "route": "/lab-orders",
+     "title": "Menú → Historia Clínica → Órdenes de Laboratorio"
+    },
+    {
+     "action": "click",
+     "details": "Muestra las órdenes en la tabla, con todos los filtros.",
+     "id": "list",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.view-list",
+     "title": "Vista de lista"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+     "id": "search",
+     "optional": true,
+     "target": "lab-orders.filter.search",
+     "title": "Buscá la orden",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocala en la lista. Su detalle se abre a la derecha.",
+     "id": "pick",
+     "target": "lab-orders.section.first-row",
+     "title": "Abrí la orden",
+     "until": "lab-orders.section.detail-stage"
+    },
+    {
+     "action": "highlight",
+     "details": "En qué etapa está, cuántos días lleva ahí y el camino que le falta.",
+     "id": "stage",
+     "target": "lab-orders.section.detail-stage",
+     "title": "Etapa actual"
+    },
+    {
+     "action": "click",
+     "details": "Debajo se abre el envío, en el mismo panel, con la fecha de entrega ya propuesta.",
+     "id": "send",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.send",
+     "title": "Enviar al laboratorio",
+     "until": "lab-orders.section.choose-laboratory"
+    },
+    {
+     "action": "confirm",
+     "details": "Si la orden ya está en el laboratorio, este botón la pasa a la etapa siguiente. Se guarda al tocarlo.",
+     "id": "next",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.next-stage",
+     "title": "Pasar a la siguiente etapa"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Solo si todavía no tiene laboratorio. Si uno solo hace ese trabajo, ya viene elegido.",
+     "id": "laboratory",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-laboratory",
+     "title": "Laboratorio",
+     "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Viene propuesta según el plazo de la etapa. Los atajos de tres días, una semana o dos semanas la cambian con un toque. Si pasa la fecha y no llegó, la orden queda atrasada y se avisa.",
+     "id": "due-date",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.send-due-date",
+     "title": "Fecha de entrega",
+     "value": "{{values.due_date}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Al tocarlo se guarda el cambio de etapa, con el laboratorio y la fecha.",
+     "id": "confirm-move",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.confirm-move",
+     "title": "Confirmá el envío"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada cambio queda registrado: quién lo hizo, cuándo, y cuánto estuvo en la etapa anterior.",
+     "id": "history",
+     "target": "lab-orders.section.history",
+     "title": "Historial de etapas"
+    }
+   ],
+   "summary": "Mover una orden a la etapa que sigue. Al mandarla al laboratorio, la fecha de entrega ya viene propuesta, en el mismo panel.",
+   "title": "Enviar la orden al laboratorio o pasarla a la siguiente etapa"
+  },
+  {
    "id": "onboarding.availability",
    "inputs": {
     "days_of_week": "Lista de días ISO, 1=lunes … 7=domingo (ej. [1,3,5])",
@@ -33951,6 +36066,109 @@
    ],
    "summary": "Crear → Factura: fecha, vencimiento, moneda, sede y servicios facturados.",
    "title": "Hacer una factura desde la ficha"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.lab-orders",
+   "inputs": {
+    "patient": "Paciente"
+   },
+   "keywords": [
+    "laboratorio del paciente",
+    "ordenes del paciente",
+    "trabajo llego",
+    "corona del paciente",
+    "agendar colocacion"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.lab-orders"
+    },
+    {
+     "action": "click",
+     "details": "Órdenes de laboratorio del paciente y la etapa en que está cada una. Las atrasadas se marcan en rojo.",
+     "id": "lab",
+     "target": "patients.tab.lab-orders",
+     "title": "Laboratorio",
+     "until": "patients.section.lab-orders"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada orden con su progreso por etapas, los días en la etapa y la entrega. Antes de agendar la colocación, fijate que el trabajo haya llegado.",
+     "id": "in-progress",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-orders-in-progress",
+     "title": "En curso"
+    },
+    {
+     "action": "highlight",
+     "details": "Atrasadas, que vencen en 7 días o sin laboratorio; un clic las filtra.",
+     "id": "alerts",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-order-alerts",
+     "title": "Avisos"
+    },
+    {
+     "action": "highlight",
+     "details": "Entregadas o canceladas, con cuántos días tomó cada una.",
+     "id": "finished",
+     "skipIfMissing": true,
+     "target": "patients.section.lab-orders-finished",
+     "title": "Finalizadas"
+    },
+    {
+     "action": "highlight",
+     "details": "Registra un trabajo para este paciente sin salir de su ficha.",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "patients.btn.new-lab-order",
+     "title": "Nueva orden"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre el módulo filtrado por este paciente.",
+     "id": "module",
+     "skipIfMissing": true,
+     "target": "patients.btn.open-lab-orders",
+     "title": "Ver en Órdenes de laboratorio"
+    }
+   ],
+   "summary": "En la ficha del paciente: sus órdenes en curso y finalizadas, las atrasadas y cómo crear una nueva.",
+   "title": "Ver las órdenes de laboratorio del paciente"
   },
   {
    "group": "Historia clínica",

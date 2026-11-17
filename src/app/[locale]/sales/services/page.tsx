@@ -55,9 +55,11 @@ import {
   saveServiceUnit,
   type ServiceAestheticConfigInput,
 } from '@/services/aesthetic-record';
-import type { MeasurementUnit } from '@/lib/types';
+import type { LabCategory, MeasurementUnit } from '@/lib/types';
+import { fetchLabCategories } from '@/services/lab-orders';
+import { REQUEST_TIMEOUT_MS } from '@/services/api';
 
-import { setServiceBookableOnline } from '@/services/services';
+import { setServiceBookableOnline, setServiceIsLab } from '@/services/services';
 
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { currencySchema } from '@/lib/currency';
@@ -79,6 +81,10 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   color: z.string().optional(),
   is_active: z.boolean().default(true),
   bookable_online: z.boolean().default(false),
+  // Trabajo de laboratorio (script 167): como bookable_online, tiene su propio endpoint.
+  is_lab: z.boolean().default(false),
+  // Categoría de laboratorio (script 170), opcional; se guarda con is_lab.
+  lab_category_id: z.string().nullable().default(null),
   service_type: z.enum(['single', 'workflow']).default('single'),
   treatment_steps: z.array(z.object({
     position: z.number(),
@@ -104,6 +110,9 @@ const DEFAULT_AESTHETIC_CONFIG: Omit<ServiceAestheticConfigInput, 'unitId'> = {
   aftercare: '',
 };
 
+/** Valor del Select para "sin categoría de laboratorio" (Radix no admite ''). */
+const NO_LAB_CATEGORY = '__none__';
+
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
 /**
@@ -128,6 +137,8 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   // Desmarcado a propósito: el catálogo entero no es auto-agendable. La clínica
   // publica caso por caso lo que un paciente puede reservar sin intermediarios.
   bookable_online: false,
+  is_lab: false,
+  lab_category_id: null,
   service_type: 'single',
   treatment_steps: [],
   unit_id: null,
@@ -160,6 +171,8 @@ async function getServices(params: { page: number; limit: number; search: string
       color: apiService.color || null,
       is_active: apiService.is_active,
       bookable_online: apiService.bookable_online === true,
+      is_lab: apiService.is_lab === true,
+      lab_category_id: apiService.lab_category_id ? String(apiService.lab_category_id) : null,
       image_updated_at: apiService.image_updated_at || null,
       service_type: apiService.service_type || 'single',
       treatment_steps: apiService.treatment_steps || [],
@@ -188,7 +201,8 @@ async function upsertService(serviceData: ServiceFormValues, categories: Miscell
   // (ver setServiceBookableOnline). Mandarlo acá además crearía dos escritores
   // de la misma columna, y este upsert no lo persiste.
   // unit_id e is_aesthetic tampoco: tienen sus propios endpoints (services/unit/save, aesthetic-config/save).
-  const { bookable_online: _bookableOnline, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
+  // is_lab igual que bookable_online (setServiceIsLab).
+  const { bookable_online: _bookableOnline, is_lab: _isLab, lab_category_id: _labCategoryId, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
   const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...payload, category, is_sales: true });
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -225,8 +239,10 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, units, savedUnitId, aestheticSaved = false }: {
+function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, units, savedUnitId, aestheticSaved = false, labCategories = [] }: {
   form: any;
+  /** Categorías de laboratorio (grupos de proveedores marcados como tales). */
+  labCategories?: LabCategory[];
   categories: MiscellaneousCategory[];
   onCategoryCreated: (category: MiscellaneousCategory) => void;
   t: (key: string) => string;
@@ -238,6 +254,12 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, 
   aestheticSaved?: boolean;
 }) {
   const isAesthetic = form.watch('is_aesthetic');
+  const isLab = form.watch('is_lab');
+  const labCategoryId: string | null = form.watch('lab_category_id');
+  // Una categoría guardada que ya no está activa se sigue mostrando para no perderla al guardar.
+  const labCategoryOptions = labCategoryId && !labCategories.some((c) => c.id === labCategoryId)
+    ? [...labCategories, { id: labCategoryId, name: t('createDialog.labCategory.inactive'), description: null, laboratories_count: 0 }]
+    : labCategories;
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -322,6 +344,36 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, 
       {/* La imagen sólo se ve en las tarjetas del portal, así que acompaña al
           flag que las habilita. */}
       {imageSlot}
+      {/* Trabajo de laboratorio: aparece en el selector de servicios de las
+          órdenes de laboratorio. */}
+      <FormField control={form.control} name="is_lab" render={({ field }) => (
+        <FormItem data-help-id="sales.services.field.is-lab" className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <FormLabel className="text-sm">{t('createDialog.isLab.label')}</FormLabel>
+            <p className="text-xs text-muted-foreground">{t('createDialog.isLab.help')}</p>
+          </div>
+          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+        </FormItem>
+      )} />
+      {/* Qué tipo de laboratorio hace este trabajo: filtra los laboratorios al elegir
+          a dónde se envía la orden. Opcional. */}
+      {isLab && (
+        <FormField control={form.control} name="lab_category_id" render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('createDialog.labCategory.label')}</FormLabel>
+            <Select value={field.value ?? NO_LAB_CATEGORY} onValueChange={(v) => field.onChange(v === NO_LAB_CATEGORY ? null : v)}>
+              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+              <SelectContent>
+                <SelectItem value={NO_LAB_CATEGORY}>{t('createDialog.labCategory.none')}</SelectItem>
+                {labCategoryOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {labCategories.length > 0 ? t('createDialog.labCategory.help') : t('createDialog.labCategory.empty')}
+            </p>
+          </FormItem>
+        )} />
+      )}
       {/* Workflow service toggle */}
       <FormField control={form.control} name="service_type" render={({ field }) => (
         <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -868,6 +920,7 @@ export default function ServicesPage() {
   const [aestheticIds, setAestheticIds] = React.useState<Set<string>>(() => new Set());
   const describeAestheticError = useAestheticErrorMessage();
   const [extrasLoaded, setExtrasLoaded] = React.useState(false);
+  const [labCategories, setLabCategories] = React.useState<LabCategory[]>([]);
 
   const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
   const canUpdate = hasPermission(SALES_PERMISSIONS.SERVICES_UPDATE);
@@ -925,6 +978,8 @@ export default function ServicesPage() {
   // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
     getMiscellaneousCategories().then(setCategories);
+    // Sin el script 170 el endpoint no existe: el campo queda sin opciones.
+    fetchLabCategories({ timeoutMs: REQUEST_TIMEOUT_MS.mutation }).then(setLabCategories).catch(() => setLabCategories([]));
   }, []);
 
   // Units of measure, the unit of each service and which services are aesthetic
@@ -972,6 +1027,8 @@ export default function ServicesPage() {
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
       bookable_online: selectedService.bookable_online ?? false,
+      is_lab: selectedService.is_lab ?? false,
+      lab_category_id: selectedService.lab_category_id ?? null,
       service_type: selectedService.service_type || 'single',
       treatment_steps: selectedService.treatment_steps || [],
       unit_id: serviceUnits.get(selectedService.id) ?? null,
@@ -1067,6 +1124,11 @@ export default function ServicesPage() {
         });
       }
 
+      // Trabajo de laboratorio: el default es false, así que solo se escribe si se marcó.
+      if (values.is_lab && !(newId && await setServiceIsLab(newId, true, values.lab_category_id ?? null))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
       // Unidad de medida y estética también esperan al id
       if (newId && (values.unit_id || values.is_aesthetic)) {
         await saveServiceExtras(newId, values, { unitId: null, isAesthetic: false });
@@ -1114,6 +1176,13 @@ export default function ServicesPage() {
         });
       }
 
+      const labCategoryId = values.is_lab ? values.lab_category_id ?? null : null;
+      const isLabChanged = values.is_lab !== (selectedService?.is_lab ?? false)
+        || labCategoryId !== (selectedService?.lab_category_id ?? null);
+      if (isLabChanged && !(await setServiceIsLab(values.id ?? '', values.is_lab, labCategoryId))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
       if (values.id) {
         await saveServiceExtras(values.id, values, {
           unitId: serviceUnits.get(values.id) ?? null,
@@ -1134,6 +1203,8 @@ export default function ServicesPage() {
         color: values.color || null,
         is_active: values.is_active,
         bookable_online: values.bookable_online,
+        is_lab: values.is_lab,
+        lab_category_id: values.is_lab ? values.lab_category_id ?? null : null,
         category_id: values.category_id,
         category: categoryName,
         service_type: values.service_type,
@@ -1293,6 +1364,7 @@ export default function ServicesPage() {
                               </div>
                             }
                             units={units}
+                            labCategories={labCategories}
                             savedUnitId={serviceUnits.get(selectedService.id) ?? null}
                             aestheticSaved={aestheticIds.has(selectedService.id)}
                           />
@@ -1353,6 +1425,7 @@ export default function ServicesPage() {
                 )}
                 <ServiceFormFields
                   form={createForm}
+                  labCategories={labCategories}
                   categories={categories}
                   onCategoryCreated={handleCategoryCreated}
                   t={t}

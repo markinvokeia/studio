@@ -33,6 +33,7 @@ import {
     DollarSign,
     FileText,
     Filter,
+    FlaskConical,
     Mail, MessageSquare,
     Phone, Printer,
     RefreshCw,
@@ -273,6 +274,7 @@ const categoryIcons = {
     BILLING: <DollarSign className="h-5 w-5" />,
     PATIENTS: <User className="h-5 w-5" />,
     FOLLOWUP: <Stethoscope className="h-5 w-5" />,
+    LAB_ORDERS: <FlaskConical className="h-5 w-5" />,
     DEFAULT: <AlertTriangle className="h-5 w-5" />
 };
 
@@ -664,6 +666,14 @@ function AlertsCenterPageContent() {
         return category ? category.code : 'DEFAULT';
     };
 
+    // Categorías del sistema: traducidas por su código. Las que crea la clínica (o una
+    // nueva sin traducción) muestran su nombre en vez de romper la pantalla.
+    const categoryLabel = (code: string): string => {
+        const key = `categories.${code.toLowerCase()}`;
+        if (t.has(key as any)) return t(key as any);
+        return alertCategories.find((cat) => cat.code === code)?.name || t('categories.default');
+    };
+
     const groupedAlerts = React.useMemo(() => {
         return alerts.reduce((acc, alert) => {
             const category = getCategoryName(alert.category_id);
@@ -815,7 +825,7 @@ function AlertsCenterPageContent() {
                                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
                                             {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
                                         </div>
-                                        <span>{t(`categories.${category.toLowerCase()}` as any)}</span>
+                                        <span>{categoryLabel(category)}</span>
                                         <Badge className="ml-auto">{categoryAlerts.length}</Badge>
                                         <ChevronDown className={`h-5 w-5 transition-transform ${openCategories.includes(category) ? 'rotate-180' : ''}`} />
                                     </CollapsibleTrigger>

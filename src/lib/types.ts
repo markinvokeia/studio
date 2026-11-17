@@ -504,6 +504,10 @@ export type Service = {
    * cirugía existe como servicio pero no es algo que un paciente reserve solo.
    */
   bookable_online?: boolean;
+  /** Trabajo de laboratorio: se puede pedir en una orden de laboratorio (script 167). */
+  is_lab?: boolean;
+  /** Categoría de laboratorio que hace este trabajo (opcional, script 170). */
+  lab_category_id?: string | null;
   /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
   image_updated_at?: string | null;
 };
@@ -752,6 +756,332 @@ export type CalendarViewHighlight = 'off' | 'subtle' | 'strong' | 'full';
 export type CalendarColorSettings = CalendarColorSources & {
   highlight: CalendarViewHighlight;
 };
+
+// ── Órdenes de laboratorio ─────────────────────────────────────────────────────
+
+/** initial: exactamente una activa (ahí entra toda orden nueva) · final: al menos una (ya no está pendiente). */
+export type LabStageKind = 'initial' | 'intermediate' | 'final';
+
+/**
+ * Disparador de una alerta de etapa: al entrar a la etapa, por permanencia (más de overdue_days)
+ * o por fecha de entrega vencida mientras la orden está en la etapa (script 169).
+ */
+export type LabStageAlertTrigger = 'enter' | 'dwell' | 'due';
+
+/** Alerta de una etapa (tabla `lab_stage_alerts`, script 150). */
+export interface LabStageAlertConfig {
+  /** Permanencia y entrega vencida: repetir cada N días mientras siga igual. null = una sola vez. */
+  repeat_every_days: number | null;
+  recipient_role_ids: number[];
+  recipient_user_ids: string[];
+  notify_order_doctor: boolean;
+  notify_order_creator: boolean;
+  channel_in_app: boolean;
+  channel_email: boolean;
+  channel_whatsapp: boolean;
+  /** Plantilla EMAIL; sin ella se manda un texto por defecto. */
+  email_template_id: number | null;
+  /** Plantilla WHATSAPP aprobada en Meta/YCloud (obligatoria para el canal). */
+  whatsapp_template_id: number | null;
+}
+
+export interface LabStageAlerts {
+  enter: LabStageAlertConfig | null;
+  dwell: LabStageAlertConfig | null;
+  /** Entrega vencida (nunca en etapas finales). */
+  due: LabStageAlertConfig | null;
+}
+
+/** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
+export interface LabStage {
+  id: number;
+  /** Lo escribe la clínica: no se traduce. */
+  name: string;
+  color: string;
+  sort_order: number;
+  kind: LabStageKind;
+  /** Días en la etapa a partir de los cuales la orden está atrasada. null = sin umbral (siempre null en finales). */
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Órdenes que están hoy en esta etapa. */
+  orders_count: number;
+  /** Tiene órdenes o aparece en el historial: no se puede borrar, solo desactivar. */
+  in_use: boolean;
+  alerts: LabStageAlerts;
+}
+
+/** Una etapa tal como se manda a guardar (POST /lab-stages/save), en el orden de la pantalla. */
+export interface LabStageSaveItem {
+  /** null = etapa nueva. */
+  id: number | null;
+  name: string;
+  color: string;
+  kind: LabStageKind;
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Al desactivar una etapa con órdenes: etapa activa a la que pasan. */
+  move_orders_to?: number | null;
+  /** Alertas de la etapa (se reemplazan las tres). */
+  alerts: LabStageAlerts;
+}
+
+/** Un servicio (trabajo de laboratorio) de la orden (lab_order_items, script 167). */
+export interface LabOrderItem {
+  id: number;
+  service_id: number;
+  /** Nombre del servicio al guardar la orden. */
+  service_name: string;
+  quantity: number;
+  /** Piezas dentales (FDI) de este servicio. */
+  teeth: number[];
+  notes: string | null;
+  /** Categoría de laboratorio del servicio (script 170). */
+  lab_category_id: string | null;
+}
+
+/** Orden de laboratorio tal como la devuelve v_lab_orders (scripts 148 y 167). */
+export interface LabOrder {
+  id: number;
+  patient_id: string;
+  patient_name: string;
+  doctor_id: string | null;
+  doctor_name: string | null;
+  /** Proveedor que hace el trabajo. */
+  laboratory_id: string | null;
+  laboratory_name: string | null;
+  /** Descripción libre. Opcional si la orden tiene servicios. */
+  work_description: string | null;
+  /** Servicios de laboratorio de la orden. */
+  items: LabOrderItem[];
+  /** Texto corto del trabajo: los servicios ("Corona ×2, Férula") o, sin ellos, la descripción. */
+  work_summary: string | null;
+  /** Piezas dentales (FDI). Con servicios, la unión de las de cada uno. */
+  teeth: number[];
+  /** Fecha de entrega prometida ('YYYY-MM-DD'). Desde el día siguiente, si no llegó a una etapa final, la orden está atrasada. */
+  due_date: string | null;
+  notes: string | null;
+  current_stage_id: number;
+  stage_name: string;
+  stage_color: string;
+  stage_kind: LabStageKind;
+  stage_overdue_days: number | null;
+  /** ISO UTC. */
+  stage_entered_at: string;
+  days_in_stage: number;
+  /** La etapa actual no es final. */
+  is_pending: boolean;
+  /** Atrasada: is_stage_overdue o is_past_due. Nunca en etapa final. */
+  is_overdue: boolean;
+  /** Lleva más de stage_overdue_days en la etapa. */
+  is_stage_overdue: boolean;
+  /** La fecha de entrega ya pasó (desde el día siguiente) y no está en una etapa final. */
+  is_past_due: boolean;
+  /** Días desde la fecha de entrega cuando is_past_due; 0 si no. */
+  days_past_due: number;
+  /** ISO UTC. */
+  created_at: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  /** Categorías de laboratorio de los servicios de la orden (script 170). */
+  lab_category_ids: string[];
+  /** Urgente: mientras está pendiente sale primero en la lista, el tablero y la ficha (script 173). */
+  is_urgent: boolean;
+  /** Archivos adjuntos (fotos, PDF, escaneos) de la orden (script 173). */
+  attachments_count: number;
+}
+
+/** Adjunto de una orden (tabla `attachments`, source_name 'lab_order', script 173). */
+export interface LabOrderAttachment {
+  id: number;
+  file_name: string;
+  mime_type: string | null;
+  /** Vista en Google Drive (se abre con permisos de la cuenta de la clínica). */
+  web_view_link: string | null;
+  thumbnail_link: string | null;
+  /** ISO UTC. */
+  created_at: string;
+}
+
+/** Categoría de laboratorio: un grupo de proveedores marcado como tal (script 170). */
+export interface LabCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  laboratories_count: number;
+}
+
+/** Laboratorio: proveedor que pertenece a alguna categoría de laboratorio. */
+export interface Laboratory {
+  id: string;
+  name: string;
+  phone_number: string | null;
+  email: string | null;
+  categories: { id: string; name: string }[];
+}
+
+export interface LabOrderHistoryEntry {
+  id: number;
+  /** null = alta de la orden. */
+  from_stage_id: number | null;
+  from_stage_name: string | null;
+  from_stage_color: string | null;
+  to_stage_id: number;
+  to_stage_name: string;
+  to_stage_color: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  /** ISO UTC. */
+  changed_at: string;
+  /** 'stage_deactivated' cuando la movió la configuración de etapas. */
+  note: string | null;
+}
+
+/** Un servicio tal como quedó en la auditoría (lista completa antes y después de un guardado). */
+export interface LabOrderChangeItem {
+  service_name: string;
+  quantity: number;
+  teeth: number[];
+  notes: string | null;
+}
+
+/**
+ * Un dato cambiado en una edición. `field` es la columna de lab_orders ('laboratory_id',
+ * 'due_date', 'is_urgent', …) o 'items'. Doctor, laboratorio y paciente llegan con el nombre;
+ * 'items' llega como LabOrderChangeItem[].
+ */
+export interface LabOrderChangeField {
+  field: string;
+  old: unknown;
+  new: unknown;
+}
+
+/** Una edición de la orden: lo que cambió en un mismo guardado (audit_log, script 175). */
+export interface LabOrderChange {
+  id: number;
+  /** ISO UTC. Igual al de un movimiento de etapa si se guardó en ese movimiento. */
+  changed_at: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  fields: LabOrderChangeField[];
+}
+
+/** Laboratorio asignado, con sus datos de contacto (ficha del proveedor). Solo en el detalle (script 172). */
+export interface LabOrderLaboratoryInfo extends Laboratory {
+  alternative_phone: string | null;
+  address: string | null;
+  rut: string | null;
+}
+
+export interface LabOrderDetail extends LabOrder {
+  history: LabOrderHistoryEntry[];
+  /** Ediciones de la orden y sus servicios, de la más nueva a la más vieja. Vacío sin el script 175. */
+  changes: LabOrderChange[];
+  /** null sin laboratorio, o si el backend todavía no tiene el script 172 (solo se ve el nombre). */
+  laboratory: LabOrderLaboratoryInfo | null;
+  /** Adjuntos de la orden, del más viejo al más nuevo (script 173). */
+  attachments: LabOrderAttachment[];
+}
+
+export type LabOrderSort = 'created_desc' | 'created_asc' | 'days_desc' | 'days_asc';
+
+/** Filtros de POST /lab-orders/search. */
+export interface LabOrderFilters {
+  stage_ids?: number[];
+  laboratory_id?: string;
+  doctor_id?: string;
+  patient_id?: string;
+  /** Órdenes que incluyen este servicio. */
+  service_id?: number;
+  search?: string;
+  /** 'YYYY-MM-DD', inclusive (fecha de alta). */
+  date_from?: string;
+  date_to?: string;
+  /** Default true: solo órdenes que no están en etapa final. Se ignora si se filtra por etapa. */
+  pending_only?: boolean;
+  overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
+  /** Solo las que entraron a su etapa actual en los últimos N días ("Cargar más" de una columna final). */
+  entered_within_days?: number;
+  sort?: LabOrderSort;
+  limit?: number;
+  offset?: number;
+}
+
+/** Filtros de POST /lab-orders/board. */
+export interface LabOrderBoardFilters {
+  search?: string;
+  laboratory_id?: string;
+  doctor_id?: string;
+  service_id?: number;
+  overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
+  /** Tarjetas por columna (default 30). */
+  per_column?: number;
+  /** Las columnas finales muestran solo lo que llegó en los últimos N días (default 30). */
+  final_days?: number;
+}
+
+/** Una columna del tablero: la etapa (activa) con su total y las primeras tarjetas. */
+export interface LabOrderBoardColumn {
+  stage_id: number;
+  total: number;
+  items: LabOrder[];
+}
+
+/** Alta (sin id) o edición. La etapa no se cambia acá: ver changeLabOrderStage. */
+export interface LabOrderSavePayload {
+  id?: number;
+  patient_id: string;
+  doctor_id: string | null;
+  laboratory_id: string | null;
+  work_description: string | null;
+  /** Piezas de la orden. Con servicios las calcula el backend (unión de las de cada servicio). */
+  teeth: number[];
+  /**
+   * Solo en la edición de una orden ya enviada (script 172): sin la clave, el backend deja la
+   * guardada. En el alta se ignora: la fecha se fija al enviar (changeLabOrderStage).
+   */
+  due_date?: string | null;
+  notes: string | null;
+  /** Urgente (script 173). En la edición, sin la clave queda como estaba. */
+  is_urgent?: boolean;
+  /** Reemplaza los servicios de la orden. */
+  items: LabOrderItemInput[];
+}
+
+export interface LabOrderItemInput {
+  service_id: number;
+  quantity: number;
+  teeth: number[];
+  notes: string | null;
+}
+
+/** Códigos de error de las funciones de órdenes (script 148). */
+export type LabOrdersErrorCode =
+  | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
+  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
+  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE'
+  | 'NO_FILES' | 'TOO_MANY_FILES' | 'INVALID_FILE_TYPE' | 'FILE_TOO_LARGE' | 'UPLOAD_FAILED' | 'DELETE_FAILED'
+  | 'UNKNOWN';
+
+/** Códigos de error de lab_stages_save (script 147). */
+export type LabStagesSaveErrorCode =
+  | 'NO_INITIAL' | 'MANY_INITIAL' | 'NO_FINAL' | 'EMPTY_NAME' | 'DUPLICATE_NAME' | 'INVALID_KIND'
+  | 'INVALID_OVERDUE' | 'INITIAL_INACTIVE' | 'UNKNOWN_STAGE' | 'STAGE_IN_USE' | 'STAGE_HAS_ORDERS'
+  | 'INVALID_MOVE_TARGET' | 'DWELL_WITHOUT_THRESHOLD' | 'NO_RECIPIENTS' | 'NO_CHANNEL'
+  | 'WHATSAPP_TEMPLATE_REQUIRED' | 'UNKNOWN';
 
 /** `calendar_id: null` es la configuración general de la clínica. */
 export type CalendarColorSourceRow = CalendarColorSettings & {
@@ -1022,6 +1352,24 @@ export type WhatsappHandoffRequestedNotification = {
   reason: string;
 };
 
+/** Aviso de una alerta de etapa de laboratorio (notifications.type 'lab_order_alert', script 150). */
+export type LabOrderAlertNotification = {
+  id: string;
+  type: 'lab_order_alert';
+  createdAt: string;
+  seen?: boolean;
+  trigger: LabStageAlertTrigger;
+  labOrderId: number;
+  patientName: string;
+  workDescription: string;
+  laboratoryName: string;
+  stageName: string;
+  stageColor: string;
+  daysInStage: number;
+  /** Solo 'due': días de atraso de la entrega al crearse el aviso. */
+  daysPastDue: number;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -1030,7 +1378,8 @@ export type UnifiedNotification =
   | AppointmentRescheduledNotification
   | AppointmentReassignedNotification
   | AppointmentUpdatedNotification
-  | WhatsappHandoffRequestedNotification;
+  | WhatsappHandoffRequestedNotification
+  | LabOrderAlertNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1865,6 +2214,8 @@ export type ProviderGroup = {
   name: string;
   description?: string;
   is_active: boolean;
+  /** Es una categoría de laboratorio: sus proveedores son laboratorios (script 170). */
+  is_lab_category?: boolean;
   external_id?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -1924,6 +2275,9 @@ export type AlertRule = {
   is_active: boolean;
   display_config?: AlertDisplayField[];
   ui_display_config?: { fields: AlertDisplayField[] };
+  /** Raw condition_config. `managed_by` marks a rule owned by another module (e.g. 'lab_stages'):
+   *  the backend rejects edits and deletes, only activation can change. */
+  condition_config?: { managed_by?: string; generator?: string; [key: string]: unknown };
 };
 
 export interface AlertSourceColumn {
@@ -1964,7 +2318,8 @@ export type AlertInstance = {
 };
 
 /** Business entity a WHATSAPP template's variables are resolved from — see docs/whatsapp-templates-alerts-design.md */
-export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice';
+/** 'lab_order': avisos de etapas de laboratorio al equipo (script 150, flujo Lab Orders). */
+export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice' | 'lab_order';
 
 /** Maps each variable name as it appears in the Meta/YCloud template to a resolver field key (e.g. "patient.name", "invoice.due_date_formatted") */
 export type WhatsAppVariablesSchema = Record<string, string>;

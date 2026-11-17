@@ -1,0 +1,78 @@
+{
+  "id": "config.lab-stages.add",
+  "title": "Agregar una etapa de laboratorio",
+  "module": "Configuración de Negocio",
+  "summary": "Sumar una etapa al circuito (por ejemplo, «Prueba en boca»), con su tipo y sus días de atraso.",
+  "screens": [
+    "config.lab-stages"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "kind": "Tipo (Inicial, Intermedia o Final)",
+    "overdue_days": "Días de atraso"
+  },
+  "keywords": [
+    "agregar etapa",
+    "nueva etapa",
+    "crear etapa de laboratorio",
+    "prueba en boca",
+    "cancelado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/lab-stages",
+      "title": "Menú → Configuración de Negocio → Etapas de Laboratorio",
+      "details": "Las etapas por las que pasa cada orden de laboratorio, en orden."
+    },
+    {
+      "id": "add",
+      "action": "click",
+      "target": "config.lab-stages.btn.add",
+      "title": "Agregar etapa",
+      "details": "Se agrega como intermedia, antes de las etapas finales.",
+      "until": "config.lab-stages.section.new-stage"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.lab-stages.field.new-name",
+      "title": "Nombre",
+      "details": "Lo escribe la clínica y no se traduce.",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "kind",
+      "action": "fill",
+      "target": "config.lab-stages.field.new-kind",
+      "title": "Tipo",
+      "details": "Intermedia: un paso más del circuito. Final: la orden termina ahí (Completado, Cancelado) y deja de estar pendiente. Marcar otra como inicial reemplaza a la actual.",
+      "value": "{{values.kind}}",
+      "optional": true
+    },
+    {
+      "id": "overdue",
+      "action": "fill",
+      "target": "config.lab-stages.field.new-overdue-days",
+      "title": "Días de atraso",
+      "details": "Más días que estos en la etapa y la orden se marca en rojo. Vacío: sin límite. Las finales no llevan.",
+      "value": "{{values.overdue_days}}",
+      "optional": true
+    },
+    {
+      "id": "position",
+      "action": "highlight",
+      "target": "config.lab-stages.section.new-stage",
+      "title": "Ubicala en el circuito",
+      "details": "Arrastrala por el ícono de la izquierda hasta su lugar. La campana configura sus alertas."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.lab-stages.btn.save",
+      "title": "Guardar",
+      "details": "El tablero suma la columna nueva en el orden elegido."
+    }
+  ]
+}

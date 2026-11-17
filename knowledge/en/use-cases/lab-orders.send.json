@@ -1,0 +1,75 @@
+{
+  "id": "lab-orders.send",
+  "title": "Send the order to the lab or move it to the next stage",
+  "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed, in the same panel.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search",
+    "laboratory": "Lab",
+    "due_date": "Due date (YYYY-MM-DD)"
+  },
+  "keywords": [
+    "send to lab",
+    "next stage",
+    "move order forward",
+    "due date",
+    "received from lab",
+    "change stage"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "Search by patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "stage",
+      "title": "Current stage",
+      "details": "Which stage it is in, how many days it has been there and what is left."
+    },
+    {
+      "id": "send",
+      "title": "Send to the lab",
+      "details": "The sending form opens right below, in the same panel, with the due date already proposed."
+    },
+    {
+      "id": "next",
+      "title": "Move to the next stage",
+      "details": "If the order is already at the lab, this button moves it to the next stage. It saves when you click it."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected."
+    },
+    {
+      "id": "due-date",
+      "title": "Due date",
+      "details": "It comes proposed from the stage’s time limit. The three days, one week or two weeks shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue and an alert goes out."
+    },
+    {
+      "id": "confirm-move",
+      "title": "Confirm the send",
+      "details": "Clicking it saves the stage change, with the lab and the date."
+    },
+    {
+      "id": "history",
+      "title": "Stage history",
+      "details": "Every change is recorded: who made it, when, and how long it was in the previous stage."
+    }
+  ]
+}

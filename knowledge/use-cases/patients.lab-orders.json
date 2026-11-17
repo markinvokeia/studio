@@ -1,0 +1,102 @@
+{
+  "id": "patients.lab-orders",
+  "title": "Ver las órdenes de laboratorio del paciente",
+  "module": "Pacientes",
+  "group": "Historia clínica",
+  "summary": "En la ficha del paciente: sus órdenes en curso y finalizadas, las atrasadas y cómo crear una nueva.",
+  "screens": [
+    "patients"
+  ],
+  "inputs": {
+    "patient": "Paciente"
+  },
+  "keywords": [
+    "laboratorio del paciente",
+    "ordenes del paciente",
+    "trabajo llego",
+    "corona del paciente",
+    "agendar colocacion"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.lab-orders"
+    },
+    {
+      "id": "lab",
+      "action": "click",
+      "target": "patients.tab.lab-orders",
+      "title": "Laboratorio",
+      "until": "patients.section.lab-orders"
+    },
+    {
+      "id": "in-progress",
+      "action": "highlight",
+      "target": "patients.section.lab-orders-in-progress",
+      "title": "En curso",
+      "details": "Cada orden con su progreso por etapas, los días en la etapa y la entrega. Antes de agendar la colocación, fijate que el trabajo haya llegado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "alerts",
+      "action": "highlight",
+      "target": "patients.section.lab-order-alerts",
+      "title": "Avisos",
+      "details": "Atrasadas, que vencen en 7 días o sin laboratorio; un clic las filtra.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "finished",
+      "action": "highlight",
+      "target": "patients.section.lab-orders-finished",
+      "title": "Finalizadas",
+      "details": "Entregadas o canceladas, con cuántos días tomó cada una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "patients.btn.new-lab-order",
+      "title": "Nueva orden",
+      "details": "Registra un trabajo para este paciente sin salir de su ficha.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "module",
+      "action": "highlight",
+      "target": "patients.btn.open-lab-orders",
+      "title": "Ver en Órdenes de laboratorio",
+      "details": "Abre el módulo filtrado por este paciente.",
+      "skipIfMissing": true
+    }
+  ]
+}

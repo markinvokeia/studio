@@ -42,6 +42,13 @@
     },
     "config.provider-groups.field.is_active": {
       "label": "Activo"
+    },
+    "config.provider-groups.field.is_lab_category": {
+      "label": "Categoría de laboratorio",
+      "description": "Sus proveedores son laboratorios y se ofrecen en las órdenes de laboratorio."
     }
-  }
+  },
+  "tips": [
+    "Marcá «Categoría de laboratorio» en los grupos de laboratorios (prótesis, ortodoncia…): sus proveedores son los que se ofrecen al elegir el laboratorio de una orden."
+  ]
 }

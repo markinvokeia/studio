@@ -100,6 +100,10 @@
       "label": "Periodontal chart",
       "description": "Opens a new periodontal chart for the appointment's patient, linked to that appointment."
     },
+    "workspace.btn.lab-order": {
+      "label": "Lab order",
+      "description": "Creates a lab order for the appointment's patient with the doctor already selected (only users who can edit orders can change it). When you save a session with lab services, the order opens on its own, already filled in."
+    },
     "workspace.btn.agent-chat": {
       "label": "Ask the agent",
       "description": "The appointment's AI clinical agent."
@@ -214,6 +218,26 @@
     "workspace.btn.aesthetic": {
       "label": "Aesthetic session",
       "description": "Opens the aesthetic session linked to this appointment and its doctor."
+    },
+    "workspace.section.lab-order-quick": {
+      "label": "Suggested lab order",
+      "description": "When saving a session with lab jobs: the jobs with their teeth, the doctor and the lab (preselected when only one is possible). \"Create order\" creates it in one click; \"Edit details\" opens the full form; \"Not now\" discards it."
+    },
+    "workspace.field.lab-order-laboratory": {
+      "label": "Lab",
+      "description": "Which lab it goes to. Optional: it can be chosen when sending it."
+    },
+    "workspace.btn.lab-order-create": {
+      "label": "Create order",
+      "description": "Creates the lab order as suggested."
+    },
+    "workspace.btn.lab-order-edit": {
+      "label": "Edit details",
+      "description": "Opens the full form with the suggestion, to change teeth, notes, urgency or attachments."
+    },
+    "workspace.btn.lab-order-skip": {
+      "label": "Not now",
+      "description": "Does not create the order. It can be created later with the Lab order button."
     }
   }
 }

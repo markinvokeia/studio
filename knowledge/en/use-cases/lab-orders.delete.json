@@ -1,0 +1,44 @@
+{
+  "id": "lab-orders.delete",
+  "title": "Delete a lab order",
+  "summary": "Remove an order entered by mistake from the list and the board.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete lab order",
+    "remove order",
+    "order entered by mistake"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "By patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "If the job was called off, better move it to a final stage such as Cancelled: the history is kept."
+    },
+    {
+      "id": "confirm",
+      "title": "Confirm"
+    }
+  ]
+}

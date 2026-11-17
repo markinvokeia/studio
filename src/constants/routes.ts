@@ -36,6 +36,8 @@ export const API_ROUTES = {
      * escritor de esa columna: `/catalogoservicios/upsert` no la toca.
      */
     SERVICE_BOOKABLE_ONLINE: '/services/bookable-online',
+    /** Único escritor de service_catalog.is_lab (trabajo de laboratorio, script 167). */
+    SERVICE_LAB_WORK: '/services/lab-work',
     SERVICE_IMAGE: '/services/image',
     SERVICE_IMAGE_UPLOAD: '/services/image/upload',
     SERVICE_IMAGE_DELETE: '/services/image/delete',
@@ -266,6 +268,33 @@ export const API_ROUTES = {
         SEARCH: '/calendar_color_source/search',
         UPSERT: '/calendar_color_source/upsert',
         DELETE: '/calendar_color_source/delete',
+    },
+    /**
+     * Configuración → Etapas de laboratorio. LIST trae todas (activas primero, con
+     * orders_count / in_use); SAVE guarda la configuración completa en una
+     * transacción (lab_stages_save, script 147).
+     */
+    /** Órdenes de laboratorio (flujo n8n "Lab Orders", script 148). */
+    LAB_ORDERS: {
+        SEARCH: '/lab-orders/search',
+        BOARD: '/lab-orders/board',
+        DETAIL: '/lab-orders/detail',
+        SAVE: '/lab-orders/save',
+        CHANGE_STAGE: '/lab-orders/change-stage',
+        DELETE: '/lab-orders/delete',
+        /** GET ?search=&category_id=&limit= — solo proveedores en una categoría de laboratorio. */
+        LABORATORIES: '/lab-orders/laboratories',
+        LAB_CATEGORIES: '/lab-orders/lab-categories',
+        /** Adjuntos (script 173): POST multipart order_id + archivos → [{ attachments, order_id }]. */
+        ATTACHMENTS_UPLOAD: '/lab-orders/attachments/upload',
+        /** POST { order_id, attachment_id } → [{ attachments, order_id }]. */
+        ATTACHMENTS_DELETE: '/lab-orders/attachments/delete',
+        /** GET ?order_id=&id= → el archivo (binario). */
+        ATTACHMENT: '/lab-orders/attachment',
+    },
+    LAB_STAGES: {
+        LIST: '/lab-stages',
+        SAVE: '/lab-stages/save',
     },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',

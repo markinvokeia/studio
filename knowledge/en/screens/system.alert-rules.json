@@ -86,6 +86,10 @@
     "system.alert-rules.section.conditions": {
       "label": "Conditions",
       "description": "Which rows of the source create the alert. For dates: column, operator “=” and value {{TODAY}}; “Days before the event” shifts that date."
+    },
+    "system.alert-rules.badge.managed": {
+      "label": "Managed rule",
+      "description": "Another module owns this rule (for example, Lab stages) and it is configured there. It cannot be edited, duplicated, tested or deleted here."
     }
   }
 }

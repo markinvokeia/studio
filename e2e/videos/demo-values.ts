@@ -22,6 +22,13 @@ const freeSlot = () => {
   return { date: d.toISOString().slice(0, 10), time: `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` };
 };
 
+/** Fecha local (AAAA-MM-DD) dentro de `days` días. */
+const daysAhead = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 /** Proveedor existente para las compras (las altas de compras lo necesitan antes de crear otro). */
 const DEMO_PROVIDER = 'DentaTech';
 
@@ -361,6 +368,20 @@ const BASE_VALUES: Record<string, Record<string, unknown>> = {
   'sales.quotes.invoice': { demo: true },
   'sales.quotes.items': { demo: true },
   'sales.quotes.overview': { demo: true },
+  // Órdenes de laboratorio: sobre los datos de database/demo/lab-orders-demo.sql (correrlo antes de grabar).
+  'lab-orders.overview': { demo: true },
+  'lab-orders.create': { patient: 'Carlos Andrada', service: 'Corona de zirconio', teeth: '11', item_notes: 'Color A2, alta translucidez', doctor: 'Lucía Fernández', laboratory: 'Cerámica Dental Prado', notes: 'Impresión digital enviada por correo al laboratorio.', demo: true },
+  'lab-orders.send': { query: 'Sebastián De León', laboratory: 'Cerámica Dental Prado', due_date: daysAhead(7), demo: true },
+  // Una orden recién creada y sin laboratorio: al pasarla a una etapa intermedia pide laboratorio y fecha (sin eso se mueve en el acto).
+  'lab-orders.change-stage': { query: 'Sebastián De León', laboratory: 'Cerámica Dental Prado', due_date: daysAhead(7), demo: true },
+  'lab-orders.board': { demo: true },
+  'lab-orders.overdue': { demo: true },
+  'lab-orders.edit': { query: 'Rosario Díaz', notes: 'El laboratorio confirmó la entrega para mañana.', demo: true },
+  'lab-orders.delete': { query: 'Carlos Andrada', demo: true },
+  'config.lab-stages.overview': { demo: true },
+  'config.lab-stages.add': { name: 'Control de calidad', kind: 'Intermedia', overdue_days: 2, demo: true },
+  'config.lab-stages.alerts': { demo: true },
+  'patients.lab-orders': { patient: 'Claudia Etchegaray', demo: true },
   'sales.quotes.send': { demo: true },
 };
 
@@ -446,6 +467,9 @@ const LABELS_EN: Record<string, Record<string, unknown>> = {
   'appointments.default-view': { view: 'Week', group: 'Consulting rooms' },
   'alerts.filter': { status: 'Pending', priority: 'Critical' },
   'cashier.misc-category': { type: 'Expense' },
+  'lab-orders.create': { item_notes: 'Shade A2, high translucency', notes: 'Digital impression emailed to the lab.' },
+  'lab-orders.edit': { notes: 'The lab confirmed delivery for tomorrow.' },
+  'config.lab-stages.add': { name: 'Quality check', kind: 'Intermediate' },
   'permissions.create': { action: 'Read' },
 };
 

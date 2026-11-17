@@ -1,0 +1,104 @@
+{
+  "id": "config.lab-stages",
+  "status": "draft",
+  "summary": "Etapas del circuito de órdenes de laboratorio.",
+  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
+  "tips": [
+    "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
+    "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
+    "Los nombres de las etapas los escribe la clínica y no se traducen.",
+    "Los cambios de la lista se aplican al pulsar Guardar. Los avisos de una etapa ya guardada se guardan desde su ventana, salvo que la página tenga otros cambios pendientes.",
+    "Cada etapa puede avisar cuando una orden llega, cuando pasa más días de los previstos y cuando se pasa la fecha de entrega. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
+  ],
+  "useCases": [
+    "config.lab-stages.overview",
+    "config.lab-stages.add",
+    "config.lab-stages.alerts"
+  ],
+  "elements": {
+    "config.lab-stages.section.active": {
+      "label": "Etapas activas",
+      "description": "Una fila por etapa, en el orden del circuito: se arrastran por el ícono de la izquierda. Cada una tiene color, nombre, tipo (inicial, intermedia o final) y los días a partir de los cuales una orden en esa etapa queda atrasada (vacío = sin umbral; las finales no llevan)."
+    },
+    "config.lab-stages.section.inactive": {
+      "label": "Etapas desactivadas",
+      "description": "Etapas que ya no se usan y no aparecen en el tablero. Se pueden reactivar."
+    },
+    "config.lab-stages.section.issues": {
+      "label": "Revisar la configuración",
+      "description": "Lo que falta para poder guardar: una sola etapa inicial, al menos una final, nombres completos y sin repetir."
+    },
+    "config.lab-stages.btn.add": {
+      "label": "Agregar etapa",
+      "description": "Agrega una etapa intermedia antes de las finales."
+    },
+    "config.lab-stages.btn.discard": {
+      "label": "Descartar cambios",
+      "description": "Vuelve a la configuración guardada y descarta lo que no se guardó."
+    },
+    "config.lab-stages.btn.save": {
+      "label": "Guardar",
+      "description": "Guarda toda la configuración junta. Si se desactivó una etapa con órdenes, en ese momento las órdenes pasan a la etapa elegida."
+    },
+    "config.lab-stages.btn.alerts": {
+      "label": "Alertas",
+      "description": "Abre las alertas de la etapa. El número indica cuántas tiene configuradas."
+    },
+    "config.lab-stages.btn.alerts-first": {
+      "label": "Alertas (primera etapa)",
+      "description": "La campana de la primera etapa que no es final. Igual que las demás: abre los avisos de esa etapa."
+    },
+    "config.lab-stages.section.alert-enter": {
+      "label": "Cuando una orden llega a esta etapa",
+      "description": "Avisa cada vez que una orden pasa a esta etapa. La frase dice a quién y por dónde; con los botones se elige el doctor de la orden o quien la creó."
+    },
+    "config.lab-stages.section.alert-dwell": {
+      "label": "Si una orden pasa más días de los previstos",
+      "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso."
+    },
+    "config.lab-stages.section.alert-due": {
+      "label": "Si se pasa la fecha de entrega",
+      "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa; una vez o repetido. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema)."
+    },
+    "config.lab-stages.section.new-stage": {
+      "label": "Etapa nueva",
+      "description": "La etapa recién agregada, todavía sin guardar. Se arrastra por el ícono de la izquierda hasta su lugar."
+    },
+    "config.lab-stages.field.new-name": {
+      "label": "Nombre",
+      "description": "Nombre de la etapa; lo escribe la clínica y no se traduce."
+    },
+    "config.lab-stages.field.new-kind": {
+      "label": "Tipo",
+      "description": "Inicial (una sola: ahí entra toda orden nueva), intermedia o final (la orden termina y deja de estar pendiente)."
+    },
+    "config.lab-stages.field.new-overdue-days": {
+      "label": "Días de atraso",
+      "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan."
+    },
+    "config.lab-stages.btn.apply-alerts": {
+      "label": "Guardar / Aplicar",
+      "description": "Si la etapa ya está guardada y la página no tiene otros cambios, «Guardar» guarda los avisos en el momento. Si no, «Aplicar» los deja en la etapa y se guardan con Guardar de la página."
+    },
+    "config.lab-stages.toggle.alert-doctor": {
+      "label": "Doctor de la orden",
+      "description": "Prende o apaga el aviso al doctor de la orden."
+    },
+    "config.lab-stages.toggle.alert-creator": {
+      "label": "Quien creó la orden",
+      "description": "Prende o apaga el aviso a quien registró la orden."
+    },
+    "config.lab-stages.btn.customize-enter": {
+      "label": "Personalizar",
+      "description": "Muestra los roles, usuarios y canales (sistema, email, WhatsApp con plantilla) del aviso."
+    },
+    "config.lab-stages.btn.customize-dwell": {
+      "label": "Personalizar",
+      "description": "Muestra la repetición, los roles, usuarios y canales del aviso."
+    },
+    "config.lab-stages.btn.customize-due": {
+      "label": "Personalizar",
+      "description": "Muestra la repetición, los roles, usuarios y canales del aviso."
+    }
+  }
+}

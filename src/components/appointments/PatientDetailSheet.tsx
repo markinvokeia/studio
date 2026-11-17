@@ -16,10 +16,11 @@ import { PatientQuickActions } from '@/components/patients/patient-quick-actions
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { usePermissions } from '@/hooks/usePermissions';
-import { AESTHETIC_RECORD_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, PERIO_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, LAB_ORDERS_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, PERIO_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
+import { PatientLabOrdersTab } from '@/components/lab-orders/patient-lab-orders-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
@@ -63,6 +64,8 @@ interface PatientDetailSheetProps {
   userEmail?: string;
   userPhone?: string;
   mode?: 'default' | 'doctor';
+  /** Doctor que se preselecciona al crear una orden de laboratorio (Mi consultorio). */
+  defaultDoctor?: { id: string; name: string } | null;
   clinicalHistoryDefaultView?: 'anamnesis' | 'timeline' | 'documents';
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
   /** View-only mode: hides every add/edit/delete affordance across the clinical tabs. */
@@ -99,6 +102,7 @@ export function PatientDetailSheet({
   userEmail,
   userPhone,
   mode = 'default',
+  defaultDoctor = null,
   clinicalHistoryDefaultView,
   initialTab = 'clinical',
   readOnly = false,
@@ -527,6 +531,9 @@ export function PatientDetailSheet({
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)} createPerioTrigger={createPerioTrigger} onPerioTriggerConsumed={() => setCreatePerioTrigger(0)} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
+          labOrdersContent={hasPermission(LAB_ORDERS_PERMISSIONS.VIEW)
+            ? <PatientLabOrdersTab patientId={userId} patientName={userName} readOnly={isReadOnly} defaultDoctor={defaultDoctor} />
+            : undefined}
           medicalInstructionsContent={<PatientIndicationsTab userId={userId} userName={userName} createTrigger={createMedicalInstructionTrigger} createPrescriptionTrigger={createPrescriptionTrigger} readOnly={isReadOnly} lockDoctor={isDoctorMode} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}
           ledgerContent={
