@@ -186,6 +186,8 @@ const DialogContent = React.forwardRef<
           )}
           onPointerDownOutside={(event) => {
             event.preventDefault()
+            // La tarjeta de los comandos de voz flota encima: tocarla no es "cerrar el diálogo".
+            if ((event.target as HTMLElement | null)?.closest?.('[data-voice-card]')) return
             if (confirmOnClose) {
               attemptClose()
             }

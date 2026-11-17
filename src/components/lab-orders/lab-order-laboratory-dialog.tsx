@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, format, startOfToday } from 'date-fns';
+import { addDays, format, parseISO, startOfToday, subDays } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -10,7 +10,7 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-import { LabStageBadge } from '@/components/lab-orders/lab-order-shared';
+import { LabStageBadge, utcIsoToLocalDateKey } from '@/components/lab-orders/lab-order-shared';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
 
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -44,7 +44,7 @@ export function labOrderMoveNeeds(
 }
 
 export interface LabOrderMoveRequest {
-  order: Pick<LabOrder, 'id' | 'patient_name' | 'lab_category_ids' | 'laboratory_name' | 'due_date'>;
+  order: Pick<LabOrder, 'id' | 'patient_name' | 'lab_category_ids' | 'laboratory_name' | 'due_date' | 'stage_entered_at'>;
   /** `overdue_days` de la etapa destino: propone la fecha de entrega (hoy + ese plazo). */
   stage: Pick<LabStage, 'id' | 'name' | 'color'> & { overdue_days?: number | null };
   needs: LabOrderMoveNeeds;
@@ -55,10 +55,14 @@ export interface LabOrderMoveDetails {
   laboratory: Laboratory | null;
   /** 'YYYY-MM-DD' (fecha local). */
   dueDate: string | null;
+  /** 'YYYY-MM-DD': el día en que se envió, si fue antes de hoy (script 176). null = ahora. */
+  effectiveDate: string | null;
 }
 
 const todayKey = () => format(startOfToday(), 'yyyy-MM-dd');
-const inDaysKey = (days: number) => format(addDays(startOfToday(), days), 'yyyy-MM-dd');
+const yesterdayKey = () => format(subDays(startOfToday(), 1), 'yyyy-MM-dd');
+/** `days` días después del día `from` ('YYYY-MM-DD'). */
+const addDaysKey = (from: string, days: number) => format(addDays(parseISO(from), days), 'yyyy-MM-dd');
 
 /** Atajos de fecha de entrega: 3 días, 1 y 2 semanas, más el plazo de la etapa si es otro. */
 const DUE_SHORTCUTS = [3, 7, 14];
@@ -71,21 +75,30 @@ const DUE_SHORTCUTS = [3, 7, 14];
  */
 export function useLabOrderMoveState(request: LabOrderMoveRequest | null) {
   const [laboratory, setLaboratoryState] = React.useState<Laboratory | null>(null);
-  const [dueDate, setDueDate] = React.useState('');
+  const [dueDate, setDueDateState] = React.useState('');
+  /** Día en que se envió ('YYYY-MM-DD'): hoy, salvo que se esté registrando un envío anterior. */
+  const [sentOn, setSentOnState] = React.useState(todayKey);
   /** La persona ya eligió: la sugerencia que llegue después no la pisa. */
   const touchedLabRef = React.useRef(false);
+  /** La persona eligió la fecha de entrega: cambiar el día del envío ya no la recalcula. */
+  const touchedDueRef = React.useRef(false);
+
+  /** La fecha que tenía la orden si no es anterior al envío; si no, el envío + el plazo de la etapa. */
+  const proposeDue = React.useCallback((base: string) => {
+    const saved = request?.order.due_date ?? '';
+    const stageDays = request?.stage.overdue_days;
+    return saved && saved >= base ? saved
+      : request?.needs.dueDate && stageDays && stageDays > 0 ? addDaysKey(base, stageDays)
+        : '';
+  }, [request]);
 
   React.useEffect(() => {
     touchedLabRef.current = false;
+    touchedDueRef.current = false;
     setLaboratoryState(null);
-    const saved = request?.order.due_date ?? '';
-    const stageDays = request?.stage.overdue_days;
-    setDueDate(
-      saved && saved >= todayKey() ? saved
-        : request?.needs.dueDate && stageDays && stageDays > 0 ? inDaysKey(stageDays)
-          : '',
-    );
-  }, [request]);
+    setSentOnState(todayKey());
+    setDueDateState(proposeDue(todayKey()));
+  }, [proposeDue]);
 
   // Un solo laboratorio posible: se propone. Con más, la persona elige.
   React.useEffect(() => {
@@ -105,15 +118,37 @@ export function useLabOrderMoveState(request: LabOrderMoveRequest | null) {
     touchedLabRef.current = true;
     setLaboratoryState(lab);
   };
+  const setDueDate = (value: string) => {
+    touchedDueRef.current = true;
+    setDueDateState(value);
+  };
+  const setSentOn = (value: string) => {
+    setSentOnState(value);
+    if (!touchedDueRef.current && value) setDueDateState(proposeDue(value));
+  };
 
   const needs = request?.needs;
-  const pastDue = !!dueDate && dueDate < todayKey();
+  const today = todayKey();
+  /** Primer día posible del envío: cuando la orden entró a su etapa actual. */
+  const minSentOn = request?.order.stage_entered_at ? utcIsoToLocalDateKey(request.order.stage_entered_at) : '';
+  const sentOnInvalid = !!needs?.dueDate && (!sentOn || sentOn > today || (!!minSentOn && sentOn < minSentOn));
+  /** La entrega no puede ser anterior al envío. */
+  const pastDue = !!dueDate && !!sentOn && dueDate < sentOn;
+  /** Envío retroactivo con una entrega que ya pasó: se puede, pero la orden queda atrasada. */
+  const dueAlreadyPast = !!dueDate && !pastDue && dueDate < today;
   const ready = !!needs
     && (!needs.laboratory || !!laboratory)
-    && (!needs.dueDate || (!!dueDate && !pastDue));
+    && (!needs.dueDate || (!!dueDate && !pastDue && !sentOnInvalid));
 
-  const details: LabOrderMoveDetails = { laboratory, dueDate: needs?.dueDate ? dueDate : null };
-  return { laboratory, setLaboratory, dueDate, setDueDate, pastDue, ready, details };
+  const details: LabOrderMoveDetails = {
+    laboratory,
+    dueDate: needs?.dueDate ? dueDate : null,
+    effectiveDate: needs?.dueDate && sentOn && sentOn < today ? sentOn : null,
+  };
+  return {
+    laboratory, setLaboratory, dueDate, setDueDate, sentOn, setSentOn, minSentOn, sentOnInvalid,
+    pastDue, dueAlreadyPast, ready, details,
+  };
 }
 
 type MoveState = ReturnType<typeof useLabOrderMoveState>;
@@ -152,12 +187,14 @@ export function LabOrderMoveFields({ request, state, disabled = false }: {
         </div>
       )}
 
+      {needs.dueDate && <SentOnField state={state} disabled={disabled} />}
+
       {needs.dueDate && (
         <div className="space-y-1.5" data-help-id="lab-orders.field.send-due-date">
           <Label>{t('dueDate')}</Label>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('dueShortcuts')} data-help-id="lab-orders.section.due-shortcuts">
             {shortcuts.map((days) => {
-              const key = inDaysKey(days);
+              const key = addDaysKey(state.sentOn || todayKey(), days);
               const on = state.dueDate === key;
               return (
                 <button
@@ -187,6 +224,8 @@ export function LabOrderMoveFields({ request, state, disabled = false }: {
           />
           {state.pastDue ? (
             <p className="text-xs font-medium text-destructive">{t('dueDatePast')}</p>
+          ) : state.dueAlreadyPast ? (
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{t('dueDateAlreadyPast')}</p>
           ) : (
             <p className="text-xs text-muted-foreground">
               {previousDuePassed && request.order.due_date
@@ -195,6 +234,61 @@ export function LabOrderMoveFields({ request, state, disabled = false }: {
             </p>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "¿Cuándo se envió?": hoy por defecto; ayer u otro día si se está registrando tarde un envío
+ * (script 176). Los plazos (días en la etapa, entrega propuesta, atraso) cuentan desde ese día.
+ */
+function SentOnField({ state, disabled }: { state: MoveState; disabled: boolean }) {
+  const t = useTranslations('LabOrdersPage.laboratoryDialog');
+  const today = todayKey();
+  const yesterday = yesterdayKey();
+  const canYesterday = !state.minSentOn || yesterday >= state.minSentOn;
+  const [otherOpen, setOtherOpen] = React.useState(false);
+  const isOther = otherOpen || (state.sentOn !== today && state.sentOn !== yesterday);
+  const chip = (on: boolean) => cn(
+    'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60',
+    on ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted',
+  );
+
+  return (
+    <div className="space-y-1.5" data-help-id="lab-orders.field.sent-on">
+      <Label>{t('sentOn')}</Label>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('sentOn')}>
+        <button type="button" className={chip(!isOther && state.sentOn === today)} aria-pressed={!isOther && state.sentOn === today}
+          disabled={disabled} onClick={() => { setOtherOpen(false); state.setSentOn(today); }}>
+          {t('sentToday')}
+        </button>
+        {canYesterday && (
+          <button type="button" className={chip(!isOther && state.sentOn === yesterday)} aria-pressed={!isOther && state.sentOn === yesterday}
+            disabled={disabled} onClick={() => { setOtherOpen(false); state.setSentOn(yesterday); }}>
+            {t('sentYesterday')}
+          </button>
+        )}
+        <button type="button" className={chip(isOther)} aria-pressed={isOther}
+          disabled={disabled} onClick={() => setOtherOpen(true)}>
+          {t('sentOther')}
+        </button>
+      </div>
+      {isOther && (
+        <DatePickerInput
+          value={state.sentOn}
+          onChange={state.setSentOn}
+          disabled={disabled}
+          // Sin disabledDays (se tragaría la fecha escrita): la validación es sentOnInvalid.
+          aria-invalid={state.sentOnInvalid}
+        />
+      )}
+      {state.sentOnInvalid ? (
+        <p className="text-xs font-medium text-destructive">
+          {state.minSentOn ? t('sentOnInvalid', { date: formatDisplayDate(state.minSentOn) }) : t('sentOnFuture')}
+        </p>
+      ) : state.sentOn !== today && (
+        <p className="text-xs text-muted-foreground">{t('sentOnHint')}</p>
       )}
     </div>
   );

@@ -20,6 +20,13 @@
       "label": "New order",
       "description": "Opens the new order form. The order starts in the initial stage, without a delivery date: the date is asked for when it is sent to the lab."
     },
+    "lab-orders.btn.voice": {
+      "label": "Voice",
+      "description": "Voice commands for this screen: click the microphone and speak, or hold Ctrl+Space. Examples: “order 45 was sent yesterday”, “order 45 arrived”, “create an order for Ann Smith, crown on 36”, “where is order 45?”, “order 45 is due on Friday”, “show overdue orders”. Anything that changes data is always confirmed by saying “yes”. Chrome and Edge only."
+    },
+    "lab-orders.btn.refresh": {
+      "description": "Reloads the list."
+    },
     "lab-orders.section.filters": {
       "label": "Search and filters",
       "description": "Search by patient, job, lab or number; the quick buttons Overdue only, Urgent and Due today (with how many of each) and the Filters button with stage, lab, doctor, patient, created dates and sort order."
@@ -104,9 +111,13 @@
       "label": "Send to the lab",
       "description": "Appears in the detail, below the progress, when sending the order (moving it from the initial stage to a non-final one): the delivery date, required and already suggested, and the lab if it has none yet (preselected when only one is possible). It also appears when moving an order without a lab to a non-final stage. Moving to a final stage asks for nothing. On the board and in the patient record it is a window."
     },
+    "lab-orders.field.sent-on": {
+      "label": "When was it sent?",
+      "description": "When sending the order: today by default; Yesterday or Another day if it is recorded late. The order counts as sent on that day: days in stage, the suggested delivery and overdue status count from then, and the history also shows when it was recorded. It can't be in the future or before the order entered its current stage."
+    },
     "lab-orders.field.send-due-date": {
       "label": "Delivery date",
-      "description": "The date the lab promised. It is required and can't be earlier than today; if the order already had one that hasn't passed, it comes filled in. From the next day, if the order hasn't reached a final stage, it becomes overdue."
+      "description": "The date the lab promised. It is required and can't be earlier than the sending day; if the order already had one that hasn't passed, it comes filled in. If it was sent days ago the date may already have passed: the order becomes overdue. From the day after delivery, if the order hasn't reached a final stage, it becomes overdue."
     },
     "lab-orders.section.detail-laboratory": {
       "label": "Laboratory",
@@ -231,9 +242,6 @@
     },
     "lab-orders.btn.submit": {
       "description": "On the last step (Review): creates the order (or creates and sends it, if “Send it now” was chosen) or saves the changes."
-    },
-    "lab-orders.btn.refresh": {
-      "description": "Reloads the list."
     },
     "lab-orders.btn.send": {
       "label": "Send to the lab",

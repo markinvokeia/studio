@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, Building2, CalendarClock, CalendarX2, Check, Paperclip, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -178,6 +178,11 @@ export function LabStageProgress({ stages, currentStageId, className }: { stages
 /** Fecha ISO UTC del backend (con o sin Z) en milisegundos, como la lee `formatUtcDateTime`. */
 function utcMs(iso: string): number {
   return parseISO(iso.endsWith('Z') ? iso : `${iso}Z`).getTime();
+}
+
+/** Día local ('YYYY-MM-DD') de un momento ISO UTC del backend: p. ej. el día en que entró a la etapa. */
+export function utcIsoToLocalDateKey(iso: string): string {
+  return format(new Date(utcMs(iso)), 'yyyy-MM-dd');
 }
 
 /** "4 días" / "5 horas": tiempo entre dos momentos (ISO UTC), sin el "Estuvo". */

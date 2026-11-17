@@ -2,33 +2,7 @@
 
 import * as React from 'react';
 
-// Web Speech API (no está en lib.dom de TypeScript).
-interface ISpeechRecognitionAlternative { readonly transcript: string }
-interface ISpeechRecognitionResult { readonly isFinal: boolean; readonly 0: ISpeechRecognitionAlternative }
-interface ISpeechRecognitionEvent extends Event {
-  readonly resultIndex: number;
-  readonly results: { readonly length: number; readonly [index: number]: ISpeechRecognitionResult };
-}
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((ev: ISpeechRecognitionEvent) => void) | null;
-  onerror: ((ev: Event) => void) | null;
-  onend: ((ev: Event) => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-type SpeechRecognitionCtor = new () => ISpeechRecognition;
-
-const SPEECH_LANG: Record<string, string> = { es: 'es-UY', 'es-ES': 'es-ES', en: 'en-US' };
-
-function getCtor(): SpeechRecognitionCtor | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
-}
+import { getSpeechRecognitionCtor as getCtor, speechLang, type ISpeechRecognition } from '@/lib/voice/speech-recognition';
 
 /**
  * Dictado para el chat del asistente: transcribe en vivo en el navegador y,
@@ -51,7 +25,7 @@ export function useSpeechDictation(locale: string, onFinal: (text: string) => vo
     const Ctor = getCtor();
     if (!Ctor || recognitionRef.current) return;
     const recognition = new Ctor();
-    recognition.lang = SPEECH_LANG[locale] ?? locale;
+    recognition.lang = speechLang(locale);
     recognition.continuous = true;
     recognition.interimResults = true;
     finalRef.current = '';

@@ -124,10 +124,16 @@ export function stopAssistantSpeech() {
  * Lee el texto en voz alta (cortando lo que se estuviera leyendo). Resuelve al
  * terminar o al cortarse; resuelve `false` si no se leyó (silenciado, mascota escondida o sin soporte).
  */
-export function speakAssistant(id: string, text: string, locale: string): Promise<boolean> {
+export function speakAssistant(
+  id: string,
+  text: string,
+  locale: string,
+  /** `evenIfHidden`: habla aunque la mascota esté escondida (comandos de voz). El silencio se respeta igual. */
+  options: { evenIfHidden?: boolean } = {},
+): Promise<boolean> {
   const { muted, suppressed } = useAssistantVoice.getState();
   const speech = toSpeechText(text);
-  if (muted || suppressed || !speech || !isSpeechSupported()) return Promise.resolve(false);
+  if (muted || (suppressed && !options.evenIfHidden) || !speech || !isSpeechSupported()) return Promise.resolve(false);
   stopAssistantSpeech();
   const mine = ++session;
   const synth = window.speechSynthesis;

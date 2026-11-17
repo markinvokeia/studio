@@ -103,13 +103,24 @@ export interface LabOrderDraft {
   laboratory?: { id: string; name: string } | null;
   items?: Array<{ service_id: string; service_name: string; quantity: number; teeth: number[]; lab_category_id?: string | null }>;
   notes?: string;
+  /** Paciente propuesto (por voz): a diferencia de la prop `patient`, se puede cambiar. */
+  patient?: { id: string; name: string } | null;
+  work_description?: string;
+  /** Piezas de la orden cuando no hay servicios. */
+  teeth?: number[];
+  is_urgent?: boolean;
+  /** "Crear y enviar" ya elegido, con su fecha de entrega. */
+  send?: boolean;
+  send_due_date?: string;
+  /** Abrir directo en Revisar (todo lo necesario ya viene cargado). */
+  startAtReview?: boolean;
 }
 
 function toFormValues(order?: LabOrder | null, patient?: { id: string; name: string } | null, draft?: LabOrderDraft | null): LabOrderFormValues {
   const fromDraft = !order ? draft : null;
   return {
-    patient_id: order?.patient_id ?? patient?.id ?? '',
-    patient_name: order?.patient_name ?? patient?.name ?? '',
+    patient_id: order?.patient_id ?? patient?.id ?? fromDraft?.patient?.id ?? '',
+    patient_name: order?.patient_name ?? patient?.name ?? fromDraft?.patient?.name ?? '',
     doctor_id: order?.doctor_id ?? fromDraft?.doctor?.id ?? '',
     doctor_name: order?.doctor_name ?? fromDraft?.doctor?.name ?? '',
     laboratory_id: order?.laboratory_id ?? fromDraft?.laboratory?.id ?? '',
@@ -131,13 +142,13 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
         notes: '',
         lab_category_id: item.lab_category_id ?? null,
       })),
-    work_description: order?.work_description ?? '',
-    teeth: order?.teeth.join(', ') ?? '',
+    work_description: order?.work_description ?? fromDraft?.work_description ?? '',
+    teeth: order?.teeth.join(', ') ?? fromDraft?.teeth?.join(', ') ?? '',
     due_date: order?.due_date ?? '',
     notes: order?.notes ?? fromDraft?.notes ?? '',
-    is_urgent: order?.is_urgent ?? false,
-    send: false,
-    send_due_date: '',
+    is_urgent: order?.is_urgent ?? fromDraft?.is_urgent ?? false,
+    send: fromDraft?.send ?? false,
+    send_due_date: fromDraft?.send_due_date ?? '',
   };
 }
 
@@ -162,8 +173,9 @@ function stepOfField(field: string): WizardStep {
 }
 
 /** Con qué paso arranca: lo que ya viene cargado (paciente, servicios de la sesión) se da por hecho. */
-function initialProgress(values: LabOrderFormValues, isEdit: boolean): { step: WizardStep; visited: WizardStep[] } {
-  if (isEdit) return { step: 'review', visited: ['patient', 'work', 'laboratory'] };
+function initialProgress(values: LabOrderFormValues, isEdit: boolean, atReview = false): { step: WizardStep; visited: WizardStep[] } {
+  const workDone = values.items.length > 0 || values.work_description.trim().length > 0;
+  if (isEdit || (atReview && values.patient_id && workDone)) return { step: 'review', visited: ['patient', 'work', 'laboratory'] };
   if (!values.patient_id) return { step: 'patient', visited: [] };
   if (values.items.length > 0) return { step: 'laboratory', visited: ['patient', 'work'] };
   return { step: 'work', visited: ['patient'] };
@@ -183,6 +195,10 @@ export interface LabOrderFormDialogProps {
   /** Texto bajo el título del alta (por ejemplo, de qué sesión viene). */
   description?: string;
   onSaved: (order: LabOrder) => void | Promise<void>;
+  /** Cada cambio de este número pulsa "Crear" (lo usa la confirmación por voz). */
+  submitSignal?: number;
+  /** El guardado pedido no salió: el error del servidor, o null si faltan datos del formulario. */
+  onSubmitFailed?: (message: string | null) => void;
 }
 
 /**
@@ -190,7 +206,7 @@ export interface LabOrderFormDialogProps {
  * Laboratorio → Revisar, con el resumen al costado. Al crearla se puede enviar en el mismo
  * paso (fecha de entrega incluida). La etapa de una orden existente se mueve desde el detalle.
  */
-export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, lockDoctor = false, description, onSaved }: LabOrderFormDialogProps) {
+export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, lockDoctor = false, description, onSaved, submitSignal, onSubmitFailed }: LabOrderFormDialogProps) {
   const t = useTranslations('LabOrdersPage');
   const errorText = useLabOrderErrorText();
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -238,7 +254,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     if (!open) return;
     const initial = toFormValues(order, patient, draft);
     form.reset(initial);
-    const progress = initialProgress(initial, Boolean(order));
+    const progress = initialProgress(initial, Boolean(order), Boolean(draft?.startAtReview));
     setStep(progress.step);
     setVisited(new Set(progress.visited));
     setSubmissionError(null);
@@ -371,7 +387,9 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
         onOpenChange(false);
       },
       onError: (error) => {
-        setSubmissionError(isTimeoutError(error) ? t('form.timeoutMaybeSaved') : errorText(error));
+        const message = isTimeoutError(error) ? t('form.timeoutMaybeSaved') : errorText(error);
+        setSubmissionError(message);
+        onSubmitFailed?.(message);
       },
       showErrorToast: false,
     },
@@ -379,12 +397,24 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
 
   // Un error de un paso anterior (no debería pasar, pero los datos pueden cambiar) lleva a ese paso.
   const onInvalid = (errors: Record<string, unknown>) => {
+    onSubmitFailed?.(null);
     const first = Object.keys(errors)[0];
     if (first) {
       const target = stepOfField(first);
       if (target !== 'review') setStep(target);
     }
   };
+
+  // "Sí" por voz: el mismo envío que el botón Crear (con su validación).
+  const lastSignalRef = React.useRef(submitSignal);
+  React.useEffect(() => {
+    if (submitSignal === lastSignalRef.current) return;
+    lastSignalRef.current = submitSignal;
+    if (!open || save.isPending) return;
+    setStep('review');
+    void form.handleSubmit(save.run, onInvalid)();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitSignal]);
 
   const submitLabel = isEdit ? t('form.saveChanges') : sending ? t('wizard.createAndSend') : t('form.create');
 

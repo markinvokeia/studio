@@ -154,6 +154,8 @@ function toHistory(raw: any): LabOrderHistoryEntry {
     changed_by: raw.changed_by ?? null,
     changed_by_name: raw.changed_by_name ?? null,
     changed_at: toUtcIso(raw.changed_at),
+    // Sin el script 176 no llega: pasó cuando se registró.
+    effective_at: toUtcIso(raw.effective_at ?? raw.changed_at),
     note: raw.note ?? null,
   };
 }
@@ -243,19 +245,21 @@ export async function saveLabOrder(payload: LabOrderSavePayload, options?: ApiRe
  * `send`: lo que se fija en el mismo cambio. `laboratoryId`: sin laboratorio, mover a una etapa
  * no final responde LABORATORY_REQUIRED (script 170). `dueDate` ('YYYY-MM-DD'): al enviar la
  * orden (salir de la etapa inicial hacia una no final) es obligatoria — DUE_DATE_REQUIRED, o
- * INVALID_DUE_DATE si es anterior a hoy (script 172).
+ * INVALID_DUE_DATE si es anterior al día del envío (script 172/176). `effectiveDate` ('YYYY-MM-DD'):
+ * el día en que pasó el movimiento si fue antes de hoy ("se envió ayer"); null = ahora (script 176).
  */
 export async function changeLabOrderStage(
   id: number,
   toStageId: number,
   expectedFromStageId: number | null,
   options?: ApiRequestOptions,
-  send?: { laboratoryId?: string | null; dueDate?: string | null },
+  send?: { laboratoryId?: string | null; dueDate?: string | null; effectiveDate?: string | null },
 ): Promise<LabOrder> {
   return firstOrder(await call(() => api.post(API_ROUTES.LAB_ORDERS.CHANGE_STAGE, {
     id, to_stage_id: toStageId, expected_from_stage_id: expectedFromStageId,
     ...(send?.laboratoryId ? { laboratory_id: send.laboratoryId } : {}),
     ...(send?.dueDate ? { due_date: send.dueDate } : {}),
+    ...(send?.effectiveDate ? { effective_date: send.effectiveDate } : {}),
   }, undefined, undefined, options)));
 }
 

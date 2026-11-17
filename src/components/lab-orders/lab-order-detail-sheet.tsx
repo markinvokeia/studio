@@ -28,6 +28,7 @@ import {
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
+import { useLabOrderChanged } from '@/lib/lab-orders-events';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { formatPhoneNumber } from '@/lib/phone-text';
@@ -192,6 +193,8 @@ function LabOrderDetailView({
 
   // Si otro usuario la mueve o la edita mientras está abierta, se ve sin cerrar el panel.
   useLabOrdersLive(() => { if (orderId != null) reload(); });
+  // Movida por un comando de voz mientras el detalle estaba abierto.
+  useLabOrderChanged((order) => { if (order.id === orderId) reload(); });
 
   // Enviarla al laboratorio (fecha de entrega) o moverla sin laboratorio: primero se completa
   // en línea, dentro del panel (con la fecha y el laboratorio ya propuestos).
@@ -202,10 +205,10 @@ function LabOrderDetailView({
   const [movingTo, setMovingTo] = React.useState<number | null>(null);
 
   const move = useAsyncAction(
-    ({ toStageId, laboratoryId, dueDate }: { toStageId: number; laboratoryId?: string; dueDate?: string | null }) => {
+    ({ toStageId, laboratoryId, dueDate, effectiveDate }: { toStageId: number; laboratoryId?: string; dueDate?: string | null; effectiveDate?: string | null }) => {
       moveTargetRef.current = toStageId;
       setMovingTo(toStageId);
-      return changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId, dueDate });
+      return changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId, dueDate, effectiveDate });
     },
     {
       onSuccess: (order) => {
@@ -308,7 +311,7 @@ function LabOrderDetailView({
                 request={labRequest}
                 isPending={move.isPending}
                 onCancel={() => setLabRequest(null)}
-                onConfirm={({ laboratory, dueDate }) => move.run({ toStageId: labRequest.stage.id, laboratoryId: laboratory?.id, dueDate })}
+                onConfirm={({ laboratory, dueDate, effectiveDate }) => move.run({ toStageId: labRequest.stage.id, laboratoryId: laboratory?.id, dueDate, effectiveDate })}
               />
             )}
             {canChangeStage && !labRequest && moveTargets.length > 0 && (

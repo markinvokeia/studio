@@ -12,6 +12,7 @@
  *   POST help/catalog/sync         publica el catálogo del frontend (HELP_CATALOG_SYNC)
  *   POST help/assistant/chat       RAG sobre el catálogo + OpenAI, respuesta validada
  *   POST help/assistant/feedback   👍/👎 de una respuesta
+ *   POST help/voice/command        comando de voz → OpenAI → JSON validado (no escribe)
  *
  * Tablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql.
  */
@@ -965,9 +966,170 @@ return [{ json: { status: row.id ? 200 : 404, body: { id: row.id ?? null } } }];
   ],
 );
 
+// ─── POST help/voice/command ─────────────────────────────────────────────────
+
+const VOICE_SYSTEM_PROMPT = `Interpretás comandos de voz del equipo de una clínica odontológica dentro de Invoke IA.
+Recibís una frase dictada (puede venir con errores del reconocimiento de voz) y devolvés SOLO un objeto JSON, sin texto alrededor ni bloques de código.
+
+INTENTS
+- "lab_order.move": mover una orden de laboratorio existente (se nombra su número) a otra etapa. Ej.: "la 45 ya la mandamos ayer", "la orden cuarenta y cinco volvió del laboratorio".
+- "lab_order.open": abrir / mostrar una orden existente por su número.
+- "lab_order.create": crear una orden de laboratorio nueva para un paciente.
+- "lab_order.update": cambiar algo de una orden existente (con número): la fecha de entrega (due_date), marcarla o desmarcarla urgente (urgent_change) o agregarle una nota (note_add). Ej.: "la 45 la entregan el lunes", "la 45 ya no es urgente", "anotale a la 45 color A2".
+- "lab_order.status": preguntar cómo está una orden existente (con número): etapa, entrega. Ej.: "¿en qué anda la 45?".
+- "lab_order.list": ver un grupo de órdenes en la pantalla. Ej.: "mostrame las atrasadas", "¿cuántas urgentes hay?", "las de Ana Pérez", "las de Dental Sur", "en el tablero", "sacá los filtros".
+- "unknown": cualquier otra cosa, o si no estás seguro.
+
+REGLAS
+1. Usá SOLO ids de ETAPAS y LABORATORIOS que estén en las listas. Si no coincide con ninguno, null. Nunca inventes ids.
+2. Fechas en formato YYYY-MM-DD calculadas desde FECHA DE HOY ("ayer", "el lunes" pasado, "el viernes" próximo, "en una semana").
+   - effective_date: cuándo PASÓ el movimiento ("se envió ayer"). Nunca futura. null si no se dijo.
+   - due_date: la entrega prometida por el laboratorio ("entrega el viernes"). null si no se dijo.
+3. move_kind: "send" (se envió/mandó al laboratorio), "received" (llegó/volvió a la clínica), "complete" (se terminó/entregó/colocó al paciente), "cancel" (se canceló/anuló), "next" (siguiente etapa) o null. Si se nombra una etapa, poné su id en stage_id.
+4. Para crear: patient = el nombre del paciente tal como se dijo (sin inventar apellidos); items = cada trabajo con service (nombre del trabajo como se dijo, ej. "corona de zirconio"), quantity (1 si no se dijo) y teeth (piezas en notación FDI: 11–48, 51–85; "la treinta y seis" = 36). teeth (afuera de items) = piezas generales si no se asocian a un trabajo. send = true solo si se pidió enviarla ya al laboratorio. is_urgent = true solo si se dijo urgente. notes = indicaciones extra (color, observaciones) o null.
+5. order_id = el número de orden dicho (los números pueden venir en palabras). Para crear, null.
+6. lab_order.update: urgent_change = true (marcar urgente), false (quitar urgente) o null; note_add = el texto de la nota tal como se dictó o null; due_date si cambia la entrega. Lo que no se pidió, en null.
+7. lab_order.list: filter = {"overdue":bool,"urgent":bool,"due_today":bool,"view":"list"|"board"|null,"clear":bool,"count":bool}. count = true si se preguntó cuántas. Si se nombra un paciente va en patient; un laboratorio, su id en laboratory_id. En los demás intents filter = null.
+8. confidence entre 0 y 1: qué tan seguro estás del intent y los datos. Si la frase es ambigua, confidence < 0.5.
+
+FORMATO (todas las claves siempre):
+{"intent":"...","order_id":null,"stage_id":null,"move_kind":null,"effective_date":null,"due_date":null,"laboratory_id":null,"patient":null,"items":[],"work_description":null,"teeth":[],"is_urgent":false,"send":false,"notes":null,"urgent_change":null,"note_add":null,"filter":null,"confidence":0.0}`;
+
+const voiceCommand = workflow(
+  'Help - Comando de Voz',
+  `${REQUIRED_SETUP('\n   "OpenAi account 2" en el nodo OpenAI.')}
+
+RUTA: POST /webhook/help/voice/command (Authorization: Bearer <JWT>)
+
+Interpreta una frase que el intérprete local de voz no entendió. NO escribe nada ni lee
+la base: solo devuelve qué se pidió. El frontend busca paciente/servicios, pregunta lo que
+falte y siempre pide confirmación antes de guardar. No se registra la frase (lleva nombres
+de pacientes).
+
+ENTRADA: { text, locale, today: 'YYYY-MM-DD', weekday, timezone, route,
+           context: { stages: [{ id, name, kind }], laboratories: [{ id, name }] } }
+RESPUESTA: { result: { intent, order_id, stage_id, move_kind, effective_date, due_date,
+             laboratory_id, patient, items: [{ service, quantity, teeth }], work_description,
+             teeth, is_urgent, send, notes, urgent_change, note_add,
+             filter: { overdue, urgent, due_today, view, clear, count }, confidence } }
+intent: lab_order.move | create | open | update | status | list | unknown
+Ids y fechas validados contra la lista cerrada que mandó el frontend (que además revalida).`,
+  [
+    webhook('help/voice/command', 'POST'),
+    code('node-prepare', 'Preparar Consulta', `${JWT_DECODE}
+const body = input.body || {};
+const text = String(body.text || '').trim().slice(0, 500);
+if (!text) throw new Error('Falta la frase (text)');
+const ctx = body.context || {};
+const stages = (Array.isArray(ctx.stages) ? ctx.stages : []).slice(0, 40)
+  .map(s => ({ id: Number(s && s.id), name: String((s && s.name) || '').slice(0, 80), kind: String((s && s.kind) || '') }))
+  .filter(s => Number.isInteger(s.id) && s.name);
+const laboratories = (Array.isArray(ctx.laboratories) ? ctx.laboratories : []).slice(0, 80)
+  .map(l => ({ id: String((l && l.id) || ''), name: String((l && l.name) || '').slice(0, 80) }))
+  .filter(l => l.id && l.name);
+const today = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(body.today)) ? String(body.today) : new Date().toISOString().slice(0, 10);
+
+const prompt = [
+  'FECHA DE HOY: ' + today + ' (' + String(body.weekday || '').slice(0, 20) + '), zona horaria ' + String(body.timezone || '').slice(0, 60),
+  'IDIOMA: ' + String(body.locale || 'es').slice(0, 10),
+  'PANTALLA: ' + String(body.route || '/').slice(0, 120),
+  '',
+  'ETAPAS (id · nombre · tipo):',
+  stages.map(s => '- ' + s.id + ' · ' + s.name + ' · ' + s.kind).join('\\n') || '(ninguna)',
+  '',
+  'LABORATORIOS (id · nombre):',
+  laboratories.map(l => '- ' + l.id + ' · ' + l.name).join('\\n') || '(ninguno)',
+  '',
+  'FRASE: ' + JSON.stringify(text),
+].join('\\n');
+
+return [{ json: { userId, text, today, stages, laboratories, prompt } }];`),
+    {
+      id: 'node-agent',
+      name: 'Interpretar',
+      type: '@n8n/n8n-nodes-langchain.agent',
+      typeVersion: 1.7,
+      parameters: { promptType: 'define', text: '={{ $json.prompt }}', options: { systemMessage: VOICE_SYSTEM_PROMPT } },
+    },
+    code('node-validate', 'Validar Respuesta', `const q = $('Preparar Consulta').first().json;
+const raw = String($input.first().json.output ?? '');
+let p = {};
+try {
+  p = JSON.parse(raw.replace(/^\\s*\`\`\`(json)?\\s*/i, '').replace(/\`\`\`\\s*$/, '').trim());
+} catch (_) {
+  p = {};
+}
+
+// Lista cerrada: solo ids que mandó el frontend, fechas válidas y piezas FDI.
+const INTENTS = ['lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'unknown'];
+const KINDS = ['send', 'received', 'complete', 'cancel', 'next'];
+const stageIds = new Set(q.stages.map(s => s.id));
+const labIds = new Set(q.laboratories.map(l => l.id));
+const isDate = v => typeof v === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+const isTooth = n => Number.isInteger(n) && ((n >= 11 && n <= 48 && n % 10 >= 1 && n % 10 <= 8) || (n >= 51 && n <= 85 && n % 10 >= 1 && n % 10 <= 5));
+const teeth = v => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(isTooth))].slice(0, 32);
+
+const intent = INTENTS.includes(p.intent) ? p.intent : 'unknown';
+const orderId = Number(p.order_id);
+const stageId = Number(p.stage_id);
+const effective = isDate(p.effective_date) && p.effective_date <= q.today ? p.effective_date : null;
+const items = (Array.isArray(p.items) ? p.items : []).slice(0, 10)
+  .map(i => ({ service: str(i && i.service, 80), quantity: Math.min(99, Math.max(1, Math.round(Number(i && i.quantity)) || 1)), teeth: teeth(i && i.teeth) }))
+  .filter(i => i.service);
+const confidence = Number(p.confidence);
+
+const result = {
+  intent,
+  order_id: Number.isInteger(orderId) && orderId > 0 ? orderId : null,
+  stage_id: stageIds.has(stageId) ? stageId : null,
+  move_kind: KINDS.includes(p.move_kind) ? p.move_kind : null,
+  effective_date: effective,
+  due_date: isDate(p.due_date) ? p.due_date : null,
+  laboratory_id: typeof p.laboratory_id === 'string' && labIds.has(p.laboratory_id) ? p.laboratory_id : null,
+  patient: str(p.patient, 80),
+  items,
+  work_description: str(p.work_description, 500),
+  teeth: teeth(p.teeth),
+  is_urgent: p.is_urgent === true,
+  send: p.send === true,
+  notes: str(p.notes, 500),
+  urgent_change: typeof p.urgent_change === 'boolean' ? p.urgent_change : null,
+  note_add: str(p.note_add, 500),
+  filter: p.filter && typeof p.filter === 'object' ? {
+    overdue: p.filter.overdue === true,
+    urgent: p.filter.urgent === true,
+    due_today: p.filter.due_today === true,
+    view: p.filter.view === 'list' || p.filter.view === 'board' ? p.filter.view : null,
+    clear: p.filter.clear === true,
+    count: p.filter.count === true,
+  } : null,
+  confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
+};
+// Lo que actúa sobre una orden existente necesita su número.
+if (['lab_order.move', 'lab_order.open', 'lab_order.update', 'lab_order.status'].includes(intent) && !result.order_id) result.intent = 'unknown';
+
+return [{ json: { body: { result } } }];`),
+    respond(),
+  ],
+  {
+    nodes: [{
+      id: 'node-openai',
+      name: 'OpenAI',
+      type: '@n8n/n8n-nodes-langchain.lmChatOpenAi',
+      typeVersion: 1.3,
+      position: [560, 520],
+      parameters: { model: { __rl: true, value: OPENAI_MODEL, mode: 'id' }, builtInTools: {}, options: {} },
+      credentials: OPENAI_CREDENTIALS,
+    }],
+    connections: { OpenAI: { ai_languageModel: [[{ node: 'Interpretar', type: 'ai_languageModel', index: 0 }]] } },
+  },
+);
+
 // ─── escribir ────────────────────────────────────────────────────────────────
 
 const files = {
+  'help-voice-command.json': voiceCommand,
   'help-onboarding-status.json': onboardingStatus,
   'help-onboarding-progress.json': onboardingProgress,
   'help-catalog-version.json': catalogVersion,
