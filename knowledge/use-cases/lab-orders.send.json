@@ -89,6 +89,15 @@
       "skipIfMissing": true
     },
     {
+      "id": "sent-on",
+      "action": "highlight",
+      "target": "lab-orders.field.sent-on",
+      "title": "¿Cuándo se envió?",
+      "details": "Si la mandaste antes y recién lo registrás, tocá Ayer u Otro día. Los días en la etapa y la entrega cuentan desde ese día.",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
       "id": "due-date",
       "action": "fill",
       "target": "lab-orders.field.send-due-date",

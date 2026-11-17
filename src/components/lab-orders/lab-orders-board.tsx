@@ -19,6 +19,7 @@ import {
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 
 import { useToast } from '@/hooks/use-toast';
+import { useLabOrderChanged } from '@/lib/lab-orders-events';
 import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
 import { LabOrdersError, changeLabOrderStage, fetchLabOrdersBoard, searchLabOrders } from '@/services/lab-orders';
@@ -34,6 +35,8 @@ type BoardData = Record<number, ColumnState>;
 
 const PER_COLUMN = 30;
 const COLLAPSED_STORAGE = 'lab-orders-board-collapsed';
+/** Cuánto queda resaltada una tarjeta movida por voz. */
+const FLASH_MS = 4000;
 
 function readCollapsed(): Set<number> {
   try {
@@ -96,6 +99,26 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
   /** Órdenes con un guardado en vuelo. Ref (no estado) para que un segundo arrastre inmediato ya lo vea. */
   const inFlightRef = React.useRef<Set<number>>(new Set());
   const [internalReload, setInternalReload] = React.useState(0);
+  /** Orden que acaba de moverse por otro lado (un comando de voz): se resalta unos segundos. */
+  const [flashId, setFlashId] = React.useState<number | null>(null);
+
+  // Movida fuera del tablero (comando de voz): la tarjeta pasa a su columna a la vista.
+  useLabOrderChanged((order) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const from = Object.keys(prev).map(Number).find((stageId) => prev[stageId]?.items.some((o) => o.id === order.id));
+      return placeOrder(prev, order, order.current_stage_id, from ?? order.current_stage_id);
+    });
+    setFlashId(order.id);
+  });
+  React.useEffect(() => {
+    if (flashId == null) return;
+    const frame = requestAnimationFrame(() => {
+      document.querySelector(`[data-lab-card-id="${flashId}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+    const timer = setTimeout(() => setFlashId(null), FLASH_MS);
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+  }, [flashId]);
 
   React.useEffect(() => {
     if (pending.size === 0 && deferredReloadRef.current) {
@@ -189,7 +212,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
     setPending((prev) => new Set(prev).add(orderId));
 
     try {
-      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: laboratory?.id, dueDate: details?.dueDate });
+      const saved = await changeLabOrderStage(orderId, toStageId, fromStageId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: laboratory?.id, dueDate: details?.dueDate, effectiveDate: details?.effectiveDate });
       setData((prev) => prev && placeOrder(prev, saved, saved.current_stage_id, toStageId));
       onMoved?.(saved);
     } catch (error) {
@@ -328,6 +351,7 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
                   order={order}
                   stages={stages}
                   isPending={pending.has(order.id)}
+                  flash={order.id === flashId}
                   canChangeStage={canChangeStage}
                   onOpen={() => onOpen(order)}
                   onMove={(toStageId) => { void move(order.id, toStageId); }}
@@ -432,12 +456,14 @@ interface BoardCardProps {
   order: LabOrder;
   stages: LabStage[];
   isPending: boolean;
+  /** Recién movida por voz: resaltada unos segundos. */
+  flash?: boolean;
   canChangeStage: boolean;
   onOpen: () => void;
   onMove: (toStageId: number) => void;
 }
 
-function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }: BoardCardProps) {
+function BoardCard({ order, stages, isPending, flash = false, canChangeStage, onOpen, onMove }: BoardCardProps) {
   const t = useTranslations('LabOrdersPage');
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: order.id,
@@ -456,6 +482,7 @@ function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }:
       tabIndex={0}
       aria-roledescription={canChangeStage ? t('board.a11y.card') : undefined}
       aria-busy={isPending || undefined}
+      data-lab-card-id={order.id}
       onClick={onOpen}
       onKeyDown={(e) => {
         listeners?.onKeyDown?.(e);
@@ -465,6 +492,7 @@ function BoardCard({ order, stages, isPending, canChangeStage, onOpen, onMove }:
         'group relative outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg',
         canChangeStage && !isPending && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-40',
+        flash && 'ring-2 ring-[#7C3AED] ring-offset-2 ring-offset-background animate-[pulse_1s_ease-in-out_3]',
       )}
     >
       <CardBody order={order} isPending={isPending}>

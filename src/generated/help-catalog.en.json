@@ -1,5 +1,5 @@
 {
- "version": "532dc64a920ecef7",
+ "version": "6f20506a33b4c6ec",
  "locale": "en",
  "journey": [
   {
@@ -8356,6 +8356,13 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
+     "description": "Voice commands for this screen: click the microphone and speak, or hold Ctrl+Space. Examples: “order 45 was sent yesterday”, “order 45 arrived”, “create an order for Ann Smith, crown on 36”, “where is order 45?”, “order 45 is due on Friday”, “show overdue orders”. Anything that changes data is always confirmed by saying “yes”. Chrome and Edge only.",
+     "id": "lab-orders.btn.voice",
+     "kind": "btn",
+     "label": "Voice",
+     "source": "src/components/voice/voice-command-host.tsx"
+    },
+    {
      "description": "Doctor who requested the job; the order’s alerts can go to them. If whoever creates the order is a doctor, they come preselected (can be changed).",
      "id": "lab-orders.field.doctor_id",
      "kind": "field",
@@ -8475,7 +8482,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "The date the lab promised. It is required and can't be earlier than today; if the order already had one that hasn't passed, it comes filled in. From the next day, if the order hasn't reached a final stage, it becomes overdue.",
+     "description": "The date the lab promised. It is required and can't be earlier than the sending day; if the order already had one that hasn't passed, it comes filled in. If it was sent days ago the date may already have passed: the order becomes overdue. From the day after delivery, if the order hasn't reached a final stage, it becomes overdue.",
      "id": "lab-orders.field.send-due-date",
      "kind": "field",
      "label": "Delivery date",
@@ -8486,6 +8493,13 @@
      "id": "lab-orders.field.send-laboratory",
      "kind": "field",
      "label": "Lab",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "When sending the order: today by default; Yesterday or Another day if it is recorded late. The order counts as sent on that day: days in stage, the suggested delivery and overdue status count from then, and the history also shows when it was recorded. It can't be in the future or before the order entered its current stage.",
+     "id": "lab-orders.field.sent-on",
+     "kind": "field",
+     "label": "When was it sent?",
      "source": "knowledge/screens/lab-orders.json"
     },
     {
@@ -32713,6 +32727,15 @@
      "target": "lab-orders.field.send-laboratory",
      "title": "Lab",
      "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "highlight",
+     "details": "If you sent it earlier and are only recording it now, tap Yesterday or Another day. Days in stage and the delivery date count from that day.",
+     "id": "sent-on",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.sent-on",
+     "title": "When was it sent?"
     },
     {
      "action": "fill",

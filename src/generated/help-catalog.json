@@ -1,5 +1,5 @@
 {
- "version": "ca81fabf0f7f4d1d",
+ "version": "96c2327dab1d4370",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8445,6 +8445,13 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
+     "description": "Comandos de voz de esta pantalla: clic en el micrófono y hablar, o mantener Ctrl+Espacio. Ejemplos: «la orden 45 se envió ayer», «llegó la orden 45», «creá una orden para Ana Pérez, corona en la 36», «¿dónde está la orden 45?», «la 45 la entregan el viernes», «mostrame las atrasadas». Lo que cambia algo siempre se confirma diciendo «sí». Solo en Chrome y Edge.",
+     "id": "lab-orders.btn.voice",
+     "kind": "btn",
+     "label": "Voz",
+     "source": "src/components/voice/voice-command-host.tsx"
+    },
+    {
      "description": "Doctor que pidió el trabajo; los avisos de la orden pueden ir a él. Si quien crea la orden es doctor, viene elegido (se puede cambiar).",
      "id": "lab-orders.field.doctor_id",
      "kind": "field",
@@ -8564,7 +8571,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "La fecha que prometió el laboratorio. Es obligatoria y no puede ser anterior a hoy; si la orden ya tenía una que no pasó, aparece cargada. Desde el día siguiente, si la orden no llegó a una etapa final, queda atrasada.",
+     "description": "La fecha que prometió el laboratorio. Es obligatoria y no puede ser anterior al día del envío; si la orden ya tenía una que no pasó, aparece cargada. Si el envío fue hace días puede quedar una fecha ya pasada: la orden queda atrasada. Desde el día siguiente a la entrega, si la orden no llegó a una etapa final, queda atrasada.",
      "id": "lab-orders.field.send-due-date",
      "kind": "field",
      "label": "Fecha de entrega",
@@ -8575,6 +8582,13 @@
      "id": "lab-orders.field.send-laboratory",
      "kind": "field",
      "label": "Laboratorio",
+     "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Al enviar la orden: hoy por defecto; Ayer u Otro día si se registra tarde. La orden queda enviada ese día: los días en la etapa, la entrega propuesta y el atraso cuentan desde ahí, y el historial muestra también cuándo se registró. No puede ser futuro ni anterior a cuando la orden entró a su etapa actual.",
+     "id": "lab-orders.field.sent-on",
+     "kind": "field",
+     "label": "¿Cuándo se envió?",
      "source": "knowledge/screens/lab-orders.json"
     },
     {
@@ -32797,6 +32811,15 @@
      "target": "lab-orders.field.send-laboratory",
      "title": "Laboratorio",
      "value": "{{values.laboratory}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Si la mandaste antes y recién lo registrás, tocá Ayer u Otro día. Los días en la etapa y la entrega cuentan desde ese día.",
+     "id": "sent-on",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "lab-orders.field.sent-on",
+     "title": "¿Cuándo se envió?"
     },
     {
      "action": "fill",

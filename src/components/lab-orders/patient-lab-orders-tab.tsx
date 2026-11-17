@@ -136,7 +136,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false, 
     movingRef.current = true;
     setMovingId(order.id);
     try {
-      const saved = await changeLabOrderStage(order.id, target.id, order.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: details?.laboratory?.id, dueDate: details?.dueDate });
+      const saved = await changeLabOrderStage(order.id, target.id, order.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }, { laboratoryId: details?.laboratory?.id, dueDate: details?.dueDate, effectiveDate: details?.effectiveDate });
       setOrders((prev) => prev && prev.map((o) => (o.id === saved.id ? saved : o)));
       toast({ title: t('moved', { stage: saved.stage_name }) });
     } catch (error) {

@@ -57,6 +57,15 @@
       "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected."
     },
     {
+      "id": "sent-on",
+      "action": "highlight",
+      "target": "lab-orders.field.sent-on",
+      "title": "When was it sent?",
+      "details": "If you sent it earlier and are only recording it now, tap Yesterday or Another day. Days in stage and the delivery date count from that day.",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
       "id": "due-date",
       "title": "Due date",
       "details": "It comes proposed from the stage’s time limit. The three days, one week or two weeks shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue and an alert goes out."

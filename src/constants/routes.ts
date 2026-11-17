@@ -598,6 +598,8 @@ export const API_ROUTES = {
         ASSISTANT_CHAT:      '/help/assistant/chat',
         /** 👍/👎 de una respuesta: alimenta la cola de preguntas sin resolver. */
         ASSISTANT_FEEDBACK:  '/help/assistant/feedback',
+        /** Comando de voz que el intérprete local no entendió: OpenAI → JSON validado (sin escribir nada). */
+        VOICE_COMMAND:       '/help/voice/command',
         /** Versión del catálogo publicado en la BD del cliente. */
         CATALOG_VERSION:     '/help/catalog/version',
         /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */

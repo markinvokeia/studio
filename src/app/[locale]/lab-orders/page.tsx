@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
 import { format, startOfToday } from 'date-fns';
-import { AlertTriangle, CalendarClock, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarClock, FlaskConical, LayoutList, Plus, RefreshCw, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
@@ -25,6 +25,7 @@ import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
+import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
 import {
   LabCreateDialog, LabOrdersSetupCard, LabOrdersSetupMenu, LabServicesDialog, useLabSetupStatus, type LabSetupDialog,
 } from '@/components/lab-orders/lab-orders-setup';
@@ -35,6 +36,7 @@ import {
 
 import { useDebounce } from '@/hooks/use-debounce';
 import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
+import { useLabOrderChanged, useLabOrdersViewRequest } from '@/lib/lab-orders-events';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -256,6 +258,19 @@ export default function LabOrdersPage() {
     reload();
   });
 
+  // Movida por un comando de voz: la lista se recarga y la fila queda resaltada un momento (el
+  // tablero mueve la tarjeta por su cuenta).
+  const [flashId, setFlashId] = React.useState<number | null>(null);
+  useLabOrderChanged((order) => {
+    setReloadKey((k) => k + 1);
+    setFlashId(order.id);
+  });
+  React.useEffect(() => {
+    if (flashId == null) return;
+    const timer = setTimeout(() => setFlashId(null), 4000);
+    return () => clearTimeout(timer);
+  }, [flashId]);
+
   // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora etapa, paciente y fechas).
   const activeFilterCount = [
     view === 'list' && stageFilter !== DEFAULT_STAGE_FILTER,
@@ -273,6 +288,23 @@ export default function LabOrdersPage() {
     setSearch(''); setStageFilter(DEFAULT_STAGE_FILTER); setLaboratory(null); setDoctor(null); setPatient(null);
     setDateFrom(''); setDateTo(''); setOverdueOnly(false); setUrgentOnly(false); setDueTodayOnly(false);
   };
+
+  // "Mostrame las atrasadas", "las órdenes de Ana Pérez", "en el tablero"… (comandos de voz).
+  useLabOrdersViewRequest((request) => {
+    if (request.clear) clearFilters();
+    if (request.overdue !== undefined) setOverdueOnly(request.overdue);
+    if (request.urgent !== undefined) setUrgentOnly(request.urgent);
+    if (request.dueToday !== undefined) setDueTodayOnly(request.dueToday);
+    if (request.laboratory !== undefined) setLaboratory(request.laboratory);
+    if (request.patient !== undefined) {
+      setPatient(request.patient);
+      // El tablero no filtra por paciente: sus órdenes se ven en la lista, todas las etapas.
+      if (request.patient) setStageFilter('all');
+    }
+    const nextView = request.view ?? (request.patient ? 'list' : undefined);
+    if (nextView) changeView(nextView);
+    setSelectedId(null);
+  });
 
   // Filtros del popover aplicados, a la vista como chips. En el tablero, los que no se aplican
   // (etapa, paciente, fechas) quedan atenuados en vez de desaparecer.
@@ -360,6 +392,229 @@ export default function LabOrdersPage() {
     setIsRightExpanded(false);
   };
 
+  /** Barra compacta: búsqueda, "Solo atrasadas" y el resto de los filtros en un popover, para que
+   *  la lista tenga lugar también con el panel de detalle abierto. En la lista va como barra de la
+   *  tabla (`end` = paginación + recargar); en el tablero, encima de las columnas. */
+  const filterBar = (end: React.ReactNode) => (
+    <>
+      <div data-help-id="lab-orders.section.filters" className="flex flex-none flex-wrap items-center gap-2 pb-3">
+        <div className="relative min-w-[10rem] flex-1 sm:max-w-[18rem]">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            data-help-id="lab-orders.filter.search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('filters.searchPlaceholder')}
+            aria-label={t('filters.search')}
+            className="h-9 pl-8"
+          />
+        </div>
+        <Button
+          data-help-id="lab-orders.field.overdue-only"
+          variant={overdueOnly ? 'destructive' : 'outline'}
+          size="sm"
+          className="h-9 gap-1.5"
+          aria-pressed={overdueOnly}
+          aria-label={t('filters.overdueOnly')}
+          onClick={() => setOverdueOnly((v) => !v)}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <span className={cn(isRightOpen && 'hidden')}>{t('filters.overdueOnly')}</span>
+          <QuickCount value={quickCounts?.overdue} active={overdueOnly} />
+        </Button>
+        <Button
+          data-help-id="lab-orders.field.urgent-only"
+          variant={urgentOnly ? 'destructive' : 'outline'}
+          size="sm"
+          className="h-9 gap-1.5"
+          aria-pressed={urgentOnly}
+          aria-label={t('filters.urgentOnly')}
+          title={t('filters.urgentOnlyHint')}
+          onClick={() => setUrgentOnly((v) => !v)}
+        >
+          <Zap className={cn('h-4 w-4', urgentOnly && 'fill-current')} />
+          <span className={cn(isRightOpen && 'hidden')}>{t('filters.urgentOnly')}</span>
+          <QuickCount value={quickCounts?.urgent} active={urgentOnly} />
+        </Button>
+        <Button
+          data-help-id="lab-orders.field.due-today"
+          variant={dueTodayOnly ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-9 gap-1.5"
+          aria-pressed={dueTodayOnly}
+          aria-label={t('filters.dueToday')}
+          title={t('filters.dueTodayHint')}
+          onClick={() => setDueTodayOnly((v) => !v)}
+        >
+          <CalendarClock className="h-4 w-4" />
+          <span className={cn(isRightOpen && 'hidden')}>{t('filters.dueToday')}</span>
+          <QuickCount value={quickCounts?.dueToday} active={dueTodayOnly} />
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button data-help-id="lab-orders.btn.filters" variant="outline" size="sm" className="h-9 gap-1.5" aria-label={t('filters.more')}>
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className={cn(isRightOpen && 'hidden')}>{t('filters.more')}</span>
+              {activeFilterCount > 0 && (
+                <span className="grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[min(30rem,calc(100vw-2rem))] p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {view === 'list' && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('filters.stage')}</Label>
+                  <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('filters.allStages')}</SelectItem>
+                      <SelectItem value="pending">{t('filters.pending')}</SelectItem>
+                      {stages.length > 0 && <SelectSeparator />}
+                      {stages.map((stage) => (
+                        <SelectItem key={stage.id} value={`stage-${stage.id}`}>
+                          <span className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
+                            {stage.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('filters.laboratory')}</Label>
+                <LabSelector
+                  value={laboratory?.id ?? ''}
+                  selectedName={laboratory?.name}
+                  allowCreate={false}
+                  clearable
+                  onValueChange={(id, lab) => setLaboratory(id ? { id, name: lab?.name ?? '' } : null)}
+                  triggerText={t('filters.any')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('filters.doctor')}</Label>
+                <DoctorSelector
+                  value={doctor?.id ?? ''}
+                  selectedDoctorName={doctor?.name}
+                  onValueChange={(id, option) => setDoctor(id ? { id, name: option?.name ?? '' } : null)}
+                  placeholder={t('form.searchDoctor')}
+                  triggerText={t('filters.any')}
+                />
+              </div>
+              {view === 'list' && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
+                    <UserSelector
+                      filterType="PACIENTE"
+                      value={patient?.id ?? ''}
+                      selectedUserName={patient?.name}
+                      onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
+                      placeholder={t('form.searchPatient')}
+                      triggerText={t('filters.any')}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
+                    <DatePickerInput value={dateFrom} onChange={setDateFrom} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
+                    <DatePickerInput value={dateTo} onChange={setDateTo} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
+                    <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(['created_desc', 'created_asc', 'days_desc', 'days_asc'] as LabOrderSort[]).map((value) => (
+                          <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              {view === 'board' && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
+                  <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
+                    <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FINAL_DAYS_OPTIONS.map((days) => (
+                        <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            {hasExtraFilters && (
+              <div className="mt-3 flex justify-end border-t pt-3">
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
+                  <X className="h-3.5 w-3.5" />
+                  {t('filters.clear')}
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+        {/* Lista: paginación y recargar al final de la fila, como en las demás tablas. */}
+        {end && <div className="ml-auto flex shrink-0 items-center gap-2">{end}</div>}
+      </div>
+
+      {filterChips.length > 0 && (
+        <div data-help-id="lab-orders.section.active-filters" className="-mt-1 flex flex-none flex-wrap items-center gap-1.5 pb-3">
+          {filterChips.map((chip) => {
+            const ignored = view === 'board' && chip.listOnly;
+            return (
+              <span
+                key={chip.key}
+                className={cn(
+                  'inline-flex max-w-full items-center gap-0.5 rounded-full border border-border bg-muted/40 py-0.5 pl-2.5 pr-0.5 text-xs',
+                  ignored && 'border-dashed bg-transparent text-muted-foreground',
+                )}
+              >
+                <span className="truncate">{chip.label}</span>
+                {ignored && <span className="sr-only"> ({t('filters.notInBoardShort')})</span>}
+                <button
+                  type="button"
+                  onClick={chip.onRemove}
+                  aria-label={t('filters.removeChip', { name: chip.label })}
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            );
+          })}
+          {hasIgnoredChips && <span className="text-xs text-muted-foreground">{t('filters.notInBoard')}</span>}
+          <Button variant="link" size="sm" className="h-6 px-1 text-xs" onClick={clearFilters}>{t('filters.clear')}</Button>
+        </div>
+      )}
+    </>
+  );
+
+  const refreshButton = (
+    <Button
+      data-help-id="lab-orders.btn.refresh"
+      variant="outline"
+      size="icon"
+      className="h-9 w-9 shrink-0"
+      onClick={reload}
+      disabled={isRefreshing}
+      aria-label={t('reload')}
+      title={t('reload')}
+    >
+      <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+    </Button>
+  );
+
   const leftPanel = (
     <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
       <CardHeader className="flex-none p-4">
@@ -374,6 +629,7 @@ export default function LabOrdersPage() {
           </div>
           <div className="flex items-center gap-2">
             <LabOrdersSetupMenu onOpen={setSetupDialog} compact={isRightOpen} />
+            <VoiceCommandButton compact={isRightOpen} />
             <div data-help-id="lab-orders.section.view" role="group" aria-label={t('view.label')} className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
               {([['list', LayoutList], ['board', SquareKanban]] as const).map(([mode, Icon]) => (
                 <Button
@@ -403,206 +659,7 @@ export default function LabOrdersPage() {
         {setupIncomplete && setupStatus && (
           <LabOrdersSetupCard status={setupStatus} onOpen={setSetupDialog} className="mb-3 flex-none" />
         )}
-        {/* Barra compacta: búsqueda, "Solo atrasadas" y el resto de los filtros en un popover, para
-            que la lista tenga lugar también con el panel de detalle abierto. */}
-        <div data-help-id="lab-orders.section.filters" className="flex flex-none flex-wrap items-center gap-2 pb-3">
-          <div className="relative min-w-[10rem] flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              data-help-id="lab-orders.filter.search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('filters.searchPlaceholder')}
-              aria-label={t('filters.search')}
-              className="h-9 pl-8"
-            />
-          </div>
-          <Button
-            data-help-id="lab-orders.field.overdue-only"
-            variant={overdueOnly ? 'destructive' : 'outline'}
-            size="sm"
-            className="h-9 gap-1.5"
-            aria-pressed={overdueOnly}
-            aria-label={t('filters.overdueOnly')}
-            onClick={() => setOverdueOnly((v) => !v)}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span className={cn(isRightOpen && 'hidden')}>{t('filters.overdueOnly')}</span>
-            <QuickCount value={quickCounts?.overdue} active={overdueOnly} />
-          </Button>
-          <Button
-            data-help-id="lab-orders.field.urgent-only"
-            variant={urgentOnly ? 'destructive' : 'outline'}
-            size="sm"
-            className="h-9 gap-1.5"
-            aria-pressed={urgentOnly}
-            aria-label={t('filters.urgentOnly')}
-            title={t('filters.urgentOnlyHint')}
-            onClick={() => setUrgentOnly((v) => !v)}
-          >
-            <Zap className={cn('h-4 w-4', urgentOnly && 'fill-current')} />
-            <span className={cn(isRightOpen && 'hidden')}>{t('filters.urgentOnly')}</span>
-            <QuickCount value={quickCounts?.urgent} active={urgentOnly} />
-          </Button>
-          <Button
-            data-help-id="lab-orders.field.due-today"
-            variant={dueTodayOnly ? 'secondary' : 'outline'}
-            size="sm"
-            className="h-9 gap-1.5"
-            aria-pressed={dueTodayOnly}
-            aria-label={t('filters.dueToday')}
-            title={t('filters.dueTodayHint')}
-            onClick={() => setDueTodayOnly((v) => !v)}
-          >
-            <CalendarClock className="h-4 w-4" />
-            <span className={cn(isRightOpen && 'hidden')}>{t('filters.dueToday')}</span>
-            <QuickCount value={quickCounts?.dueToday} active={dueTodayOnly} />
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button data-help-id="lab-orders.btn.filters" variant="outline" size="sm" className="h-9 gap-1.5" aria-label={t('filters.more')}>
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className={cn(isRightOpen && 'hidden')}>{t('filters.more')}</span>
-                {activeFilterCount > 0 && (
-                  <span className="grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[min(30rem,calc(100vw-2rem))] p-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {view === 'list' && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('filters.stage')}</Label>
-                    <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t('filters.allStages')}</SelectItem>
-                        <SelectItem value="pending">{t('filters.pending')}</SelectItem>
-                        {stages.length > 0 && <SelectSeparator />}
-                        {stages.map((stage) => (
-                          <SelectItem key={stage.id} value={`stage-${stage.id}`}>
-                            <span className="flex items-center gap-2">
-                              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                              {stage.name}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('filters.laboratory')}</Label>
-                  <LabSelector
-                    value={laboratory?.id ?? ''}
-                    selectedName={laboratory?.name}
-                    allowCreate={false}
-                    clearable
-                    onValueChange={(id, lab) => setLaboratory(id ? { id, name: lab?.name ?? '' } : null)}
-                    triggerText={t('filters.any')}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('filters.doctor')}</Label>
-                  <DoctorSelector
-                    value={doctor?.id ?? ''}
-                    selectedDoctorName={doctor?.name}
-                    onValueChange={(id, option) => setDoctor(id ? { id, name: option?.name ?? '' } : null)}
-                    placeholder={t('form.searchDoctor')}
-                    triggerText={t('filters.any')}
-                  />
-                </div>
-                {view === 'list' && (
-                  <>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
-                      <UserSelector
-                        filterType="PACIENTE"
-                        value={patient?.id ?? ''}
-                        selectedUserName={patient?.name}
-                        onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
-                        placeholder={t('form.searchPatient')}
-                        triggerText={t('filters.any')}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
-                      <DatePickerInput value={dateFrom} onChange={setDateFrom} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
-                      <DatePickerInput value={dateTo} onChange={setDateTo} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
-                      <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(['created_desc', 'created_asc', 'days_desc', 'days_asc'] as LabOrderSort[]).map((value) => (
-                            <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-                {view === 'board' && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
-                    <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
-                      <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {FINAL_DAYS_OPTIONS.map((days) => (
-                          <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              {hasExtraFilters && (
-                <div className="mt-3 flex justify-end border-t pt-3">
-                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
-                    <X className="h-3.5 w-3.5" />
-                    {t('filters.clear')}
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {filterChips.length > 0 && (
-          <div data-help-id="lab-orders.section.active-filters" className="-mt-1 flex flex-none flex-wrap items-center gap-1.5 pb-3">
-            {filterChips.map((chip) => {
-              const ignored = view === 'board' && chip.listOnly;
-              return (
-                <span
-                  key={chip.key}
-                  className={cn(
-                    'inline-flex max-w-full items-center gap-0.5 rounded-full border border-border bg-muted/40 py-0.5 pl-2.5 pr-0.5 text-xs',
-                    ignored && 'border-dashed bg-transparent text-muted-foreground',
-                  )}
-                >
-                  <span className="truncate">{chip.label}</span>
-                  {ignored && <span className="sr-only"> ({t('filters.notInBoardShort')})</span>}
-                  <button
-                    type="button"
-                    onClick={chip.onRemove}
-                    aria-label={t('filters.removeChip', { name: chip.label })}
-                    className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              );
-            })}
-            {hasIgnoredChips && <span className="text-xs text-muted-foreground">{t('filters.notInBoard')}</span>}
-            <Button variant="link" size="sm" className="h-6 px-1 text-xs" onClick={clearFilters}>{t('filters.clear')}</Button>
-          </div>
-        )}
+        {view === 'board' && filterBar(refreshButton)}
 
         {view === 'board' ? (
           <LabOrdersBoard
@@ -630,6 +687,7 @@ export default function LabOrdersPage() {
               isLoading={isLoading}
               isRefreshing={isRefreshing}
               onRefresh={reload}
+              customToolbar={(_table: unknown, paginationNode: React.ReactNode) => filterBar(<>{paginationNode}{refreshButton}</>)}
               loadError={loadError}
               manualPagination
               pagination={pagination}
@@ -651,6 +709,7 @@ export default function LabOrdersPage() {
                 // Franja roja a la izquierda: las urgentes se ven de un vistazo (y van primero).
                 isUrgentPending(row) && 'shadow-[inset_4px_0_0_hsl(var(--destructive))]',
                 row.id === selectedId && 'bg-primary/5',
+                row.id === flashId && 'bg-[#7C3AED]/10 transition-colors duration-700',
               )}
               isNarrow={isMobile || isRightOpen}
               renderCard={(row) => (
@@ -720,6 +779,9 @@ export default function LabOrdersPage() {
         onOpenChange={(open) => { if (!open) setSetupDialog(null); }}
         onChanged={() => setSetupKey((k) => k + 1)}
       />
+
+      {/* Comandos de voz de esta pantalla: Ctrl+Espacio o el micrófono del encabezado. */}
+      <VoiceCommandHost />
     </div>
   );
 }

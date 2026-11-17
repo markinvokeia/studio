@@ -930,8 +930,13 @@ export interface LabOrderHistoryEntry {
   to_stage_color: string;
   changed_by: string | null;
   changed_by_name: string | null;
-  /** ISO UTC. */
+  /** ISO UTC. Cuándo se registró el movimiento. */
   changed_at: string;
+  /**
+   * ISO UTC. Cuándo pasó (script 176): igual a `changed_at` salvo que se registrara después
+   * ("se envió ayer"). Sin el script, el servicio lo completa con `changed_at`.
+   */
+  effective_at: string;
   /** 'stage_deactivated' cuando la movió la configuración de etapas. */
   note: string | null;
 }
@@ -1073,6 +1078,7 @@ export type LabOrdersErrorCode =
   | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
   | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
   | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE'
+  | 'INVALID_EFFECTIVE_DATE' | 'EFFECTIVE_DATE_BEFORE_STAGE'
   | 'NO_FILES' | 'TOO_MANY_FILES' | 'INVALID_FILE_TYPE' | 'FILE_TOO_LARGE' | 'UPLOAD_FAILED' | 'DELETE_FAILED'
   | 'UNKNOWN';
 
@@ -4580,4 +4586,136 @@ export interface HelpInsights {
   onboarding: { step_id: string; status: OnboardingStepStatus; completed_at: string | null }[];
   videos: { ready: number; stale: number; requests_open: number; requests_failed: number } | null;
   catalog: { version: string | null; synced_at: string | null; screens: number; validated: number; tables: number } | null;
+}
+
+// ── Comandos de voz ─────────────────────────────────────────────────────────────
+
+/** En qué está la sesión de voz: escucha, piensa, habla, espera una respuesta o ejecuta. */
+export type VoicePhase = 'idle' | 'listening' | 'thinking' | 'speaking' | 'waiting' | 'running';
+
+export interface VoiceCardRow {
+  label: string;
+  value: string;
+  tone?: 'default' | 'warning' | 'danger';
+}
+
+export interface VoiceChoice {
+  label: string;
+  detail?: string;
+}
+
+/** Tarjeta que acompaña al comando: qué entendió, qué va a hacer y qué pregunta. */
+export interface VoiceCard {
+  title: string;
+  subtitle?: string;
+  rows?: VoiceCardRow[];
+  /** Lo que el asistente pregunta o informa (lo mismo que dice en voz alta). */
+  message?: string;
+  /** confirm: espera "sí/no"; danger: lo mismo pero cancela o retrocede; success/error: resultado. */
+  tone?: 'info' | 'confirm' | 'danger' | 'success' | 'error';
+  /** Opciones para elegir diciendo "el dos" o el nombre (o tocándolas). */
+  choices?: VoiceChoice[];
+  link?: { label: string; href: string };
+}
+
+/** Lo que un comando de voz puede hacer mientras corre. Todo se corta con `signal` (Escape, otro comando). */
+export interface VoiceCommandContext {
+  locale: string;
+  signal: AbortSignal;
+  /** Traductor desde la raíz de los mensajes ('VoiceCommands.x', 'LabOrdersPage.errors.y'). */
+  t: (key: string, values?: Record<string, string | number>) => string;
+  hasPermission: (code: string) => boolean;
+  /** Ruta sin locale (p. ej. '/lab-orders?order=45'). */
+  navigate: (route: string) => void;
+  /** Muestra la tarjeta mientras trabaja (buscando la orden…). */
+  show: (card: VoiceCard) => void;
+  /** Pregunta en voz alta y espera la respuesta dicha (el micrófono se abre solo). */
+  ask: (card: VoiceCard, speech: string) => Promise<string>;
+  /** Pregunta entre opciones; devuelve el índice elegido. */
+  choose: (card: VoiceCard, speech: string) => Promise<number>;
+  /** "¿Confirmo?": true con "sí", false con "no". */
+  confirm: (card: VoiceCard, speech: string) => Promise<boolean>;
+  /** Resultado final (éxito, aviso o error) en la tarjeta y en voz alta. */
+  finish: (card: VoiceCard, speech: string) => Promise<void>;
+}
+
+/** Un comando de voz: reconoce su frase sin IA y la ejecuta conversando con la persona. */
+export interface VoiceCommand<P = unknown> {
+  id: string;
+  /** Más alto se prueba antes (default 0): los comandos específicos le ganan a los generales. */
+  priority?: number;
+  /** Lo entendido de la frase (normalizada con normalizeSpeech), o null si no es para este comando. */
+  match: (normalized: string, raw: string) => P | null;
+  run: (parsed: P, ctx: VoiceCommandContext) => Promise<void>;
+  /**
+   * Cuando el intérprete local no entiende la frase se le pregunta a la IA (POST help/voice/command).
+   * `context` agrega lo que la IA necesita saber (etapas, laboratorios: nunca pacientes) y `from`
+   * convierte su respuesta en lo que espera `run`.
+   */
+  ai?: {
+    context?: (ctx: VoiceCommandContext) => Promise<Partial<VoiceAiContext>>;
+    from: (result: VoiceAiResult, raw: string) => P | null;
+  };
+}
+
+/** Lo que se le cuenta a la IA para interpretar una frase. */
+export interface VoiceAiContext {
+  stages: Array<{ id: number; name: string; kind: string }>;
+  laboratories: Array<{ id: string; name: string }>;
+}
+
+export type VoiceAiIntent =
+  | 'lab_order.move' | 'lab_order.create' | 'lab_order.open'
+  /** Cambiar entrega, urgente o agregar una nota a una orden existente. */
+  | 'lab_order.update'
+  /** "¿En qué etapa está la 45?": se responde, no se cambia nada. */
+  | 'lab_order.status'
+  /** "Mostrame las atrasadas": filtra la pantalla de órdenes. */
+  | 'lab_order.list'
+  | 'unknown';
+
+/** Filtros pedidos con lab_order.list. */
+export interface VoiceAiListFilter {
+  overdue: boolean;
+  urgent: boolean;
+  due_today: boolean;
+  view: 'list' | 'board' | null;
+  /** Quitar los filtros que había. */
+  clear: boolean;
+  /** Se preguntó "¿cuántas…?": además de mostrarlas se dice el número. */
+  count: boolean;
+}
+
+export interface VoiceAiItem {
+  /** Cómo se nombró el trabajo ("corona de zirconio"): se busca en los servicios de laboratorio. */
+  service: string;
+  quantity: number;
+  teeth: number[];
+}
+
+/** Respuesta validada de help/voice/command (todo lo que no cierra viene en null). */
+export interface VoiceAiResult {
+  intent: VoiceAiIntent;
+  order_id: number | null;
+  stage_id: number | null;
+  move_kind: 'send' | 'received' | 'complete' | 'cancel' | 'next' | null;
+  /** Cuándo pasó ('YYYY-MM-DD'): "se envió ayer". */
+  effective_date: string | null;
+  due_date: string | null;
+  laboratory_id: string | null;
+  /** Nombre del paciente tal como se dijo. */
+  patient: string | null;
+  items: VoiceAiItem[];
+  work_description: string | null;
+  teeth: number[];
+  is_urgent: boolean;
+  send: boolean;
+  notes: string | null;
+  /** lab_order.update: true = marcar urgente, false = quitarlo, null = no se habló de eso. */
+  urgent_change: boolean | null;
+  /** lab_order.update: nota a agregar. */
+  note_add: string | null;
+  /** lab_order.list. Paciente y laboratorio van en `patient` y `laboratory_id`. */
+  filter: VoiceAiListFilter | null;
+  confidence: number;
 }
