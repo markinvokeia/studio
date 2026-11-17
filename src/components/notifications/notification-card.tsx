@@ -242,14 +242,15 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       // Prefer AI-detected current-session services with catalog-resolved names;
       // fall back to appointment.services when no AI services are available.
       const preloadedItems = aiCurrentServices.length > 0
-        ? aiCurrentServices.map((svc) => {
+        ? aiCurrentServices.map((svc, index) => {
             const catalogService = catalogResponse?.items.find(
               (s) => String(s.id) === String(svc.service_id),
             );
             const price = catalogService?.price ?? svc.unit_price ?? 0;
             const qty = svc.quantity ?? 1;
             return {
-              tempId: svc.service_id!,
+              // Con el índice: el mismo servicio puede venir dos veces.
+              tempId: `${svc.service_id}-${index}`,
               service_id: svc.service_id!,
               service_name: catalogService?.name ?? svc.service_name ?? svc.descripcion ?? '',
               unit_price: price,
@@ -257,8 +258,8 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
               total: price * qty,
             };
           })
-        : (appointment.services ?? []).map((svc) => ({
-            tempId: svc.id,
+        : (appointment.services ?? []).map((svc, index) => ({
+            tempId: `${svc.id}-${index}`,
             service_id: svc.id,
             service_name: svc.name,
             unit_price: svc.price || 0,

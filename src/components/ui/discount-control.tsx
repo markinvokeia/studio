@@ -39,6 +39,8 @@ export interface DiscountControlProps {
   defaultPct?: number;
   /** Sin permiso `SALES_APPLY_DISCOUNT` no se puede abrir ni editar. */
   canApply?: boolean;
+  /** `step` del campo numérico. `'any'` ⇒ las flechas van de a 1 y se aceptan decimales. */
+  inputStep?: string;
   onApply: (next: DiscountValue) => void;
   onRemove: () => void;
   className?: string;
@@ -68,6 +70,7 @@ export function DiscountControl({
   maxPct,
   defaultPct = 0,
   canApply = true,
+  inputStep = '0.01',
   onApply,
   onRemove,
   className,
@@ -152,7 +155,7 @@ export function DiscountControl({
                 autoFocus
                 type="number"
                 min={0}
-                step="0.01"
+                step={inputStep}
                 inputMode="decimal"
                 value={draftValue}
                 placeholder="0"

@@ -330,7 +330,7 @@
   },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
-    "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
+    "description": "Tenés cambios sin guardar. Si cerrás ahora, se van a perder.",
     "confirm": "Descartar cambios",
     "cancel": "Seguir editando",
     "closeLabel": "Cerrar"

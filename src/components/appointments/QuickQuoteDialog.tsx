@@ -67,7 +67,10 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const [sedeId, setSedeId] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // Reset form on open
+  // Reset form on open. Solo depende de `open`: con la sede activa como
+  // dependencia, cualquier re-render del AuthContext (p. ej. al volver a la
+  // pestaña) vaciaba los ítems que se estaban cargando.
+  const activeSedeId = activeSede?.id || '';
   React.useEffect(() => {
     if (open) {
       setItems([]);
@@ -76,9 +79,15 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       setCreatedAt(formatDate(new Date()));
       setNotes('');
       setPatientConfirmed(false);
-      setSedeId(activeSede?.id || '');
+      setSedeId(activeSedeId);
     }
-  }, [open, activeSede]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // La sede activa puede llegar después de abrir: se completa sin pisar una elegida.
+  React.useEffect(() => {
+    if (open && activeSedeId) setSedeId((current) => current || activeSedeId);
+  }, [open, activeSedeId]);
 
   const handleAddItem = () => {
     const newItem: QuoteItem = {

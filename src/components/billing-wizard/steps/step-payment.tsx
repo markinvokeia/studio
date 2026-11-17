@@ -36,11 +36,13 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
-import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
+import type { Credit, Invoice, LineDiscountFields, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { CurrencySelect } from '@/components/ui/currency-select';
-import { convertAmount, formatMoney } from '@/lib/currency';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
+import { convertAmount, currencySymbol, formatMoney } from '@/lib/currency';
+import { mapLineDiscountFields, readDiscountAmount, readGrossTotal, roundCurrency } from '@/lib/discounts';
 import { pendingInPaymentCurrency, targetAmountFor } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
@@ -143,7 +145,10 @@ interface InvoiceLineItem {
   description: string;
   toothNumber?: number;
   quantity: number;
+  /** Importe NETO de la línea. */
   total: number;
+  /** Bruto y descuento, para que el detalle muestre la rebaja aplicada. */
+  discount: LineDiscountFields;
 }
 
 interface InvoicePaymentEntry {
@@ -181,6 +186,7 @@ async function fetchInvoiceDetail(
     toothNumber: item.tooth_number ? Number(item.tooth_number) : undefined,
     quantity: Number(item.quantity || 1),
     total: Math.abs(Number(item.total || item.amount || 0)),
+    discount: mapLineDiscountFields(item),
   }));
   const payments: InvoicePaymentEntry[] = rawPayments
     .filter((p: any) => p?.status !== 'failed' && (p?.transaction_id || p?.id))
@@ -232,6 +238,7 @@ export function StepPayment({
   const isMultiInvoice = !!invoices && invoices.length > 0;
   const t = useTranslations('InvoicesPage');
   const tw = useTranslations('BillingWizard');
+  const tDiscounts = useTranslations('Discounts');
   const locale = useLocale();
   const { user, checkActiveSession, activeCashSession } = useAuth();
   const { validateActiveSession } = useCashSessionValidation();
@@ -714,6 +721,10 @@ export function StepPayment({
   };
   const submit = useAsyncAction(submitPayments);
 
+  // Bruto y descuento del detalle, sumados de las líneas guardadas.
+  const detailGross = roundCurrency((invoiceDetail?.items ?? []).reduce((sum, item) => sum + readGrossTotal({ ...item.discount, total: item.total }), 0));
+  const detailDiscount = roundCurrency((invoiceDetail?.items ?? []).reduce((sum, item) => sum + readDiscountAmount(item.discount), 0));
+
   // ── Invoice detail expandable panel ──
   const renderDetailPanel = () => {
     if (isMultiInvoice || !invoiceDetailExpanded) return null;
@@ -733,10 +744,12 @@ export function StepPayment({
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{tw('invoices.servicesInvoiced')}</p>
                 {invoiceDetail.items.map((item) => (
                   <div key={item.id} className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-foreground">
+                    <span className="min-w-0 truncate text-foreground">
                       {item.description}
                       {item.toothNumber ? <span className="ml-1 text-muted-foreground">{tw('toothAbbr', { tooth: item.toothNumber })}</span> : null}
                       {item.quantity > 1 ? <span className="ml-1 text-muted-foreground">×{item.quantity}</span> : null}
+                      {/* Símbolo ($U) y no código (UYU): los importes de al lado van con formatMoney. */}
+                      <AppliedDiscountNote line={item.discount} currency={currencySymbol(invoiceCurrency)} />
                     </span>
                     <span className="tabular-nums shrink-0">{fmtCurrency(item.total, invoiceCurrency)}</span>
                   </div>
@@ -759,6 +772,18 @@ export function StepPayment({
               </div>
             )}
             <div className="px-4 py-2.5 space-y-1">
+              {detailDiscount > 0 && (
+                <>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{tDiscounts('subtotal')}</span>
+                    <span className="tabular-nums">{fmtCurrency(detailGross, invoiceCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{tDiscounts('discount')}</span>
+                    <span className="tabular-nums">- {fmtCurrency(detailDiscount, invoiceCurrency)}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between font-semibold">
                 <span>{tw('invoices.invoiceTotal')}</span>
                 <span className="tabular-nums">{fmtCurrency(invoice.total || 0, invoiceCurrency)}</span>
