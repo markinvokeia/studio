@@ -25,14 +25,14 @@
       "action": "highlight",
       "target": "config.lab-stages.section.active",
       "title": "Etapas activas",
-      "details": "En el orden del circuito (se arrastran por el ícono de la izquierda). Una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan a partir de cuándo una orden en esa etapa está atrasada."
+      "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada."
     },
     {
       "id": "alerts",
       "action": "highlight",
-      "target": "config.lab-stages.btn.alerts",
-      "title": "Alertas de la etapa",
-      "details": "La campana muestra cuántas alertas tiene: al entrar, por permanencia y por entrega vencida."
+      "target": "config.lab-stages.btn.alerts-first",
+      "title": "Avisos de la etapa",
+      "details": "La campana dice cuántos avisos tiene: cuando llega una orden, si se demora, y si se pasa la fecha de entrega."
     },
     {
       "id": "inactive",
@@ -54,7 +54,7 @@
       "action": "highlight",
       "target": "config.lab-stages.btn.save",
       "title": "Guardar",
-      "details": "Nada se aplica hasta guardar; se guarda toda la configuración junta.",
+      "details": "Los cambios de la lista se aplican al guardar, todos juntos.",
       "skipIfMissing": true
     }
   ]

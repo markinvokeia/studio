@@ -1,5 +1,5 @@
 {
- "version": "f4a0c9b1d59c573e",
+ "version": "e35a6b6f5df096d5",
  "locale": "en",
  "journey": [
   {
@@ -6598,7 +6598,14 @@
      "id": "config.lab-stages.btn.alerts",
      "kind": "btn",
      "label": "Alerts",
-     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "The bell of the first non-final stage. Same as the others: opens that stage's alerts.",
+     "id": "config.lab-stages.btn.alerts-first",
+     "kind": "btn",
+     "label": "Alerts (first stage)",
+     "source": "knowledge/screens/config.lab-stages.json"
     },
     {
      "description": "If the stage is already saved and the page has no other changes, “Save” saves the alerts right away. Otherwise “Apply” keeps them on the stage and they are saved with the page’s Save.",
@@ -26419,7 +26426,7 @@
      "action": "highlight",
      "details": "Each stage has its own, on its row.",
      "id": "bell",
-     "target": "config.lab-stages.btn.alerts",
+     "target": "config.lab-stages.btn.alerts-first",
      "title": "Click the stage’s bell",
      "until": "config.lab-stages.section.alert-enter"
     },
@@ -26480,16 +26487,16 @@
     },
     {
      "action": "highlight",
-     "details": "In circuit order (drag them by the left handle). Exactly one initial stage, where every new order starts, and at least one final. The days set when an order in that stage becomes overdue.",
+     "details": "In the order of the workflow; drag the icon on the left to reorder. There is one initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage becomes overdue.",
      "id": "active",
      "target": "config.lab-stages.section.active",
      "title": "Active stages"
     },
     {
      "action": "highlight",
-     "details": "The bell shows how many alerts it has: on entry, by time in stage and by past due date.",
+     "details": "The bell shows how many alerts it has: when an order arrives, if it takes too long, and if the due date passes.",
      "id": "alerts",
-     "target": "config.lab-stages.btn.alerts",
+     "target": "config.lab-stages.btn.alerts-first",
      "title": "Stage alerts"
     },
     {
@@ -26510,7 +26517,7 @@
     },
     {
      "action": "highlight",
-     "details": "Nothing applies until you save; the whole setup is saved together.",
+     "details": "List changes apply when you save, all together.",
      "id": "save",
      "skipIfMissing": true,
      "target": "config.lab-stages.btn.save",
@@ -31272,7 +31279,7 @@
     },
     {
      "action": "highlight",
-     "details": "Drop it in another column to change its stage: it is saved right away and goes back if saving fails. On a phone, use “Move to…” in the card menu.",
+     "details": "Drop it on another column to change its stage. If that stage needs a lab or a due date, a window opens with the date already proposed. On a phone, use Move to, in the card’s menu.",
      "id": "columns",
      "target": "lab-orders.section.board",
      "title": "Drag the card"
@@ -31287,7 +31294,7 @@
     },
     {
      "action": "highlight",
-     "details": "Final stages only show what arrived in the last 7, 30 or 90 days, so they do not grow forever.",
+     "details": "Final stages only show the last 7, 30 or 90 days, so they don’t grow forever.",
      "id": "final-days",
      "target": "lab-orders.field.final-days",
      "title": "Final columns"
@@ -31334,7 +31341,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "By patient, job, lab or order number.",
+     "details": "Search by patient, job, lab or order number.",
      "id": "search",
      "optional": true,
      "target": "lab-orders.filter.search",
@@ -31360,15 +31367,16 @@
     },
     {
      "action": "highlight",
-     "details": "Every stage except the current one, in circuit order. Moving to a final stage (Completed, Cancelled) asks nothing.",
+     "details": "All stages except the current one, in order. To a final stage, like Completed or Cancelled, it moves without asking.",
+     "doneOnClose": true,
      "id": "option",
-     "target": "lab-orders.btn.move-option",
+     "target": "lab-orders.section.move-menu",
      "title": "Choose the stage"
     },
     {
      "action": "fill",
      "ask": true,
-     "details": "Only if the order has no lab yet. The list starts filtered by its services’ category.",
+     "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected.",
      "id": "laboratory",
      "optional": true,
      "skipIfMissing": true,
@@ -31379,7 +31387,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out.",
+     "details": "It comes proposed from the stage’s time limit, and the shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue.",
      "id": "due-date",
      "optional": true,
      "skipIfMissing": true,
@@ -31389,7 +31397,7 @@
     },
     {
      "action": "confirm",
-     "details": "Moves the order to the chosen stage with the lab and due date entered.",
+     "details": "It opens below, in the same panel. Clicking the button saves the change.",
      "id": "confirm-move",
      "skipIfMissing": true,
      "target": "lab-orders.btn.confirm-move",
@@ -31397,7 +31405,7 @@
     },
     {
      "action": "highlight",
-     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "details": "Every change is recorded: who made it, when, and how long it was in the previous stage.",
      "id": "history",
      "target": "lab-orders.section.history",
      "title": "Stage history"
@@ -31450,7 +31458,7 @@
     },
     {
      "action": "fill",
-     "details": "Who the job is for. From the patient record it is already selected.",
+     "details": "Who the job is for. From the patient’s record it comes preselected.",
      "id": "patient",
      "target": "lab-orders.field.patient_id",
      "title": "Patient",
@@ -31458,7 +31466,7 @@
     },
     {
      "action": "fill",
-     "details": "Who requested the job; the order’s alerts go to them.",
+     "details": "Who requested the job. They get the order’s alerts. If you are a doctor, you come preselected.",
      "id": "doctor",
      "optional": true,
      "target": "lab-orders.field.doctor_id",
@@ -31467,14 +31475,14 @@
     },
     {
      "action": "click",
-     "details": "Moves on to the job. If the patient is missing, it is marked in red.",
+     "details": "Goes to the job.",
      "id": "next-work",
      "target": "lab-orders.btn.step-next",
      "title": "Continue"
     },
     {
      "action": "fill",
-     "details": "Pick the job from the lab services list. You can add several; if it does not exist, create it from here.",
+     "details": "Pick the job from the list. You can add several. The quantity is next to the name, and it is almost always one.",
      "id": "service",
      "target": "lab-orders.btn.add-service",
      "title": "Service",
@@ -31502,14 +31510,14 @@
     },
     {
      "action": "click",
-     "details": "Moves on to the laboratory. At least one service or a job description is needed.",
+     "details": "Goes to the lab. At least one service is needed.",
      "id": "next-laboratory",
      "target": "lab-orders.btn.step-next",
      "title": "Continue"
     },
     {
      "action": "fill",
-     "details": "Optional for now: if you leave it empty, it is asked for when the order is sent. Below are the laboratories of the services’ category to pick with one tap.",
+     "details": "If only one lab does that job, it comes preselected. Otherwise click one of the suggestions, or leave it for when you send it.",
      "id": "laboratory",
      "optional": true,
      "target": "lab-orders.field.laboratory_id",
@@ -31518,7 +31526,7 @@
     },
     {
      "action": "click",
-     "details": "Moves on to review the order before creating it.",
+     "details": "Goes to review the order before creating it.",
      "id": "next-review",
      "target": "lab-orders.btn.step-next",
      "title": "Continue",
@@ -31526,14 +31534,14 @@
     },
     {
      "action": "highlight",
-     "details": "Patient, job and laboratory. “Edit” goes back to that step without losing what you entered.",
+     "details": "Patient, job and lab. Edit takes you back to that step without losing anything.",
      "id": "review",
      "target": "lab-orders.section.review",
      "title": "Review the order"
     },
     {
      "action": "highlight",
-     "details": "“Save it to send later” leaves it in the initial stage. “Send it now” creates it and moves it to the next stage: it asks for the laboratory and the expected delivery date.",
+     "details": "Save to send later keeps it in the first stage. Send now creates it and moves it to the next stage, and asks for the due date.",
      "id": "send",
      "skipIfMissing": true,
      "target": "lab-orders.field.send",
@@ -31541,7 +31549,7 @@
     },
     {
      "action": "fill",
-     "details": "The date the laboratory promised; from the next day the order shows as overdue.",
+     "details": "The one the lab promised. From the next day, if it has not arrived, the order shows as overdue.",
      "id": "send-due",
      "optional": true,
      "skipIfMissing": true,
@@ -31560,7 +31568,7 @@
     },
     {
      "action": "highlight",
-     "details": "Photos, PDFs or 3D scans for the lab; they are uploaded when the order is created.",
+     "details": "Photos, PDFs or 3D scans for the lab. They upload when the order is created.",
      "id": "attachments",
      "skipIfMissing": true,
      "target": "lab-orders.section.form-attachments",
@@ -31568,7 +31576,7 @@
     },
     {
      "action": "fill",
-     "details": "If you turn it on, it comes first in the list, on the board and in the patient file.",
+     "details": "If you mark it, it shows first in the list, on the board and in the patient’s record.",
      "id": "urgent",
      "optional": true,
      "target": "lab-orders.toggle.urgent",
@@ -31577,7 +31585,7 @@
     },
     {
      "action": "confirm",
-     "details": "If not sent, it enters the initial stage with no delivery date. With “Send it now”, it lands in the next stage with the laboratory and the date.",
+     "details": "Without sending it, it stays in the first stage. If you chose to send it now, it moves to the next stage with the lab and the date.",
      "id": "save",
      "target": "lab-orders.btn.submit",
      "title": "Create the order"
@@ -31689,7 +31697,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "By patient, job, lab or order number.",
+     "details": "Search by patient, job, lab or order number.",
      "id": "search",
      "optional": true,
      "target": "lab-orders.filter.search",
@@ -31715,14 +31723,14 @@
     },
     {
      "action": "highlight",
-     "details": "It opens on Review. “Edit” on each row (or the steps above) takes you to change the patient, services or laboratory; “Back to review” returns here.",
+     "details": "It opens on Review. Edit, on each row, changes the patient, the services or the lab.",
      "id": "review",
      "target": "lab-orders.section.review",
      "title": "Review the order"
     },
     {
      "action": "highlight",
-     "details": "Shown once the order is sent; if the lab gives a new date, change it here.",
+     "details": "It shows once the order was sent. If the lab gives a new date, change it here.",
      "id": "due",
      "skipIfMissing": true,
      "target": "lab-orders.field.due_date",
@@ -31739,7 +31747,7 @@
     },
     {
      "action": "confirm",
-     "details": "The stage is not changed here: use “Move to…” or “Other stage…”.",
+     "details": "The stage is not changed here. The stage buttons in the details do that.",
      "id": "save",
      "target": "lab-orders.btn.submit",
      "title": "Save changes"
@@ -31781,7 +31789,7 @@
     },
     {
      "action": "click",
-     "details": "An order is overdue when it goes past its stage’s day limit or its due date passes before it reaches a final stage.",
+     "details": "Click it to see only overdue orders. The number shows how many there are. An order is overdue when it goes past its stage’s days, or when the due date passes before it arrives.",
      "id": "overdue",
      "target": "lab-orders.field.overdue-only",
      "title": "Overdue only"
@@ -31789,7 +31797,7 @@
     {
      "action": "highlight",
      "autoClick": true,
-     "details": "Red days mark the stage delay; the “Past due” tag marks the missed due date.",
+     "details": "In the Status column, days in red mark the delay in the stage. The Overdue label marks a missed due date.",
      "id": "pick",
      "target": "lab-orders.section.first-row",
      "title": "Open an overdue order",
@@ -31797,14 +31805,14 @@
     },
     {
      "action": "highlight",
-     "details": "Shows the days in stage next to the limit (“5 days · max 3”) and, if the due date passed, how many days ago.",
+     "details": "It shows the days in the stage next to the limit. If the due date passed, it says how many days ago.",
      "id": "reason",
      "target": "lab-orders.section.detail-stage",
      "title": "Why it is overdue"
     },
     {
      "action": "highlight",
-     "details": "The lab’s phones and email to chase the job.",
+     "details": "The lab’s phones and email, to chase the job.",
      "id": "laboratory",
      "skipIfMissing": true,
      "target": "lab-orders.section.detail-laboratory",
@@ -31812,7 +31820,7 @@
     },
     {
      "action": "highlight",
-     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "details": "Every change is recorded: who made it, when, and how long it was in the previous stage.",
      "id": "history",
      "target": "lab-orders.section.history",
      "title": "Stage history"
@@ -31854,28 +31862,28 @@
     },
     {
      "action": "highlight",
-     "details": "The list has every filter; the board shows one column per stage and cards are dragged between them.",
+     "details": "The list shows only pending orders. The board has one column per stage.",
      "id": "view",
      "target": "lab-orders.section.view",
      "title": "List or board"
     },
     {
      "action": "highlight",
-     "details": "By patient, job, lab or order number.",
+     "details": "Search by patient, job, lab or order number.",
      "id": "search",
      "target": "lab-orders.filter.search",
      "title": "Search"
     },
     {
      "action": "highlight",
-     "details": "Orders past their stage’s day limit or past their due date. An order in a final stage is never overdue.",
+     "details": "The number shows how many there are. An order is overdue when it goes past its stage’s days, or when the due date passes.",
      "id": "overdue",
      "target": "lab-orders.field.overdue-only",
      "title": "Overdue only"
     },
     {
      "action": "highlight",
-     "details": "Pending urgent orders; they also come first in the list and on the board.",
+     "details": "Pending urgent orders. They also show first in the list.",
      "id": "urgent",
      "skipIfMissing": true,
      "target": "lab-orders.field.urgent-only",
@@ -31883,14 +31891,22 @@
     },
     {
      "action": "highlight",
-     "details": "Stage (all, pending or a specific one), lab, doctor, patient, creation dates and sort order (for example, most days in stage).",
-     "id": "filters",
-     "target": "lab-orders.btn.filters",
-     "title": "Filters"
+     "details": "What the labs have to deliver today. Useful for calling first thing in the morning.",
+     "id": "due-today",
+     "skipIfMissing": true,
+     "target": "lab-orders.field.due-today",
+     "title": "Due today"
     },
     {
      "action": "highlight",
-     "details": "Patient, lab, job, doctor, stage, days in stage (red when over the limit) and due date.",
+     "details": "Stage, lab, doctor, patient and dates. To also see finished orders, pick the All stage.",
+     "id": "filters",
+     "target": "lab-orders.btn.filters",
+     "title": "More filters"
+    },
+    {
+     "action": "highlight",
+     "details": "Patient, lab, job and doctor. The Status column brings together the stage, the days in it and the due date. Anything overdue shows in red.",
      "id": "row",
      "skipIfMissing": true,
      "target": "lab-orders.section.first-row",
@@ -31906,21 +31922,29 @@
     },
     {
      "action": "highlight",
-     "details": "Drag a card to another column to change its stage; it is saved when you drop it.",
+     "details": "Drag a card to another column to change its stage.",
      "id": "columns",
      "target": "lab-orders.section.board",
      "title": "One column per stage"
     },
     {
      "action": "highlight",
-     "details": "Records a new job; it starts in the initial stage.",
+     "details": "Registers a new job, which starts in the first stage.",
      "id": "new",
      "skipIfMissing": true,
      "target": "lab-orders.btn.new",
      "title": "New order"
+    },
+    {
+     "action": "highlight",
+     "details": "To add labs, mark which services are lab jobs and adjust the stages.",
+     "id": "setup",
+     "skipIfMissing": true,
+     "target": "lab-orders.btn.setup-menu",
+     "title": "Set up"
     }
    ],
-   "summary": "What the screen shows: list and board, search, overdue, urgent, filters and an order’s details.",
+   "summary": "What the screen shows: pending orders, quick filters, an order’s details and the board.",
    "title": "Tour Lab Orders"
   },
   {
@@ -31961,7 +31985,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "By patient, job, lab or order number.",
+     "details": "Search by patient, job, lab or order number.",
      "id": "search",
      "optional": true,
      "target": "lab-orders.filter.search",
@@ -31979,14 +32003,14 @@
     },
     {
      "action": "highlight",
-     "details": "Where the order is, how many days it has been there and its progress through the stages.",
+     "details": "Which stage it is in, how many days it has been there and what is left.",
      "id": "stage",
      "target": "lab-orders.section.detail-stage",
      "title": "Current stage"
     },
     {
      "action": "click",
-     "details": "If the order is in the initial stage (or has no lab), the send form appears below with the date already suggested.",
+     "details": "The sending form opens right below, in the same panel, with the due date already proposed.",
      "id": "send",
      "skipIfMissing": true,
      "target": "lab-orders.btn.send",
@@ -31995,7 +32019,7 @@
     },
     {
      "action": "confirm",
-     "details": "The order was already sent: the change is saved when you click, with no questions.",
+     "details": "If the order is already at the lab, this button moves it to the next stage. It saves when you click it.",
      "id": "next",
      "skipIfMissing": true,
      "target": "lab-orders.btn.next-stage",
@@ -32004,7 +32028,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "Only if the order has no lab yet. The list starts filtered by its services’ category.",
+     "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected.",
      "id": "laboratory",
      "optional": true,
      "skipIfMissing": true,
@@ -32015,7 +32039,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "It is suggested from the stage deadline; the shortcuts change it with one tap. From the next day, if it has not reached a final stage, the order is overdue and an alert is sent.",
+     "details": "It comes proposed from the stage’s time limit. The three days, one week or two weeks shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue and an alert goes out.",
      "id": "due-date",
      "optional": true,
      "skipIfMissing": true,
@@ -32025,21 +32049,21 @@
     },
     {
      "action": "confirm",
-     "details": "Moves the order to the chosen stage with the lab and due date entered.",
+     "details": "Clicking it saves the stage change, with the lab and the date.",
      "id": "confirm-move",
      "skipIfMissing": true,
      "target": "lab-orders.btn.confirm-move",
-     "title": "Confirm the stage change"
+     "title": "Confirm the send"
     },
     {
      "action": "highlight",
-     "details": "The change is recorded with the user, the date and how long the order spent in the previous stage.",
+     "details": "Every change is recorded: who made it, when, and how long it was in the previous stage.",
      "id": "history",
      "target": "lab-orders.section.history",
      "title": "Stage history"
     }
    ],
-   "summary": "Move an order to the next stage. When sending it to the lab, the delivery date (already suggested) and, if missing, the lab are filled in the same panel.",
+   "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed, in the same panel.",
    "title": "Send the order to the lab or move it to the next stage"
   },
   {

@@ -74,10 +74,17 @@ function pickVoice(locale: string): SpeechSynthesisVoice | undefined {
   return undefined;
 }
 
-/** Texto del chat → texto para leer: sin markdown, links ni emojis. */
+/**
+ * Texto del chat o de un paso de guía → texto para leer: sin markdown, links ni emojis.
+ * Las flechas de los caminos del menú («Menú → Pacientes») se leen como una pausa, no
+ * como «flecha derecha», y las abreviaturas se dicen enteras.
+ */
 export function toSpeechText(text: string): string {
   return text
     .replace(/\\n/g, '\n')
+    .replace(/\s*[→➜⟶]\s*/g, ', ')
+    .replace(/\bp\. ?ej\./gi, 'por ejemplo')
+    .replace(/\be\.g\./gi, 'for example')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/https?:\/\/\S+/g, '')
     .replace(/[*_`#>]+/g, '')

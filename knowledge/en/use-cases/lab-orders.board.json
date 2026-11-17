@@ -24,7 +24,7 @@
     {
       "id": "columns",
       "title": "Drag the card",
-      "details": "Drop it in another column to change its stage: it is saved right away and goes back if saving fails. On a phone, use “Move to…” in the card menu."
+      "details": "Drop it on another column to change its stage. If that stage needs a lab or a due date, a window opens with the date already proposed. On a phone, use Move to, in the card’s menu."
     },
     {
       "id": "filters",
@@ -33,7 +33,7 @@
     {
       "id": "final-days",
       "title": "Final columns",
-      "details": "Final stages only show what arrived in the last 7, 30 or 90 days, so they do not grow forever."
+      "details": "Final stages only show the last 7, 30 or 90 days, so they don’t grow forever."
     }
   ]
 }

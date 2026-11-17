@@ -44,6 +44,10 @@
       "label": "Alertas",
       "description": "Abre las alertas de la etapa. El número indica cuántas tiene configuradas."
     },
+    "config.lab-stages.btn.alerts-first": {
+      "label": "Alertas (primera etapa)",
+      "description": "La campana de la primera etapa que no es final. Igual que las demás: abre los avisos de esa etapa."
+    },
     "config.lab-stages.section.alert-enter": {
       "label": "Cuando una orden llega a esta etapa",
       "description": "Avisa cada vez que una orden pasa a esta etapa. La frase dice a quién y por dónde; con los botones se elige el doctor de la orden o quien la creó."

@@ -29,7 +29,7 @@
     {
       "id": "search",
       "title": "Search for the order",
-      "details": "By patient, job, lab or order number."
+      "details": "Search by patient, job, lab or order number."
     },
     {
       "id": "pick",
@@ -43,26 +43,27 @@
     {
       "id": "option",
       "title": "Choose the stage",
-      "details": "Every stage except the current one, in circuit order. Moving to a final stage (Completed, Cancelled) asks nothing."
+      "details": "All stages except the current one, in order. To a final stage, like Completed or Cancelled, it moves without asking."
     },
     {
       "id": "laboratory",
       "title": "Lab",
-      "details": "Only if the order has no lab yet. The list starts filtered by its services’ category."
+      "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected."
     },
     {
       "id": "due-date",
       "title": "Due date",
-      "details": "The date the lab promised. From the next day on, if it has not reached a final stage, the order is overdue and an alert goes out."
+      "details": "It comes proposed from the stage’s time limit, and the shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue."
     },
     {
       "id": "confirm-move",
-      "title": "Confirm the stage change"
+      "title": "Confirm the stage change",
+      "details": "It opens below, in the same panel. Clicking the button saves the change."
     },
     {
       "id": "history",
       "title": "Stage history",
-      "details": "The change is recorded with the user, the date and how long the order spent in the previous stage."
+      "details": "Every change is recorded: who made it, when, and how long it was in the previous stage."
     }
   ]
 }

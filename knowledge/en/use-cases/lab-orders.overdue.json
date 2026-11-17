@@ -25,27 +25,27 @@
     {
       "id": "overdue",
       "title": "Overdue only",
-      "details": "An order is overdue when it goes past its stage’s day limit or its due date passes before it reaches a final stage."
+      "details": "Click it to see only overdue orders. The number shows how many there are. An order is overdue when it goes past its stage’s days, or when the due date passes before it arrives."
     },
     {
       "id": "pick",
       "title": "Open an overdue order",
-      "details": "Red days mark the stage delay; the “Past due” tag marks the missed due date."
+      "details": "In the Status column, days in red mark the delay in the stage. The Overdue label marks a missed due date."
     },
     {
       "id": "reason",
       "title": "Why it is overdue",
-      "details": "Shows the days in stage next to the limit (“5 days · max 3”) and, if the due date passed, how many days ago."
+      "details": "It shows the days in the stage next to the limit. If the due date passed, it says how many days ago."
     },
     {
       "id": "laboratory",
       "title": "Lab contact",
-      "details": "The lab’s phones and email to chase the job."
+      "details": "The lab’s phones and email, to chase the job."
     },
     {
       "id": "history",
       "title": "Stage history",
-      "details": "The change is recorded with the user, the date and how long the order spent in the previous stage."
+      "details": "Every change is recorded: who made it, when, and how long it was in the previous stage."
     }
   ]
 }

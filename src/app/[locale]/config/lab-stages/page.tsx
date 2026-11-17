@@ -147,6 +147,7 @@ export default function LabStagesConfigPage() {
   const isDirty = JSON.stringify(stages) !== initialJson;
   const issues = React.useMemo(() => validate(stages), [stages]);
   const activeStages = stages.filter((s) => s.isActive);
+  const alertsGuideKey = activeStages.find((s) => s.kind !== 'final')?.key;
   const inactiveStages = stages.filter((s) => !s.isActive);
 
   const save = useAsyncAction(
@@ -385,6 +386,7 @@ export default function LabStagesConfigPage() {
                       key={stage.key}
                       stage={stage}
                       position={index + 1}
+                      isAlertsGuideTarget={stage.key === alertsGuideKey}
                       disabled={busy}
                       onChange={(patch) => update(stage.key, patch)}
                       onKindChange={(kind) => changeKind(stage.key, kind)}
@@ -484,9 +486,11 @@ interface SortableStageRowProps {
   onDeactivate: () => void;
   onRemove: () => void;
   onEditAlerts: () => void;
+  /** La campana que señalan las guías: la de la primera etapa no final (las finales no tienen avisos de demora ni de entrega). */
+  isAlertsGuideTarget: boolean;
 }
 
-function SortableStageRow({ stage, position, disabled, onChange, onKindChange, onDeactivate, onRemove, onEditAlerts }: SortableStageRowProps) {
+function SortableStageRow({ stage, position, isAlertsGuideTarget, disabled, onChange, onKindChange, onDeactivate, onRemove, onEditAlerts }: SortableStageRowProps) {
   const t = useTranslations('LabStagesPage');
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: stage.key,
@@ -575,7 +579,7 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  data-help-id="config.lab-stages.btn.alerts"
+                  data-help-id={isAlertsGuideTarget ? 'config.lab-stages.btn.alerts-first' : 'config.lab-stages.btn.alerts'}
                   size="icon"
                   variant="ghost"
                   onClick={onEditAlerts}

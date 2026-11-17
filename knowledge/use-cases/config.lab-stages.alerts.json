@@ -24,7 +24,7 @@
     {
       "id": "bell",
       "action": "highlight",
-      "target": "config.lab-stages.btn.alerts",
+      "target": "config.lab-stages.btn.alerts-first",
       "title": "Tocá la campana de la etapa",
       "details": "Cada etapa tiene la suya, en su fila.",
       "until": "config.lab-stages.section.alert-enter"

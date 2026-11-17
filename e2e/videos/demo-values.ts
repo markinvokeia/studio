@@ -361,7 +361,8 @@ const BASE_VALUES: Record<string, Record<string, unknown>> = {
   'lab-orders.overview': { demo: true },
   'lab-orders.create': { patient: 'Carlos Andrada', service: 'Corona de zirconio', teeth: '11', item_notes: 'Color A2, alta translucidez', doctor: 'Lucía Fernández', laboratory: 'Cerámica Dental Prado', notes: 'Impresión digital enviada por correo al laboratorio.', demo: true },
   'lab-orders.send': { query: 'Sebastián De León', laboratory: 'Cerámica Dental Prado', due_date: daysAhead(7), demo: true },
-  'lab-orders.change-stage': { query: 'Claudia Etchegaray', demo: true },
+  // Una orden recién creada y sin laboratorio: al pasarla a una etapa intermedia pide laboratorio y fecha (sin eso se mueve en el acto).
+  'lab-orders.change-stage': { query: 'Sebastián De León', laboratory: 'Cerámica Dental Prado', due_date: daysAhead(7), demo: true },
   'lab-orders.board': { demo: true },
   'lab-orders.overdue': { demo: true },
   'lab-orders.edit': { query: 'Rosario Díaz', notes: 'El laboratorio confirmó la entrega para mañana.', demo: true },

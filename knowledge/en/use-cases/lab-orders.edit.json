@@ -26,7 +26,7 @@
     {
       "id": "search",
       "title": "Search for the order",
-      "details": "By patient, job, lab or order number."
+      "details": "Search by patient, job, lab or order number."
     },
     {
       "id": "pick",
@@ -40,12 +40,12 @@
     {
       "id": "review",
       "title": "Review the order",
-      "details": "It opens on Review. “Edit” on each row (or the steps above) takes you to change the patient, services or laboratory; “Back to review” returns here."
+      "details": "It opens on Review. Edit, on each row, changes the patient, the services or the lab."
     },
     {
       "id": "due",
       "title": "Due date",
-      "details": "Shown once the order is sent; if the lab gives a new date, change it here."
+      "details": "It shows once the order was sent. If the lab gives a new date, change it here."
     },
     {
       "id": "notes",
@@ -54,7 +54,7 @@
     {
       "id": "save",
       "title": "Save changes",
-      "details": "The stage is not changed here: use “Move to…” or “Other stage…”."
+      "details": "The stage is not changed here. The stage buttons in the details do that."
     }
   ]
 }

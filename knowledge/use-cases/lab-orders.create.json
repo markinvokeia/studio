@@ -54,7 +54,7 @@
       "action": "fill",
       "target": "lab-orders.field.doctor_id",
       "title": "Doctor",
-      "details": "Quién pidió el trabajo; es a quien le llegan los avisos de la orden.",
+      "details": "Quién pidió el trabajo. Le llegan los avisos de la orden. Si sos doctor, ya venís elegido.",
       "value": "{{values.doctor}}",
       "optional": true
     },
@@ -63,14 +63,14 @@
       "action": "click",
       "target": "lab-orders.btn.step-next",
       "title": "Continuar",
-      "details": "Pasa al trabajo. Si falta el paciente, lo marca en rojo."
+      "details": "Pasa al trabajo."
     },
     {
       "id": "service",
       "action": "fill",
       "target": "lab-orders.btn.add-service",
       "title": "Servicio",
-      "details": "Elegí el trabajo de la lista de servicios de laboratorio. Podés sumar varios; si no existe, se crea desde acá.",
+      "details": "Elegí el trabajo de la lista. Podés sumar varios. La cantidad está al lado del nombre, y casi siempre es uno.",
       "value": "{{values.service}}"
     },
     {
@@ -98,14 +98,14 @@
       "action": "click",
       "target": "lab-orders.btn.step-next",
       "title": "Continuar",
-      "details": "Pasa al laboratorio. Hace falta al menos un servicio o la descripción del trabajo."
+      "details": "Pasa al laboratorio. Hace falta al menos un servicio."
     },
     {
       "id": "laboratory",
       "action": "fill",
       "target": "lab-orders.field.laboratory_id",
       "title": "Laboratorio",
-      "details": "Opcional ahora: si no lo elegís, se pide al enviar la orden. Abajo aparecen los laboratorios de la categoría de los servicios para elegir con un toque.",
+      "details": "Si un solo laboratorio hace ese trabajo, ya viene elegido. Si no, tocá uno de los sugeridos, o dejalo para cuando la envíes.",
       "value": "{{values.laboratory}}",
       "optional": true
     },
@@ -122,14 +122,14 @@
       "action": "highlight",
       "target": "lab-orders.section.review",
       "title": "Revisá la orden",
-      "details": "Paciente, trabajo y laboratorio. «Editar» vuelve a ese paso sin perder lo cargado."
+      "details": "Paciente, trabajo y laboratorio. Con Editar volvés a ese paso sin perder nada."
     },
     {
       "id": "send",
       "action": "highlight",
       "target": "lab-orders.field.send",
       "title": "¿La enviás ahora?",
-      "details": "«Guardarla para enviar después» la deja en la etapa inicial. «Enviarla ahora» la crea y la pasa a la etapa siguiente: pide el laboratorio y la fecha de entrega.",
+      "details": "Guardarla para enviar después la deja en la primera etapa. Enviarla ahora la crea y la pasa a la etapa siguiente, y pide la fecha de entrega.",
       "skipIfMissing": true
     },
     {
@@ -137,7 +137,7 @@
       "action": "fill",
       "target": "lab-orders.field.send_due_date",
       "title": "Fecha de entrega",
-      "details": "La que prometió el laboratorio; desde el día siguiente la orden figura como atrasada.",
+      "details": "La que prometió el laboratorio. Desde el día siguiente, si no llegó, la orden figura atrasada.",
       "value": "{{values.send_due_date}}",
       "optional": true,
       "skipIfMissing": true
@@ -155,7 +155,7 @@
       "action": "highlight",
       "target": "lab-orders.section.form-attachments",
       "title": "Adjuntos",
-      "details": "Fotos, PDF o escaneos 3D para el laboratorio; se suben al crear la orden.",
+      "details": "Fotos, PDF o escaneos 3D para el laboratorio. Se suben al crear la orden.",
       "skipIfMissing": true
     },
     {
@@ -172,7 +172,7 @@
       "action": "confirm",
       "target": "lab-orders.btn.submit",
       "title": "Crear la orden",
-      "details": "Sin enviarla, entra en la etapa inicial sin fecha de entrega. Con «Enviarla ahora», queda en la etapa siguiente con el laboratorio y la fecha."
+      "details": "Sin enviarla, queda en la primera etapa. Si elegiste enviarla ahora, queda en la etapa siguiente con el laboratorio y la fecha."
     }
   ]
 }

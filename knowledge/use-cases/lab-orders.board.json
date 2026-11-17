@@ -33,7 +33,7 @@
       "action": "highlight",
       "target": "lab-orders.section.board",
       "title": "Arrastrá la tarjeta",
-      "details": "Soltala en otra columna para cambiarle la etapa: se guarda en el momento y, si falla, vuelve a su lugar. En celular, usá «Mover a…» del menú de la tarjeta."
+      "details": "Soltala en otra columna para cambiarle la etapa. Si esa etapa pide laboratorio o fecha de entrega, se abre una ventana con la fecha ya propuesta. En el celular, usá Mover a, en el menú de la tarjeta."
     },
     {
       "id": "filters",
@@ -47,7 +47,7 @@
       "action": "highlight",
       "target": "lab-orders.field.final-days",
       "title": "Columnas finales",
-      "details": "Las etapas finales muestran solo lo que llegó en los últimos 7, 30 o 90 días, para que no crezcan sin límite."
+      "details": "Las etapas finales muestran solo lo de los últimos 7, 30 o 90 días, para que no crezcan sin límite."
     }
   ]
 }

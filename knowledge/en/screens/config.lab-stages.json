@@ -38,6 +38,10 @@
       "label": "Alerts",
       "description": "Opens the stage alerts. The number shows how many are set up."
     },
+    "config.lab-stages.btn.alerts-first": {
+      "label": "Alerts (first stage)",
+      "description": "The bell of the first non-final stage. Same as the others: opens that stage's alerts."
+    },
     "config.lab-stages.section.alert-enter": {
       "label": "When an order reaches this stage",
       "description": "Alerts every time an order moves into this stage. The sentence says who and how; the buttons pick the order’s doctor or its creator."

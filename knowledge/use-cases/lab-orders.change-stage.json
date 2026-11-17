@@ -39,7 +39,7 @@
       "action": "fill",
       "target": "lab-orders.filter.search",
       "title": "Buscá la orden",
-      "details": "Por paciente, trabajo, laboratorio o número de orden.",
+      "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
       "value": "{{values.query}}",
       "optional": true,
       "ask": true
@@ -49,7 +49,7 @@
       "action": "highlight",
       "target": "lab-orders.section.first-row",
       "title": "Abrí la orden",
-      "details": "Tocala en la lista. Se abre su detalle a la derecha.",
+      "details": "Tocala en la lista. Su detalle se abre a la derecha.",
       "until": "lab-orders.section.detail-stage",
       "autoClick": true
     },
@@ -63,16 +63,17 @@
     {
       "id": "option",
       "action": "highlight",
-      "target": "lab-orders.btn.move-option",
+      "target": "lab-orders.section.move-menu",
       "title": "Elegí la etapa",
-      "details": "Todas las etapas menos la actual, en el orden del circuito. A una etapa final (Completado, Cancelado) se mueve sin preguntar nada."
+      "details": "Están todas menos la actual, en orden. A una etapa final, como Completado o Cancelado, se mueve sin preguntar.",
+      "doneOnClose": true
     },
     {
       "id": "laboratory",
       "action": "fill",
       "target": "lab-orders.field.send-laboratory",
       "title": "Laboratorio",
-      "details": "Solo si la orden todavía no tiene laboratorio. La lista arranca filtrada por la categoría de sus servicios.",
+      "details": "Solo si todavía no tiene laboratorio. Si uno solo hace ese trabajo, ya viene elegido.",
       "value": "{{values.laboratory}}",
       "optional": true,
       "ask": true,
@@ -83,7 +84,7 @@
       "action": "fill",
       "target": "lab-orders.field.send-due-date",
       "title": "Fecha de entrega",
-      "details": "La fecha que prometió el laboratorio. Desde el día siguiente, si no llegó a una etapa final, la orden queda atrasada y se avisa.",
+      "details": "Viene propuesta según el plazo de la etapa, y los atajos la cambian con un toque. Si pasa la fecha y no llegó, la orden queda atrasada.",
       "value": "{{values.due_date}}",
       "optional": true,
       "ask": true,
@@ -94,14 +95,15 @@
       "action": "confirm",
       "target": "lab-orders.btn.confirm-move",
       "title": "Confirmá el cambio de etapa",
-      "skipIfMissing": true
+      "skipIfMissing": true,
+      "details": "Se abre debajo, en el mismo panel. Al tocar el botón se guarda el cambio."
     },
     {
       "id": "history",
       "action": "highlight",
       "target": "lab-orders.section.history",
       "title": "Historial de etapas",
-      "details": "El cambio queda registrado con el usuario, la fecha y cuánto estuvo en la etapa anterior."
+      "details": "Cada cambio queda registrado: quién lo hizo, cuándo, y cuánto estuvo en la etapa anterior."
     }
   ]
 }

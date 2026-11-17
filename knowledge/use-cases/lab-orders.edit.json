@@ -36,7 +36,7 @@
       "action": "fill",
       "target": "lab-orders.filter.search",
       "title": "Buscá la orden",
-      "details": "Por paciente, trabajo, laboratorio o número de orden.",
+      "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
       "value": "{{values.query}}",
       "optional": true,
       "ask": true
@@ -46,7 +46,7 @@
       "action": "highlight",
       "target": "lab-orders.section.first-row",
       "title": "Abrí la orden",
-      "details": "Tocala en la lista. Se abre su detalle a la derecha.",
+      "details": "Tocala en la lista. Su detalle se abre a la derecha.",
       "until": "lab-orders.section.detail-stage",
       "autoClick": true
     },
@@ -62,14 +62,14 @@
       "action": "highlight",
       "target": "lab-orders.section.review",
       "title": "Revisá la orden",
-      "details": "Se abre en Revisar. «Editar» en cada fila (o los pasos de arriba) lleva a cambiar el paciente, los servicios o el laboratorio; «Volver a revisar» regresa acá."
+      "details": "Se abre en Revisar. Con Editar, en cada fila, cambiás el paciente, los servicios o el laboratorio."
     },
     {
       "id": "due",
       "action": "highlight",
       "target": "lab-orders.field.due_date",
       "title": "Fecha de entrega",
-      "details": "Aparece una vez enviada la orden; si el laboratorio avisa otra fecha, se cambia acá.",
+      "details": "Aparece cuando la orden ya se envió. Si el laboratorio avisa otra fecha, se cambia acá.",
       "skipIfMissing": true
     },
     {
@@ -85,7 +85,7 @@
       "action": "confirm",
       "target": "lab-orders.btn.submit",
       "title": "Guardar cambios",
-      "details": "La etapa no se cambia desde acá: se usa «Pasar a…» u «Otra etapa…»."
+      "details": "La etapa no se cambia desde acá. Para eso están los botones de etapa del detalle."
     }
   ]
 }

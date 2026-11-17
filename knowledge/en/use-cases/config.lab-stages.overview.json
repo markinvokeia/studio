@@ -19,12 +19,12 @@
     {
       "id": "active",
       "title": "Active stages",
-      "details": "In circuit order (drag them by the left handle). Exactly one initial stage, where every new order starts, and at least one final. The days set when an order in that stage becomes overdue."
+      "details": "In the order of the workflow; drag the icon on the left to reorder. There is one initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage becomes overdue."
     },
     {
       "id": "alerts",
       "title": "Stage alerts",
-      "details": "The bell shows how many alerts it has: on entry, by time in stage and by past due date."
+      "details": "The bell shows how many alerts it has: when an order arrives, if it takes too long, and if the due date passes."
     },
     {
       "id": "inactive",
@@ -38,7 +38,7 @@
     {
       "id": "save",
       "title": "Save",
-      "details": "Nothing applies until you save; the whole setup is saved together."
+      "details": "List changes apply when you save, all together."
     }
   ]
 }

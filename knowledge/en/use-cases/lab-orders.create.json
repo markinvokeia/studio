@@ -36,22 +36,22 @@
     {
       "id": "patient",
       "title": "Patient",
-      "details": "Who the job is for. From the patient record it is already selected."
+      "details": "Who the job is for. From the patient’s record it comes preselected."
     },
     {
       "id": "doctor",
       "title": "Doctor",
-      "details": "Who requested the job; the order’s alerts go to them."
+      "details": "Who requested the job. They get the order’s alerts. If you are a doctor, you come preselected."
     },
     {
       "id": "next-work",
       "title": "Continue",
-      "details": "Moves on to the job. If the patient is missing, it is marked in red."
+      "details": "Goes to the job."
     },
     {
       "id": "service",
       "title": "Service",
-      "details": "Pick the job from the lab services list. You can add several; if it does not exist, create it from here."
+      "details": "Pick the job from the list. You can add several. The quantity is next to the name, and it is almost always one."
     },
     {
       "id": "teeth",
@@ -66,32 +66,32 @@
     {
       "id": "next-laboratory",
       "title": "Continue",
-      "details": "Moves on to the laboratory. At least one service or a job description is needed."
+      "details": "Goes to the lab. At least one service is needed."
     },
     {
       "id": "laboratory",
       "title": "Lab",
-      "details": "Optional for now: if you leave it empty, it is asked for when the order is sent. Below are the laboratories of the services’ category to pick with one tap."
+      "details": "If only one lab does that job, it comes preselected. Otherwise click one of the suggestions, or leave it for when you send it."
     },
     {
       "id": "next-review",
       "title": "Continue",
-      "details": "Moves on to review the order before creating it."
+      "details": "Goes to review the order before creating it."
     },
     {
       "id": "review",
       "title": "Review the order",
-      "details": "Patient, job and laboratory. “Edit” goes back to that step without losing what you entered."
+      "details": "Patient, job and lab. Edit takes you back to that step without losing anything."
     },
     {
       "id": "send",
       "title": "Send it now?",
-      "details": "“Save it to send later” leaves it in the initial stage. “Send it now” creates it and moves it to the next stage: it asks for the laboratory and the expected delivery date."
+      "details": "Save to send later keeps it in the first stage. Send now creates it and moves it to the next stage, and asks for the due date."
     },
     {
       "id": "send-due",
       "title": "Expected delivery",
-      "details": "The date the laboratory promised; from the next day the order shows as overdue."
+      "details": "The one the lab promised. From the next day, if it has not arrived, the order shows as overdue."
     },
     {
       "id": "notes",
@@ -100,17 +100,17 @@
     {
       "id": "attachments",
       "title": "Attachments",
-      "details": "Photos, PDFs or 3D scans for the lab; they are uploaded when the order is created."
+      "details": "Photos, PDFs or 3D scans for the lab. They upload when the order is created."
     },
     {
       "id": "urgent",
       "title": "Urgent",
-      "details": "If you turn it on, it comes first in the list, on the board and in the patient file."
+      "details": "If you mark it, it shows first in the list, on the board and in the patient’s record."
     },
     {
       "id": "save",
       "title": "Create the order",
-      "details": "If not sent, it enters the initial stage with no delivery date. With “Send it now”, it lands in the next stage with the laboratory and the date."
+      "details": "Without sending it, it stays in the first stage. If you chose to send it now, it moves to the next stage with the lab and the date."
     }
   ]
 }
