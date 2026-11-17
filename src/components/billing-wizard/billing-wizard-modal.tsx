@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { api } from '@/services/api';
 import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -41,6 +42,7 @@ import { buildDiscountedDocument, type BuildDiscountedDocumentOptions } from '@/
 import type { DiscountMode } from '@/lib/types';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
+import { NoCashSessionDialog } from './no-cash-session-dialog';
 import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
 import { getClinicCurrency, useClinicInfoStore } from '@/stores/clinic-info-store';
 
@@ -364,6 +366,7 @@ async function fetchInvoicePaymentsForConfirmation(
 export function BillingWizardModal() {
   const t = useTranslations('BillingWizard');
   const { isOpen, context, onSuccess, close } = useBillingWizard();
+  const notifyChange = useBillingWizard((s) => s.notifyChange);
   const { activeSede } = useAuth();
   const isSales = context?.isSales ?? true;
 
@@ -422,6 +425,18 @@ export function BillingWizardModal() {
   // Effective patient info: from patient-selection step OR from context
   const effectivePatientId = selectedPatient?.id || context?.patientId;
   const effectivePatientName = selectedPatient?.name || context?.patientName;
+
+  // Patient whose finances just changed, read when a save finishes (the invoice may be the only
+  // source when the wizard started from an invoice or a quote).
+  const changedPatientIdRef = React.useRef<string | null>(null);
+  React.useLayoutEffect(() => {
+    changedPatientIdRef.current =
+      effectivePatientId || resolvedInvoice?.user_id || pendingInvoicesForPayment[0]?.user_id || null;
+  });
+  /** Tells every open patient view (ficha, ledger sheet…) that this patient's invoices/payments changed. */
+  const reportChange = React.useCallback((patientId?: string | null) => {
+    notifyChange(patientId || changedPatientIdRef.current);
+  }, [notifyChange]);
 
   // Whether any service line has been selected for invoicing
   const hasSelectedServices = React.useMemo(
@@ -634,6 +649,16 @@ export function BillingWizardModal() {
     setCurrentStep(1);
   }, [selectedInvoices, t]);
 
+  // "Facturar y Cobrar" without an open cash session: which flow offers "Solo facturar" instead.
+  const [noSessionFlow, setNoSessionFlow] = React.useState<'quote' | 'freeform' | null>(null);
+  const { validateActiveSession } = useCashSessionValidation();
+  const validateActiveSessionRef = React.useRef(validateActiveSession);
+  React.useLayoutEffect(() => { validateActiveSessionRef.current = validateActiveSession; });
+  const hasActiveCashSession = React.useCallback(
+    async () => (await validateActiveSessionRef.current()).isValid,
+    [],
+  );
+
   // Fire-and-forget: link the new invoice back to the originating appointment/session
   const linkInvoiceToContext = React.useCallback((invoiceId: string) => {
     if (context?.appointmentId) {
@@ -680,6 +705,14 @@ export function BillingWizardModal() {
     setIsProcessing(true);
     setError(null);
 
+    // The payment needs an open cash session: check it BEFORE creating the invoice, otherwise
+    // the user leaves for the cashier with an invoice they believe was collected.
+    if (action === 'invoice-and-pay' && !(await hasActiveCashSession())) {
+      setIsProcessing(false);
+      setNoSessionFlow('quote');
+      return;
+    }
+
     try {
       // Auto-confirm quote if needed
       if (quoteObj.status && !['confirmed', 'accepted'].includes(quoteObj.status)) {
@@ -702,6 +735,7 @@ export function BillingWizardModal() {
 
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
+      reportChange(invoice.user_id);
 
       if (action === 'invoice-only') {
         setConfirmationData({
@@ -724,7 +758,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [context, quote, orderId, quoteBillingLines, isSales, linkInvoiceToContext, steps.length, onSuccess, selectedInvoices, t]);
+  }, [context, quote, orderId, quoteBillingLines, isSales, linkInvoiceToContext, reportChange, hasActiveCashSession, steps.length, onSuccess, selectedInvoices, t]);
 
   // Freeform flow: create invoice directly from editable items
   const handleItemsEditorNext = React.useCallback(async (action: 'invoice-only' | 'invoice-and-pay') => {
@@ -741,6 +775,12 @@ export function BillingWizardModal() {
     setIsProcessing(true);
     setError(null);
 
+    if (action === 'invoice-and-pay' && !(await hasActiveCashSession())) {
+      setIsProcessing(false);
+      setNoSessionFlow('freeform');
+      return;
+    }
+
     try {
       const invoice = await createDirectInvoice(
         effectivePatientId,
@@ -753,6 +793,7 @@ export function BillingWizardModal() {
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
+      reportChange(invoice.user_id);
       await context?.onInvoiceCreated?.(invoice.id);
 
       if (action === 'invoice-only') {
@@ -774,7 +815,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [context, effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext,
+  }, [context, effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext, reportChange, hasActiveCashSession,
       discounts.enabled, discounts.scope, freeformDiscount, t]);
 
   const handlePaymentSuccess = React.useCallback(
@@ -844,9 +885,10 @@ export function BillingWizardModal() {
         });
       }
       setCurrentStep(steps.length - 1);
+      reportChange();
       onSuccess?.();
     },
-    [resolvedInvoice, steps.length, onSuccess, pendingInvoicesForPayment, isSales],
+    [resolvedInvoice, steps.length, onSuccess, pendingInvoicesForPayment, isSales, reportChange],
   );
 
   const handleSkipPayment = React.useCallback(
@@ -1216,6 +1258,16 @@ export function BillingWizardModal() {
           </div>
         </DialogBody>
       </DialogContent>
+      <NoCashSessionDialog
+        open={noSessionFlow !== null}
+        onOpenChange={(open) => { if (!open) setNoSessionFlow(null); }}
+        onInvoiceOnly={() => {
+          const flow = noSessionFlow;
+          setNoSessionFlow(null);
+          if (flow === 'quote') void handleTreatmentNext('invoice-only');
+          else if (flow === 'freeform') void handleItemsEditorNext('invoice-only');
+        }}
+      />
     </Dialog>
   );
 }

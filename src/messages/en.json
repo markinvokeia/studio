@@ -9547,6 +9547,9 @@
         "pending": "Pending"
       }
     },
+    "noSession": {
+      "invoiceOnlyHint": "You can create the invoice now and collect it later, once the cash session is open."
+    },
     "payment": {
       "validation": {
         "methodRequired": "Method is required",
@@ -9588,6 +9591,8 @@
       "addMethod": "Add another payment method",
       "exchangeRate": "Exchange rate ({primary} per 1 {secondary})",
       "exchangeRateHint": "Applies to all payments in a currency other than {currency}",
+      "useConvertedBalance": "Charge the converted balance: {amount}",
+      "exceedsConvertedBalance": "Exceeds the balance at the current rate.",
       "notes": "Notes (optional)",
       "notesPlaceholder": "Payment remarks...",
       "distribution": "Payment distribution",
