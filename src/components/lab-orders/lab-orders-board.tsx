@@ -22,9 +22,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useLabOrderChanged } from '@/lib/lab-orders-events';
 import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
-import { LabOrdersError, changeLabOrderStage, fetchLabOrdersBoard, searchLabOrders } from '@/services/lab-orders';
+import { LabOrdersError, changeLabOrderStage, searchLabOrders } from '@/services/lab-orders';
 
-import type { Laboratory, LabOrder, LabOrderBoardFilters, LabStage } from '@/lib/types';
+import type { LabOrder, LabOrderFilters, LabOrderSort, LabStage } from '@/lib/types';
 
 interface ColumnState {
   total: number;
@@ -33,7 +33,10 @@ interface ColumnState {
 
 type BoardData = Record<number, ColumnState>;
 
-const PER_COLUMN = 30;
+/** Tarjetas por tanda: las primeras de cada columna y las que se suman al llegar al final. */
+const PAGE_SIZE = 20;
+/** Tope del backend por pedido: una recarga trae de una vez hasta esta cantidad. */
+const MAX_PAGE = 200;
 const COLLAPSED_STORAGE = 'lab-orders-board-collapsed';
 /** Cuánto queda resaltada una tarjeta movida por voz. */
 const FLASH_MS = 4000;
@@ -62,12 +65,15 @@ function placeOrder(data: BoardData, order: LabOrder, toStage: number, fromStage
   return next;
 }
 
+/** Filtros de la pantalla que aplica el tablero: todos menos etapa, orden y paginación. */
+export type LabOrdersBoardFilters = Omit<LabOrderFilters, 'stage_ids' | 'pending_only' | 'entered_within_days' | 'sort' | 'limit' | 'offset'>;
+
 export interface LabOrdersBoardProps {
   /** Etapas activas, en orden. Una columna por cada una. */
   stages: LabStage[];
-  filters: Omit<LabOrderBoardFilters, 'per_column' | 'final_days'>;
-  /** Las columnas finales muestran lo que llegó en los últimos N días. */
-  finalDays: number;
+  filters: LabOrdersBoardFilters;
+  /** Qué tarjetas van primero en cada columna (el mismo criterio que la lista). */
+  sort: LabOrderSort;
   /** Cambia para volver a pedir el tablero (alta, edición, evento en vivo). */
   reloadKey: number;
   canChangeStage: boolean;
@@ -78,12 +84,13 @@ export interface LabOrdersBoardProps {
 }
 
 /**
- * Tablero de órdenes de laboratorio: una columna por etapa activa. Arrastrar una tarjeta (o
- * "Mover a…" en su menú, para celular y teclado) cambia la etapa y se guarda en el momento:
- * la tarjeta se mueve enseguida, vuelve a su lugar si el guardado falla y no se puede volver
- * a mover mientras se guarda.
+ * Tablero de órdenes de laboratorio: una columna por etapa activa. Cada columna trae sus
+ * primeras tarjetas según el orden elegido y suma las siguientes al llegar al final del scroll
+ * (sin páginas). Arrastrar una tarjeta (o "Mover a…" en su menú, para celular y teclado) cambia
+ * la etapa y se guarda en el momento: la tarjeta se mueve enseguida, vuelve a su lugar si el
+ * guardado falla y no se puede volver a mover mientras se guarda.
  */
-export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChangeStage, onOpen, onMoved, className }: LabOrdersBoardProps) {
+export function LabOrdersBoard({ stages, filters, sort, reloadKey, canChangeStage, onOpen, onMoved, className }: LabOrdersBoardProps) {
   const t = useTranslations('LabOrdersPage');
   const { toast } = useToast();
   const errorText = useLabOrderErrorText();
@@ -131,28 +138,58 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
 
   const stageById = React.useMemo(() => new Map(stages.map((s) => [s.id, s])), [stages]);
 
-  const { search, laboratory_id, doctor_id, overdue_only, urgent_only } = filters;
+  // Las columnas se piden con la misma búsqueda que la lista (una por etapa): así el tablero
+  // filtra por todo lo que filtra la lista y respeta el orden elegido.
+  const filtersKey = JSON.stringify(filters);
+  const queryKey = `${filtersKey}|${sort}`;
+  const stageIdsKey = stages.map((s) => s.id).join(',');
+  /** Lo que se ve y con qué filtros se cargó: una recarga (evento en vivo, guardado) no pierde
+   *  las tarjetas que ya se habían sumado al bajar. */
+  const dataRef = React.useRef(data);
+  React.useEffect(() => { dataRef.current = data; });
+  const dataQueryRef = React.useRef('');
+  /** Sube con cada carga completa: una tanda pedida antes ya no se suma a las columnas nuevas. */
+  const generationRef = React.useRef(0);
+
   React.useEffect(() => {
     // Una recarga con un movimiento en vuelo pisaría la tarjeta movida: se posterga.
     if (inFlightRef.current.size > 0) {
       deferredReloadRef.current = true;
       return;
     }
+    const stageIds = stageIdsKey ? stageIdsKey.split(',').map(Number) : [];
+    if (stageIds.length === 0) return;
     const controller = new AbortController();
+    const generation = ++generationRef.current;
+    const query = JSON.parse(filtersKey) as LabOrdersBoardFilters;
+    // Mismos filtros y orden: se vuelve a traer lo que ya se veía. Si cambiaron, desde el principio.
+    const sameQuery = dataQueryRef.current === queryKey && dataRef.current != null;
+    const previous: Record<number, number> = sameQuery && dataRef.current
+      ? Object.fromEntries(Object.entries(dataRef.current).map(([id, column]) => [id, column.items.length]))
+      : {};
+    if (!sameQuery) setData(null);
     setLoadError(null);
-    fetchLabOrdersBoard(
-      { search, laboratory_id, doctor_id, overdue_only, urgent_only, per_column: PER_COLUMN, final_days: finalDays },
+    setLoadingMore(new Set());
+    Promise.all(stageIds.map((stageId) => searchLabOrders(
+      {
+        ...query,
+        stage_ids: [stageId],
+        sort,
+        limit: Math.min(MAX_PAGE, Math.max(PAGE_SIZE, previous[stageId] ?? 0)),
+        offset: 0,
+      },
       { signal: controller.signal },
-    )
+    ).then((result) => [stageId, result] as const)))
       .then((columns) => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || generation !== generationRef.current) return;
         const next: BoardData = {};
-        for (const column of columns) next[column.stage_id] = { total: column.total, items: column.items };
+        for (const [stageId, result] of columns) next[stageId] = { total: result.total, items: result.items };
+        dataQueryRef.current = queryKey;
         setData(next);
       })
-      .catch((error) => { if (!isAbortError(error)) setLoadError(errorText(error)); });
+      .catch((error) => { if (!isAbortError(error) && !controller.signal.aborted) setLoadError(errorText(error)); });
     return () => controller.abort();
-  }, [search, laboratory_id, doctor_id, overdue_only, urgent_only, finalDays, reloadKey, retryKey, internalReload, errorText]);
+  }, [filtersKey, queryKey, sort, stageIdsKey, reloadKey, retryKey, internalReload, errorText]);
 
   const toggleCollapsed = (stageId: number) => {
     setCollapsed((prev) => {
@@ -242,34 +279,36 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
 
   const loadMore = async (stage: LabStage) => {
     const column = data?.[stage.id];
-    if (!column || loadingMore.has(stage.id)) return;
+    if (!column || column.items.length >= column.total || loadingMore.has(stage.id)) return;
+    const generation = generationRef.current;
     setLoadingMore((prev) => new Set(prev).add(stage.id));
     try {
-      const isFinal = stage.kind === 'final';
       const result = await searchLabOrders({
+        ...(JSON.parse(filtersKey) as LabOrdersBoardFilters),
         stage_ids: [stage.id],
-        search, laboratory_id, doctor_id, overdue_only, urgent_only,
-        entered_within_days: isFinal ? finalDays : undefined,
-        // Mismo orden que el tablero: finales más recientes primero, el resto más antiguas primero.
-        sort: isFinal ? 'days_asc' : 'days_desc',
-        limit: PER_COLUMN,
+        sort,
+        limit: PAGE_SIZE,
         offset: column.items.length,
       });
-      setData((prev) => prev && ({
+      // Cambiaron los filtros o el orden mientras tanto: esta tanda ya no corresponde.
+      if (generation !== generationRef.current) return;
+      setData((prev) => (prev?.[stage.id] ? {
         ...prev,
         [stage.id]: {
-          total: result.total || prev[stage.id].total,
+          total: result.total,
           items: [...prev[stage.id].items, ...result.items.filter((o) => !prev[stage.id].items.some((p) => p.id === o.id))],
         },
-      }));
+      } : prev));
     } catch (error) {
-      toast({ variant: 'destructive', title: t('loadMoreError'), description: errorText(error) });
+      if (generation === generationRef.current) toast({ variant: 'destructive', title: t('loadMoreError'), description: errorText(error) });
     } finally {
-      setLoadingMore((prev) => {
-        const next = new Set(prev);
-        next.delete(stage.id);
-        return next;
-      });
+      if (generation === generationRef.current) {
+        setLoadingMore((prev) => {
+          const next = new Set(prev);
+          next.delete(stage.id);
+          return next;
+        });
+      }
     }
   };
 
@@ -339,7 +378,6 @@ export function LabOrdersBoard({ stages, filters, finalDays, reloadKey, canChang
               column={column}
               isLoading={!data}
               isCollapsed={isCollapsed}
-              finalDays={finalDays}
               loadingMore={loadingMore.has(stage.id)}
               onToggleCollapsed={() => toggleCollapsed(stage.id)}
               onLoadMore={() => loadMore(stage)}
@@ -382,19 +420,35 @@ interface BoardColumnProps {
   column?: ColumnState;
   isLoading: boolean;
   isCollapsed: boolean;
-  finalDays: number;
   loadingMore: boolean;
   onToggleCollapsed: () => void;
   onLoadMore: () => void;
   children?: React.ReactNode;
 }
 
-function BoardColumn({ stage, column, isLoading, isCollapsed, finalDays, loadingMore, onToggleCollapsed, onLoadMore, children }: BoardColumnProps) {
+function BoardColumn({ stage, column, isLoading, isCollapsed, loadingMore, onToggleCollapsed, onLoadMore, children }: BoardColumnProps) {
   const t = useTranslations('LabOrdersPage');
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const total = column?.total ?? 0;
   const shown = column?.items.length ?? 0;
-  const isFinal = stage.kind === 'final';
+  const hasMore = shown < total;
+
+  // Carga por partes: cuando el final de la columna entra en pantalla se piden las siguientes.
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const onLoadMoreRef = React.useRef(onLoadMore);
+  React.useEffect(() => { onLoadMoreRef.current = onLoadMore; });
+  React.useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!hasMore || loadingMore || !root || !sentinel || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries.some((e) => e.isIntersecting)) onLoadMoreRef.current(); },
+      { root, rootMargin: '0px 0px 160px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, shown, isCollapsed]);
 
   if (isCollapsed) {
     return (
@@ -432,8 +486,7 @@ function BoardColumn({ stage, column, isLoading, isCollapsed, finalDays, loading
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </header>
-      {isFinal && <p className="px-3 pb-1 text-[11px] text-muted-foreground">{t('board.finalWindow', { days: finalDays })}</p>}
-      <div className="min-h-[6rem] flex-1 space-y-2 overflow-y-auto px-2 pb-2">
+      <div ref={scrollRef} className="min-h-[6rem] flex-1 space-y-2 overflow-y-auto px-2 pb-2">
         {isLoading && (
           <>
             <Skeleton className="h-20 w-full rounded-lg" />
@@ -442,10 +495,20 @@ function BoardColumn({ stage, column, isLoading, isCollapsed, finalDays, loading
         )}
         {!isLoading && shown === 0 && <p className="px-1 py-4 text-center text-xs text-muted-foreground">{t('board.emptyColumn')}</p>}
         {children}
-        {shown < total && (
-          <Button variant="ghost" size="sm" className="w-full" onClick={onLoadMore} loading={loadingMore}>
-            {t('board.loadMore', { count: total - shown })}
-          </Button>
+        {hasMore && (
+          <div ref={sentinelRef} className="flex min-h-9 items-center justify-center">
+            {loadingMore ? (
+              <span role="status" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                {t('board.loadingMore')}
+              </span>
+            ) : (
+              // Respaldo si el final de la columna no dispara la carga (sin IntersectionObserver).
+              <Button variant="ghost" size="sm" className="h-7 w-full text-xs text-muted-foreground" onClick={onLoadMore}>
+                {t('board.loadMore', { count: total - shown })}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </section>

@@ -1,5 +1,5 @@
 {
- "version": "6f20506a33b4c6ec",
+ "version": "135be64e72ea60e1",
  "locale": "en",
  "journey": [
   {
@@ -8180,6 +8180,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Creates a service already marked as lab work, without going to Sales → Services. If the search finds nothing, it offers to create it with that name.",
+     "id": "lab-orders.btn.new-lab-service",
+     "kind": "btn",
+     "label": "New lab work",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Creates a specialty by typing its name (a provider group marked as a lab category).",
      "id": "lab-orders.btn.new-specialty",
      "kind": "btn",
@@ -8194,10 +8201,10 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Opens Patients searching for the order's patient.",
+     "description": "Opens the order’s patient file on top of the screen, without leaving lab orders.",
      "id": "lab-orders.btn.open-patient",
      "kind": "btn",
-     "label": "Open in Patients",
+     "label": "View patient",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8220,6 +8227,13 @@
      "kind": "btn",
      "label": "Remove service",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Creates the service and marks it as lab work; it shows at the top of the list.",
+     "id": "lab-orders.btn.save-lab-service",
+     "kind": "btn",
+     "label": "Create and mark",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Creates the lab. If the phone or email already belong to another contact, it warns first.",
@@ -8363,6 +8377,12 @@
      "source": "src/components/voice/voice-command-host.tsx"
     },
     {
+     "id": "lab-orders.field.category_id",
+     "kind": "field",
+     "label": "Category",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Doctor who requested the job; the order’s alerts can go to them. If whoever creates the order is a doctor, they come preselected (can be changed).",
      "id": "lab-orders.field.doctor_id",
      "kind": "field",
@@ -8384,11 +8404,10 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
-     "description": "Final stages only show orders that arrived in the chosen last days, so they do not grow forever.",
-     "id": "lab-orders.field.final-days",
+     "id": "lab-orders.field.duration_minutes",
      "kind": "field",
-     "label": "Final columns",
-     "source": "src/app/[locale]/lab-orders/page.tsx"
+     "label": "Duration (min)",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Marks the order as urgent.",
@@ -8419,6 +8438,19 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "id": "lab-orders.field.lab_category_id",
+     "kind": "field",
+     "label": "Specialty",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "What the work is called (e.g. Zirconia crown).",
+     "id": "lab-orders.field.lab-service-name",
+     "kind": "field",
+     "label": "Name",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Which lab the order is sent to. Optional when creating. If only one lab does those jobs, it comes preselected (can be removed). Filtered by specialty and, if missing, created right there.",
      "id": "lab-orders.field.laboratory_id",
      "kind": "field",
@@ -8437,6 +8469,12 @@
      "id": "lab-orders.field.laboratory-specialties",
      "kind": "field",
      "label": "What it does",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "id": "lab-orders.field.name",
+     "kind": "field",
+     "label": "Name",
      "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
@@ -8466,6 +8504,12 @@
      "kind": "field",
      "label": "Patient",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.price",
+     "kind": "field",
+     "label": "Price",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Save it in the initial stage to send later, or send it now to the next stage. Sending it requires the laboratory and the expected delivery date.",
@@ -8501,6 +8545,13 @@
      "kind": "field",
      "label": "When was it sent?",
      "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Outside the filters: it applies to both the list and the board. On the board it decides which cards show first in each column (newest, oldest, most or fewest days in the stage). Pending urgent orders always go on top.",
+     "id": "lab-orders.field.sort",
+     "kind": "field",
+     "label": "Sort by",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
      "description": "The order’s teeth when it has no services (comma-separated numbers).",
@@ -8671,6 +8722,13 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "The service basics: name, category, price and duration (in the clinic’s currency) and, if any, the specialty. The rest can be completed later in Sales → Services.",
+     "id": "lab-orders.section.new-lab-service",
+     "kind": "section",
+     "label": "New lab work",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Name, phone, email and what it does (specialties). Behind the scenes it creates the provider and assigns it to those specialties.",
      "id": "lab-orders.section.new-laboratory",
      "kind": "section",
@@ -8792,7 +8850,8 @@
     "Turn on «Urgent» in the form so the order shows first in the list, in its board column and in the patient record; the Urgent button shows only those.",
     "Creating an order goes step by step: Patient → Job → Laboratory → Review. When opened from the patient record or a clinical session, what is already filled in counts as done and it starts at the next step. “Edit” opens straight on Review.",
     "While labs or lab jobs are missing, \"Getting started\" appears above the list: each step is done right there (add a lab with its specialties, turn on the services sent to a lab). Afterwards, the same options are under the \"Set up\" button.",
-    "When you send the order from the detail, the lab and the date are filled in the same panel, with no windows: the date is suggested from the stage deadline (shortcuts \"In 3 days\", \"In 1 week\", \"In 2 weeks\") and, if there is only one possible lab, it is already selected. Usually you just confirm."
+    "When you send the order from the detail, the lab and the date are filled in the same panel, with no windows: the date is suggested from the stage deadline (shortcuts \"In 3 days\", \"In 1 week\", \"In 2 weeks\") and, if there is only one possible lab, it is already selected. Usually you just confirm.",
+    "The board loads each column in parts: about 20 cards first and, when you reach the end of the column’s scroll, the next ones. Sort by decides which cards go first. It applies the same filters as the list (patient and creation dates included), except the stage: each stage is a column."
    ],
    "title": "Lab Orders",
    "useCases": [
@@ -31977,22 +32036,14 @@
      "title": "Drag the card"
     },
     {
-     "action": "click",
-     "details": "Opens the rest of the filters. The number shows how many are applied.",
-     "id": "filters",
-     "target": "lab-orders.btn.filters",
-     "title": "Filters",
-     "until": "lab-orders.field.final-days"
-    },
-    {
      "action": "highlight",
-     "details": "Final stages only show the last 7, 30 or 90 days, so they don’t grow forever.",
-     "id": "final-days",
-     "target": "lab-orders.field.final-days",
-     "title": "Final columns"
+     "details": "Decides which cards show first in each column. Scrolling down a column loads the next ones on its own.",
+     "id": "sort",
+     "target": "lab-orders.field.sort",
+     "title": "Sort by"
     }
    ],
-   "summary": "See orders in columns by stage, move them by dragging and limit final columns to recent days.",
+   "summary": "See orders in columns by stage, move them by dragging and choose which cards show first.",
    "title": "Use the orders board"
   },
   {

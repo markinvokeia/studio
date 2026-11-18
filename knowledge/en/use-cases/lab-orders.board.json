@@ -1,7 +1,7 @@
 {
   "id": "lab-orders.board",
   "title": "Use the orders board",
-  "summary": "See orders in columns by stage, move them by dragging and limit final columns to recent days.",
+  "summary": "See orders in columns by stage, move them by dragging and choose which cards show first.",
   "module": "Clinic History",
   "inputs": {},
   "keywords": [
@@ -27,13 +27,9 @@
       "details": "Drop it on another column to change its stage. If that stage needs a lab or a due date, a window opens with the date already proposed. On a phone, use Move to, in the card’s menu."
     },
     {
-      "id": "filters",
-      "title": "Filters"
-    },
-    {
-      "id": "final-days",
-      "title": "Final columns",
-      "details": "Final stages only show the last 7, 30 or 90 days, so they don’t grow forever."
+      "id": "sort",
+      "title": "Sort by",
+      "details": "Decides which cards show first in each column. Scrolling down a column loads the next ones on its own."
     }
   ]
 }

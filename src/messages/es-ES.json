@@ -10859,7 +10859,7 @@
       "restore": "Restaurar",
       "close": "Cerrar",
       "description": "Descripción",
-      "openPatient": "Ver en Pacientes",
+      "openPatient": "Ver ficha",
       "progress": "Progreso",
       "sectionOrder": "Datos de la orden",
       "current": "Actual · {days}",
@@ -10913,9 +10913,6 @@
       "board": "Tablero"
     },
     "board": {
-      "finalWindow": "Llegadas en los últimos {days} días",
-      "finalWindowLabel": "Columnas finales",
-      "lastDays": "Últimos {days} días",
       "emptyColumn": "Sin órdenes",
       "loadMore": "Cargar más ({count})",
       "expand": "Expandir «{stage}»",
@@ -10929,7 +10926,8 @@
         "outside": "La orden {order} no está sobre ninguna columna.",
         "end": "La orden {order} se movió a «{stage}».",
         "cancel": "Se canceló el movimiento de la orden {order}."
-      }
+      },
+      "loadingMore": "Cargando más…"
     },
     "labSelector": {
       "select": "Seleccionar laboratorio",
@@ -11120,7 +11118,28 @@
         "specialtyFor": "Especialidad de {name}",
         "anySpecialty": "Cualquier laboratorio",
         "toggle": "{name} es trabajo de laboratorio",
-        "footerHint": "Con especialidad, al crear la orden se proponen solo los laboratorios que la hacen."
+        "footerHint": "Con especialidad, al crear la orden se proponen solo los laboratorios que la hacen.",
+        "new": "Nuevo trabajo",
+        "createNamed": "Crear «{name}»",
+        "create": {
+          "title": "Nuevo trabajo de laboratorio",
+          "name": "Nombre",
+          "namePlaceholder": "P. ej. Corona de circonio",
+          "nameRequired": "Introduce un nombre.",
+          "category": "Categoría",
+          "categoryPlaceholder": "Selecciona una categoría",
+          "categoryRequired": "Selecciona una categoría.",
+          "specialty": "Especialidad",
+          "price": "Precio",
+          "priceInvalid": "El precio no puede ser negativo.",
+          "duration": "Duración (min)",
+          "durationInvalid": "Introduce minutos enteros mayores que 0.",
+          "save": "Crear y marcar",
+          "created": "«{name}» se ha creado como trabajo de laboratorio.",
+          "errorTitle": "No se ha creado el servicio",
+          "notMarkedTitle": "Se ha creado, pero sin marcar",
+          "notMarked": "«{name}» se ha creado, pero no se ha podido marcar como trabajo de laboratorio. Actívalo en la lista."
+        }
       },
       "stages": {
         "title": "Etapas del circuito",

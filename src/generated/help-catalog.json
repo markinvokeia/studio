@@ -1,5 +1,5 @@
 {
- "version": "96c2327dab1d4370",
+ "version": "c7430f0d0931a5ff",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8269,6 +8269,13 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
+     "description": "Crea un servicio que ya queda marcado como trabajo de laboratorio, sin ir a Ventas → Servicios. Si la búsqueda no encuentra nada, ofrece crearlo con ese nombre.",
+     "id": "lab-orders.btn.new-lab-service",
+     "kind": "btn",
+     "label": "Nuevo trabajo",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Crea una especialidad escribiendo su nombre (es un grupo de proveedores marcado como categoría de laboratorio).",
      "id": "lab-orders.btn.new-specialty",
      "kind": "btn",
@@ -8283,10 +8290,10 @@
      "source": "knowledge/screens/lab-orders.json"
     },
     {
-     "description": "Abre Pacientes buscando al paciente de la orden.",
+     "description": "Abre la ficha del paciente de la orden encima de la pantalla, sin salir de las órdenes.",
      "id": "lab-orders.btn.open-patient",
      "kind": "btn",
-     "label": "Ver en Pacientes",
+     "label": "Ver ficha",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
@@ -8309,6 +8316,13 @@
      "kind": "btn",
      "label": "Quitar servicio",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Crea el servicio y lo marca como trabajo de laboratorio; aparece arriba de la lista.",
+     "id": "lab-orders.btn.save-lab-service",
+     "kind": "btn",
+     "label": "Crear y marcar",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Crea el laboratorio. Si el teléfono o el correo ya son de otro contacto, primero lo avisa.",
@@ -8452,6 +8466,12 @@
      "source": "src/components/voice/voice-command-host.tsx"
     },
     {
+     "id": "lab-orders.field.category_id",
+     "kind": "field",
+     "label": "Categoría",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Doctor que pidió el trabajo; los avisos de la orden pueden ir a él. Si quien crea la orden es doctor, viene elegido (se puede cambiar).",
      "id": "lab-orders.field.doctor_id",
      "kind": "field",
@@ -8473,11 +8493,10 @@
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
-     "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite.",
-     "id": "lab-orders.field.final-days",
+     "id": "lab-orders.field.duration_minutes",
      "kind": "field",
-     "label": "Columnas finales",
-     "source": "src/app/[locale]/lab-orders/page.tsx"
+     "label": "Duración (min)",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Marca la orden como urgente.",
@@ -8508,6 +8527,19 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "id": "lab-orders.field.lab_category_id",
+     "kind": "field",
+     "label": "Especialidad",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "description": "Cómo se llama el trabajo (p. ej. Corona de zirconio).",
+     "id": "lab-orders.field.lab-service-name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "A qué laboratorio se envía. Opcional al crear. Si un solo laboratorio hace esos trabajos, viene elegido (se puede quitar). Se filtran por especialidad y, si no existe, se crea ahí mismo.",
      "id": "lab-orders.field.laboratory_id",
      "kind": "field",
@@ -8526,6 +8558,12 @@
      "id": "lab-orders.field.laboratory-specialties",
      "kind": "field",
      "label": "Qué hace",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
+     "id": "lab-orders.field.name",
+     "kind": "field",
+     "label": "Nombre",
      "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
@@ -8555,6 +8593,12 @@
      "kind": "field",
      "label": "Paciente",
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.price",
+     "kind": "field",
+     "label": "Precio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
     },
     {
      "description": "Guardarla en la etapa inicial para enviarla después, o enviarla ahora a la etapa siguiente. Enviarla pide el laboratorio y la fecha de entrega.",
@@ -8590,6 +8634,13 @@
      "kind": "field",
      "label": "¿Cuándo se envió?",
      "source": "knowledge/screens/lab-orders.json"
+    },
+    {
+     "description": "Fuera de los filtros: vale para la lista y el tablero. En el tablero decide qué tarjetas se ven primero en cada columna (más recientes, más antiguas, más o menos días en la etapa). Las urgentes pendientes van siempre arriba.",
+     "id": "lab-orders.field.sort",
+     "kind": "field",
+     "label": "Ordenar por",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
      "description": "Piezas dentales de la orden cuando no tiene servicios (números separados por coma).",
@@ -8760,6 +8811,13 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "Lo mínimo del servicio: nombre, categoría, precio y duración (en la moneda de la clínica) y, si hay, la especialidad. El resto se completa después en Ventas → Servicios.",
+     "id": "lab-orders.section.new-lab-service",
+     "kind": "section",
+     "label": "Nuevo trabajo de laboratorio",
+     "source": "src/components/lab-orders/lab-orders-setup.tsx"
+    },
+    {
      "description": "Nombre, teléfono, correo y qué hace (especialidades). Por detrás crea el proveedor y lo asigna a esas especialidades.",
      "id": "lab-orders.section.new-laboratory",
      "kind": "section",
@@ -8881,7 +8939,8 @@
     "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas.",
     "El alta va por pasos: Paciente → Trabajo → Laboratorio → Revisar. Si se abre desde la ficha del paciente o desde una sesión clínica, lo que ya viene cargado se da por hecho y arranca en el paso siguiente. «Editar» abre directamente en Revisar.",
     "Mientras falten laboratorios o trabajos de laboratorio, arriba de la lista aparece «Primeros pasos»: cada paso se resuelve ahí mismo (agregar un laboratorio con sus especialidades, prender los servicios que se mandan al laboratorio). Después, lo mismo está en el botón «Configurar».",
-    "Al enviar la orden desde el detalle, el laboratorio y la fecha se completan en el mismo panel, sin ventanas: la fecha viene propuesta según el plazo de la etapa (atajos «En 3 días», «En 1 semana», «En 2 semanas») y, si hay un solo laboratorio posible, ya viene elegido. Suele alcanzar con confirmar."
+    "Al enviar la orden desde el detalle, el laboratorio y la fecha se completan en el mismo panel, sin ventanas: la fecha viene propuesta según el plazo de la etapa (atajos «En 3 días», «En 1 semana», «En 2 semanas») y, si hay un solo laboratorio posible, ya viene elegido. Suele alcanzar con confirmar.",
+    "El tablero carga cada columna por partes: primero unas 20 tarjetas y, al llegar al final del scroll de la columna, las siguientes. Qué tarjetas van primero lo decide «Ordenar por». Aplica los mismos filtros que la lista (paciente y fechas de alta incluidos), salvo la etapa: cada etapa es una columna."
    ],
    "title": "Órdenes de Laboratorio",
    "useCases": [
@@ -32063,22 +32122,14 @@
      "title": "Arrastrá la tarjeta"
     },
     {
-     "action": "click",
-     "details": "Abre el resto de los filtros. El número indica cuántos están aplicados.",
-     "id": "filters",
-     "target": "lab-orders.btn.filters",
-     "title": "Filtros",
-     "until": "lab-orders.field.final-days"
-    },
-    {
      "action": "highlight",
-     "details": "Las etapas finales muestran solo lo de los últimos 7, 30 o 90 días, para que no crezcan sin límite.",
-     "id": "final-days",
-     "target": "lab-orders.field.final-days",
-     "title": "Columnas finales"
+     "details": "Decide qué tarjetas se ven primero en cada columna. Al bajar en una columna se cargan las siguientes solas.",
+     "id": "sort",
+     "target": "lab-orders.field.sort",
+     "title": "Ordenar por"
     }
    ],
-   "summary": "Ver las órdenes en columnas por etapa, moverlas arrastrando y limitar las columnas finales a los últimos días.",
+   "summary": "Ver las órdenes en columnas por etapa, moverlas arrastrando y elegir qué tarjetas se ven primero.",
    "title": "Usar el tablero de órdenes"
   },
   {

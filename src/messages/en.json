@@ -10859,7 +10859,7 @@
       "restore": "Restore",
       "close": "Close",
       "description": "Description",
-      "openPatient": "Open in Patients",
+      "openPatient": "View patient",
       "progress": "Progress",
       "sectionOrder": "Order details",
       "current": "Current · {days}",
@@ -10913,9 +10913,6 @@
       "board": "Board"
     },
     "board": {
-      "finalWindow": "Arrived in the last {days} days",
-      "finalWindowLabel": "Final columns",
-      "lastDays": "Last {days} days",
       "emptyColumn": "No orders",
       "loadMore": "Load more ({count})",
       "expand": "Expand \"{stage}\"",
@@ -10929,7 +10926,8 @@
         "outside": "Order {order} is not over any column.",
         "end": "Order {order} was moved to \"{stage}\".",
         "cancel": "Moving order {order} was cancelled."
-      }
+      },
+      "loadingMore": "Loading more…"
     },
     "labSelector": {
       "select": "Select laboratory",
@@ -11120,7 +11118,28 @@
         "specialtyFor": "Specialty of {name}",
         "anySpecialty": "Any lab",
         "toggle": "{name} is lab work",
-        "footerHint": "With a specialty, only the labs that do it are suggested when creating the order."
+        "footerHint": "With a specialty, only the labs that do it are suggested when creating the order.",
+        "new": "New lab work",
+        "createNamed": "Create “{name}”",
+        "create": {
+          "title": "New lab work",
+          "name": "Name",
+          "namePlaceholder": "E.g. Zirconia crown",
+          "nameRequired": "Enter a name.",
+          "category": "Category",
+          "categoryPlaceholder": "Choose a category",
+          "categoryRequired": "Choose a category.",
+          "specialty": "Specialty",
+          "price": "Price",
+          "priceInvalid": "The price cannot be negative.",
+          "duration": "Duration (min)",
+          "durationInvalid": "Enter whole minutes greater than 0.",
+          "save": "Create and mark",
+          "created": "“{name}” was created as lab work.",
+          "errorTitle": "The service was not created",
+          "notMarkedTitle": "Created, but not marked",
+          "notMarked": "“{name}” was created but could not be marked as lab work. Turn it on in the list."
+        }
       },
       "stages": {
         "title": "Workflow stages",
