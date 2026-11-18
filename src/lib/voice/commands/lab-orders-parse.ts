@@ -74,7 +74,8 @@ const DUE_CHANGE_RE = /\b(cambi|mov|pas|pon|corr|posterg|adelant|atras)\w*\s+(?:
 
 /** El texto de la nota tal como se dictó (con mayúsculas y acentos), sin "a la orden 45". */
 function noteText(raw: string): string {
-  const keyword = raw.match(/(?:notas?|anot[aá](?:le|me|r)?|observaci[oó]n|note)\b/i);
+  // Sin \b al final: después de una vocal con tilde ("anotá") no hay límite de palabra en JS.
+  const keyword = raw.match(/(?:notas?|anot[aá](?:le|me|r)?|observaci[oó]n|note)(?![\wáéíóúñ])/i);
   if (!keyword || keyword.index === undefined) return '';
   return raw.slice(keyword.index + keyword[0].length)
     .replace(/^\s*(?:a|en|to|on)?\s*(?:la\s+|the\s+)?(?:orden|order|pedido)\s*(?:n[uú]mero\s*|number\s*|nro\.?\s*)?#?\s*[\wáéíóú]+(?:\s+y\s+\w+)?\s*/i, '')
@@ -154,4 +155,56 @@ export function parseLabOrdersList(normalized: string): LabListParsed | null {
     }
   }
   return { overdue, urgent, dueToday, view, clear, count, who, whoIsLab };
+}
+
+// ── Correcciones a la orden en creación ──────────────────────────────────────
+
+/**
+ * Lo que se dijo en vez de "sí" mientras se pregunta "¿La creo?" ("que sea urgente", "no la
+ * envíes", "al laboratorio Dental Sur", "entrega el viernes", "anotá color A2"). Solo lo simple:
+ * trabajos, piezas y paciente los interpreta la IA.
+ */
+export interface DraftEditParsed {
+  urgent?: boolean;
+  send?: boolean;
+  /** Entrega: la fecha, o 'ask' si se habló de la entrega sin una fecha que se entienda. */
+  due?: string | 'ask';
+  clearLab?: boolean;
+  /** Laboratorio nombrado, sin resolver. */
+  labName?: string;
+  note?: string;
+}
+
+/** Habla de trabajos, piezas o el paciente: eso lo resuelve la IA (también lo simple de la misma frase). */
+const DRAFT_COMPLEX_RE = /\b(agreg\w*|sum\w*|anad\w*|borr\w*|elimin\w*|piezas?|dientes?|muelas?|paciente|cantidad|trabajos?|add|tooth|teeth|patient|quantity)\b|\b(saca|sacale|quita|quitale|remove)\s+(?:el|la|los|las|the)\s+(?!laboratorio|lab\b|urgen)|\ben (?:la|el) \d{2}\b/;
+const DRAFT_URGENT_RE = /\burgen\w*/;
+const DRAFT_URGENT_OFF_RE = /\b(no sea|no es|no lo es|no la marques|ya no|no mas|saca\w*|quita\w*|desmarca\w*|sin|not|no longer|remove|unmark)\b.*\burgen|\bno urgen/;
+const DRAFT_SEND_OFF_RE = /\b(no la envi\w*|no la mand\w*|no enviar\w*|no mandar\w*|sin enviar\w*|que no se envie|no se envia|solo crea\w*|dont send|don t send|do not send|without sending)\b/;
+const DRAFT_SEND_ON_RE = /\b(enviala|enviarla|envia la|mandala|mandarla|despachala|que se envie|send it|and send)\b/;
+const DRAFT_DUE_RE = /\b(entrega|entregan|entregar|entregaria|vence|due|delivery|deliver)\b|\bpara (?:el |la )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|manana|pasado manana|\d{1,2})\b/;
+const DRAFT_CLEAR_LAB_RE = /\b(sin laboratorio|(?:saca|sacale|quita|quitale|borra)\s+(?:el\s+)?laboratorio|no (?:tiene|lleva) laboratorio|without (?:a )?lab|remove the lab)\b/;
+const DRAFT_LAB_RE = /\b(?:laboratorio|lab)\s+(?!de\b|que\b)(.+)$/;
+
+export function parseDraftEdit(normalized: string, raw: string, today = new Date()): DraftEditParsed | null {
+  if (NOTE_RE.test(normalized)) {
+    const note = noteText(raw);
+    return note ? { note } : null;
+  }
+  if (DRAFT_COMPLEX_RE.test(normalized)) return null;
+  const result: DraftEditParsed = {};
+  if (DRAFT_URGENT_RE.test(normalized)) result.urgent = !DRAFT_URGENT_OFF_RE.test(normalized);
+  if (DRAFT_SEND_OFF_RE.test(normalized)) result.send = false;
+  else if (DRAFT_SEND_ON_RE.test(normalized)) result.send = true;
+  if (DRAFT_CLEAR_LAB_RE.test(normalized)) {
+    result.clearLab = true;
+  } else {
+    const lab = normalized.match(DRAFT_LAB_RE);
+    const name = lab?.[1].split(/\s+(?:y|con|entrega|para|que|and|with)\s+/)[0].trim();
+    if (name && name.length > 1) result.labName = name;
+  }
+  const due = normalized.match(DRAFT_DUE_RE);
+  if (due && due.index !== undefined && result.send !== false) {
+    result.due = parseSpokenDate(normalized.slice(due.index), 'future', today) ?? 'ask';
+  }
+  return Object.keys(result).length > 0 ? result : null;
 }

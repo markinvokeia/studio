@@ -4428,8 +4428,17 @@ export interface VoiceCommandContext {
   navigate: (route: string) => void;
   /** Muestra la tarjeta mientras trabaja (buscando la orden…). */
   show: (card: VoiceCard) => void;
-  /** Pregunta en voz alta y espera la respuesta dicha (el micrófono se abre solo). */
-  ask: (card: VoiceCard, speech: string) => Promise<string>;
+  /**
+   * Cambia el contenido de la tarjeta sin tocar lo que espera (la pregunta sigue abierta): por
+   * ejemplo, el resumen de una orden que se editó a mano mientras se preguntaba.
+   */
+  update: (card: VoiceCard) => void;
+  /**
+   * Pregunta en voz alta y espera la respuesta dicha (el micrófono se abre solo). Con
+   * `awaiting: 'confirm'` la tarjeta muestra Sí/No pero devuelve el texto tal cual (para
+   * aceptar también otra respuesta, como una corrección).
+   */
+  ask: (card: VoiceCard, speech: string, awaiting?: 'answer' | 'confirm') => Promise<string>;
   /** Pregunta entre opciones; devuelve el índice elegido. */
   choose: (card: VoiceCard, speech: string) => Promise<number>;
   /** "¿Confirmo?": true con "sí", false con "no". */
@@ -4461,6 +4470,43 @@ export interface VoiceCommand<P = unknown> {
 export interface VoiceAiContext {
   stages: Array<{ id: number; name: string; kind: string }>;
   laboratories: Array<{ id: string; name: string }>;
+  /**
+   * Orden que se está creando (el asistente de alta abierto por voz): la frase es una corrección.
+   * Sin el paciente: solo trabajos, laboratorio y envío.
+   */
+  draft?: VoiceAiDraftContext;
+}
+
+export interface VoiceAiDraftContext {
+  items: VoiceAiItem[];
+  /** Piezas de la orden cuando no hay trabajos del catálogo. */
+  teeth: number[];
+  work_description: string | null;
+  laboratory: string | null;
+  send: boolean;
+  due_date: string | null;
+  is_urgent: boolean;
+  notes: string | null;
+}
+
+/** lab_order.draft_edit: qué cambiar de la orden en creación. Lo que no se pidió, en null o vacío. */
+export interface VoiceAiDraftEdit {
+  /** Otro paciente (el nombre tal como se dijo). */
+  patient: string | null;
+  add_items: VoiceAiItem[];
+  /** Trabajos a quitar, como se nombraron. */
+  remove_items: string[];
+  /** Cantidad o piezas de un trabajo ya cargado (service null: el único, o las piezas de la orden). */
+  update_items: Array<{ service: string | null; quantity: number | null; teeth: number[] | null }>;
+  work_description: string | null;
+  laboratory_id: string | null;
+  clear_laboratory: boolean;
+  /** true: enviarla al crearla; false: no enviarla. */
+  send: boolean | null;
+  due_date: string | null;
+  urgent: boolean | null;
+  /** Texto a agregar a las notas. */
+  note_add: string | null;
 }
 
 export type VoiceAiIntent =
@@ -4471,6 +4517,8 @@ export type VoiceAiIntent =
   | 'lab_order.status'
   /** "Mostrame las atrasadas": filtra la pantalla de órdenes. */
   | 'lab_order.list'
+  /** Corrección a la orden que se está creando por voz ("que sea urgente", "agregá un perno"). */
+  | 'lab_order.draft_edit'
   | 'unknown';
 
 /** Filtros pedidos con lab_order.list. */
@@ -4516,5 +4564,7 @@ export interface VoiceAiResult {
   note_add: string | null;
   /** lab_order.list. Paciente y laboratorio van en `patient` y `laboratory_id`. */
   filter: VoiceAiListFilter | null;
+  /** lab_order.draft_edit. */
+  draft_edit: VoiceAiDraftEdit | null;
   confidence: number;
 }

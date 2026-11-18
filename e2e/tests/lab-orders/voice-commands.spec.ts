@@ -283,6 +283,75 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
     await page.screenshot({ path: 'test-results/voice-create-done.png' });
   });
 
+  test('con el asistente abierto, lo que no es "sí/no" corrige la orden antes de crearla', async ({ page }) => {
+    const captured = await interceptLabOrders(page);
+    await page.goto('/lab-orders');
+    const sourceId = await firstInitialOrderId(page, captured);
+    await page.locator(`[data-lab-card-id="${sourceId}"]`).click();
+    await expect.poll(() => captured.details.has(sourceId), { timeout: 20_000 }).toBeTruthy();
+    await page.keyboard.press('Escape');
+    const source = captured.details.get(sourceId) as { patient_name: string; patient_id: string; items?: { service_name: string }[]; work_description?: string };
+    const service = source.items?.[0]?.service_name ?? source.work_description ?? 'corona';
+
+    // Primera frase: crear. Con `context.draft` (el alta abierta): la corrección "la pieza es la 46".
+    const aiRequests: Record<string, unknown>[] = [];
+    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as { context: Record<string, unknown> };
+      aiRequests.push(body);
+      const result = body.context.draft
+        ? { intent: 'lab_order.draft_edit', draft_edit: { update_items: [{ service: null, quantity: null, teeth: [46] }] }, confidence: 0.9 }
+        : { intent: 'lab_order.create', patient: source.patient_name, items: [{ service, quantity: 1, teeth: [36] }], teeth: [], is_urgent: false, send: false, confidence: 0.9 };
+      await route.fulfill({ json: { result } });
+    });
+    const saves: Record<string, unknown>[] = [];
+    await page.route(/\/lab-orders\/save(\?|$)/, async (route) => {
+      saves.push(route.request().postDataJSON() as Record<string, unknown>);
+      const initial = captured.stages.find((s) => s.kind === 'initial');
+      await route.fulfill({ json: [{ ...source, id: 999998, current_stage_id: initial?.id, stage_name: initial?.name, stage_kind: 'initial', is_urgent: true }] });
+    });
+
+    await pushToTalk(page, `creá una orden para ${source.patient_name}, ${service} en la 36`);
+    const card = page.locator('[data-voice-card]');
+    await answerChoicesUntil(page, card, /«sí» para crearla/);
+    const dialog = page.getByRole('dialog', { name: /Nueva orden de laboratorio|New lab order/ });
+    await expect(dialog).toBeVisible();
+    await expect(card).not.toContainText(/Urgente|Urgent/);
+
+    // Local, sin IA.
+    await say(page, 'que sea urgente');
+    await expect(card).toContainText(/Urgente|Urgent/, { timeout: 15_000 });
+    await expect(card).toContainText(/«sí» para crearla/);
+    await say(page, 'anotá que el color es A2');
+    await expect(card).toContainText('el color es A2', { timeout: 15_000 });
+    expect(aiRequests).toHaveLength(1);
+
+    // Con la IA: recibe el alta (sin el paciente) y devuelve la corrección.
+    await say(page, 'la corona va en la cuarenta y seis');
+    await expect(card).toContainText('(46)', { timeout: 20_000 });
+    expect(aiRequests).toHaveLength(2);
+    const draft = (aiRequests[1].context as { draft: Record<string, unknown> }).draft;
+    expect(draft).toMatchObject({ is_urgent: true, notes: 'el color es A2' });
+    expect(JSON.stringify(draft)).not.toContain(source.patient_name);
+    await page.screenshot({ path: 'test-results/voice-create-edited.png' });
+
+    // A mano en la ventana mientras la tarjeta espera: el resumen se actualiza y la pregunta sigue abierta.
+    await expect(card.locator('button', { hasText: /^(Sí|Yes)/ })).toBeVisible();
+    await dialog.locator('[data-help-id="lab-orders.toggle.urgent"]').click();
+    await expect(card).not.toContainText(/Urgente|Urgent/, { timeout: 5_000 });
+    await expect(card).toContainText(/«sí» para crearla/);
+    await expect(card.locator('button', { hasText: /^(Sí|Yes)/ })).toBeVisible();
+    await page.screenshot({ path: 'test-results/voice-create-manual-edit.png' });
+
+    await say(page, 'sí');
+    await expect(card).toContainText(/orden 999998/, { timeout: 20_000 });
+    await expect(dialog).toBeHidden();
+    expect(saves).toHaveLength(1);
+    expect(saves[0]).toMatchObject({ patient_id: String(source.patient_id), is_urgent: false, notes: 'el color es A2' });
+    // Con un servicio del catálogo las piezas van en el trabajo; si no, son las de la orden.
+    const savedItems = saves[0].items as { teeth: number[] }[];
+    expect(savedItems.length ? savedItems[0].teeth : saves[0].teeth).toEqual([46]);
+  });
+
   test('"¿dónde está la orden N?" responde sin preguntar ni cambiar nada', async ({ page }) => {
     const captured = await interceptLabOrders(page);
     await page.goto('/lab-orders');
