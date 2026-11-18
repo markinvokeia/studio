@@ -98,13 +98,20 @@ const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
->(({ className, variant, position, ...props }, ref) => {
+>(({ className, variant, position, style, ...props }, ref) => {
   return (
     // `position` se desestructura antes del spread: no es un atributo DOM válido y Radix lo
     // reenviaría al <li>.
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant, position }), className)}
+      // Cada toast es una capa de `DismissableLayer`. Si ya estaba en pantalla cuando se abrió
+      // un sheet/dialog modal, queda por debajo de esa capa y Radix le escribe
+      // `pointer-events: none` INLINE (le gana a la clase `pointer-events-auto`): se veía encima
+      // pero no se podía tocar hasta cerrar el sheet. El estilo del <li> se aplica después del de
+      // la capa, así que esto lo deja siempre clicable. Tocarlo no cierra el sheet: el viewport
+      // es un "branch" de Radix, no cuenta como clic afuera.
+      style={{ pointerEvents: "auto", ...style }}
       {...props}
     />
   )
