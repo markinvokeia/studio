@@ -1,7 +1,7 @@
 {
   "id": "lab-orders.send",
   "title": "Send the order to the lab or move it to the next stage",
-  "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed, in the same panel.",
+  "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed in a window.",
   "module": "Clinic History",
   "inputs": {
     "query": "Search",
@@ -44,7 +44,7 @@
     {
       "id": "send",
       "title": "Send to the lab",
-      "details": "The sending form opens right below, in the same panel, with the due date already proposed."
+      "details": "The sending window opens, with the due date already proposed."
     },
     {
       "id": "next",
@@ -54,7 +54,7 @@
     {
       "id": "laboratory",
       "title": "Lab",
-      "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected."
+      "details": "Only if it has no lab yet: it says so in red and won't confirm without one. If only one lab does that job, it comes preselected."
     },
     {
       "id": "sent-on",

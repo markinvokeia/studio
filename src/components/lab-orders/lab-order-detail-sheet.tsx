@@ -18,7 +18,7 @@ import { Can } from '@/components/auth/Can';
 import { LabOrderAttachmentsSection } from '@/components/lab-orders/lab-order-attachments';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderHistory } from '@/components/lab-orders/lab-order-history';
-import { LabOrderMoveInline, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
+import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
   LabOrderDaysInStage, LabOrderNoLabBadge, LabOrderPastDueBadge, LabOrderUrgentBadge, LabStageBadge, LabStageProgress, labOrderWork,
   nextLabStage,
@@ -197,7 +197,7 @@ function LabOrderDetailView({
   useLabOrderChanged((order) => { if (order.id === orderId) reload(); });
 
   // Enviarla al laboratorio (fecha de entrega) o moverla sin laboratorio: primero se completa
-  // en línea, dentro del panel (con la fecha y el laboratorio ya propuestos).
+  // en el mismo modal que el tablero y la ficha del paciente (fecha y laboratorio ya propuestos).
   const [labRequest, setLabRequest] = React.useState<LabOrderMoveRequest | null>(null);
   React.useEffect(() => { setLabRequest(null); }, [orderId]);
   const moveTargetRef = React.useRef<number | null>(null);
@@ -260,7 +260,7 @@ function LabOrderDetailView({
   const moveTargets = stages.filter((s) => s.is_active && s.id !== detail?.current_stage_id);
   const nextStage = detail ? nextLabStage(stages, detail.current_stage_id) : null;
 
-  // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero en línea.
+  // Al enviarla se pide la fecha de entrega (y el laboratorio si falta): primero el modal.
   const requestMove = (target: LabStage) => {
     if (!detail) return;
     const needs = labOrderMoveNeeds(detail, target);
@@ -306,15 +306,17 @@ function LabOrderDetailView({
               <p key={reason} className="text-xs text-destructive">{reason}</p>
             ))}
             <LabStageProgress stages={stages} currentStageId={detail.current_stage_id} className="pt-1" />
-            {canChangeStage && labRequest && (
-              <LabOrderMoveInline
+            {canChangeStage && (
+              <LabOrderMoveDialog
                 request={labRequest}
                 isPending={move.isPending}
                 onCancel={() => setLabRequest(null)}
-                onConfirm={({ laboratory, dueDate, effectiveDate }) => move.run({ toStageId: labRequest.stage.id, laboratoryId: laboratory?.id, dueDate, effectiveDate })}
+                onConfirm={({ laboratory, dueDate, effectiveDate }) => {
+                  if (labRequest) move.run({ toStageId: labRequest.stage.id, laboratoryId: laboratory?.id, dueDate, effectiveDate });
+                }}
               />
             )}
-            {canChangeStage && !labRequest && moveTargets.length > 0 && (
+            {canChangeStage && moveTargets.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {nextStage && (
                   <Button

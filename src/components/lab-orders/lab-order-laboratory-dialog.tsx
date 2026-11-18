@@ -178,7 +178,14 @@ export function LabOrderMoveFields({ request, state, disabled = false }: {
             onValueChange={(_id, lab) => state.setLaboratory(lab ?? null)}
             disabled={disabled}
           />
-          <p className="text-xs text-muted-foreground">{t('hint')}</p>
+          {/* Sin laboratorio no se puede confirmar: se dice en rojo, como al crear la orden. */}
+          {state.laboratory ? (
+            <p className="text-xs text-muted-foreground">{t('hint')}</p>
+          ) : (
+            <p role="alert" className="text-xs font-medium text-destructive">
+              {t(needs.dueDate ? 'laboratoryMissingSend' : 'laboratoryMissing')}
+            </p>
+          )}
         </div>
       ) : request.order.laboratory_name && (
         <div className="flex min-w-0 items-baseline gap-2 text-sm">
@@ -300,20 +307,22 @@ export interface LabOrderMoveDialogProps {
   onCancel: () => void;
   /** Quien abrió el modal hace el cambio de etapa con estos datos. */
   onConfirm: (details: LabOrderMoveDetails) => void;
+  /** Guardando con el modal abierto (detalle de la orden): bloquea campos y cierre. */
+  isPending?: boolean;
 }
 
 /**
- * Antes de mover la orden (tablero, ficha del paciente): al enviarla al laboratorio, a qué
- * laboratorio va si no tiene y la fecha de entrega (obligatoria). Para otros movimientos sin
- * laboratorio, solo el laboratorio. En el detalle de la orden lo mismo va en línea.
+ * Antes de mover la orden (tablero, ficha del paciente, detalle): al enviarla al laboratorio, a
+ * qué laboratorio va si no tiene y la fecha de entrega (obligatoria), ya propuestas para que
+ * alcance con confirmar. Para otros movimientos sin laboratorio, solo el laboratorio.
  */
-export function LabOrderMoveDialog({ request, onCancel, onConfirm }: LabOrderMoveDialogProps) {
+export function LabOrderMoveDialog({ request, onCancel, onConfirm, isPending = false }: LabOrderMoveDialogProps) {
   const t = useTranslations('LabOrdersPage.laboratoryDialog');
   const state = useLabOrderMoveState(request);
   const isSend = !!request?.needs.dueDate;
 
   return (
-    <Dialog open={request !== null} onOpenChange={(open) => { if (!open) onCancel(); }}>
+    <Dialog open={request !== null} onOpenChange={(open) => { if (!open && !isPending) onCancel(); }}>
       <DialogContent className="sm:max-w-md" data-help-id="lab-orders.section.choose-laboratory">
         <DialogHeader>
           <DialogTitle>{isSend ? t('sendTitle') : t('title')}</DialogTitle>
@@ -329,61 +338,24 @@ export function LabOrderMoveDialog({ request, onCancel, onConfirm }: LabOrderMov
               <span>{t('movingTo')}</span>
               <LabStageBadge name={request.stage.name} color={request.stage.color} />
             </div>
-            <LabOrderMoveFields request={request} state={state} />
+            <LabOrderMoveFields request={request} state={state} disabled={isPending} />
           </DialogBody>
         )}
         <DialogFooter>
-          <DialogCancelButton>{t('cancel')}</DialogCancelButton>
+          <DialogCancelButton disabled={isPending}>{t('cancel')}</DialogCancelButton>
           <Button
             type="button"
             data-help-id="lab-orders.btn.confirm-move"
+            className="gap-1.5"
             disabled={!state.ready}
-            onClick={() => { if (state.ready) onConfirm(state.details); }}
+            loading={isPending}
+            onClick={() => { if (state.ready && !isPending) onConfirm(state.details); }}
           >
-            {request ? t('confirm', { stage: request.stage.name }) : ''}
+            {request && <span className="truncate">{t('confirm', { stage: request.stage.name })}</span>}
+            <ArrowRight className="h-4 w-4 shrink-0" />
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/**
- * Lo mismo que el modal, dentro del detalle de la orden: se completa ahí mismo, con la fecha y
- * (si hay uno solo) el laboratorio ya propuestos, así enviarla suele ser un solo clic.
- */
-export function LabOrderMoveInline({ request, onCancel, onConfirm, isPending }: {
-  request: LabOrderMoveRequest;
-  onCancel: () => void;
-  onConfirm: (details: LabOrderMoveDetails) => void;
-  isPending: boolean;
-}) {
-  const t = useTranslations('LabOrdersPage.laboratoryDialog');
-  const state = useLabOrderMoveState(request);
-  const isSend = request.needs.dueDate;
-
-  return (
-    <div data-help-id="lab-orders.section.choose-laboratory" className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-      <div className="space-y-0.5">
-        <p className="text-sm font-semibold">{isSend ? t('sendTitle') : t('title')}</p>
-        <p className="text-xs text-muted-foreground">{isSend ? t('inlineSendHint') : t('inlineHint')}</p>
-      </div>
-      <LabOrderMoveFields request={request} state={state} disabled={isPending} />
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isPending}>{t('cancel')}</Button>
-        <Button
-          type="button"
-          size="sm"
-          data-help-id="lab-orders.btn.confirm-move"
-          className="gap-1.5"
-          disabled={!state.ready}
-          loading={isPending}
-          onClick={() => { if (state.ready) onConfirm(state.details); }}
-        >
-          <span className="truncate">{t('confirm', { stage: request.stage.name })}</span>
-          <ArrowRight className="h-4 w-4 shrink-0" />
-        </Button>
-      </div>
-    </div>
   );
 }

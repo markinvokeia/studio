@@ -2,7 +2,7 @@
   "id": "lab-orders.send",
   "title": "Enviar la orden al laboratorio o pasarla a la siguiente etapa",
   "module": "Historia Clínica",
-  "summary": "Mover una orden a la etapa que sigue. Al mandarla al laboratorio, la fecha de entrega ya viene propuesta, en el mismo panel.",
+  "summary": "Mover una orden a la etapa que sigue. Al mandarla al laboratorio, la fecha de entrega ya viene propuesta en una ventana.",
   "screens": [
     "lab-orders"
   ],
@@ -65,7 +65,7 @@
       "action": "click",
       "target": "lab-orders.btn.send",
       "title": "Enviar al laboratorio",
-      "details": "Debajo se abre el envío, en el mismo panel, con la fecha de entrega ya propuesta.",
+      "details": "Se abre la ventana del envío, con la fecha de entrega ya propuesta.",
       "until": "lab-orders.section.choose-laboratory",
       "skipIfMissing": true
     },
@@ -82,7 +82,7 @@
       "action": "fill",
       "target": "lab-orders.field.send-laboratory",
       "title": "Laboratorio",
-      "details": "Solo si todavía no tiene laboratorio. Si uno solo hace ese trabajo, ya viene elegido.",
+      "details": "Solo si todavía no tiene laboratorio: lo avisa en rojo y no deja confirmar sin él. Si uno solo hace ese trabajo, ya viene elegido.",
       "value": "{{values.laboratory}}",
       "optional": true,
       "ask": true,

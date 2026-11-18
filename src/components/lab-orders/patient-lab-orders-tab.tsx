@@ -16,7 +16,7 @@ import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
 import {
-  DUE_SOON_DAYS, LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge,
+  DUE_SOON_DAYS, LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderNumber, LabOrderUrgentBadge,
   LabStageBadge, LabStageProgress, daysUntilDue, isUrgentPending, labOrderWork, nextLabStage, urgentFirst, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 
@@ -201,7 +201,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false, 
           </div>
           <span className="inline-flex shrink-0 items-center gap-2">
             <LabOrderAttachmentsCount order={order} />
-            <span className="font-mono text-xs text-muted-foreground">#{order.id}</span>
+            <LabOrderNumber id={order.id} />
           </span>
         </div>
 

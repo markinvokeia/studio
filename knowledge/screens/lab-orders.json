@@ -124,7 +124,7 @@
     },
     "lab-orders.section.choose-laboratory": {
       "label": "Enviar al laboratorio",
-      "description": "Aparece en el detalle, debajo del progreso, al enviar la orden (pasarla de la etapa inicial a una no final): la fecha de entrega, obligatoria y ya propuesta, y el laboratorio si todavía no tiene (elegido solo si hay uno posible). También aparece al mover a una etapa no final una orden sin laboratorio. A una etapa final se mueve sin pedir nada. En el tablero y la ficha del paciente es una ventana."
+      "description": "Ventana que se abre al enviar la orden (desde el detalle, el tablero o la ficha del paciente) (pasarla de la etapa inicial a una no final): la fecha de entrega, obligatoria y ya propuesta, y el laboratorio si todavía no tiene (en rojo mientras falte; elegido solo si hay uno posible). También aparece al mover a una etapa no final una orden sin laboratorio. A una etapa final se mueve sin pedir nada."
     },
     "lab-orders.field.sent-on": {
       "label": "¿Cuándo se envió?",

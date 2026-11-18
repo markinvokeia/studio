@@ -10953,6 +10953,8 @@
       "movingTo": "Moving to",
       "laboratory": "Laboratory",
       "hint": "Only laboratories are listed. If it is missing you can create it here.",
+      "laboratoryMissingSend": "The order can't be sent without a laboratory: choose it.",
+      "laboratoryMissing": "Choose the laboratory to be able to move it.",
       "cancel": "Cancel",
       "confirm": "Move to {stage}",
       "sendTitle": "Send to the laboratory",
@@ -10963,8 +10965,6 @@
       "dueDatePreviousPassed": "The order's previous date ({date}) has already passed. Enter the new one.",
       "dueShortcuts": "Delivery date shortcuts",
       "dueIn": "{days, plural, =7 {In 1 week} =14 {In 2 weeks} one {In # day} other {In # days}}",
-      "inlineSendHint": "We suggested a date based on the stage deadline: confirm it or change it.",
-      "inlineHint": "Choose the lab to be able to move it.",
       "sentOn": "When was it sent?",
       "sentToday": "Today",
       "sentYesterday": "Yesterday",
@@ -11020,6 +11020,7 @@
       "createdWithoutFiles": "The files could not be uploaded. Add them from the details of order #{id}."
     },
     "createdAndSent": "Order #{id} created and sent to “{stage}”",
+    "orderNumberHint": "Order {id}: say this number in voice commands (e.g. “order {id} received”).",
     "wizard": {
       "stepsLabel": "Order steps",
       "steps": {

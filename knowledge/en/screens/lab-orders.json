@@ -110,7 +110,7 @@
     },
     "lab-orders.section.choose-laboratory": {
       "label": "Send to the lab",
-      "description": "Appears in the detail, below the progress, when sending the order (moving it from the initial stage to a non-final one): the delivery date, required and already suggested, and the lab if it has none yet (preselected when only one is possible). It also appears when moving an order without a lab to a non-final stage. Moving to a final stage asks for nothing. On the board and in the patient record it is a window."
+      "description": "Window that opens when sending the order (from the detail, the board or the patient record) (moving it from the initial stage to a non-final one): the delivery date, required and already suggested, and the lab if it has none yet (in red while missing; preselected when only one is possible). It also appears when moving an order without a lab to a non-final stage. Moving to a final stage asks for nothing."
     },
     "lab-orders.field.sent-on": {
       "label": "When was it sent?",
