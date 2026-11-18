@@ -271,6 +271,50 @@ export function LabOrderDueLabel({
   );
 }
 
+/**
+ * Una sola línea bajo la etapa (columna Estado de la lista), la más importante: atrasada (rojo:
+ * entrega vencida o pasada del máximo de la etapa) > entrega dentro de la semana (ámbar/gris) >
+ * días en la etapa (gris). El resto (fecha de entrega, motivos) queda en el tooltip.
+ */
+export function LabOrderStatusNote({ order, className }: { order: LabOrder; className?: string }) {
+  const t = useTranslations('LabOrdersPage');
+  const overdueReasons = useLabOrderOverdueReasons();
+  if (!order.is_pending) return null;
+
+  const daysText = t('daysInStage', { count: order.days_in_stage });
+  const dueText = order.due_date ? t('dueShort', { date: formatDisplayDate(order.due_date) }) : null;
+  const title = [...overdueReasons(order), dueText, daysText].filter(Boolean).join(' · ');
+  const base = 'inline-flex max-w-full items-center gap-1 whitespace-nowrap text-[11px]';
+
+  if (order.is_past_due || order.is_stage_overdue) {
+    const text = order.is_past_due
+      ? t('pastDueBadge', { days: order.days_past_due })
+      : t('overdueHint', { days: order.stage_overdue_days ?? 0 });
+    return (
+      <span className={cn(base, 'font-semibold text-destructive', className)} title={title}>
+        <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <span className="truncate">{text}</span>
+      </span>
+    );
+  }
+  if (order.due_date) {
+    const days = daysUntilDue(order.due_date);
+    if (days >= 0 && days < DUE_SOON_DAYS) {
+      const text = days === 0 ? t('dueToday') : days === 1 ? t('dueTomorrow') : t('dueInDays', { days });
+      return (
+        <span
+          className={cn(base, days <= 1 ? 'font-semibold text-amber-700 dark:text-amber-400' : 'text-muted-foreground', className)}
+          title={title}
+        >
+          <CalendarClock className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{text}</span>
+        </span>
+      );
+    }
+  }
+  return <span className={cn(base, 'text-muted-foreground', className)} title={title}>{daysText}</span>;
+}
+
 /** Orden pendiente sin laboratorio: avisa antes de que se pida al moverla a una etapa no final. */
 export function LabOrderNoLabBadge({
   order, className,
@@ -311,6 +355,22 @@ export function LabOrderUrgentBadge({
     >
       <Zap className="h-3 w-3 shrink-0 fill-current" aria-hidden="true" />
       <span className="truncate">{t('urgent')}</span>
+    </span>
+  );
+}
+
+/**
+ * Número de la orden ("#123"), bien visible: es lo que se dice en los comandos de voz
+ * ("orden 123 recibida"), así que no va atenuado como un dato secundario.
+ */
+export function LabOrderNumber({ id, className }: { id: number; className?: string }) {
+  const t = useTranslations('LabOrdersPage');
+  return (
+    <span
+      className={cn('whitespace-nowrap font-mono text-xs font-semibold tabular-nums text-foreground', className)}
+      title={t('orderNumberHint', { id })}
+    >
+      #{id}
     </span>
   );
 }

@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
-  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge, isUrgentPending,
+  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderNumber, LabOrderUrgentBadge, isUrgentPending,
   labOrderWork, nextLabStage, urgentFirst, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
@@ -626,7 +626,7 @@ function CardBody({ order, isPending, className, children }: { order: LabOrder; 
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pl-5">
         <span className="inline-flex items-center gap-2">
-          <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
+          <LabOrderNumber id={order.id} />
           <LabOrderAttachmentsCount order={order} />
         </span>
         <LabOrderDueLabel order={order} />

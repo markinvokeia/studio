@@ -10891,6 +10891,8 @@
       "movingTo": "Pasa a",
       "laboratory": "Laboratorio",
       "hint": "Solo se muestran laboratorios. Si no está, puedes crearlo aquí mismo.",
+      "laboratoryMissingSend": "Para enviarla falta seleccionar el laboratorio.",
+      "laboratoryMissing": "Para moverla falta seleccionar el laboratorio.",
       "cancel": "Cancelar",
       "confirm": "Mover a {stage}",
       "sendTitle": "Enviar al laboratorio",
@@ -10901,8 +10903,6 @@
       "dueDatePreviousPassed": "La fecha que tenía la orden ({date}) ya ha pasado. Indica la nueva.",
       "dueShortcuts": "Atajos de fecha de entrega",
       "dueIn": "{days, plural, =7 {En 1 semana} =14 {En 2 semanas} one {En # día} other {En # días}}",
-      "inlineSendHint": "Te hemos propuesto una fecha según el plazo de la etapa: confírmala o cámbiala.",
-      "inlineHint": "Selecciona el laboratorio para poder moverla.",
       "sentOn": "¿Cuándo se envió?",
       "sentToday": "Hoy",
       "sentYesterday": "Ayer",
@@ -10958,6 +10958,7 @@
       "createdWithoutFiles": "No se han podido subir los archivos. Añádelos desde el detalle de la orden #{id}."
     },
     "createdAndSent": "Orden #{id} creada y enviada a «{stage}»",
+    "orderNumberHint": "Orden {id}: di este número en los comandos de voz (p. ej., “orden {id} recibida”).",
     "wizard": {
       "stepsLabel": "Pasos de la orden",
       "steps": {

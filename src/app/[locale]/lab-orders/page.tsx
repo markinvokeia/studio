@@ -30,7 +30,7 @@ import {
   LabCreateDialog, LabOrdersSetupCard, LabOrdersSetupMenu, LabServicesDialog, useLabSetupStatus, type LabSetupDialog,
 } from '@/components/lab-orders/lab-orders-setup';
 import {
-  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderUrgentBadge, LabStageBadge, isUrgentPending,
+  LabOrderAttachmentsCount, LabOrderNoLabBadge, LabOrderNumber, LabOrderStatusNote, LabOrderUrgentBadge, LabStageBadge, isUrgentPending,
   labOrderWork, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 
@@ -344,7 +344,7 @@ export default function LabOrdersPage() {
       header: t('columns.id'),
       cell: ({ row }) => (
         <span className="inline-flex flex-col items-start gap-0.5">
-          <span className="font-mono text-xs text-muted-foreground">#{row.original.id}</span>
+          <LabOrderNumber id={row.original.id} className="text-sm" />
           <LabOrderAttachmentsCount order={row.original} />
         </span>
       ),
@@ -384,16 +384,13 @@ export default function LabOrdersPage() {
       cell: ({ row }) => row.original.doctor_name || <span className="text-muted-foreground">—</span>,
     },
     {
-      // Etapa, días en ella y entrega en una sola columna: el estado de un vistazo.
+      // La etapa y debajo un solo aviso (atraso > entrega cercana > días en la etapa); el resto en el tooltip.
       id: 'status',
       header: t('columns.status'),
       cell: ({ row }) => (
         <div className="flex min-w-0 flex-col items-start gap-1">
           <LabStageBadge name={row.original.stage_name} color={row.original.stage_color} />
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {row.original.is_pending && <LabOrderDaysInStage order={row.original} />}
-            <LabOrderDueLabel order={row.original} />
-          </div>
+          <LabOrderStatusNote order={row.original} />
         </div>
       ),
     },
@@ -709,19 +706,18 @@ export default function LabOrdersPage() {
               renderCard={(row) => (
                 <DataCard
                   title={row.patient_name}
+                  badge={<LabOrderNumber id={row.id} className="text-sm" />}
                   subtitle={[row.laboratory_name, labOrderWork(row)].filter(Boolean).join(' · ')}
                   accentColor={row.stage_color}
                   isSelected={row.id === selectedId}
                   showArrow
                   actions={(
-                    <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <LabOrderUrgentBadge order={row} />
-                        <LabStageBadge name={row.stage_name} color={row.stage_color} />
-                        <LabOrderDueLabel order={row} onlySoon />
-                        <LabOrderNoLabBadge order={row} />
-                      </div>
-                      <LabOrderDaysInStage order={row} />
+                    // Igual que la columna Estado: la etapa y un solo aviso (más urgente / sin laboratorio si aplica).
+                    <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+                      <LabOrderUrgentBadge order={row} />
+                      <LabStageBadge name={row.stage_name} color={row.stage_color} />
+                      <LabOrderStatusNote order={row} />
+                      <LabOrderNoLabBadge order={row} />
                     </div>
                   )}
                 />

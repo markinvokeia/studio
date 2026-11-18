@@ -1,5 +1,5 @@
 {
- "version": "628dd5c41af18739",
+ "version": "fb3fa630b6a9ca18",
  "locale": "en",
  "journey": [
   {
@@ -8559,7 +8559,7 @@
      "source": "src/components/lab-orders/lab-orders-board.tsx"
     },
     {
-     "description": "Appears in the detail, below the progress, when sending the order (moving it from the initial stage to a non-final one): the delivery date, required and already suggested, and the lab if it has none yet (preselected when only one is possible). It also appears when moving an order without a lab to a non-final stage. Moving to a final stage asks for nothing. On the board and in the patient record it is a window.",
+     "description": "Window that opens when sending the order (from the detail, the board or the patient record) (moving it from the initial stage to a non-final one): the delivery date, required and already suggested, and the lab if it has none yet (in red while missing; preselected when only one is possible). It also appears when moving an order without a lab to a non-final stage. Moving to a final stage asks for nothing.",
      "id": "lab-orders.section.choose-laboratory",
      "kind": "section",
      "label": "Send to the lab",
@@ -32075,7 +32075,7 @@
     },
     {
      "action": "click",
-     "details": "The sending form opens right below, in the same panel, with the due date already proposed.",
+     "details": "The sending window opens, with the due date already proposed.",
      "id": "send",
      "skipIfMissing": true,
      "target": "lab-orders.btn.send",
@@ -32093,7 +32093,7 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected.",
+     "details": "Only if it has no lab yet: it says so in red and won't confirm without one. If only one lab does that job, it comes preselected.",
      "id": "laboratory",
      "optional": true,
      "skipIfMissing": true,
@@ -32137,7 +32137,7 @@
      "title": "Stage history"
     }
    ],
-   "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed, in the same panel.",
+   "summary": "Move an order to the next stage. When sending it to the lab, the due date comes already proposed in a window.",
    "title": "Send the order to the lab or move it to the next stage"
   },
   {
