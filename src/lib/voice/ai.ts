@@ -9,11 +9,11 @@ import type { VoiceAiContext, VoiceAiResult, VoiceCommandContext } from '@/lib/t
  * Pregunta a la IA qué se pidió. El contexto lo arman los comandos (etapas, laboratorios):
  * nunca se manda la lista de pacientes, solo la frase tal como se dijo.
  */
-export async function interpretWithAi(text: string, ctx: VoiceCommandContext): Promise<VoiceAiResult> {
+export async function interpretWithAi(text: string, ctx: VoiceCommandContext, extra?: Partial<VoiceAiContext>): Promise<VoiceAiResult> {
   // Varios comandos pueden compartir el mismo armado de contexto: se pide una vez.
   const builders = Array.from(new Set(listVoiceAiCommands().flatMap((command) => (command.ai?.context ? [command.ai.context] : []))));
   const parts = await Promise.all(builders.map((build) => build(ctx).catch(() => ({}))));
-  const context: Partial<VoiceAiContext> = Object.assign({}, ...parts);
+  const context: Partial<VoiceAiContext> = Object.assign({}, ...parts, extra);
   const today = startOfToday();
   return interpretVoiceCommand({
     text,

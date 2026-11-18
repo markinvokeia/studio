@@ -220,7 +220,10 @@ function createContext(d: VoiceSessionDeps, signal: AbortSignal): VoiceCommandCo
       check();
       store().set({ card, awaiting: null });
     },
-    ask: (card, speech) => ask(card, speech),
+    update: (card) => {
+      if (!signal.aborted) store().set({ card });
+    },
+    ask: (card, speech, awaiting = 'answer') => ask(card, speech, awaiting),
     choose: async (card, speech) => {
       const labels = (card.choices ?? []).map((c) => c.label);
       let prompt = speech;

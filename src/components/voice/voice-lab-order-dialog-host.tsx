@@ -22,6 +22,7 @@ export function VoiceLabOrderDialogHost() {
       description={t('createDescription')}
       submitSignal={submitSignal}
       onSubmitFailed={voiceDraftEvents.failed}
+      voiceControl={voiceDraftEvents.control}
       onSaved={(order) => {
         emitLabOrderChanged(order);
         voiceDraftEvents.saved(order);

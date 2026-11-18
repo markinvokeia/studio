@@ -116,6 +116,18 @@ export interface LabOrderDraft {
   startAtReview?: boolean;
 }
 
+/** Lo que la voz puede cambiar de un alta abierta ("que sea urgente", "agregá un perno en la 21"). */
+export type LabOrderDraftPatch = Partial<Pick<LabOrderDraft,
+  'patient' | 'items' | 'teeth' | 'work_description' | 'laboratory' | 'is_urgent' | 'notes' | 'send' | 'send_due_date'>>;
+
+/** Acceso de la voz al alta abierta: leer cómo está (con lo que se cambió a mano) y corregirla. */
+export interface LabOrderDraftControl {
+  read: () => LabOrderDraft;
+  apply: (patch: LabOrderDraftPatch) => void;
+  /** Avisa cada cambio del formulario (a mano o por voz). Devuelve cómo dejar de escuchar. */
+  subscribe: (listener: () => void) => () => void;
+}
+
 function toFormValues(order?: LabOrder | null, patient?: { id: string; name: string } | null, draft?: LabOrderDraft | null): LabOrderFormValues {
   const fromDraft = !order ? draft : null;
   return {
@@ -199,6 +211,8 @@ export interface LabOrderFormDialogProps {
   submitSignal?: number;
   /** El guardado pedido no salió: el error del servidor, o null si faltan datos del formulario. */
   onSubmitFailed?: (message: string | null) => void;
+  /** Alta abierta por voz: recibe el acceso para leerla y corregirla (null al cerrarse). */
+  voiceControl?: (control: LabOrderDraftControl | null) => void;
 }
 
 /**
@@ -206,7 +220,7 @@ export interface LabOrderFormDialogProps {
  * Laboratorio → Revisar, con el resumen al costado. Al crearla se puede enviar en el mismo
  * paso (fecha de entrega incluida). La etapa de una orden existente se mueve desde el detalle.
  */
-export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, lockDoctor = false, description, onSaved, submitSignal, onSubmitFailed }: LabOrderFormDialogProps) {
+export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, lockDoctor = false, description, onSaved, submitSignal, onSubmitFailed, voiceControl }: LabOrderFormDialogProps) {
   const t = useTranslations('LabOrdersPage');
   const errorText = useLabOrderErrorText();
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -415,6 +429,79 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     void form.handleSubmit(save.run, onInvalid)();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitSignal]);
+
+  // Voz: leer el alta como está ahora y aplicarle correcciones (siempre con el estado del último render).
+  const draftControlRef = React.useRef<LabOrderDraftControl | null>(null);
+  const draftControl: LabOrderDraftControl = {
+    read: () => {
+      const v = form.getValues();
+      return {
+        patient: v.patient_id ? { id: v.patient_id, name: v.patient_name ?? '' } : null,
+        doctor: v.doctor_id ? { id: v.doctor_id, name: v.doctor_name ?? '' } : null,
+        laboratory: v.laboratory_id ? { id: v.laboratory_id, name: v.laboratory_name ?? '' } : null,
+        items: v.items.map((item) => ({
+          service_id: item.service_id,
+          service_name: item.service_name,
+          quantity: Number(item.quantity) || 1,
+          teeth: parseTeeth(item.teeth) ?? [],
+          lab_category_id: item.lab_category_id ?? null,
+        })),
+        work_description: v.work_description,
+        teeth: v.items.length > 0 ? [] : parseTeeth(v.teeth) ?? [],
+        is_urgent: v.is_urgent,
+        notes: v.notes ?? '',
+        // Sin etapa a la que enviar, "Crear y enviar" no existe.
+        send: Boolean(stages) && v.send,
+        send_due_date: v.send_due_date ?? '',
+      };
+    },
+    apply: (patch) => {
+      const opts = { shouldDirty: true, shouldValidate: false };
+      if (patch.patient !== undefined) {
+        form.setValue('patient_id', patch.patient?.id ?? '', opts);
+        form.setValue('patient_name', patch.patient?.name ?? '', opts);
+      }
+      if (patch.items !== undefined) {
+        // Las notas de cada trabajo (escritas a mano) se conservan.
+        const before = form.getValues('items');
+        items.replace(patch.items.map((item) => ({
+          service_id: String(item.service_id),
+          service_name: item.service_name,
+          quantity: Math.min(99, Math.max(1, Math.round(item.quantity) || 1)),
+          teeth: item.teeth.join(', '),
+          notes: before.find((b) => b.service_id === String(item.service_id))?.notes ?? '',
+          lab_category_id: item.lab_category_id ?? null,
+        })));
+      }
+      if (patch.teeth !== undefined) form.setValue('teeth', patch.teeth.join(', '), opts);
+      if (patch.work_description !== undefined) form.setValue('work_description', patch.work_description, opts);
+      if (patch.laboratory !== undefined) {
+        form.setValue('laboratory_id', patch.laboratory?.id ?? '', opts);
+        form.setValue('laboratory_name', patch.laboratory?.name ?? '', opts);
+        if (!patch.laboratory) setLabCleared(true);
+      }
+      if (patch.is_urgent !== undefined) form.setValue('is_urgent', patch.is_urgent, opts);
+      if (patch.notes !== undefined) form.setValue('notes', patch.notes, opts);
+      if (patch.send !== undefined) form.setValue('send', patch.send, opts);
+      if (patch.send_due_date !== undefined) form.setValue('send_due_date', patch.send_due_date, opts);
+      form.clearErrors();
+      setSubmissionError(null);
+      setStep('review');
+    },
+    subscribe: (listener) => form.subscribe({ formState: { values: true }, callback: () => listener() }),
+  };
+  React.useEffect(() => {
+    draftControlRef.current = draftControl;
+  });
+  React.useEffect(() => {
+    if (!open || isEdit || !voiceControl) return;
+    voiceControl({
+      read: () => draftControlRef.current!.read(),
+      apply: (patch) => draftControlRef.current!.apply(patch),
+      subscribe: (listener) => draftControlRef.current!.subscribe(listener),
+    });
+    return () => voiceControl(null);
+  }, [open, isEdit, voiceControl]);
 
   const submitLabel = isEdit ? t('form.saveChanges') : sending ? t('wizard.createAndSend') : t('form.create');
 

@@ -1,13 +1,14 @@
 import api from '@/services/api';
 
 import { API_ROUTES } from '@/constants/routes';
-import type { VoiceAiContext, VoiceAiIntent, VoiceAiItem, VoiceAiListFilter, VoiceAiResult } from '@/lib/types';
+import type { VoiceAiContext, VoiceAiDraftEdit, VoiceAiIntent, VoiceAiItem, VoiceAiListFilter, VoiceAiResult } from '@/lib/types';
 
 /** La IA tarda unos segundos; más que esto y se avisa que no se pudo. */
 const VOICE_AI_TIMEOUT_MS = 25_000;
 
 const INTENTS: VoiceAiIntent[] = [
-  'lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'unknown',
+  'lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list',
+  'lab_order.draft_edit', 'unknown',
 ];
 const MOVE_KINDS = ['send', 'received', 'complete', 'cancel', 'next'] as const;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,6 +49,40 @@ function listFilter(value: unknown): VoiceAiListFilter | null {
   };
 }
 
+const aiItems = (value: unknown): VoiceAiItem[] => (Array.isArray(value) ? value : []).slice(0, 10).flatMap((item) => {
+  const it = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+  const service = str(it.service, 80);
+  if (!service) return [];
+  const quantity = Math.min(99, Math.max(1, Math.round(Number(it.quantity)) || 1));
+  return [{ service, quantity, teeth: teeth(it.teeth) }];
+});
+
+function draftEdit(value: unknown, labIds: Set<string>, date: (v: unknown) => string | null): VoiceAiDraftEdit | null {
+  if (!value || typeof value !== 'object') return null;
+  const d = value as Record<string, unknown>;
+  const bool = (v: unknown) => (typeof v === 'boolean' ? v : null);
+  return {
+    patient: str(d.patient, 80),
+    add_items: aiItems(d.add_items),
+    remove_items: (Array.isArray(d.remove_items) ? d.remove_items : []).slice(0, 10).flatMap((v) => str(v, 80) ?? []),
+    update_items: (Array.isArray(d.update_items) ? d.update_items : []).slice(0, 10).flatMap((item) => {
+      const it = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+      const quantity = Math.round(Number(it.quantity));
+      const q = it.quantity == null || !Number.isFinite(quantity) ? null : Math.min(99, Math.max(1, quantity));
+      const tth = Array.isArray(it.teeth) ? teeth(it.teeth) : null;
+      if (q === null && tth === null) return [];
+      return [{ service: str(it.service, 80), quantity: q, teeth: tth }];
+    }),
+    work_description: str(d.work_description, 500),
+    laboratory_id: typeof d.laboratory_id === 'string' && labIds.has(d.laboratory_id) ? d.laboratory_id : null,
+    clear_laboratory: d.clear_laboratory === true,
+    send: bool(d.send),
+    due_date: date(d.due_date),
+    urgent: bool(d.urgent),
+    note_add: str(d.note_add, 500),
+  };
+}
+
 /**
  * Lo que vuelve del flujo ya viene validado contra la lista cerrada, pero se vuelve a validar acá:
  * un id que no está en lo que se mandó, una fecha rara o un intent desconocido quedan en null.
@@ -60,13 +95,7 @@ export function sanitizeVoiceAiResult(raw: unknown, context: Partial<VoiceAiCont
   const orderId = Number(r.order_id);
   const stageId = Number(r.stage_id);
   const date = (v: unknown) => (typeof v === 'string' && DATE_RE.test(v) ? v : null);
-  const items: VoiceAiItem[] = (Array.isArray(r.items) ? r.items : []).slice(0, 10).flatMap((item) => {
-    const it = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
-    const service = str(it.service, 80);
-    if (!service) return [];
-    const quantity = Math.min(99, Math.max(1, Math.round(Number(it.quantity)) || 1));
-    return [{ service, quantity, teeth: teeth(it.teeth) }];
-  });
+  const items = aiItems(r.items);
   const confidence = Number(r.confidence);
   return {
     intent,
@@ -86,6 +115,7 @@ export function sanitizeVoiceAiResult(raw: unknown, context: Partial<VoiceAiCont
     urgent_change: typeof r.urgent_change === 'boolean' ? r.urgent_change : null,
     note_add: str(r.note_add, 500),
     filter: listFilter(r.filter),
+    draft_edit: intent === 'lab_order.draft_edit' ? draftEdit(r.draft_edit, labIds, date) : null,
     confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
   };
 }
