@@ -17,7 +17,8 @@
     "Marcá «Urgente» en el formulario para que la orden salga primero en la lista, en su columna del tablero y en la ficha del paciente; el botón Urgentes muestra solo esas.",
     "El alta va por pasos: Paciente → Trabajo → Laboratorio → Revisar. Si se abre desde la ficha del paciente o desde una sesión clínica, lo que ya viene cargado se da por hecho y arranca en el paso siguiente. «Editar» abre directamente en Revisar.",
     "Mientras falten laboratorios o trabajos de laboratorio, arriba de la lista aparece «Primeros pasos»: cada paso se resuelve ahí mismo (agregar un laboratorio con sus especialidades, prender los servicios que se mandan al laboratorio). Después, lo mismo está en el botón «Configurar».",
-    "Al enviar la orden desde el detalle, el laboratorio y la fecha se completan en el mismo panel, sin ventanas: la fecha viene propuesta según el plazo de la etapa (atajos «En 3 días», «En 1 semana», «En 2 semanas») y, si hay un solo laboratorio posible, ya viene elegido. Suele alcanzar con confirmar."
+    "Al enviar la orden desde el detalle, el laboratorio y la fecha se completan en el mismo panel, sin ventanas: la fecha viene propuesta según el plazo de la etapa (atajos «En 3 días», «En 1 semana», «En 2 semanas») y, si hay un solo laboratorio posible, ya viene elegido. Suele alcanzar con confirmar.",
+    "El tablero carga cada columna por partes: primero unas 20 tarjetas y, al llegar al final del scroll de la columna, las siguientes. Qué tarjetas van primero lo decide «Ordenar por». Aplica los mismos filtros que la lista (paciente y fechas de alta incluidos), salvo la etapa: cada etapa es una columna."
   ],
   "useCases": [
     "lab-orders.overview",
@@ -77,9 +78,9 @@
       "label": "Tablero",
       "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio (o «Sin laboratorio»), entrega («Vencida hace N días» si pasó) y días en la etapa, en rojo si superó el máximo. Las columnas se pueden colapsar."
     },
-    "lab-orders.field.final-days": {
-      "label": "Columnas finales",
-      "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite."
+    "lab-orders.field.sort": {
+      "label": "Ordenar por",
+      "description": "Fuera de los filtros: vale para la lista y el tablero. En el tablero decide qué tarjetas se ven primero en cada columna (más recientes, más antiguas, más o menos días en la etapa). Las urgentes pendientes van siempre arriba."
     },
     "lab-orders.section.detail": {
       "label": "Detalle de la orden",
@@ -142,8 +143,8 @@
       "description": "Un chip por cada filtro del botón Filtros que está aplicado; la ✕ lo quita y «Limpiar filtros» los quita todos. En el tablero, los que no se aplican ahí (etapa, paciente, fechas) se ven punteados."
     },
     "lab-orders.btn.open-patient": {
-      "label": "Ver en Pacientes",
-      "description": "Abre Pacientes buscando al paciente de la orden."
+      "label": "Ver ficha",
+      "description": "Abre la ficha del paciente de la orden encima de la pantalla, sin salir de las órdenes."
     },
     "lab-orders.btn.next-stage": {
       "label": "Pasar a «siguiente etapa»",
@@ -388,6 +389,22 @@
     "lab-orders.filter.lab-services-search": {
       "label": "Buscar servicio",
       "description": "Filtra la lista de servicios por nombre."
+    },
+    "lab-orders.btn.new-lab-service": {
+      "label": "Nuevo trabajo",
+      "description": "Crea un servicio que ya queda marcado como trabajo de laboratorio, sin ir a Ventas → Servicios. Si la búsqueda no encuentra nada, ofrece crearlo con ese nombre."
+    },
+    "lab-orders.section.new-lab-service": {
+      "label": "Nuevo trabajo de laboratorio",
+      "description": "Lo mínimo del servicio: nombre, categoría, precio y duración (en la moneda de la clínica) y, si hay, la especialidad. El resto se completa después en Ventas → Servicios."
+    },
+    "lab-orders.field.lab-service-name": {
+      "label": "Nombre",
+      "description": "Cómo se llama el trabajo (p. ej. Corona de zirconio)."
+    },
+    "lab-orders.btn.save-lab-service": {
+      "label": "Crear y marcar",
+      "description": "Crea el servicio y lo marca como trabajo de laboratorio; aparece arriba de la lista."
     },
     "lab-orders.section.lab-service-first": {
       "label": "Servicio",

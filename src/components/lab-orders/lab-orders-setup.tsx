@@ -1,11 +1,16 @@
 'use client';
 
 import * as React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import { Building2, Check, FlaskConical, ListChecks, Loader2, Plus, Search, Settings2, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { MiscCategorySelector } from '@/components/ui/misc-category-selector';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -23,11 +28,11 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { api, isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { fetchLabCategories, searchLaboratories } from '@/services/lab-orders';
-import { getSalesServices, setServiceIsLab } from '@/services/services';
+import { createSalesService, getIncomeCategories, getSalesServices, setServiceIsLab } from '@/services/services';
 
 import { BUSINESS_CONFIG_PERMISSIONS, LAB_ORDERS_PERMISSIONS, PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
-import type { LabCategory, Service } from '@/lib/types';
+import type { LabCategory, MiscellaneousCategory, Service } from '@/lib/types';
 
 export type LabSetupDialog = 'laboratory' | 'services';
 
@@ -464,12 +469,18 @@ export function LabServicesDialog({ open, onOpenChange, onChanged }: {
   const [search, setSearch] = React.useState('');
   const [reloadKey, setReloadKey] = React.useState(0);
   const changedRef = React.useRef(false);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
+  /** Alta de un trabajo nuevo abierta (con el nombre con el que arranca) y si se está guardando. */
+  const [creating, setCreating] = React.useState<{ name: string } | null>(null);
+  const [createBusy, setCreateBusy] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
     let active = true;
     setLoadError(false);
     setSearch('');
+    setCreating(null);
     changedRef.current = false;
     getSalesServices({ limit: 500 })
       .then(({ items }) => {
@@ -503,9 +514,17 @@ export function LabServicesDialog({ open, onOpenChange, onChanged }: {
     { errorTitle: t('services.saveErrorTitle') },
   );
 
+  // Recién creado: arriba de todo, ya marcado, y la búsqueda se limpia para que se vea.
+  const handleCreated = (service: Service) => {
+    changedRef.current = true;
+    setServices((prev) => [service, ...(prev ?? []).filter((s) => String(s.id) !== String(service.id))]);
+    setSearch('');
+    setCreating(null);
+  };
+
   const close = (next: boolean) => {
     if (next) return;
-    if (update.hasPending) return;
+    if (update.hasPending || createBusy) return;
     if (changedRef.current) onChanged();
     onOpenChange(false);
   };
@@ -535,7 +554,31 @@ export function LabServicesDialog({ open, onOpenChange, onChanged }: {
                 />
               </div>
               <span className="text-xs text-muted-foreground">{t('services.count', { count: labCount })}</span>
+              {canCreate && !creating && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  data-help-id="lab-orders.btn.new-lab-service"
+                  onClick={() => setCreating({ name: search.trim() })}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('services.new')}
+                </Button>
+              )}
             </div>
+
+            {creating && (
+              <LabServiceCreateForm
+                initialName={creating.name}
+                labCategories={categories ?? []}
+                onBusyChange={setCreateBusy}
+                onCancel={() => setCreating(null)}
+                onCreated={handleCreated}
+                onCreatedWithoutId={() => { changedRef.current = true; setCreating(null); setServices(null); setReloadKey((k) => k + 1); }}
+              />
+            )}
 
             {services === null ? (
               <div className="space-y-2">
@@ -547,7 +590,15 @@ export function LabServicesDialog({ open, onOpenChange, onChanged }: {
                 <Button size="sm" variant="outline" onClick={() => { setServices(null); setReloadKey((k) => k + 1); }}>{t('retry')}</Button>
               </div>
             ) : visible.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">{services.length === 0 ? t('services.empty') : t('services.noResults')}</p>
+              <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+                <p>{services.length === 0 ? t('services.empty') : t('services.noResults')}</p>
+                {canCreate && !creating && (
+                  <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setCreating({ name: search.trim() })}>
+                    <Plus className="h-4 w-4" />
+                    {search.trim() ? t('services.createNamed', { name: search.trim() }) : t('services.new')}
+                  </Button>
+                )}
+              </div>
             ) : (
               <ul className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
                 {visible.map((service, index) => {
@@ -603,11 +654,193 @@ export function LabServicesDialog({ open, onOpenChange, onChanged }: {
             </p>
           </DialogBody>
           <DialogFooter>
-            <Button type="button" data-help-id="lab-orders.btn.lab-services-done" onClick={() => close(false)} disabled={update.hasPending}>
+            <Button type="button" data-help-id="lab-orders.btn.lab-services-done" onClick={() => close(false)} disabled={update.hasPending || createBusy}>
               {t('done')}
             </Button>
           </DialogFooter>
         </DialogContent>
     </Dialog>
+  );
+}
+
+// ──── Trabajo de laboratorio nuevo ────
+
+const labServiceSchema = (t: (key: string) => string) => z.object({
+  name: z.string().trim().min(1, t('services.create.nameRequired')).max(150),
+  category_id: z.string().min(1, t('services.create.categoryRequired')),
+  price: z.coerce.number().min(0, t('services.create.priceInvalid')),
+  duration_minutes: z.coerce.number().int().positive(t('services.create.durationInvalid')),
+  lab_category_id: z.string(),
+});
+
+type LabServiceFormValues = z.infer<ReturnType<typeof labServiceSchema>>;
+
+/**
+ * Alta de un servicio que ya nace como trabajo de laboratorio, sin ir a Ventas → Servicios:
+ * lo mínimo (nombre, categoría, precio y duración, en la moneda de la clínica). El resto del
+ * servicio se completa después en Ventas si hace falta.
+ */
+function LabServiceCreateForm({ initialName, labCategories, onBusyChange, onCancel, onCreated, onCreatedWithoutId }: {
+  initialName: string;
+  labCategories: LabCategory[];
+  onBusyChange: (busy: boolean) => void;
+  onCancel: () => void;
+  onCreated: (service: Service) => void;
+  /** Se creó pero el backend no devolvió el id: no se pudo marcar; se recarga la lista. */
+  onCreatedWithoutId: () => void;
+}) {
+  const t = useTranslations('LabOrdersPage.setup');
+  const { toast } = useToast();
+  const [incomeCategories, setIncomeCategories] = React.useState<MiscellaneousCategory[]>([]);
+
+  React.useEffect(() => {
+    let active = true;
+    getIncomeCategories()
+      .then((list) => { if (active) setIncomeCategories(list); })
+      .catch(() => { /* el selector permite crear una */ });
+    return () => { active = false; };
+  }, []);
+
+  const form = useForm<LabServiceFormValues>({
+    resolver: zodResolver(labServiceSchema(t)),
+    defaultValues: {
+      name: initialName,
+      category_id: '',
+      price: 0,
+      duration_minutes: 60,
+      // Con una sola especialidad, se asigna sola (como al prender un servicio existente).
+      lab_category_id: labCategories.length === 1 ? labCategories[0].id : NO_CATEGORY,
+    },
+  });
+
+  // Una sola categoría de ingreso: preelegida.
+  React.useEffect(() => {
+    if (incomeCategories.length === 1 && !form.getValues('category_id')) form.setValue('category_id', incomeCategories[0].id);
+  }, [incomeCategories, form]);
+
+  const save = useAsyncAction(async (values: LabServiceFormValues) => {
+    const categoryName = incomeCategories.find((c) => c.id === values.category_id)?.name ?? '';
+    const labCategoryId = values.lab_category_id === NO_CATEGORY ? null : values.lab_category_id;
+    const id = await createSalesService({
+      name: values.name,
+      categoryId: values.category_id,
+      categoryName,
+      price: values.price,
+      durationMinutes: values.duration_minutes,
+    });
+    if (!id) {
+      toast({ variant: 'destructive', title: t('services.create.notMarkedTitle'), description: t('services.create.notMarked', { name: values.name }) });
+      onCreatedWithoutId();
+      return;
+    }
+    const marked = await setServiceIsLab(id, true, labCategoryId);
+    if (!marked) {
+      toast({ variant: 'destructive', title: t('services.create.notMarkedTitle'), description: t('services.create.notMarked', { name: values.name }) });
+    } else {
+      toast({ title: t('services.create.created', { name: values.name.trim() }) });
+    }
+    onCreated({
+      id,
+      name: values.name.trim(),
+      category: categoryName,
+      category_id: values.category_id,
+      category_name: categoryName,
+      price: values.price,
+      duration_minutes: values.duration_minutes,
+      is_active: true,
+      is_lab: marked,
+      lab_category_id: marked ? labCategoryId : null,
+    } as Service);
+  }, { errorTitle: t('services.create.errorTitle') });
+
+  React.useEffect(() => { onBusyChange(save.isPending); }, [save.isPending, onBusyChange]);
+
+  return (
+    <Form {...form}>
+      <form
+        data-help-id="lab-orders.section.new-lab-service"
+        onSubmit={(e) => {
+          // Va dentro de otro diálogo: el submit no tiene que llegar a ningún form de afuera.
+          e.stopPropagation();
+          void form.handleSubmit((values) => save.run(values))(e);
+        }}
+        className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3"
+      >
+        <p className="text-sm font-medium">{t('services.create.title')}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField control={form.control} name="name" render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>{t('services.create.name')}</FormLabel>
+              <FormControl>
+                <Input {...field} data-help-id="lab-orders.field.lab-service-name" placeholder={t('services.create.namePlaceholder')} autoFocus disabled={save.isPending} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="category_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('services.create.category')}</FormLabel>
+              <FormControl>
+                <MiscCategorySelector
+                  categories={incomeCategories}
+                  categoryType="income"
+                  value={field.value}
+                  onValueChange={(id) => field.onChange(id)}
+                  onCategoryCreated={(category) => {
+                    setIncomeCategories((prev) => [...prev, category]);
+                    field.onChange(category.id);
+                  }}
+                  placeholder={t('services.create.categoryPlaceholder')}
+                  triggerText={t('services.create.categoryPlaceholder')}
+                  disabled={save.isPending}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          {labCategories.length > 0 ? (
+            <FormField control={form.control} name="lab_category_id" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('services.create.specialty')}</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange} disabled={save.isPending}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_CATEGORY}>{t('services.anySpecialty')}</SelectItem>
+                    {labCategories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+          ) : <div className="hidden sm:block" />}
+          <FormField control={form.control} name="price" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('services.create.price')}</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" inputMode="decimal" min={0} step="any" disabled={save.isPending} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="duration_minutes" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('services.create.duration')}</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" inputMode="numeric" min={1} step={1} disabled={save.isPending} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={save.isPending}>{t('cancel')}</Button>
+          <Button type="submit" size="sm" data-help-id="lab-orders.btn.save-lab-service" loading={save.isPending}>
+            {t('services.create.save')}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

@@ -13,7 +13,8 @@
     "Turn on «Urgent» in the form so the order shows first in the list, in its board column and in the patient record; the Urgent button shows only those.",
     "Creating an order goes step by step: Patient → Job → Laboratory → Review. When opened from the patient record or a clinical session, what is already filled in counts as done and it starts at the next step. “Edit” opens straight on Review.",
     "While labs or lab jobs are missing, \"Getting started\" appears above the list: each step is done right there (add a lab with its specialties, turn on the services sent to a lab). Afterwards, the same options are under the \"Set up\" button.",
-    "When you send the order from the detail, the lab and the date are filled in the same panel, with no windows: the date is suggested from the stage deadline (shortcuts \"In 3 days\", \"In 1 week\", \"In 2 weeks\") and, if there is only one possible lab, it is already selected. Usually you just confirm."
+    "When you send the order from the detail, the lab and the date are filled in the same panel, with no windows: the date is suggested from the stage deadline (shortcuts \"In 3 days\", \"In 1 week\", \"In 2 weeks\") and, if there is only one possible lab, it is already selected. Usually you just confirm.",
+    "The board loads each column in parts: about 20 cards first and, when you reach the end of the column’s scroll, the next ones. Sort by decides which cards go first. It applies the same filters as the list (patient and creation dates included), except the stage: each stage is a column."
   ],
   "elements": {
     "lab-orders.btn.new": {
@@ -63,9 +64,9 @@
       "label": "Board",
       "description": "One column per stage. Cards show patient, job, lab (or \"No lab\"), due date (\"N days past due\" once it passes) and days in stage, in red when over the limit. Columns can be collapsed."
     },
-    "lab-orders.field.final-days": {
-      "label": "Final columns",
-      "description": "Final stages only show orders that arrived in the chosen last days, so they do not grow forever."
+    "lab-orders.field.sort": {
+      "label": "Sort by",
+      "description": "Outside the filters: it applies to both the list and the board. On the board it decides which cards show first in each column (newest, oldest, most or fewest days in the stage). Pending urgent orders always go on top."
     },
     "lab-orders.section.detail": {
       "label": "Order detail",
@@ -128,8 +129,8 @@
       "description": "One chip per applied filter from the Filters button; the ✕ removes it and \"Clear filters\" removes them all. On the board, filters that do not apply there (stage, patient, dates) are dashed."
     },
     "lab-orders.btn.open-patient": {
-      "label": "Open in Patients",
-      "description": "Opens Patients searching for the order's patient."
+      "label": "View patient",
+      "description": "Opens the order’s patient file on top of the screen, without leaving lab orders."
     },
     "lab-orders.btn.next-stage": {
       "label": "Move to “next stage”",
@@ -374,6 +375,22 @@
     "lab-orders.filter.lab-services-search": {
       "label": "Search service",
       "description": "Filters the list of services by name."
+    },
+    "lab-orders.btn.new-lab-service": {
+      "label": "New lab work",
+      "description": "Creates a service already marked as lab work, without going to Sales → Services. If the search finds nothing, it offers to create it with that name."
+    },
+    "lab-orders.section.new-lab-service": {
+      "label": "New lab work",
+      "description": "The service basics: name, category, price and duration (in the clinic’s currency) and, if any, the specialty. The rest can be completed later in Sales → Services."
+    },
+    "lab-orders.field.lab-service-name": {
+      "label": "Name",
+      "description": "What the work is called (e.g. Zirconia crown)."
+    },
+    "lab-orders.btn.save-lab-service": {
+      "label": "Create and mark",
+      "description": "Creates the service and marks it as lab work; it shows at the top of the list."
     },
     "lab-orders.section.lab-service-first": {
       "label": "Service",

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
 import { format, startOfToday } from 'date-fns';
-import { AlertTriangle, CalendarClock, FlaskConical, LayoutList, Plus, RefreshCw, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, CalendarClock, FlaskConical, LayoutList, Plus, RefreshCw, Search, SlidersHorizontal, SquareKanban, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
@@ -21,7 +21,7 @@ import { UserSelector } from '@/components/ui/user-selector';
 
 import { Can } from '@/components/auth/Can';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
-import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
+import { LabOrdersBoard, type LabOrdersBoardFilters } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
@@ -65,7 +65,8 @@ const todayKey = () => format(startOfToday(), 'yyyy-MM-dd');
 type ViewMode = 'list' | 'board';
 
 const VIEW_STORAGE = 'lab-orders-view';
-const FINAL_DAYS_OPTIONS = [7, 30, 90] as const;
+const SORT_STORAGE = 'lab-orders-sort';
+const SORT_OPTIONS: LabOrderSort[] = ['created_desc', 'created_asc', 'days_desc', 'days_asc'];
 
 interface PickedEntity {
   id: string;
@@ -75,7 +76,7 @@ interface PickedEntity {
 interface FilterChip {
   key: string;
   label: string;
-  /** El tablero no lo aplica (etapa, paciente, fechas). */
+  /** El tablero no lo aplica (la etapa: ahí cada etapa es una columna). */
   listOnly: boolean;
   onRemove: () => void;
 }
@@ -95,7 +96,8 @@ function useIsMobile() {
 /**
  * Órdenes de laboratorio. Dos vistas:
  *  - Lista: por defecto solo las pendientes (fuera de etapa final), con todos los filtros.
- *  - Tablero: una columna por etapa activa; arrastrar cambia la etapa.
+ *  - Tablero: una columna por etapa activa, cargada por partes al hacer scroll; arrastrar cambia la etapa.
+ * El orden (fuera de los filtros) vale para las dos: en el tablero decide qué tarjetas se ven primero.
  * Las atrasadas se marcan en rojo en las dos. Los cambios de otros usuarios llegan en vivo.
  */
 export default function LabOrdersPage() {
@@ -107,7 +109,7 @@ export default function LabOrdersPage() {
   const canChangeStage = hasPermission(LAB_ORDERS_PERMISSIONS.CHANGE_STAGE);
 
   const [view, setView] = React.useState<ViewMode>('list');
-  const [finalDays, setFinalDays] = React.useState<number>(30);
+  const [sort, setSort] = React.useState<LabOrderSort>('created_desc');
   const [stagesKey, setStagesKey] = React.useState(0);
   const [boardKey, setBoardKey] = React.useState(0);
 
@@ -115,12 +117,19 @@ export default function LabOrdersPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE);
       if (stored === 'board' || stored === 'list') setView(stored);
+      const storedSort = localStorage.getItem(SORT_STORAGE) as LabOrderSort | null;
+      if (storedSort && SORT_OPTIONS.includes(storedSort)) setSort(storedSort);
     } catch { /* sin storage */ }
   }, []);
 
   const changeView = (next: ViewMode) => {
     setView(next);
     try { localStorage.setItem(VIEW_STORAGE, next); } catch { /* sin storage */ }
+  };
+
+  const changeSort = (next: LabOrderSort) => {
+    setSort(next);
+    try { localStorage.setItem(SORT_STORAGE, next); } catch { /* sin storage */ }
   };
 
   const [stages, setStages] = React.useState<LabStage[]>([]);
@@ -142,7 +151,6 @@ export default function LabOrdersPage() {
   const [urgentOnly, setUrgentOnly] = React.useState(false);
   const [dueTodayOnly, setDueTodayOnly] = React.useState(false);
   const [quickCounts, setQuickCounts] = React.useState<QuickCounts | null>(null);
-  const [sort, setSort] = React.useState<LabOrderSort>('created_desc');
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
 
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -196,6 +204,12 @@ export default function LabOrdersPage() {
     ...(dueTodayOnly ? { due_from: todayKey(), due_to: todayKey() } : {}),
     sort,
   }), [debouncedSearch, stageFilter, laboratory, doctor, patient, dateFrom, dateTo, overdueOnly, urgentOnly, dueTodayOnly, sort]);
+
+  // El tablero aplica todo menos la etapa (cada etapa es una columna); el orden va aparte.
+  const boardFilters = React.useMemo<LabOrdersBoardFilters>(() => {
+    const { stage_ids: _stageIds, pending_only: _pendingOnly, sort: _sort, ...rest } = filters;
+    return rest;
+  }, [filters]);
 
   // Un filtro nuevo vuelve a la primera página.
   React.useEffect(() => {
@@ -271,14 +285,14 @@ export default function LabOrdersPage() {
     return () => clearTimeout(timer);
   }, [flashId]);
 
-  // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora etapa, paciente y fechas).
+  // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora la etapa).
   const activeFilterCount = [
     view === 'list' && stageFilter !== DEFAULT_STAGE_FILTER,
     laboratory,
     doctor,
-    view === 'list' && patient,
-    view === 'list' && dateFrom,
-    view === 'list' && dateTo,
+    patient,
+    dateFrom,
+    dateTo,
   ].filter(Boolean).length;
   const hasExtraFilters = Boolean(
     laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || urgentOnly || dueTodayOnly || search
@@ -298,16 +312,15 @@ export default function LabOrdersPage() {
     if (request.laboratory !== undefined) setLaboratory(request.laboratory);
     if (request.patient !== undefined) {
       setPatient(request.patient);
-      // El tablero no filtra por paciente: sus órdenes se ven en la lista, todas las etapas.
+      // En la lista, todas sus órdenes (también las finalizadas); el tablero ya muestra todas las etapas.
       if (request.patient) setStageFilter('all');
     }
-    const nextView = request.view ?? (request.patient ? 'list' : undefined);
-    if (nextView) changeView(nextView);
+    if (request.view) changeView(request.view);
     setSelectedId(null);
   });
 
-  // Filtros del popover aplicados, a la vista como chips. En el tablero, los que no se aplican
-  // (etapa, paciente, fechas) quedan atenuados en vez de desaparecer.
+  // Filtros del popover aplicados, a la vista como chips. En el tablero, el que no se aplica
+  // (la etapa) queda atenuado en vez de desaparecer.
   const filterChips = ([
     stageFilter !== DEFAULT_STAGE_FILTER && {
       key: 'stage',
@@ -319,9 +332,9 @@ export default function LabOrdersPage() {
     },
     laboratory && { key: 'laboratory', label: `${t('filters.laboratory')}: ${laboratory.name}`, listOnly: false, onRemove: () => setLaboratory(null) },
     doctor && { key: 'doctor', label: `${t('filters.doctor')}: ${doctor.name}`, listOnly: false, onRemove: () => setDoctor(null) },
-    patient && { key: 'patient', label: `${t('filters.patient')}: ${patient.name}`, listOnly: true, onRemove: () => setPatient(null) },
-    dateFrom && { key: 'dateFrom', label: `${t('filters.createdFrom')}: ${formatDisplayDate(dateFrom)}`, listOnly: true, onRemove: () => setDateFrom('') },
-    dateTo && { key: 'dateTo', label: `${t('filters.createdTo')}: ${formatDisplayDate(dateTo)}`, listOnly: true, onRemove: () => setDateTo('') },
+    patient && { key: 'patient', label: `${t('filters.patient')}: ${patient.name}`, listOnly: false, onRemove: () => setPatient(null) },
+    dateFrom && { key: 'dateFrom', label: `${t('filters.createdFrom')}: ${formatDisplayDate(dateFrom)}`, listOnly: false, onRemove: () => setDateFrom('') },
+    dateTo && { key: 'dateTo', label: `${t('filters.createdTo')}: ${formatDisplayDate(dateTo)}`, listOnly: false, onRemove: () => setDateTo('') },
   ]).filter((chip): chip is FilterChip => Boolean(chip));
   const hasIgnoredChips = view === 'board' && filterChips.some((chip) => chip.listOnly);
 
@@ -450,6 +463,22 @@ export default function LabOrdersPage() {
           <span className={cn(isRightOpen && 'hidden')}>{t('filters.dueToday')}</span>
           <QuickCount value={quickCounts?.dueToday} active={dueTodayOnly} />
         </Button>
+        <Select value={sort} onValueChange={(v) => changeSort(v as LabOrderSort)}>
+          <SelectTrigger
+            data-help-id="lab-orders.field.sort"
+            className={cn('h-9 w-auto gap-1.5', isRightOpen && '[&>span]:sr-only')}
+            aria-label={t('filters.sort')}
+            title={t('filters.sort')}
+          >
+            <ArrowUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {SORT_OPTIONS.map((value) => (
+              <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Popover>
           <PopoverTrigger asChild>
             <Button data-help-id="lab-orders.btn.filters" variant="outline" size="sm" className="h-9 gap-1.5" aria-label={t('filters.more')}>
@@ -506,53 +535,25 @@ export default function LabOrdersPage() {
                   triggerText={t('filters.any')}
                 />
               </div>
-              {view === 'list' && (
-                <>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
-                    <UserSelector
-                      filterType="PACIENTE"
-                      value={patient?.id ?? ''}
-                      selectedUserName={patient?.name}
-                      onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
-                      placeholder={t('form.searchPatient')}
-                      triggerText={t('filters.any')}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
-                    <DatePickerInput value={dateFrom} onChange={setDateFrom} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
-                    <DatePickerInput value={dateTo} onChange={setDateTo} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
-                    <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {(['created_desc', 'created_asc', 'days_desc', 'days_asc'] as LabOrderSort[]).map((value) => (
-                          <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-              {view === 'board' && (
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
-                  <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
-                    <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FINAL_DAYS_OPTIONS.map((days) => (
-                        <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
+                <UserSelector
+                  filterType="PACIENTE"
+                  value={patient?.id ?? ''}
+                  selectedUserName={patient?.name}
+                  onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
+                  placeholder={t('form.searchPatient')}
+                  triggerText={t('filters.any')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
+                <DatePickerInput value={dateFrom} onChange={setDateFrom} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
+                <DatePickerInput value={dateTo} onChange={setDateTo} />
+              </div>
             </div>
             {hasExtraFilters && (
               <div className="mt-3 flex justify-end border-t pt-3">
@@ -664,15 +665,8 @@ export default function LabOrdersPage() {
         {view === 'board' ? (
           <LabOrdersBoard
             stages={stages}
-            filters={{
-              search: debouncedSearch.trim() || undefined,
-              laboratory_id: laboratory?.id,
-              doctor_id: doctor?.id,
-              overdue_only: overdueOnly || undefined,
-              urgent_only: urgentOnly || undefined,
-              ...(dueTodayOnly ? { due_from: todayKey(), due_to: todayKey() } : {}),
-            }}
-            finalDays={finalDays}
+            filters={boardFilters}
+            sort={sort}
             reloadKey={boardKey}
             canChangeStage={canChangeStage}
             onOpen={(order) => setSelectedId(order.id)}

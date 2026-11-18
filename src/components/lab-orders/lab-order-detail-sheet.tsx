@@ -1,9 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, ArrowRight, Building2, ChevronDown, ExternalLink, FlaskConical, Mail, MapPin, Maximize2, Minimize2, Pencil, Phone, Trash2, X } from 'lucide-react';
-import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { AlertTriangle, ArrowRight, Building2, ChevronDown, FlaskConical, Mail, MapPin, Maximize2, Minimize2, Pencil, Phone, Trash2, UserRound, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { useLabOrderChanged } from '@/lib/lab-orders-events';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePatientView } from '@/stores/patient-view-store';
 import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
@@ -163,7 +163,7 @@ function LabOrderDetailView({
   orderId, stages, onClose, onChanged, isExpanded, onToggleExpanded, variant, readOnly = false,
 }: LabOrderDetailPanelProps & { variant: 'panel' | 'sheet' }) {
   const t = useTranslations('LabOrdersPage');
-  const locale = useLocale();
+  const { open: openPatientView } = usePatientView();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const errorText = useLabOrderErrorText();
@@ -395,17 +395,19 @@ function LabOrderDetailView({
               <dt className="text-muted-foreground">{t('columns.patient')}</dt>
               <dd className="flex min-w-0 flex-wrap items-center gap-x-2">
                 <span className="truncate">{detail.patient_name}</span>
-                {/* Desde la ficha del paciente (sheet) ya se está en el paciente. */}
+                {/* Desde la ficha del paciente (sheet) ya se está en el paciente. Abre su ficha
+                    encima, sin salir de las órdenes. */}
                 {variant === 'panel' && (
-                  <Can permission={PATIENTS_PERMISSIONS.VIEW_LIST}>
-                    <Link
+                  <Can permission={PATIENTS_PERMISSIONS.VIEW_DETAIL}>
+                    <button
+                      type="button"
                       data-help-id="lab-orders.btn.open-patient"
-                      href={`/${locale}/patients?q=${encodeURIComponent(detail.patient_name)}`}
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      onClick={() => openPatientView({ userId: detail.patient_id, userName: detail.patient_name })}
+                      className="inline-flex items-center gap-1 rounded-sm text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
+                      <UserRound className="h-3 w-3" aria-hidden="true" />
                       {t('detail.openPatient')}
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </Link>
+                    </button>
                   </Can>
                 )}
               </dd>
