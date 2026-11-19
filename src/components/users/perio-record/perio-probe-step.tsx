@@ -32,9 +32,10 @@ import {
   siteOf,
 } from '@/lib/perio/teeth';
 import { marginSignOf, type PerioSettings, usePerioSettingsContext } from '@/lib/perio/settings';
-import { parseVoice } from '@/lib/perio/voice';
+import { isWeightyCommand, parseVoice, type VoiceCommand } from '@/lib/perio/voice';
 import { JUMP_ALERT_MM, type ProbeState, runVoice, type VoiceEvent } from '@/lib/perio/voice-engine';
 import { cn, formatDisplayDate } from '@/lib/utils';
+import type { PerioAiContext } from '@/lib/voice/commands/perio';
 
 import type { PerioExam, PerioExamType, PerioFurcationEntry, PerioSite, PerioTooth, PerioToothStatus } from '@/lib/types';
 import { PerioArch, type PerioPass, ROMAN, severityClass } from './perio-arch';
@@ -95,8 +96,10 @@ export interface PerioProbeStepProps {
   onRedo: () => void;
   /** Dictated sites not confirmed yet (underlined) */
   pending: ReadonlySet<string>;
-  /** Sites written by voice, with the teeth as they were before */
-  onDictated: (refs: SiteRef[], before: PerioTooth[]) => void;
+  /** Of those, the ones the AI wrote last (drawn dashed) */
+  aiPending?: ReadonlySet<string>;
+  /** Sites written by voice, with the teeth as they were before; `ai`: the AI interpreted the phrase */
+  onDictated: (refs: SiteRef[], before: PerioTooth[], ai?: boolean) => void;
   onConfirmDictation: () => void;
   onDiscardDictation: () => void;
   /** Highlight what is missing in a row and take the probe there */
@@ -418,15 +421,59 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
     return { understood, warnings };
   };
 
-  const handlePhrase = (text: string): VoiceFeedback => {
-    const { commands, unknown } = parseVoice(text);
+  /** "¿Marco la 18 como ausente?": what a weighty command will do, asked before doing it */
+  const weightyQuestion = (c: VoiceCommand): string => {
+    if (c.kind === 'status') {
+      const x = byTooth.get(c.tooth);
+      const wipes = !isProbeable(c.status) && Boolean(x && [...x.sites.v, ...x.sites.i].some((site) => site.pd != null || site.gm != null));
+      return t(wipes ? 'voice.ask.statusWipes' : 'voice.ask.status', { tooth: c.tooth, status: t(`chart.status.${c.status}`).toLowerCase() });
+    }
+    if (c.kind === 'copy') return guideBy ? t(`voice.ask.copy.${c.what}`) : t('voice.answer.noPrevious');
+    return t('voice.ask.discard', { count: props.pending.size });
+  };
+
+  /** Values of one face, as read aloud ("V 3 2 3") */
+  const faceValues = (x: PerioTooth, side: 'v' | 'i', field: 'pd' | 'gm') =>
+    `${sideShort({ tooth: x.tooth, side })} ${x.sites[side].map((site) => (site[field] == null ? '–' : fmt(site[field]))).join(' ')}`;
+  /** Answer to "¿cuánto tenía el 16?", "leé el 16", "¿qué me falta?": nothing is written */
+  const answerQuery = (c: Extract<VoiceCommand, { kind: 'query' }>, s: ProbeState): string => {
+    if (c.what === 'missing') {
+      const progress = probeProgress(s.teeth, mode);
+      const pd = progress.total - progress.pd;
+      const gm = progress.total - progress.gm;
+      return pd || gm ? t('voice.answer.missing', { pd, gm }) : t('voice.answer.nothingMissing');
+    }
+    const tooth = c.tooth ?? (s.pass === 'fm' ? s.fmTooth : s.cursor?.tooth ?? s.fmTooth);
+    const field = s.pass === 'mg' ? 'gm' : 'pd';
+    const row = t(field === 'gm' ? 'chart.rows.gm' : 'chart.rows.pd');
+    const x = c.what === 'previous' ? guideBy?.get(tooth) : s.teeth.find((y) => y.tooth === tooth);
+    if (!x) return c.what === 'previous' ? t('voice.answer.noPrevious') : t('voice.feedback.notProbed', { tooth });
+    if (!isProbeable(x.status)) return t(c.what === 'previous' ? 'voice.answer.statusPrevious' : 'voice.answer.statusCurrent', { tooth, status: t(`chart.status.${x.status}`).toLowerCase() });
+    const values = `${row} ${faceValues(x, 'v', field)} · ${faceValues(x, 'i', field)}`;
+    return t(c.what === 'previous' ? 'voice.answer.previous' : 'voice.answer.current', { tooth, values });
+  };
+
+  /**
+   * Runs the commands of one phrase (from the parser, or from the AI with `ai`) and says what was
+   * understood. A tooth status, a copy from the previous exam or discarding are weighty: nothing of
+   * the phrase runs until a "sí" (`confirm` comes back with what to run then).
+   */
+  const applyVoice = (text: string, commands: VoiceCommand[], unknown: string[], ai = false, confirmed = false): VoiceFeedback => {
     if (readOnly) return { heard: text, understood: [], warnings: [t('voice.feedback.readOnly')], unknown: [] };
+    const weighty = commands.filter(isWeightyCommand);
+    if (weighty.length && !confirmed) {
+      const message = weighty.map(weightyQuestion).join(' · ');
+      // Copying with no previous exam: there is nothing to ask
+      if (weighty.every((c) => c.kind === 'copy') && !guideBy) return { heard: text, understood: [], warnings: [message], unknown };
+      return { heard: text, understood: [], warnings: [], unknown, confirm: { message, run: () => applyVoice(text, commands, unknown, ai, true) } };
+    }
+    const screen = commands.filter((c) => c.kind === 'status' || c.kind === 'copy' || c.kind === 'query');
     const before = liveRef.current ?? currentState();
-    const result = runVoice(before, commands, guide, mode, sign);
+    const result = runVoice(before, commands.filter((c) => c.kind !== 'status' && c.kind !== 'copy' && c.kind !== 'query'), guide, mode, sign);
     const s = result.state;
     if (s.teeth !== before.teeth) {
       setTeeth(() => s.teeth);
-      if (result.touched.length) props.onDictated(result.touched, before.teeth);
+      if (result.touched.length) props.onDictated(result.touched, before.teeth, ai);
     }
     if (s.pass !== before.pass) { setPassState(s.pass); setNegative(false); }
     if (s.line !== before.line) setLine(s.line);
@@ -467,7 +514,42 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
     }
     if (s.focus !== focus) understood.push(t('voice.feedback.focus', { focus: t(`probe.focus.${s.focus}`) }));
     if (result.actions.length) understood.push(...result.actions.filter((a) => a !== 'stop').map((a) => t(`voice.feedback.actions.${a}`)));
-    return { heard: text, understood, warnings, unknown, stop: result.actions.includes('stop') };
+
+    // What the screen does itself: tooth status, copy from the previous exam and questions
+    const answers: string[] = [];
+    for (const c of screen) {
+      if (c.kind === 'status') {
+        setToothStatus(c.tooth, c.status);
+        understood.push(t('voice.feedback.status', { tooth: c.tooth, status: t(`chart.status.${c.status}`).toLowerCase() }));
+      } else if (c.kind === 'copy') {
+        copyFromGuide(c.what);
+      } else if (c.kind === 'query') {
+        answers.push(answerQuery(c, s));
+      }
+    }
+    // The teeth changed outside the voice engine: the next phrase starts from the screen again
+    if (screen.some((c) => c.kind !== 'query')) liveRef.current = null;
+    return { heard: text, understood, warnings, unknown, stop: result.actions.includes('stop'), answer: answers.join(' · ') || undefined };
+  };
+  const handlePhrase = (text: string): VoiceFeedback => {
+    const { commands, unknown } = parseVoice(text);
+    return applyVoice(text, commands, unknown);
+  };
+  const handleAiCommands = (text: string, commands: VoiceCommand[]): VoiceFeedback => applyVoice(text, commands, [], true);
+  /** Where the probe is, for the AI (no patient data) */
+  const voiceAiContext = (): PerioAiContext => {
+    const s = liveRef.current ?? currentState();
+    const withStatus = (status: PerioToothStatus) => s.teeth.filter((x) => x.status === status).map((x) => x.tooth);
+    return {
+      pass: s.pass,
+      line: s.line,
+      cursor: s.cursor ? { tooth: s.cursor.tooth, side: s.cursor.side, site: (['distal', 'center', 'mesial'] as const)[s.cursor.index] } : null,
+      fm_tooth: s.fmTooth,
+      focus: s.focus,
+      teeth: { present: withStatus('present'), implants: withStatus('implant'), missing: withStatus('missing'), pontics: withStatus('pontic') },
+      implants_only: Boolean(mode?.implantsOnly),
+      margin_negative: sign < 0,
+    };
   };
 
   const lineLabel = (p: PerioPass, l: ProbeLine, ref: SiteRef | null) => {
@@ -638,6 +720,8 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
             <PerioVoiceBar
               inputRef={voiceInputRef}
               onPhrase={handlePhrase}
+              onAiCommands={handleAiCommands}
+              aiContext={voiceAiContext}
               pendingCount={props.pending.size}
               onConfirm={props.onConfirmDictation}
               onDiscard={props.onDiscardDictation}
@@ -769,6 +853,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
                         selectedTooth={activeTooth}
                         flagTarget={markTarget}
                         pending={props.pending}
+                        aiPending={props.aiPending}
                         highlight={activeHighlight}
                         flash={flash?.keys}
                         onCellClick={readOnly ? undefined : onCellClick}
@@ -897,6 +982,7 @@ function Legend() {
       {dot('var(--perio-s6)', t('s6'))}
       <span className="inline-flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded-full border border-dashed border-primary" />{t('markTarget')}</span>
       <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[2px] w-3 rounded" style={{ background: 'var(--perio-dict)' }} />{t('dictated')}</span>
+      <span className="inline-flex items-center gap-1.5"><i className="inline-block w-[18px]" style={{ borderTop: '2px dashed var(--perio-dict)' }} />{t('dictatedAi')}</span>
     </div>
   );
 }

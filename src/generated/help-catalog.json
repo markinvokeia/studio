@@ -1,5 +1,5 @@
 {
- "version": "2eae8c8e52adc09a",
+ "version": "8933dbfc79098a49",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -11019,6 +11019,20 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "No cambia nada.",
+     "id": "perio-session.btn.voice-no",
+     "kind": "btn",
+     "label": "No",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Hace lo que pregunta (lo que se escribe queda como dictado sin confirmar).",
+     "id": "perio-session.btn.voice-yes",
+     "kind": "btn",
+     "label": "Sí",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Diagnóstico inicial, reevaluación o mantenimiento (sondaje completo); cribado PSR/BPE (un código por sextante); solo implantes (se sondean solo los implantes).",
      "id": "perio-session.field.exam-type",
      "kind": "field",
@@ -11058,6 +11072,20 @@
      "id": "perio-session.field.voice-command",
      "kind": "field",
      "label": "Comando",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lee en voz alta las preguntas y respuestas del dictado. Mientras habla el micrófono no escucha. Viene apagado y se recuerda en este navegador.",
+     "id": "perio-session.field.voice-replies",
+     "kind": "field",
+     "label": "Responder en voz alta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Una tecla (o un pedal que actúa como tecla) que prende y apaga el dictado. Se recuerda en este navegador. Con el micrófono apagado, Ctrl+Espacio mantenido dice una sola frase.",
+     "id": "perio-session.field.voice-toggle-key",
+     "kind": "field",
+     "label": "Tecla del micrófono",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -11327,10 +11355,24 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "La respuesta a una pregunta dicha («¿cuánto tenía el 16?», «leeme el 16», «¿qué me falta?»). No escribe nada.",
+     "id": "perio-session.section.voice-answer",
+     "kind": "section",
+     "label": "Respuesta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Sitios dictados o copiados del examen anterior que todavía no se confirmaron (subrayados en violeta). No se puede firmar con nada pendiente.",
      "id": "perio-session.section.voice-pending",
      "kind": "section",
      "label": "Pendiente de confirmar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo que el dictado necesita que confirmes antes de hacerlo: cambiar el estado de una pieza, copiar del examen anterior, descartar lo dictado, o lo que la IA entendió cuando no está segura o usó un número que no se dijo (marcado «IA»). Se contesta diciendo «sí» o «no»; otra frase la deja sin responder.",
+     "id": "perio-session.section.voice-question",
+     "kind": "section",
+     "label": "Pregunta del dictado",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -37021,7 +37063,7 @@
     },
     {
      "action": "highlight",
-     "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la reescribe.",
+     "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la interpreta (subrayado punteado); si duda, pregunta «¿Quisiste decir…?».",
      "id": "type",
      "target": "perio-session.field.voice-command",
      "title": "O escribilo"

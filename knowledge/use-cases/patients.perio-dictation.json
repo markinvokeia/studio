@@ -84,7 +84,7 @@
       "action": "highlight",
       "target": "perio-session.field.voice-command",
       "title": "O escribilo",
-      "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la reescribe."
+      "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la interpreta (subrayado punteado); si duda, pregunta «¿Quisiste decir…?»."
     },
     {
       "id": "help",

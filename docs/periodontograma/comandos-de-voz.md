@@ -10,7 +10,16 @@ Reglas generales:
 - Cada frase es un paso de *deshacer*.
 - Los números se pueden decir en palabras («tres dos cuatro», «treinta y siete»). «324» se toma como tres sitios: 3, 2 y 4. Del 10 al 15 se toman como un solo valor.
 
-Si una frase no se entiende, se manda a un respaldo con IA (`src/ai/flows/perio-dictation.ts`, Gemini por Genkit, ruta `/api/ai/perio-dictation`) que la reescribe en este mismo lenguaje; el intérprete la vuelve a leer y la barra muestra «IA». Necesita la clave de Google AI del servidor de Next (`GOOGLE_GENAI_API_KEY`); sin ella, la frase queda como «No entendí».
+Si una frase no se entiende, se le pregunta a la IA (flujo n8n «Voz - Interpretar», módulo `perio`), que la traduce a estos mismos comandos sabiendo dónde está la sonda. Las frases se aplican en el orden en que se dijeron: las que vienen detrás esperan. Lo que escribe la IA queda con el subrayado **punteado** y la barra muestra «IA». Si no está segura o usó un número que no se dijo, pregunta «¿Quisiste decir «…»?» y se contesta «sí» o «no». Sin el flujo, la frase queda como «No entendí». Detalle en la biblia, sección 5.5.
+
+Lo que cambia mucho de una vez **pregunta antes** («¿Marco la 18 como ausente?»): el estado de una pieza, copiar del examen anterior y descartar. Se contesta «sí» o «no» (o con los botones); cualquier otra frase deja la pregunta sin responder, sin hacer nada, y se aplica. Las preguntas («¿qué me falta?») se responden en la barra y no escriben nada.
+
+El micrófono abierto toma todo: valores, comandos y respuestas. Con el micrófono apagado, **Ctrl+Espacio** mantenido dice una sola frase. En la ayuda de la barra (?) se puede:
+
+- prender **Responder en voz alta**: lee las preguntas y respuestas; mientras habla el micrófono no escucha. Viene apagado.
+- elegir una **tecla del micrófono** que lo prende y apaga (sirve para un pedal que actúa como tecla). Dentro de un campo de texto, una letra se escribe; una tecla de función funciona igual.
+
+Las dos cosas se recuerdan solo en ese navegador.
 
 Con la configuración de la clínica en «Recesión negativa», en margen gingival «menos 2» es recesión de 2 mm y «2» es agrandamiento (se guarda igual que con la otra convención).
 
@@ -88,6 +97,17 @@ Si dentro de la misma frase se nombró una pieza, el cambio de pasada se queda e
 | «descartar» | Vuelve atrás todo lo dictado sin confirmar |
 | «parar dictado» | Apaga el micrófono |
 
+## Piezas y preguntas
+
+| Decir | Hace |
+| --- | --- |
+| «18 ausente», «el 46 es un implante», «falta el 28», «15 póntico», «18 presente» | Cambia el estado de la pieza. Pregunta antes; ausente y póntico borran sus valores |
+| «copiar del examen anterior», «copiar el margen del examen anterior» | Llena lo vacío con el examen anterior (todo, profundidad, margen o furcas). Pregunta antes |
+| «¿cuánto tenía el 16?» | Lee los valores del examen anterior (de la pasada activa) |
+| «leeme el 16», «¿cómo está el 16?» | Lee lo que tiene ahora |
+| «¿qué me falta?» | Cuántos sitios faltan de profundidad y de margen |
+| «sí», «no» | Responde la pregunta que está en pantalla |
+
 ---
 
 # Periodontal chart · Voice commands
@@ -102,7 +122,11 @@ General rules:
 - Each phrase is one *undo* step.
 - Numbers can be said in words (“three two four”, “thirty-seven”). “324” is taken as three sites: 3, 2 and 4. 10 to 15 are taken as one value.
 
-If a phrase is not understood, an AI fallback (`src/ai/flows/perio-dictation.ts`) rewrites it in this language and the parser reads it again; the bar shows “AI”. It needs the Google AI key of the Next server; without it the phrase stays “Not understood”.
+If a phrase is not understood, the AI is asked (n8n flow “Voz - Interpretar”, domain `perio`) and turns it into these same commands knowing where the probe is. Phrases run in the order said: the ones after it wait. What the AI writes is underlined **dashed** and the bar shows “AI”. If it is not sure or used a number that was not said, it asks “Did you mean “…”?”, answered “yes” or “no”. Without the flow the phrase stays “Not understood”.
+
+What changes much at once **asks first** (“Mark 18 as missing?”): a tooth status, copying from the previous exam and discarding. Answer “yes” or “no” (or with the buttons); any other phrase leaves the question unanswered, does nothing, and runs. Questions (“what is missing?”) are answered in the bar and write nothing.
+
+The open microphone takes everything: values, commands and answers. With the microphone off, holding **Ctrl+Space** says one phrase. In the bar's help (?) you can turn on **Reply aloud** (reads questions and answers; the microphone does not listen meanwhile; off by default) and choose a **microphone key** that turns it on and off (works with a foot pedal acting as a key). Both are remembered only in that browser.
 
 ## Values
 
@@ -164,3 +188,14 @@ If a phrase is not understood, an AI fallback (`src/ai/flows/perio-dictation.ts`
 | “confirm” | Keeps everything dictated |
 | “discard” | Reverts everything dictated and not confirmed |
 | “stop dictation” | Turns the microphone off |
+
+## Teeth and questions
+
+| Say | Does |
+| --- | --- |
+| “18 missing”, “46 implant”, “15 pontic”, “18 present” | Changes the tooth status. Asks first; missing and pontic clear its values |
+| “copy from the previous exam”, “copy the depths from the previous exam” | Fills what is empty from the previous exam (all, depths, margin or furcations). Asks first |
+| “what was 16 before?” | Reads the previous exam's values (of the active pass) |
+| “read 16” | Reads what it has now |
+| “what is missing?” | How many depth and margin sites are left |
+| “yes”, “no” | Answers the question on screen |

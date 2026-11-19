@@ -1,4 +1,4 @@
-import { labOrdersAiContext } from '@/lib/voice/commands/lab-orders';
+import { LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { applyDraftEdit, confirmDraft, currentDraft, hasEdit, type DraftEnv } from '@/lib/voice/commands/lab-orders-draft';
 import { loadOrder } from '@/lib/voice/commands/lab-orders-manage';
 import { parseLabOrderEditOpen } from '@/lib/voice/commands/lab-orders-parse';
@@ -73,10 +73,11 @@ function fromAi(result: VoiceAiResult): EditOrderParsed | null {
   return { orderId: result.order_id, change: null, edit: result.draft_edit };
 }
 
-registerVoiceCommand<EditOrderParsed>({
+registerVoiceCommand<EditOrderParsed, VoiceAiResult>({
   id: 'lab-orders.edit-order',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   priority: PRIORITY,
   match: parseLabOrderEditOpen,
   run,
-  ai: { context: labOrdersAiContext, from: fromAi },
+  ai: { from: fromAi },
 });

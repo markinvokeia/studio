@@ -1,7 +1,7 @@
 import { addDays, parseISO, startOfToday } from 'date-fns';
 
 import { formatDisplayDate } from '@/lib/utils';
-import { interpretWithAi } from '@/lib/voice/ai';
+import { interpretLabOrders } from '@/lib/voice/commands/lab-orders';
 import { parseDraftEdit, type DraftEditParsed } from '@/lib/voice/commands/lab-orders-parse';
 import {
   applyVoiceLabOrderDraft,
@@ -371,7 +371,7 @@ export async function confirmDraft(ctx: VoiceCommandContext, env: DraftEnv, opti
     let edit: DraftEditRequest | null = local ? fromLocalEdit(local) : null;
     if (!edit && !bare && normalized) {
       ctx.show({ ...card, message: t('VoiceCommands.interpreting'), tone: 'info' });
-      const ai = await interpretWithAi(answer, ctx, { draft: draftAiContext(draft, env) }).catch((error) => {
+      const ai = await interpretLabOrders(answer, ctx, { draft: draftAiContext(draft, env) }).catch((error) => {
         if (ctx.signal.aborted) throw error;
         console.warn('[voice] AI draft edit failed', error);
         return null;

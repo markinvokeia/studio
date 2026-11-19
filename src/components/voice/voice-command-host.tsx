@@ -13,6 +13,7 @@ import { VoiceLabOrderDialogHost } from '@/components/voice/voice-lab-order-dial
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import '@/lib/voice/commands';
+import { LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { answerFromCard, cancelVoice, configureVoiceSession, endPushToTalk, listenByClick, startPushToTalk } from '@/lib/voice/session';
 import { isSpeechRecognitionSupported } from '@/lib/voice/speech-recognition';
 import { useVoiceCommand } from '@/stores/voice-command-store';
@@ -31,12 +32,13 @@ function useRecognitionSupported() {
 /**
  * Comandos de voz: Ctrl+Espacio mantenido (o el micrófono de la pantalla, VoiceCommandButton)
  * para hablar, y la tarjeta flotante con lo que entendió, lo que pregunta y el resultado. Lo monta
- * cada pantalla que tiene comandos de voz (hoy, Órdenes de laboratorio): fuera de ella el atajo no
- * hace nada. Sin reconocimiento de voz en el navegador (Firefox) no se monta.
+ * cada pantalla que tiene comandos de voz, con sus módulos (`domains`, p. ej. Órdenes de
+ * laboratorio: ['lab_orders']): solo esos comandos se prueban y solo su contexto va a la IA. Fuera
+ * de ella el atajo no hace nada. Sin reconocimiento de voz en el navegador (Firefox) no se monta.
  */
-export function VoiceCommandHost() {
+export function VoiceCommandHost({ domains }: { domains: readonly string[] }) {
   if (!useRecognitionSupported()) return null;
-  return <VoiceCommandRoot />;
+  return <VoiceCommandRoot domains={domains} />;
 }
 
 /** Micrófono de la pantalla: escucha una frase (lo mismo que mantener Ctrl+Espacio). */
@@ -63,7 +65,9 @@ export function VoiceCommandButton({ compact = false, className }: { compact?: b
   );
 }
 
-function VoiceCommandRoot() {
+function VoiceCommandRoot({ domains }: { domains: readonly string[] }) {
+  // Estable aunque la pantalla pase un array nuevo en cada render.
+  const domainsKey = domains.join(',');
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
@@ -77,9 +81,10 @@ function VoiceCommandRoot() {
       t: (key, values) => t(key as Parameters<typeof t>[0], values),
       hasPermission: (code) => permissionRef.current(code),
       navigate: (route) => router.push(`/${locale}${route === '/' ? '' : route}`),
+      domains: domainsKey ? domainsKey.split(',') : [],
     });
     return () => configureVoiceSession(null);
-  }, [locale, router, t]);
+  }, [locale, router, t, domainsKey]);
 
   // Ctrl+Espacio: apretado escucha, al soltar (o al salir de la ventana) se interpreta. Escape cancela.
   React.useEffect(() => {
@@ -117,7 +122,7 @@ function VoiceCommandRoot() {
   return (
     <>
       <VoiceCardView />
-      <VoiceLabOrderDialogHost />
+      {domains.includes(LAB_ORDERS_VOICE_DOMAIN) && <VoiceLabOrderDialogHost />}
     </>
   );
 }

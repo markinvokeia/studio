@@ -826,7 +826,8 @@ El sistema puede avisar cuándo le toca el mantenimiento a cada paciente y manda
 | `src/lib/perio/from-odontogram.ts` | El estado de cada diente desde el odontograma |
 | `src/hooks/use-live-dictation.ts` | Reconocimiento de voz continuo del navegador |
 | `src/services/perio-record.ts` | Llamadas a n8n y normalización |
-| `src/ai/flows/perio-dictation.ts` · `src/app/api/ai/perio-dictation/route.ts` | El respaldo con IA del dictado (Genkit) |
+| `src/lib/voice/commands/perio.ts` | El módulo de voz `perio`: contexto de la sonda para la IA y validación de lo que devuelve |
+| `scripts/n8n/generate-help-workflows.mjs` (`VOICE_DOMAINS.perio`) | El prompt y la validación del lado de n8n ("Voz - Interpretar") |
 
 Textos: `PerioRecord` en `src/messages/{es,es-ES,en}.json`. Colores: variables `--perio-*` en `src/app/globals.css`.
 
@@ -927,9 +928,22 @@ En `system_configurations`, clave **`perio_settings`** (tipo `json`):
 
 ### 5.5 IA del dictado
 
-`src/ai/flows/perio-dictation.ts` usa Genkit con Gemini (`googleai/gemini-2.5-flash`, configurado en `src/ai/genkit.ts`). La ruta `POST /api/ai/perio-dictation` es de Next.js, no de n8n. El navegador la llama solo cuando el intérprete local no entendió nada, con un tiempo máximo de 8 segundos.
+El dictado usa el mismo núcleo de voz que el resto de la app (`src/lib/voice/`). Cuando el intérprete local no entendió nada de una frase, el navegador la manda al flujo n8n **"Voz - Interpretar"** (`POST voice/interpret`, con JWT, módulo `perio`; lo genera `pnpm n8n:help` en `n8n-workflows/help-voice-interpret.json`). Le manda la frase y dónde está la sonda (pasada, línea, pieza, cara y sitio, y qué piezas hay), nunca datos del paciente. El tiempo máximo es de 8 segundos.
 
-Necesita la variable **`GOOGLE_GENAI_API_KEY`** en el servidor de Next. Sin ella, la frase queda como "No entendí" y todo lo demás funciona igual.
+La IA devuelve los mismos comandos que arma el intérprete (`src/lib/perio/voice.ts`), no texto. Se validan en el flujo y otra vez en el navegador (`src/lib/voice/commands/perio.ts`). Confirmar, descartar y parar el dictado nunca vienen de la IA.
+
+- Las frases se aplican **en el orden en que se dijeron**: mientras una espera a la IA, las siguientes esperan su turno (la barra dice cuántas).
+- Si la IA está segura (confianza ≥ 0,8) y todos los números que usó se dijeron, se escribe directo como dictado sin confirmar, con el subrayado **punteado** (dictado por IA) y la marca «IA» en la barra.
+- Si la confianza es más baja (0,5 a 0,8) o usó un número que no se dijo (por ejemplo, convirtió «primer molar inferior izquierdo» en 36), pregunta «¿Quisiste decir «…»?». Se responde diciendo «sí» o «no» o con los botones. Si se dice otra cosa, la pregunta se descarta sin escribir nada y la frase se aplica.
+- Por debajo de 0,5, o si el flujo no responde, la frase queda como «No entendí».
+
+**Confirmaciones, preguntas y voz que responde** (`perio-voice-bar.tsx`, `perio-probe-step.tsx`):
+
+- El estado de una pieza («18 ausente»), copiar del examen anterior y descartar son **pesados**: nada de esa frase corre hasta un «sí» (`isWeightyCommand`). Si la pieza tiene valores y pasa a ausente o póntico, la pregunta avisa que se borran. Vale también si lo pidió la IA.
+- Las preguntas («¿cuánto tenía el 16?», «leeme el 16», «¿qué me falta?») se responden en la barra con la pasada activa y no escriben nada.
+- Hay una sola pregunta abierta: el siguiente «sí» / «no» la responde; otra frase la deja sin responder (sin hacer nada) y se aplica.
+- **Responder en voz alta** (apagado por defecto) lee preguntas y respuestas con la voz del asistente; mientras habla, el reconocimiento se pausa (`ContinuousListening.pause/resume`) para no escucharse.
+- Con el micrófono apagado, **Ctrl+Espacio** mantenido dice una frase que entra en la misma cola. La **tecla del micrófono** (para pedales) la elige cada usuario; las dos preferencias se guardan en `localStorage` de ese navegador.
 
 ### 5.6 Cómo crear la regla del recordatorio de mantenimiento
 
@@ -993,7 +1007,7 @@ Con esa configuración, cada día el motor busca los pacientes cuyo mantenimient
 1. Correr las migraciones **162 a 166**, en orden.
 2. Importar en n8n **`docs/n8n-flows/flow-perio-record.json`** (reemplaza la versión anterior si existía).
 3. Confirmar que los roles que tienen que usarlo tengan `PERIO_RECORD_VIEW` y `PERIO_RECORD_REGISTER_SESSION`.
-4. (Opcional) Configurar `GOOGLE_GENAI_API_KEY` en el servidor de Next para el respaldo con IA del dictado.
+4. (Opcional) Importar y activar el flujo **"Voz - Interpretar"** (`n8n-workflows/help-voice-interpret.json`) para el respaldo con IA del dictado.
 5. (Opcional) Crear la plantilla de email `PERIO_REPORT_EMAIL` para el reporte.
 6. (Opcional) Crear la regla del recordatorio (5.6).
 7. (Opcional) Revisar la configuración de la clínica desde el engranaje.

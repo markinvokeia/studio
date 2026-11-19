@@ -4652,26 +4652,51 @@ export interface VoiceCommandContext {
   finish: (card: VoiceCard, speech: string) => Promise<void>;
 }
 
-/** Un comando de voz: reconoce su frase sin IA y la ejecuta conversando con la persona. */
-export interface VoiceCommand<P = unknown> {
+/**
+ * Un módulo de voz (órdenes de laboratorio, periodontograma…): agrupa sus comandos y sabe cómo
+ * preguntarle a la IA. Cada pantalla monta el host con los módulos que tiene activos, así los
+ * comandos y el contexto que va a la IA son solo los de esa pantalla.
+ */
+export interface VoiceDomain<R = unknown> {
+  /** Id que viaja a POST voice/interpret ('lab_orders'): el servidor elige su prompt con esto. */
   id: string;
+  /**
+   * Cuando el intérprete local no entiende la frase se le pregunta a la IA. `context` arma lo que
+   * la IA necesita saber (nunca datos de pacientes; sin él, lo pasa quien pregunta, como el dictado
+   * del periodontograma con la posición de la sonda) y `sanitize` revalida la respuesta contra ese
+   * mismo contexto: lo que no cierra queda en null.
+   */
+  ai?: {
+    context?: (ctx: VoiceCommandContext) => Promise<Record<string, unknown>>;
+    sanitize: (raw: unknown, context: Record<string, unknown>) => R;
+  };
+}
+
+/** Respuesta de POST voice/interpret, ya revalidada por el módulo. */
+export interface VoiceInterpretation<R = unknown> {
+  domain: string;
+  /** 0–1: qué tan segura está la IA. Por debajo del mínimo de la sesión se dice que no se entendió. */
+  confidence: number;
+  result: R;
+}
+
+/** Un comando de voz: reconoce su frase sin IA y la ejecuta conversando con la persona. */
+export interface VoiceCommand<P = unknown, R = any> {
+  id: string;
+  /** Módulo al que pertenece (VoiceDomain.id): solo corre en las pantallas que lo activan. */
+  domain: string;
   /** Más alto se prueba antes (default 0): los comandos específicos le ganan a los generales. */
   priority?: number;
   /** Lo entendido de la frase (normalizada con normalizeSpeech), o null si no es para este comando. */
   match: (normalized: string, raw: string) => P | null;
   run: (parsed: P, ctx: VoiceCommandContext) => Promise<void>;
-  /**
-   * Cuando el intérprete local no entiende la frase se le pregunta a la IA (POST help/voice/command).
-   * `context` agrega lo que la IA necesita saber (etapas, laboratorios: nunca pacientes) y `from`
-   * convierte su respuesta en lo que espera `run`.
-   */
+  /** Convierte lo que interpretó la IA (el `result` de su módulo) en lo que espera `run`. */
   ai?: {
-    context?: (ctx: VoiceCommandContext) => Promise<Partial<VoiceAiContext>>;
-    from: (result: VoiceAiResult, raw: string) => P | null;
+    from: (result: R, raw: string) => P | null;
   };
 }
 
-/** Lo que se le cuenta a la IA para interpretar una frase. */
+/** Contexto del módulo lab_orders para la IA (POST voice/interpret). */
 export interface VoiceAiContext {
   stages: Array<{ id: number; name: string; kind: string }>;
   laboratories: Array<{ id: string; name: string }>;
@@ -4755,7 +4780,7 @@ export interface VoiceAiItem {
   teeth: number[];
 }
 
-/** Respuesta validada de help/voice/command (todo lo que no cierra viene en null). */
+/** `result` de voice/interpret para el módulo lab_orders, validado (todo lo que no cierra viene en null). */
 export interface VoiceAiResult {
   intent: VoiceAiIntent;
   order_id: number | null;

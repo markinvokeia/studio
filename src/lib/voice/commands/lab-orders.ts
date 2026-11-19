@@ -5,13 +5,18 @@ import { emitLabOrderChanged } from '@/lib/lab-orders-events';
 import { formatDisplayDate } from '@/lib/utils';
 import { bestNameMatch, dateKey, normalizeSpeech, parseSpokenDate } from '@/lib/voice/parse';
 import { parseLabOrderVoice, type LabVoiceParsed } from '@/lib/voice/commands/lab-orders-parse';
-import { registerVoiceCommand } from '@/lib/voice/registry';
+import { interpretWithAi } from '@/lib/voice/ai';
+import { sanitizeLabOrdersAiResult } from '@/lib/voice/commands/lab-orders-ai';
+import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
 import { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { changeLabOrderStage, fetchLabOrderDetail, LabOrdersError, searchLaboratories } from '@/services/lab-orders';
 import { fetchLabStages } from '@/services/lab-stages';
 
 import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
-import type { Laboratory, LabOrderDetail, LabStage, VoiceAiResult, VoiceCard, VoiceCardRow, VoiceCommandContext } from '@/lib/types';
+import type { Laboratory, LabOrderDetail, LabStage, VoiceAiContext, VoiceAiResult, VoiceCard, VoiceCardRow, VoiceCommandContext } from '@/lib/types';
+
+/** Módulo de voz de Órdenes de laboratorio (lo activa la pantalla con VoiceCommandHost). */
+export const LAB_ORDERS_VOICE_DOMAIN = 'lab_orders';
 
 /**
  * Órdenes de laboratorio por voz:
@@ -322,9 +327,24 @@ function fromAi(result: VoiceAiResult, raw: string): LabVoiceParsed | null {
   };
 }
 
-registerVoiceCommand<LabVoiceParsed>({
+/** La IA con el contexto del módulo (más `extra`, p. ej. la orden abierta): devuelve su resultado y confianza. */
+export async function interpretLabOrders(text: string, ctx: VoiceCommandContext, extra?: Partial<VoiceAiContext>) {
+  const { result, confidence } = await interpretWithAi<VoiceAiResult>(LAB_ORDERS_VOICE_DOMAIN, text, ctx, extra as Record<string, unknown>);
+  return { ...result, confidence };
+}
+
+registerVoiceDomain<VoiceAiResult>({
+  id: LAB_ORDERS_VOICE_DOMAIN,
+  ai: {
+    context: labOrdersAiContext,
+    sanitize: (raw, context) => sanitizeLabOrdersAiResult(raw, context as Partial<VoiceAiContext>),
+  },
+});
+
+registerVoiceCommand<LabVoiceParsed, VoiceAiResult>({
   id: 'lab-orders.stage',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   match: parseLabOrderVoice,
   run,
-  ai: { context: labOrdersAiContext, from: fromAi },
+  ai: { from: fromAi },
 });

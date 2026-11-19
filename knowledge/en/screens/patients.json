@@ -917,6 +917,30 @@
       "label": "Voice commands",
       "description": "The list of what can be said, in Spanish and in English."
     },
+    "perio-session.section.voice-question": {
+      "label": "Dictation question",
+      "description": "What dictation needs you to confirm before doing it: changing a tooth status, copying from the previous exam, discarding the dictation, or what the AI understood when it is not sure or used a number that was not said (marked “AI”). Answer by saying “yes” or “no”; any other phrase leaves it unanswered."
+    },
+    "perio-session.btn.voice-yes": {
+      "label": "Yes",
+      "description": "Does what it asks (what is written stays as dictation not confirmed yet)."
+    },
+    "perio-session.btn.voice-no": {
+      "label": "No",
+      "description": "Changes nothing."
+    },
+    "perio-session.section.voice-answer": {
+      "label": "Answer",
+      "description": "The answer to a spoken question (“what was 16 before?”, “read 16”, “what is missing?”). Writes nothing."
+    },
+    "perio-session.field.voice-replies": {
+      "label": "Reply aloud",
+      "description": "Reads the dictation questions and answers aloud. The microphone does not listen while it speaks. Off by default and remembered in this browser."
+    },
+    "perio-session.field.voice-toggle-key": {
+      "label": "Microphone key",
+      "description": "A key (or a foot pedal acting as a key) that turns dictation on and off. Remembered in this browser. With the microphone off, holding Ctrl+Space says one phrase."
+    },
     "perio-session.section.voice-pending": {
       "label": "Pending confirmation",
       "description": "Sites dictated or copied from the previous exam that are not confirmed yet (underlined in violet). The chart cannot be signed with anything pending."

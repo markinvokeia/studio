@@ -13089,7 +13089,8 @@
       "lost": "Perdió inserción",
       "better": "Mejoró",
       "worse": "Empeoró",
-      "previous": "Examen comparado (punteado)"
+      "previous": "Examen comparado (punteado)",
+      "dictatedAi": "Dictado interpretado por IA, sin confirmar"
     },
     "inspector": {
       "label": "Pieza activa",
@@ -13349,7 +13350,8 @@
           "redo": "Rehecho",
           "confirm": "Dictado confirmado",
           "discard": "Dictado descartado"
-        }
+        },
+        "status": "La {tooth} ha quedado {status}"
       },
       "help": {
         "button": "Comandos",
@@ -13490,6 +13492,35 @@
             ]
           },
           {
+            "title": "Piezas y preguntas",
+            "items": [
+              [
+                "18 ausente",
+                "Cambia el estado de la pieza (también implante, póntico, presente); pregunta antes"
+              ],
+              [
+                "copiar del examen anterior",
+                "Rellena lo vacío con el examen anterior; pregunta antes"
+              ],
+              [
+                "¿cuánto tenía el 16?",
+                "Lee los valores del examen anterior"
+              ],
+              [
+                "léeme el 16",
+                "Lee lo que tiene ahora"
+              ],
+              [
+                "¿qué me falta?",
+                "Cuántos sitios faltan"
+              ],
+              [
+                "sí / no",
+                "Responde a la pregunta que está en pantalla"
+              ]
+            ]
+          },
+          {
             "title": "Edición",
             "items": [
               [
@@ -13514,7 +13545,50 @@
       },
       "thinking": "Interpretando con IA…",
       "ai": "IA",
-      "rewritten": "La IA lo interpretó como «{phrase}»"
+      "rewritten": "La IA lo interpretó como «{phrase}»",
+      "queued": "{count, plural, one {# frase en espera} other {# frases en espera}}",
+      "aiQuestion": "¿Querías decir «{phrase}»?",
+      "aiInvented": "Ha usado números que no se dijeron: {numbers}",
+      "aiUnsure": "La IA no está segura",
+      "yes": "Sí",
+      "no": "No",
+      "yesNoHint": "Di «sí» o «no»",
+      "nothingChanged": "No se ha cambiado nada",
+      "questionDropped": "Se ha quedado sin responder: {question}",
+      "pushToTalk": "Con el micrófono apagado, mantén Ctrl+Espacio para decir una frase",
+      "replies": {
+        "label": "Responder en voz alta",
+        "hint": "Lee las preguntas y respuestas; el micrófono no escucha mientras habla"
+      },
+      "toggleKey": {
+        "label": "Tecla del micrófono",
+        "description": "Enciende y apaga el dictado (sirve para un pedal)",
+        "press": "Pulsa la tecla o el pedal… (Esc cancela, Borrar la quita)",
+        "waiting": "Esperando…",
+        "choose": "Elegir",
+        "clear": "Quitar la tecla",
+        "hint": "{key} enciende y apaga el micrófono"
+      },
+      "answer": {
+        "previous": "En el examen anterior, la {tooth}: {values}",
+        "current": "La {tooth}: {values}",
+        "statusPrevious": "En el examen anterior la {tooth} estaba {status}",
+        "statusCurrent": "La {tooth} está {status}",
+        "noPrevious": "No hay un examen anterior",
+        "missing": "Falta: {pd} de profundidad y {gm} de margen",
+        "nothingMissing": "No falta nada: está todo sondado"
+      },
+      "ask": {
+        "status": "¿Marco la {tooth} como {status}?",
+        "statusWipes": "¿Marco la {tooth} como {status}? Se borran sus valores",
+        "copy": {
+          "all": "¿Copio del examen anterior lo que está vacío?",
+          "ps": "¿Copio la profundidad del examen anterior donde está vacía?",
+          "mg": "¿Copio el margen del examen anterior donde está vacío?",
+          "fm": "¿Copio las furcas y la movilidad del examen anterior?"
+        },
+        "discard": "{count, plural, =0 {¿Descarto el dictado?} one {¿Descarto # sitio dictado?} other {¿Descarto # sitios dictados?}}"
+      }
     },
     "evolution": {
       "title": "Evolución desde el examen del {date}",
@@ -13927,11 +14001,11 @@
       "editSendByStage": "Para enviar la orden {id}, muévela de etapa: di, por ejemplo, «la orden {id} se envió hoy».",
       "listTitle": "Órdenes de laboratorio",
       "whoNotFound": "No he encontrado ningún paciente ni laboratorio que se llame «{name}».",
-      "listOverdue": "atrasadas",
-      "listUrgent": "urgentes",
+      "listOverdue": "{count, plural, one {atrasada} other {atrasadas}}",
+      "listUrgent": "{count, plural, one {urgente} other {urgentes}}",
       "listDueToday": "con entrega hoy",
       "listOf": "de {name}",
-      "listAll": "pendientes",
+      "listAll": "{count, plural, one {pendiente} other {pendientes}}",
       "listView": "{view, select, board {Te muestro el tablero.} other {Te muestro la lista.}}",
       "listShown": "{count, plural, =0 {No hay órdenes {what}.} one {Hay 1 orden {what}: te la muestro.} other {Hay # órdenes {what}: te las muestro.}}",
       "listShownNoCount": "Te muestro las órdenes {what}."

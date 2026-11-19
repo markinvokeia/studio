@@ -12,7 +12,7 @@
  *   POST help/catalog/sync         publica el catálogo del frontend (HELP_CATALOG_SYNC)
  *   POST help/assistant/chat       RAG sobre el catálogo + OpenAI, respuesta validada
  *   POST help/assistant/feedback   👍/👎 de una respuesta
- *   POST help/voice/command        comando de voz → OpenAI → JSON validado (no escribe)
+ *   POST voice/interpret           comando de voz de un módulo → OpenAI → JSON validado (no escribe)
  *
  * Tablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql.
  */
@@ -966,9 +966,14 @@ return [{ json: { status: row.id ? 200 : 404, body: { id: row.id ?? null } } }];
   ],
 );
 
-// ─── POST help/voice/command ─────────────────────────────────────────────────
+// ─── POST voice/interpret ────────────────────────────────────────────────────
+//
+// Un solo endpoint para los comandos de voz de todos los módulos. Cada módulo (VOICE_DOMAINS) pone
+// su prompt de sistema, la parte del prompt que arma con su contexto (prepare) y la validación de
+// lo que devuelve el modelo contra ese mismo contexto (validate). El frontend vuelve a validar con
+// su VoiceDomain.ai.sanitize. Módulo nuevo = una entrada acá + su VoiceDomain en el frontend.
 
-const VOICE_SYSTEM_PROMPT = `Interpretás comandos de voz del equipo de una clínica odontológica dentro de Invoke IA.
+const LAB_ORDERS_VOICE_PROMPT = `Interpretás comandos de voz del equipo de una clínica odontológica dentro de Invoke IA.
 Recibís una frase dictada (puede venir con errores del reconocimiento de voz) y devolvés SOLO un objeto JSON, sin texto alrededor ni bloques de código.
 
 INTENTS
@@ -1010,89 +1015,309 @@ REGLAS
 FORMATO (todas las claves siempre):
 {"intent":"...","order_id":null,"stage_id":null,"move_kind":null,"effective_date":null,"due_date":null,"laboratory_id":null,"patient":null,"items":[],"work_description":null,"teeth":[],"is_urgent":false,"send":false,"notes":null,"urgent_change":null,"note_add":null,"filter":null,"draft_edit":null,"confidence":0.0}`;
 
-const voiceCommand = workflow(
-  'Help - Comando de Voz',
+const PERIO_VOICE_PROMPT = `Interpretás lo que dicta un profesional mientras sondea un periodontograma en Invoke IA.
+Recibís una frase (puede venir con errores del reconocimiento de voz, en español o inglés) y el estado de la sonda, y devolvés SOLO un objeto JSON, sin texto alrededor ni bloques de código.
+
+Traducís la frase a COMANDOS, en el orden en que se dijeron. Solo reformulás: nunca agregues valores, piezas ni marcas que no estén en la frase. Si no hay nada que se pueda expresar, commands = [].
+
+COMANDOS
+- {"kind":"values","values":[3,2,4]}: valores en la línea activa, un sitio tras otro (la sonda avanza sola). Enteros de -10 a 15, tal como se dijeron ("menos 2" = -2). Los tres sitios de una cara van distal, centro, mesial.
+- {"kind":"goto","tooth":38,"side":"i","sites":[0],"line":"ps"}: ir a una pieza, cara, sitios y/o línea; todas las claves son opcionales pero al menos una. side: "v" (vestibular/bucal) o "i" (lingual/palatino). sites: 0 distal, 1 centro, 2 mesial. line: "ps" (profundidad), "mg" (margen gingival / recesión), "bop" (sangrado, SS), "sup" (supuración), "plaque" (placa).
+- {"kind":"flag","flag":"bop","on":true,"tooth":16,"side":"v","sites":[2]}: marcar (on true) o quitar (on false) sangrado ("bop"), supuración ("sup") o placa ("plaque"). Sin pieza va al último sitio medido; sin sitios, a ese sitio o a los tres de la pieza dicha.
+- {"kind":"neighbour","delta":1}: pieza siguiente (1) o anterior (-1).
+- {"kind":"pass","pass":"mg"}: cambiar de pasada: "ps" profundidad, "mg" margen gingival, "fm" furcas y movilidad.
+- {"kind":"focus","focus":"L"}: qué arcada mostrar: "U" superior, "L" inferior, "both" ambas, "auto" seguir a la sonda.
+- {"kind":"mobility","tooth":46,"value":1}: movilidad 0 a 3 (pieza opcional: sin ella, la actual).
+- {"kind":"furcation","tooth":36,"entry":"v","grade":2}: furca 0 a 3; entry "v" vestibular, "l" lingual, "mp" mesiopalatina, "dp" distopalatina (opcionales).
+- {"kind":"answer","on":true}: "sí" / "no" en una línea de marcas (marca o deja limpio el sitio y avanza).
+- {"kind":"same"}: "igual que antes" (el valor del examen anterior).
+- {"kind":"undo"}, {"kind":"redo"}, {"kind":"delete"}: deshacer, rehacer, borrar el último valor.
+- {"kind":"status","tooth":18,"status":"missing"}: estado de una pieza: "present", "missing" (ausente, extraída), "implant" o "pontic". La pantalla pregunta antes de cambiarlo.
+- {"kind":"copy","what":"all"}: llenar lo vacío con el examen anterior: "all", "ps" (profundidad), "mg" (margen), "fm" (furcas y movilidad). La pantalla pregunta antes.
+- {"kind":"query","what":"previous","tooth":16}: una pregunta, no escribe nada: "previous" (qué tenía en el examen anterior), "current" (qué tiene ahora, "leeme el 16"), "missing" (qué falta sondar). tooth opcional (sin ella, la pieza de la sonda).
+Confirmar, descartar o parar el dictado NO son comandos que puedas devolver.
+
+REGLAS
+1. Piezas en notación FDI de dos dígitos (11 a 48). Si se nombra la pieza por su nombre ("primer molar inferior izquierdo"), convertila (36), pero bajá confidence a 0.7 o menos.
+2. Usá el ESTADO DE LA SONDA: "el de al lado" = neighbour; "por palatino" / "del otro lado" = goto con side; "ahora el margen" = pass mg. No muevas la sonda si la frase no lo pide.
+3. Valores en la línea activa salvo que la frase nombre otra pieza, cara o línea (entonces primero un goto).
+4. Recesión: si "RECESIÓN NEGATIVA" es sí, la clínica dice la recesión como "menos N"; copiá los valores tal como se dijeron, el sistema los convierte.
+5. confidence entre 0 y 1: qué tan seguro estás de los comandos. Si la frase es ambigua o no es un dictado del periodontograma, confidence < 0.5 y commands = [].
+
+EJEMPLOS
+"en el treinta y ocho por lingual tengo tres, dos y cuatro y le sangra el distal" → {"commands":[{"kind":"goto","tooth":38,"side":"i"},{"kind":"values","values":[3,2,4]},{"kind":"flag","flag":"bop","on":true,"sites":[0]}],"confidence":0.95}
+"the lower left first molar buccal is four three five" → {"commands":[{"kind":"goto","tooth":36,"side":"v"},{"kind":"values","values":[4,3,5]}],"confidence":0.7}
+"bueno, ahora pasemos al margen" → {"commands":[{"kind":"pass","pass":"mg"}],"confidence":0.9}
+"esperá que atiendo el teléfono" → {"commands":[],"confidence":0.1}
+
+FORMATO: {"commands":[...],"confidence":0.0}`;
+
+/**
+ * Código JS de cada módulo, que se pega en los nodos Code:
+ * - prepare(ctx, body): { lines, meta }: líneas del prompt con el contexto (listas cerradas) y lo
+ *   que validate necesita después (meta).
+ * - validate(p, meta, today): el `result` validado, siempre con `confidence` (0–1).
+ */
+const VOICE_DOMAINS = {
+  lab_orders: {
+    system: LAB_ORDERS_VOICE_PROMPT,
+    prepare: `(ctx, body) => {
+  const stages = (Array.isArray(ctx.stages) ? ctx.stages : []).slice(0, 40)
+    .map(s => ({ id: Number(s && s.id), name: String((s && s.name) || '').slice(0, 80), kind: String((s && s.kind) || '') }))
+    .filter(s => Number.isInteger(s.id) && s.name);
+  const laboratories = (Array.isArray(ctx.laboratories) ? ctx.laboratories : []).slice(0, 80)
+    .map(l => ({ id: String((l && l.id) || ''), name: String((l && l.name) || '').slice(0, 80) }))
+    .filter(l => l.id && l.name);
+  // Orden abierta por voz, nueva o en edición (sin el paciente): la frase es una corrección.
+  const d = ctx.draft && typeof ctx.draft === 'object' ? ctx.draft : null;
+  const editing = Boolean(d && d.mode === 'edit');
+  const short = (v, max) => String(v == null ? '' : v).slice(0, max);
+  const draftLines = d ? [
+    '',
+    editing
+      ? 'ORDEN EN EDICIÓN n.º ' + (Number(d.order_id) || '?') + ', etapa ' + (short(d.stage, 80) || '?') + ' (ya existe; la frase la corrige):'
+      : 'ORDEN EN CREACIÓN (la frase la corrige):',
+    '- Trabajos: ' + ((Array.isArray(d.items) ? d.items : []).slice(0, 10)
+      .map(i => short(i && i.service, 80) + ' x' + (Number(i && i.quantity) || 1) + (Array.isArray(i && i.teeth) && i.teeth.length ? ' (piezas ' + i.teeth.slice(0, 32).join(', ') + ')' : ''))
+      .join('; ') || '(ninguno)'),
+    '- Piezas generales: ' + ((Array.isArray(d.teeth) ? d.teeth.slice(0, 32).join(', ') : '') || '(ninguna)'),
+    '- Descripción: ' + (short(d.work_description, 300) || '(ninguna)'),
+    '- Laboratorio: ' + (short(d.laboratory, 80) || '(ninguno)'),
+    editing
+      ? '- Entrega: ' + (short(d.due_date, 10) || '(sin fecha)')
+      : '- Enviar al crear: ' + (d.send === true ? 'sí, entrega ' + short(d.due_date, 10) : 'no'),
+    '- Urgente: ' + (d.is_urgent === true ? 'sí' : 'no'),
+    '- Notas: ' + (short(d.notes, 300) || '(ninguna)'),
+  ] : [];
+  return {
+    lines: [
+      '',
+      'ETAPAS (id · nombre · tipo):',
+      stages.map(s => '- ' + s.id + ' · ' + s.name + ' · ' + s.kind).join('\\n') || '(ninguna)',
+      '',
+      'LABORATORIOS (id · nombre):',
+      laboratories.map(l => '- ' + l.id + ' · ' + l.name).join('\\n') || '(ninguno)',
+      ...draftLines,
+    ],
+    meta: { stages, laboratories, hasDraft: Boolean(d), editing },
+  };
+}`,
+    validate: `(p, m, today) => {
+  // Lista cerrada: solo ids que mandó el frontend, fechas válidas y piezas FDI.
+  const INTENTS = ['lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'lab_order.draft_edit', 'lab_order.edit', 'unknown'];
+  const KINDS = ['send', 'received', 'complete', 'cancel', 'next'];
+  const stageIds = new Set(m.stages.map(s => s.id));
+  const labIds = new Set(m.laboratories.map(l => l.id));
+  const isDate = v => typeof v === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+  const isTooth = n => Number.isInteger(n) && ((n >= 11 && n <= 48 && n % 10 >= 1 && n % 10 <= 8) || (n >= 51 && n <= 85 && n % 10 >= 1 && n % 10 <= 5));
+  const teeth = v => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(isTooth))].slice(0, 32);
+
+  const intent = INTENTS.includes(p.intent) ? p.intent : 'unknown';
+  const orderId = Number(p.order_id);
+  const stageId = Number(p.stage_id);
+  const effective = isDate(p.effective_date) && p.effective_date <= today ? p.effective_date : null;
+  const toItems = v => (Array.isArray(v) ? v : []).slice(0, 10)
+    .map(i => ({ service: str(i && i.service, 80), quantity: Math.min(99, Math.max(1, Math.round(Number(i && i.quantity)) || 1)), teeth: teeth(i && i.teeth) }))
+    .filter(i => i.service);
+  const items = toItems(p.items);
+  const confidence = Number(p.confidence);
+  const bool = v => (typeof v === 'boolean' ? v : null);
+  const de = p.draft_edit && typeof p.draft_edit === 'object' ? p.draft_edit : null;
+  const draftEdit = de ? {
+    patient: str(de.patient, 80),
+    add_items: toItems(de.add_items),
+    remove_items: (Array.isArray(de.remove_items) ? de.remove_items : []).map(v => str(v, 80)).filter(Boolean).slice(0, 10),
+    update_items: (Array.isArray(de.update_items) ? de.update_items : []).slice(0, 10).map(i => {
+      const qty = Math.round(Number(i && i.quantity));
+      return {
+        service: str(i && i.service, 80),
+        quantity: i && i.quantity != null && Number.isFinite(qty) ? Math.min(99, Math.max(1, qty)) : null,
+        teeth: i && Array.isArray(i.teeth) ? teeth(i.teeth) : null,
+      };
+    }).filter(i => i.quantity !== null || i.teeth !== null),
+    work_description: str(de.work_description, 500),
+    laboratory_id: typeof de.laboratory_id === 'string' && labIds.has(de.laboratory_id) ? de.laboratory_id : null,
+    clear_laboratory: de.clear_laboratory === true,
+    // Una orden que ya existe no se envía desde acá (se mueve de etapa).
+    send: m.editing || intent === 'lab_order.edit' ? null : bool(de.send),
+    due_date: isDate(de.due_date) && de.due_date >= today ? de.due_date : null,
+    urgent: bool(de.urgent),
+    note_add: str(de.note_add, 500),
+  } : null;
+
+  const result = {
+    intent,
+    order_id: Number.isInteger(orderId) && orderId > 0 ? orderId : null,
+    stage_id: stageIds.has(stageId) ? stageId : null,
+    move_kind: KINDS.includes(p.move_kind) ? p.move_kind : null,
+    effective_date: effective,
+    due_date: isDate(p.due_date) ? p.due_date : null,
+    laboratory_id: typeof p.laboratory_id === 'string' && labIds.has(p.laboratory_id) ? p.laboratory_id : null,
+    patient: str(p.patient, 80),
+    items,
+    work_description: str(p.work_description, 500),
+    teeth: teeth(p.teeth),
+    is_urgent: p.is_urgent === true,
+    send: p.send === true,
+    notes: str(p.notes, 500),
+    urgent_change: typeof p.urgent_change === 'boolean' ? p.urgent_change : null,
+    note_add: str(p.note_add, 500),
+    filter: p.filter && typeof p.filter === 'object' ? {
+      overdue: p.filter.overdue === true,
+      urgent: p.filter.urgent === true,
+      due_today: p.filter.due_today === true,
+      view: p.filter.view === 'list' || p.filter.view === 'board' ? p.filter.view : null,
+      clear: p.filter.clear === true,
+      count: p.filter.count === true,
+    } : null,
+    draft_edit: intent === 'lab_order.draft_edit' || intent === 'lab_order.edit' ? draftEdit : null,
+    confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
+  };
+  // Lo que actúa sobre una orden existente necesita su número.
+  if (['lab_order.move', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.edit'].includes(intent) && !result.order_id) result.intent = 'unknown';
+  // Con una orden en creación solo vale corregirla; sin ella, draft_edit no tiene sentido.
+  if (m.hasDraft ? !['lab_order.draft_edit', 'unknown'].includes(result.intent) : result.intent === 'lab_order.draft_edit') result.intent = 'unknown';
+  if (result.intent === 'lab_order.draft_edit' && !result.draft_edit) result.intent = 'unknown';
+  return result;
+}`,
+  },
+  perio: {
+    system: PERIO_VOICE_PROMPT,
+    prepare: `(ctx) => {
+  const list = v => (Array.isArray(v) ? v : []).map(Number).filter(n => Number.isInteger(n) && n >= 11 && n <= 48).slice(0, 32);
+  const teeth = ctx.teeth && typeof ctx.teeth === 'object' ? ctx.teeth : {};
+  const c = ctx.cursor && typeof ctx.cursor === 'object' ? ctx.cursor : null;
+  const pass = ['ps', 'mg', 'fm'].includes(ctx.pass) ? ctx.pass : 'ps';
+  const line = ['value', 'bop', 'sup', 'plaque'].includes(ctx.line) ? ctx.line : 'value';
+  const PASS = { ps: 'profundidad', mg: 'margen gingival', fm: 'furcas y movilidad' };
+  const LINE = { value: pass === 'mg' ? 'valores de margen gingival' : 'valores de profundidad', bop: 'marcas de sangrado (SS)', sup: 'marcas de supuración', plaque: 'marcas de placa' };
+  const where = c && Number.isInteger(Number(c.tooth))
+    ? 'pieza ' + Number(c.tooth) + ', cara ' + (c.side === 'v' ? 'vestibular' : 'lingual/palatina') + ', sitio ' + String(c.site || '').slice(0, 10)
+    : '(sin sonda)';
+  return {
+    lines: [
+      '',
+      'ESTADO DE LA SONDA:',
+      '- Pasada: ' + PASS[pass],
+      '- Línea activa: ' + (pass === 'fm' ? 'movilidad de la pieza ' + (Number(ctx.fm_tooth) || '?') : LINE[line]),
+      '- Sonda en: ' + where,
+      '- Vista: ' + String(ctx.focus || 'auto').slice(0, 6),
+      '- Piezas presentes: ' + (list(teeth.present).join(', ') || '(ninguna)'),
+      '- Implantes: ' + (list(teeth.implants).join(', ') || '(ninguno)'),
+      '- Ausentes: ' + (list(teeth.missing).join(', ') || '(ninguna)'),
+      '- Pónticos: ' + (list(teeth.pontics).join(', ') || '(ninguno)'),
+      '- Solo implantes: ' + (ctx.implants_only === true ? 'sí' : 'no'),
+      '- RECESIÓN NEGATIVA: ' + (ctx.margin_negative === true ? 'sí' : 'no'),
+    ],
+    meta: {},
+  };
+}`,
+    validate: `(p) => {
+  // Solo comandos que el motor sabe correr, en rango. Confirmar, descartar y parar no.
+  const int = (v, min, max) => { const n = Number(v); return v != null && v !== '' && Number.isInteger(n) && n >= min && n <= max ? n : undefined; };
+  const tooth = v => { const n = int(v, 11, 48); return n != null && n % 10 >= 1 && n % 10 <= 8 ? n : undefined; };
+  const oneOf = (list, v) => (list.includes(v) ? v : undefined);
+  const sites = v => { if (!Array.isArray(v)) return undefined; const s = [...new Set(v.map(x => int(x, 0, 2)).filter(x => x != null))]; return s.length ? s : undefined; };
+  const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+  const one = c => {
+    if (!c || typeof c !== 'object') return null;
+    switch (c.kind) {
+      case 'values': { const values = (Array.isArray(c.values) ? c.values : []).slice(0, 48).map(v => int(v, -10, 15)).filter(v => v != null); return values.length ? { kind: 'values', values } : null; }
+      case 'answer': return typeof c.on === 'boolean' ? { kind: 'answer', on: c.on } : null;
+      case 'same': case 'undo': case 'redo': case 'delete': return { kind: c.kind };
+      case 'goto': { const g = clean({ kind: 'goto', tooth: tooth(c.tooth), side: oneOf(['v', 'i'], c.side), sites: sites(c.sites), line: oneOf(['ps', 'mg', 'bop', 'sup', 'plaque'], c.line) }); return g.tooth != null || g.side || g.line ? g : null; }
+      case 'neighbour': return c.delta === 1 || c.delta === -1 ? { kind: 'neighbour', delta: c.delta } : null;
+      case 'flag': { const flag = oneOf(['bop', 'sup', 'plaque'], c.flag); return flag ? clean({ kind: 'flag', flag, on: c.on !== false, tooth: tooth(c.tooth), side: oneOf(['v', 'i'], c.side), sites: sites(c.sites) }) : null; }
+      case 'pass': { const pass = oneOf(['ps', 'mg', 'fm'], c.pass); return pass ? { kind: 'pass', pass } : null; }
+      case 'focus': { const focus = oneOf(['auto', 'U', 'L', 'both'], c.focus); return focus ? { kind: 'focus', focus } : null; }
+      case 'mobility': { const value = int(c.value, 0, 3); return value != null ? clean({ kind: 'mobility', tooth: tooth(c.tooth), value }) : null; }
+      case 'furcation': { const grade = int(c.grade, 0, 3); return grade != null ? clean({ kind: 'furcation', tooth: tooth(c.tooth), entry: oneOf(['v', 'mp', 'dp', 'l'], c.entry), grade }) : null; }
+      case 'status': { const t = tooth(c.tooth); const status = oneOf(['present', 'missing', 'implant', 'pontic'], c.status); return t != null && status ? { kind: 'status', tooth: t, status } : null; }
+      case 'copy': { const what = oneOf(['ps', 'mg', 'fm', 'all'], c.what); return what ? { kind: 'copy', what } : null; }
+      case 'query': { const what = oneOf(['previous', 'current', 'missing'], c.what); return what ? clean({ kind: 'query', what, tooth: tooth(c.tooth) }) : null; }
+      default: return null;
+    }
+  };
+  const commands = (Array.isArray(p.commands) ? p.commands : []).slice(0, 20).map(one).filter(Boolean);
+  const confidence = Number(p.confidence);
+  return { commands, confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0 };
+}`,
+  },
+};
+
+const voiceInterpret = workflow(
+  'Voz - Interpretar',
   `${REQUIRED_SETUP('\n   "OpenAi account 2" en el nodo OpenAI.')}
 
-RUTA: POST /webhook/help/voice/command (Authorization: Bearer <JWT>)
+RUTA: POST /webhook/voice/interpret (Authorization: Bearer <JWT>)
 
-Interpreta una frase que el intérprete local de voz no entendió. NO escribe nada ni lee
-la base: solo devuelve qué se pidió. El frontend busca paciente/servicios, pregunta lo que
-falte y siempre pide confirmación antes de guardar. No se registra la frase (lleva nombres
-de pacientes).
+Interpreta una frase que el intérprete local de voz de un módulo no entendió. NO escribe nada ni
+lee la base: solo devuelve qué se pidió. El frontend busca lo que haga falta, pregunta lo que
+falte y pide confirmación antes de guardar. No se registra la frase (puede llevar nombres de
+pacientes).
 
-ENTRADA: { text, locale, today: 'YYYY-MM-DD', weekday, timezone, route,
-           context: { stages: [{ id, name, kind }], laboratories: [{ id, name }],
-                      draft?: { mode: 'create'|'edit', order_id, stage, items, teeth,
-                                work_description, laboratory, send, due_date, is_urgent, notes } } }
-           (draft = la orden abierta por voz —nueva o en edición—, sin el paciente: la frase la corrige)
-RESPUESTA: { result: { intent, order_id, stage_id, move_kind, effective_date, due_date,
-             laboratory_id, patient, items: [{ service, quantity, teeth }], work_description,
-             teeth, is_urgent, send, notes, urgent_change, note_add,
-             filter: { overdue, urgent, due_today, view, clear, count },
-             draft_edit: { patient, add_items, remove_items, update_items, work_description,
-                           laboratory_id, clear_laboratory, send, due_date, urgent, note_add },
-             confidence } }
-intent: lab_order.move | create | open | update | status | list | edit | draft_edit | unknown
-Ids y fechas validados contra la lista cerrada que mandó el frontend (que además revalida).`,
+ENTRADA: { domain, text, locale, today: 'YYYY-MM-DD', weekday, timezone, route, context }
+RESPUESTA: { domain, confidence, result }  (result: el de cada módulo, validado)
+Un domain desconocido es un error.
+
+MÓDULOS (domain):
+- lab_orders
+  context = { stages: [{ id, name, kind }], laboratories: [{ id, name }],
+              draft?: { mode: 'create'|'edit', order_id, stage, items, teeth,
+                        work_description, laboratory, send, due_date, is_urgent, notes } }
+            (draft = la orden abierta por voz, nueva o en edición, sin el paciente: la frase la corrige)
+  result  = { intent, order_id, stage_id, move_kind, effective_date, due_date, laboratory_id, patient,
+              items: [{ service, quantity, teeth }], work_description, teeth, is_urgent, send, notes,
+              urgent_change, note_add, filter: { overdue, urgent, due_today, view, clear, count },
+              draft_edit: { patient, add_items, remove_items, update_items, work_description,
+                            laboratory_id, clear_laboratory, send, due_date, urgent, note_add },
+              confidence }
+  intent: lab_order.move | create | open | update | status | list | edit | draft_edit | unknown
+  Ids y fechas validados contra la lista cerrada que mandó el frontend (que además revalida).
+- perio (dictado del periodontograma, cuando el intérprete local no entendió la frase)
+  context = { pass: 'ps'|'mg'|'fm', line: 'value'|'bop'|'sup'|'plaque',
+              cursor: { tooth, side: 'v'|'i', site: 'distal'|'center'|'mesial' } | null, fm_tooth,
+              focus, teeth: { present, implants, missing, pontics }, implants_only, margin_negative }
+            (sin datos del paciente: solo dónde está la sonda y qué piezas hay)
+  result  = { commands: [ los comandos de src/lib/perio/voice.ts: values, goto, flag, neighbour, pass,
+              focus, mobility, furcation, answer, same, undo, redo, delete, status, copy, query ], confidence }
+  Confirmar, descartar y parar el dictado nunca vienen de la IA. El frontend además pregunta antes
+  de escribir si la confianza es baja o si aparece un número que no se dijo, y siempre antes de
+  cambiar el estado de una pieza o copiar del examen anterior.`,
   [
-    webhook('help/voice/command', 'POST'),
+    webhook('voice/interpret', 'POST'),
     code('node-prepare', 'Preparar Consulta', `${JWT_DECODE}
 const body = input.body || {};
+const domain = String(body.domain || '');
+const DOMAINS = {
+${Object.entries(VOICE_DOMAINS).map(([id, d]) => `  ${id}: { system: ${JSON.stringify(d.system)}, prepare: ${d.prepare} },`).join('\n')}
+};
+const mod = Object.prototype.hasOwnProperty.call(DOMAINS, domain) ? DOMAINS[domain] : null;
+if (!mod) throw new Error('Módulo de voz desconocido: ' + domain);
 const text = String(body.text || '').trim().slice(0, 500);
 if (!text) throw new Error('Falta la frase (text)');
-const ctx = body.context || {};
-const stages = (Array.isArray(ctx.stages) ? ctx.stages : []).slice(0, 40)
-  .map(s => ({ id: Number(s && s.id), name: String((s && s.name) || '').slice(0, 80), kind: String((s && s.kind) || '') }))
-  .filter(s => Number.isInteger(s.id) && s.name);
-const laboratories = (Array.isArray(ctx.laboratories) ? ctx.laboratories : []).slice(0, 80)
-  .map(l => ({ id: String((l && l.id) || ''), name: String((l && l.name) || '').slice(0, 80) }))
-  .filter(l => l.id && l.name);
 const today = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(body.today)) ? String(body.today) : new Date().toISOString().slice(0, 10);
-// Orden abierta por voz, nueva o en edición (sin el paciente): la frase es una corrección.
-const d = ctx.draft && typeof ctx.draft === 'object' ? ctx.draft : null;
-const editing = Boolean(d && d.mode === 'edit');
-const short = (v, max) => String(v == null ? '' : v).slice(0, max);
-const draftLines = d ? [
-  '',
-  editing
-    ? 'ORDEN EN EDICIÓN n.º ' + (Number(d.order_id) || '?') + ', etapa ' + (short(d.stage, 80) || '?') + ' (ya existe; la frase la corrige):'
-    : 'ORDEN EN CREACIÓN (la frase la corrige):',
-  '- Trabajos: ' + ((Array.isArray(d.items) ? d.items : []).slice(0, 10)
-    .map(i => short(i && i.service, 80) + ' x' + (Number(i && i.quantity) || 1) + (Array.isArray(i && i.teeth) && i.teeth.length ? ' (piezas ' + i.teeth.slice(0, 32).join(', ') + ')' : ''))
-    .join('; ') || '(ninguno)'),
-  '- Piezas generales: ' + ((Array.isArray(d.teeth) ? d.teeth.slice(0, 32).join(', ') : '') || '(ninguna)'),
-  '- Descripción: ' + (short(d.work_description, 300) || '(ninguna)'),
-  '- Laboratorio: ' + (short(d.laboratory, 80) || '(ninguno)'),
-  editing
-    ? '- Entrega: ' + (short(d.due_date, 10) || '(sin fecha)')
-    : '- Enviar al crear: ' + (d.send === true ? 'sí, entrega ' + short(d.due_date, 10) : 'no'),
-  '- Urgente: ' + (d.is_urgent === true ? 'sí' : 'no'),
-  '- Notas: ' + (short(d.notes, 300) || '(ninguna)'),
-] : [];
+const ctx = body.context && typeof body.context === 'object' ? body.context : {};
+const built = mod.prepare(ctx, body);
 
 const prompt = [
   'FECHA DE HOY: ' + today + ' (' + String(body.weekday || '').slice(0, 20) + '), zona horaria ' + String(body.timezone || '').slice(0, 60),
   'IDIOMA: ' + String(body.locale || 'es').slice(0, 10),
   'PANTALLA: ' + String(body.route || '/').slice(0, 120),
-  '',
-  'ETAPAS (id · nombre · tipo):',
-  stages.map(s => '- ' + s.id + ' · ' + s.name + ' · ' + s.kind).join('\\n') || '(ninguna)',
-  '',
-  'LABORATORIOS (id · nombre):',
-  laboratories.map(l => '- ' + l.id + ' · ' + l.name).join('\\n') || '(ninguno)',
-  ...draftLines,
+  ...built.lines,
   '',
   'FRASE: ' + JSON.stringify(text),
 ].join('\\n');
 
-return [{ json: { userId, text, today, stages, laboratories, hasDraft: Boolean(d), editing, prompt } }];`),
+return [{ json: { userId, domain, text, today, meta: built.meta, systemPrompt: mod.system, prompt } }];`),
     {
       id: 'node-agent',
       name: 'Interpretar',
       type: '@n8n/n8n-nodes-langchain.agent',
       typeVersion: 1.7,
-      parameters: { promptType: 'define', text: '={{ $json.prompt }}', options: { systemMessage: VOICE_SYSTEM_PROMPT } },
+      // El prompt de sistema es el del módulo: lo elige Preparar Consulta.
+      parameters: { promptType: 'define', text: '={{ $json.prompt }}', options: { systemMessage: '={{ $json.systemPrompt }}' } },
     },
     code('node-validate', 'Validar Respuesta', `const q = $('Preparar Consulta').first().json;
 const raw = String($input.first().json.output ?? '');
@@ -1102,85 +1327,15 @@ try {
 } catch (_) {
   p = {};
 }
+if (!p || typeof p !== 'object') p = {};
 
-// Lista cerrada: solo ids que mandó el frontend, fechas válidas y piezas FDI.
-const INTENTS = ['lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'lab_order.draft_edit', 'lab_order.edit', 'unknown'];
-const KINDS = ['send', 'received', 'complete', 'cancel', 'next'];
-const stageIds = new Set(q.stages.map(s => s.id));
-const labIds = new Set(q.laboratories.map(l => l.id));
-const isDate = v => typeof v === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
-const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
-const isTooth = n => Number.isInteger(n) && ((n >= 11 && n <= 48 && n % 10 >= 1 && n % 10 <= 8) || (n >= 51 && n <= 85 && n % 10 >= 1 && n % 10 <= 5));
-const teeth = v => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(isTooth))].slice(0, 32);
-
-const intent = INTENTS.includes(p.intent) ? p.intent : 'unknown';
-const orderId = Number(p.order_id);
-const stageId = Number(p.stage_id);
-const effective = isDate(p.effective_date) && p.effective_date <= q.today ? p.effective_date : null;
-const toItems = v => (Array.isArray(v) ? v : []).slice(0, 10)
-  .map(i => ({ service: str(i && i.service, 80), quantity: Math.min(99, Math.max(1, Math.round(Number(i && i.quantity)) || 1)), teeth: teeth(i && i.teeth) }))
-  .filter(i => i.service);
-const items = toItems(p.items);
-const confidence = Number(p.confidence);
-const bool = v => (typeof v === 'boolean' ? v : null);
-const de = p.draft_edit && typeof p.draft_edit === 'object' ? p.draft_edit : null;
-const draftEdit = de ? {
-  patient: str(de.patient, 80),
-  add_items: toItems(de.add_items),
-  remove_items: (Array.isArray(de.remove_items) ? de.remove_items : []).map(v => str(v, 80)).filter(Boolean).slice(0, 10),
-  update_items: (Array.isArray(de.update_items) ? de.update_items : []).slice(0, 10).map(i => {
-    const qty = Math.round(Number(i && i.quantity));
-    return {
-      service: str(i && i.service, 80),
-      quantity: i && i.quantity != null && Number.isFinite(qty) ? Math.min(99, Math.max(1, qty)) : null,
-      teeth: i && Array.isArray(i.teeth) ? teeth(i.teeth) : null,
-    };
-  }).filter(i => i.quantity !== null || i.teeth !== null),
-  work_description: str(de.work_description, 500),
-  laboratory_id: typeof de.laboratory_id === 'string' && labIds.has(de.laboratory_id) ? de.laboratory_id : null,
-  clear_laboratory: de.clear_laboratory === true,
-  // Una orden que ya existe no se envía desde acá (se mueve de etapa).
-  send: q.editing || intent === 'lab_order.edit' ? null : bool(de.send),
-  due_date: isDate(de.due_date) && de.due_date >= q.today ? de.due_date : null,
-  urgent: bool(de.urgent),
-  note_add: str(de.note_add, 500),
-} : null;
-
-const result = {
-  intent,
-  order_id: Number.isInteger(orderId) && orderId > 0 ? orderId : null,
-  stage_id: stageIds.has(stageId) ? stageId : null,
-  move_kind: KINDS.includes(p.move_kind) ? p.move_kind : null,
-  effective_date: effective,
-  due_date: isDate(p.due_date) ? p.due_date : null,
-  laboratory_id: typeof p.laboratory_id === 'string' && labIds.has(p.laboratory_id) ? p.laboratory_id : null,
-  patient: str(p.patient, 80),
-  items,
-  work_description: str(p.work_description, 500),
-  teeth: teeth(p.teeth),
-  is_urgent: p.is_urgent === true,
-  send: p.send === true,
-  notes: str(p.notes, 500),
-  urgent_change: typeof p.urgent_change === 'boolean' ? p.urgent_change : null,
-  note_add: str(p.note_add, 500),
-  filter: p.filter && typeof p.filter === 'object' ? {
-    overdue: p.filter.overdue === true,
-    urgent: p.filter.urgent === true,
-    due_today: p.filter.due_today === true,
-    view: p.filter.view === 'list' || p.filter.view === 'board' ? p.filter.view : null,
-    clear: p.filter.clear === true,
-    count: p.filter.count === true,
-  } : null,
-  draft_edit: intent === 'lab_order.draft_edit' || intent === 'lab_order.edit' ? draftEdit : null,
-  confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
+const VALIDATE = {
+${Object.entries(VOICE_DOMAINS).map(([id, d]) => `  ${id}: ${d.validate},`).join('\n')}
 };
-// Lo que actúa sobre una orden existente necesita su número.
-if (['lab_order.move', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.edit'].includes(intent) && !result.order_id) result.intent = 'unknown';
-// Con una orden en creación solo vale corregirla; sin ella, draft_edit no tiene sentido.
-if (q.hasDraft ? !['lab_order.draft_edit', 'unknown'].includes(result.intent) : result.intent === 'lab_order.draft_edit') result.intent = 'unknown';
-if (result.intent === 'lab_order.draft_edit' && !result.draft_edit) result.intent = 'unknown';
+const result = VALIDATE[q.domain](p, q.meta, q.today);
+const confidence = Number(result && result.confidence);
 
-return [{ json: { body: { result } } }];`),
+return [{ json: { body: { domain: q.domain, confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0, result } } }];`),
     respond(),
   ],
   {
@@ -1200,7 +1355,7 @@ return [{ json: { body: { result } } }];`),
 // ─── escribir ────────────────────────────────────────────────────────────────
 
 const files = {
-  'help-voice-command.json': voiceCommand,
+  'help-voice-interpret.json': voiceInterpret,
   'help-onboarding-status.json': onboardingStatus,
   'help-onboarding-progress.json': onboardingProgress,
   'help-catalog-version.json': catalogVersion,

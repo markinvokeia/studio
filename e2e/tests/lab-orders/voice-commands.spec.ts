@@ -224,9 +224,9 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
       return firstInitialOrderId(page, captured);
     })();
     const aiRequests: Record<string, unknown>[] = [];
-    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+    await page.route(/\/voice\/interpret(\?|$)/, async (route) => {
       aiRequests.push(route.request().postDataJSON() as Record<string, unknown>);
-      await route.fulfill({ json: { result: { intent: 'lab_order.move', order_id: id, move_kind: 'send', effective_date: yesterday(), confidence: 0.9, items: [], teeth: [] } } });
+      await route.fulfill({ json: { domain: 'lab_orders', confidence: 0.9, result: { intent: 'lab_order.move', order_id: id, move_kind: 'send', effective_date: yesterday(), confidence: 0.9, items: [], teeth: [] } } });
     });
 
     await pushToTalk(page, `la ${id} ya la mandamos ayer al lab`);
@@ -237,6 +237,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
 
     // A la IA va la frase y la lista cerrada de etapas y laboratorios, nunca pacientes.
     expect(aiRequests).toHaveLength(1);
+    expect(aiRequests[0].domain).toBe('lab_orders');
     const context = aiRequests[0].context as { stages: unknown[]; laboratories: unknown[] };
     expect(context.stages.length).toBeGreaterThan(0);
     expect(Object.keys(context).sort()).toEqual(['laboratories', 'stages']);
@@ -254,7 +255,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
     const source = captured.details.get(sourceId) as { patient_name: string; patient_id: string; items?: { service_name: string }[]; work_description?: string };
     const service = source.items?.[0]?.service_name ?? source.work_description ?? 'corona';
 
-    await page.route(/\/help\/voice\/command(\?|$)/, (route) => route.fulfill({
+    await page.route(/\/voice\/interpret(\?|$)/, (route) => route.fulfill({
       json: { result: { intent: 'lab_order.create', patient: source.patient_name, items: [{ service, quantity: 1, teeth: [36] }], teeth: [], is_urgent: true, send: false, confidence: 0.9 } },
     }));
     const saves: Record<string, unknown>[] = [];
@@ -295,7 +296,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
 
     // Primera frase: crear. Con `context.draft` (el alta abierta): la corrección "la pieza es la 46".
     const aiRequests: Record<string, unknown>[] = [];
-    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+    await page.route(/\/voice\/interpret(\?|$)/, async (route) => {
       const body = route.request().postDataJSON() as { context: Record<string, unknown> };
       aiRequests.push(body);
       const result = body.context.draft
@@ -403,7 +404,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
   test('"editá la orden N": abre la edición, aplica correcciones (local e IA) y "sí" guarda', async ({ page }) => {
     const captured = await interceptLabOrders(page);
     const aiRequests: { context: Record<string, unknown> }[] = [];
-    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+    await page.route(/\/voice\/interpret(\?|$)/, async (route) => {
       const body = route.request().postDataJSON() as { context: Record<string, unknown> };
       aiRequests.push(body);
       const result = body.context.draft
@@ -473,7 +474,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
     test.skip(!target || !other, 'DEV no tiene dos órdenes de pacientes distintos en el tablero');
 
     const aiRequests: { context: Record<string, unknown> }[] = [];
-    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+    await page.route(/\/voice\/interpret(\?|$)/, async (route) => {
       const body = route.request().postDataJSON() as { context: Record<string, unknown> };
       aiRequests.push(body);
       await route.fulfill({ json: { result: { intent: 'lab_order.draft_edit', draft_edit: { patient: other!.patient_name }, confidence: 0.9 } } });
@@ -511,7 +512,7 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
 
     await pushToTalk(page, 'mostrame las órdenes atrasadas');
     const card = page.locator('[data-voice-card]');
-    await expect(card).toContainText(/Hay \d+ órdenes? atrasadas|No hay órdenes atrasadas/, { timeout: 20_000 });
+    await expect(card).toContainText(/Hay 1 orden atrasada:|Hay \d+ órdenes atrasadas:|No hay órdenes atrasadas\./, { timeout: 20_000 });
     await expect(overdueButton).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: 'test-results/voice-list-overdue.png' });
 

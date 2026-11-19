@@ -963,6 +963,30 @@
       "label": "Comandos de voz",
       "description": "La lista de lo que se puede decir, en español y en inglés."
     },
+    "perio-session.section.voice-question": {
+      "label": "Pregunta del dictado",
+      "description": "Lo que el dictado necesita que confirmes antes de hacerlo: cambiar el estado de una pieza, copiar del examen anterior, descartar lo dictado, o lo que la IA entendió cuando no está segura o usó un número que no se dijo (marcado «IA»). Se contesta diciendo «sí» o «no»; otra frase la deja sin responder."
+    },
+    "perio-session.btn.voice-yes": {
+      "label": "Sí",
+      "description": "Hace lo que pregunta (lo que se escribe queda como dictado sin confirmar)."
+    },
+    "perio-session.btn.voice-no": {
+      "label": "No",
+      "description": "No cambia nada."
+    },
+    "perio-session.section.voice-answer": {
+      "label": "Respuesta",
+      "description": "La respuesta a una pregunta dicha («¿cuánto tenía el 16?», «leeme el 16», «¿qué me falta?»). No escribe nada."
+    },
+    "perio-session.field.voice-replies": {
+      "label": "Responder en voz alta",
+      "description": "Lee en voz alta las preguntas y respuestas del dictado. Mientras habla el micrófono no escucha. Viene apagado y se recuerda en este navegador."
+    },
+    "perio-session.field.voice-toggle-key": {
+      "label": "Tecla del micrófono",
+      "description": "Una tecla (o un pedal que actúa como tecla) que prende y apaga el dictado. Se recuerda en este navegador. Con el micrófono apagado, Ctrl+Espacio mantenido dice una sola frase."
+    },
     "perio-session.section.voice-pending": {
       "label": "Pendiente de confirmar",
       "description": "Sitios dictados o copiados del examen anterior que todavía no se confirmaron (subrayados en violeta). No se puede firmar con nada pendiente."

@@ -173,8 +173,10 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
   const [confirmLeave, setConfirmLeave] = React.useState(false);
   const [lockNotice, setLockNotice] = React.useState<string | null>(null);
   /** Dictated sites not confirmed yet, with each site as it was before the first dictation */
-  const [dictated, setDictated] = React.useState<Map<string, { ref: SiteRef; before: PerioSite }>>(() => new Map());
+  /** Dictated sites not confirmed yet; `ai`: what was written last came from the AI (drawn dashed) */
+  const [dictated, setDictated] = React.useState<Map<string, { ref: SiteRef; before: PerioSite; ai: boolean }>>(() => new Map());
   const pendingKeys = React.useMemo(() => new Set(dictated.keys()), [dictated]);
+  const aiPendingKeys = React.useMemo(() => new Set([...dictated].flatMap(([key, e]) => (e.ai ? [key] : []))), [dictated]);
   const [reveal, setReveal] = React.useState<PerioRevealRequest | null>(null);
   /** Bar at the bottom where each step puts its navigation */
   const [footerSlot, setFooterSlot] = React.useState<HTMLDivElement | null>(null);
@@ -359,13 +361,16 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
     commitDraft({ ...d, teeth: future[0] });
   };
 
-  const onDictated = (refs: SiteRef[], before: PerioTooth[]) => {
+  const onDictated = (refs: SiteRef[], before: PerioTooth[], ai = false) => {
     setDictated((current) => {
       const next = new Map(current);
       refs.forEach((ref) => {
         const key = siteKey(ref);
+        const known = next.get(key);
+        // `before` stays the first one (discarding puts the site back as it was before dictating)
+        if (known) { next.set(key, { ...known, ai }); return; }
         const site = siteOf(before, ref);
-        if (!next.has(key) && site) next.set(key, { ref, before: site });
+        if (site) next.set(key, { ref, before: site, ai });
       });
       return next;
     });
@@ -479,6 +484,7 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
                 onUndo={undo}
                 onRedo={redo}
                 pending={pendingKeys}
+                aiPending={aiPendingKeys}
                 onDictated={onDictated}
                 onConfirmDictation={confirmDictation}
                 onDiscardDictation={discardDictation}

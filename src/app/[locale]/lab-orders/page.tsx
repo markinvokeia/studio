@@ -41,11 +41,15 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
+import { LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { searchLabOrders } from '@/services/lab-orders';
 import { fetchLabStages } from '@/services/lab-stages';
 
 import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type { LabOrder, LabOrderFilters, LabOrderSort, LabStage } from '@/lib/types';
+
+/** Módulos de voz de esta pantalla (los comandos y el contexto para la IA). */
+const LAB_ORDERS_VOICE_DOMAINS = [LAB_ORDERS_VOICE_DOMAIN];
 
 /** Filtro de etapa: 'pending' (default) = las que no están en etapa final; 'all' incluye las finalizadas. */
 type StageFilter = 'pending' | 'all' | `stage-${number}`;
@@ -771,7 +775,7 @@ export default function LabOrdersPage() {
       />
 
       {/* Comandos de voz de esta pantalla: Ctrl+Espacio o el micrófono del encabezado. */}
-      <VoiceCommandHost />
+      <VoiceCommandHost domains={LAB_ORDERS_VOICE_DOMAINS} />
     </div>
   );
 }

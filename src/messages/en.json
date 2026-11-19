@@ -13089,7 +13089,8 @@
       "lost": "Lost attachment",
       "better": "Better",
       "worse": "Worse",
-      "previous": "Compared exam (dashed)"
+      "previous": "Compared exam (dashed)",
+      "dictatedAi": "Dictated, read by the AI, not confirmed"
     },
     "inspector": {
       "label": "Active tooth",
@@ -13349,7 +13350,8 @@
           "redo": "Redone",
           "confirm": "Dictation confirmed",
           "discard": "Dictation discarded"
-        }
+        },
+        "status": "{tooth} is now {status}"
       },
       "help": {
         "button": "Commands",
@@ -13490,6 +13492,35 @@
             ]
           },
           {
+            "title": "Teeth and questions",
+            "items": [
+              [
+                "18 missing",
+                "Changes the tooth status (also implant, pontic, present); asks first"
+              ],
+              [
+                "copy from the previous exam",
+                "Fills what is empty from the previous exam; asks first"
+              ],
+              [
+                "what was 16 before?",
+                "Reads the values of the previous exam"
+              ],
+              [
+                "read 16",
+                "Reads what it has now"
+              ],
+              [
+                "what is missing?",
+                "How many sites are left"
+              ],
+              [
+                "yes / no",
+                "Answers the question on screen"
+              ]
+            ]
+          },
+          {
             "title": "Editing",
             "items": [
               [
@@ -13514,7 +13545,50 @@
       },
       "thinking": "Interpreting with AI…",
       "ai": "AI",
-      "rewritten": "The AI read it as “{phrase}”"
+      "rewritten": "The AI read it as “{phrase}”",
+      "queued": "{count, plural, one {# phrase waiting} other {# phrases waiting}}",
+      "aiQuestion": "Did you mean “{phrase}”?",
+      "aiInvented": "It used numbers that were not said: {numbers}",
+      "aiUnsure": "The AI is not sure",
+      "yes": "Yes",
+      "no": "No",
+      "yesNoHint": "Say “yes” or “no”",
+      "nothingChanged": "Nothing was changed",
+      "questionDropped": "Left unanswered: {question}",
+      "pushToTalk": "With the microphone off, hold Ctrl+Space to say one phrase",
+      "replies": {
+        "label": "Reply aloud",
+        "hint": "Reads questions and answers; the microphone does not listen meanwhile"
+      },
+      "toggleKey": {
+        "label": "Microphone key",
+        "description": "Turns dictation on and off (works with a foot pedal)",
+        "press": "Press the key or pedal… (Esc cancels, Backspace clears)",
+        "waiting": "Waiting…",
+        "choose": "Choose",
+        "clear": "Remove the key",
+        "hint": "{key} turns the microphone on and off"
+      },
+      "answer": {
+        "previous": "In the previous exam, {tooth}: {values}",
+        "current": "{tooth}: {values}",
+        "statusPrevious": "In the previous exam {tooth} was {status}",
+        "statusCurrent": "{tooth} is {status}",
+        "noPrevious": "There is no previous exam",
+        "missing": "Left: {pd} depths and {gm} margins",
+        "nothingMissing": "Nothing left: everything is probed"
+      },
+      "ask": {
+        "status": "Mark {tooth} as {status}?",
+        "statusWipes": "Mark {tooth} as {status}? Its values are cleared",
+        "copy": {
+          "all": "Copy what is empty from the previous exam?",
+          "ps": "Copy the depths from the previous exam where empty?",
+          "mg": "Copy the margin from the previous exam where empty?",
+          "fm": "Copy furcations and mobility from the previous exam?"
+        },
+        "discard": "{count, plural, =0 {Discard the dictation?} one {Discard # dictated site?} other {Discard # dictated sites?}}"
+      }
     },
     "evolution": {
       "title": "Progress since the exam of {date}",
@@ -13927,11 +14001,11 @@
       "editSendByStage": "To send order {id}, move it to the next stage: say, for example, “order {id} was sent today”.",
       "listTitle": "Lab orders",
       "whoNotFound": "I couldn't find a patient or laboratory called “{name}”.",
-      "listOverdue": "overdue",
-      "listUrgent": "urgent",
+      "listOverdue": "{count, plural, other {overdue}}",
+      "listUrgent": "{count, plural, other {urgent}}",
       "listDueToday": "due today",
       "listOf": "for {name}",
-      "listAll": "pending",
+      "listAll": "{count, plural, other {pending}}",
       "listView": "{view, select, board {Here is the board.} other {Here is the list.}}",
       "listShown": "{count, plural, =0 {There are no {what} orders.} one {There is 1 {what} order: here it is.} other {There are # {what} orders: here they are.}}",
       "listShownNoCount": "Here are the {what} orders."

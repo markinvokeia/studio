@@ -2,7 +2,7 @@ import { speakAssistant, stopAssistantSpeech } from '@/hooks/use-assistant-voice
 import { useVoiceCommand } from '@/stores/voice-command-store';
 import { parseChoice, parseYesNo, normalizeSpeech } from '@/lib/voice/parse';
 import { interpretWithAi } from '@/lib/voice/ai';
-import { matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
+import { listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
 import { listenOnce, startHoldListening, type HoldListening } from '@/lib/voice/speech-recognition';
 
 import type { VoiceCard, VoiceCommandContext } from '@/lib/types';
@@ -21,6 +21,8 @@ export interface VoiceSessionDeps {
   t: VoiceCommandContext['t'];
   hasPermission: (code: string) => boolean;
   navigate: (route: string) => void;
+  /** Módulos activos en la pantalla (VoiceDomain.id), en orden: solo esos comandos y esa IA. */
+  domains: readonly string[];
 }
 
 /** Tiempo para empezar a responder después de una pregunta. */
@@ -154,18 +156,22 @@ async function runCommand(text: string) {
   controller = own;
   clearTimeout(hideTimer);
   const ctx = createContext(deps, own.signal);
-  let found = matchVoiceCommand(normalizeSpeech(text), text);
+  let found = matchVoiceCommand(deps.domains, normalizeSpeech(text), text);
   try {
     store().set({ phase: 'thinking' });
     if (!found) {
       // El intérprete local no lo entendió: se le pregunta a la IA (solo interpreta, no escribe).
       ctx.show({ title: deps.t('VoiceCommands.label'), message: deps.t('VoiceCommands.interpreting'), tone: 'info' });
-      const result = await interpretWithAi(text, ctx).catch((error) => {
-        if (own.signal.aborted) throw error;
-        console.warn('[voice] AI interpretation failed', error);
-        return null;
-      });
-      found = result && result.intent !== 'unknown' && result.confidence >= MIN_AI_CONFIDENCE ? matchVoiceAiResult(result, text) : null;
+      // Un módulo por vez, en el orden de la pantalla: el primero que lo entienda se queda con la frase.
+      for (const domain of listVoiceAiDomains(deps.domains)) {
+        const answer = await interpretWithAi(domain.id, text, ctx).catch((error) => {
+          if (own.signal.aborted) throw error;
+          console.warn('[voice] AI interpretation failed', domain.id, error);
+          return null;
+        });
+        found = answer && answer.confidence >= MIN_AI_CONFIDENCE ? matchVoiceAiResult(domain.id, answer.result, text) : null;
+        if (found) break;
+      }
     }
     if (!found) {
       await ctx.finish({ title: deps.t('VoiceCommands.notUnderstoodTitle'), message: deps.t('VoiceCommands.notUnderstood'), tone: 'error' }, deps.t('VoiceCommands.notUnderstood'));

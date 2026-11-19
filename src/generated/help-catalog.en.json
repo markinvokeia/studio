@@ -1,5 +1,5 @@
 {
- "version": "2e78e7dd67170085",
+ "version": "949f3897a5c02098",
  "locale": "en",
  "journey": [
   {
@@ -10930,6 +10930,20 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Changes nothing.",
+     "id": "perio-session.btn.voice-no",
+     "kind": "btn",
+     "label": "No",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Does what it asks (what is written stays as dictation not confirmed yet).",
+     "id": "perio-session.btn.voice-yes",
+     "kind": "btn",
+     "label": "Yes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Initial diagnosis, re-evaluation or maintenance (full probing); PSR/BPE screening (one code per sextant); implants only (only implants are probed).",
      "id": "perio-session.field.exam-type",
      "kind": "field",
@@ -10969,6 +10983,20 @@
      "id": "perio-session.field.voice-command",
      "kind": "field",
      "label": "Command",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Reads the dictation questions and answers aloud. The microphone does not listen while it speaks. Off by default and remembered in this browser.",
+     "id": "perio-session.field.voice-replies",
+     "kind": "field",
+     "label": "Reply aloud",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "A key (or a foot pedal acting as a key) that turns dictation on and off. Remembered in this browser. With the microphone off, holding Ctrl+Space says one phrase.",
+     "id": "perio-session.field.voice-toggle-key",
+     "kind": "field",
+     "label": "Microphone key",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -11238,10 +11266,24 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "The answer to a spoken question (“what was 16 before?”, “read 16”, “what is missing?”). Writes nothing.",
+     "id": "perio-session.section.voice-answer",
+     "kind": "section",
+     "label": "Answer",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Sites dictated or copied from the previous exam that are not confirmed yet (underlined in violet). The chart cannot be signed with anything pending.",
      "id": "perio-session.section.voice-pending",
      "kind": "section",
      "label": "Pending confirmation",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What dictation needs you to confirm before doing it: changing a tooth status, copying from the previous exam, discarding the dictation, or what the AI understood when it is not sure or used a number that was not said (marked “AI”). Answer by saying “yes” or “no”; any other phrase leaves it unanswered.",
+     "id": "perio-session.section.voice-question",
+     "kind": "section",
+     "label": "Dictation question",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -36939,7 +36981,7 @@
     },
     {
      "action": "highlight",
-     "details": "The same command typed, then Enter. If a phrase is not understood, the AI rewrites it.",
+     "details": "The same command typed, then Enter. If a phrase is not understood, the AI interprets it (dashed underline); when in doubt it asks “Did you mean…?”.",
      "id": "type",
      "target": "perio-session.field.voice-command",
      "title": "Or type it"

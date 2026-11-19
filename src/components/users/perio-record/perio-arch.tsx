@@ -204,6 +204,8 @@ export interface PerioArchProps {
   flagTarget?: SiteRef | null;
   /** Dictated and not confirmed yet: underlined in violet */
   pending?: ReadonlySet<string>;
+  /** Of those, written from what the AI interpreted: the underline is dashed */
+  aiPending?: ReadonlySet<string>;
   /** Empty cells of this row are outlined (what is missing to close) */
   highlight?: 'pd' | 'gm' | null;
   /** Sites just written or reached by voice: a short pulse over their column */
@@ -217,7 +219,7 @@ export interface PerioArchProps {
   onToothClick?: (tooth: number) => void;
 }
 
-function PerioArchBase({ arch, teeth, ghost, cursor, pass = 'ps', selectedTooth, compact = false, line = 'value', flagTarget, pending, highlight, flash, compare, onCellClick, onDotClick, onFurcationClick, onMobilityClick, onToothClick }: PerioArchProps) {
+function PerioArchBase({ arch, teeth, ghost, cursor, pass = 'ps', selectedTooth, compact = false, line = 'value', flagTarget, pending, aiPending, highlight, flash, compare, onCellClick, onDotClick, onFurcationClick, onMobilityClick, onToothClick }: PerioArchProps) {
   const t = useTranslations('PerioRecord.chart');
   const patternId = `perio-half-${React.useId().replace(/:/g, '')}`;
   const order = arch === 'U' ? PERIO_UPPER : PERIO_LOWER;
@@ -318,7 +320,7 @@ function PerioArchBase({ arch, teeth, ghost, cursor, pass = 'ps', selectedTooth,
           >
             {text}
           </text>
-          {dictated && <path d={`M${cx - 6} ${y + h - 2} H${cx + 6}`} className="pointer-events-none" style={{ stroke: 'var(--perio-dict)', strokeWidth: 2, strokeLinecap: 'round' }} />}
+          {dictated && <path d={`M${cx - 6} ${y + h - 2} H${cx + 6}`} className="pointer-events-none" style={{ stroke: 'var(--perio-dict)', strokeWidth: 2, strokeLinecap: aiPending?.has(siteKey(ref)) ? 'butt' : 'round', strokeDasharray: aiPending?.has(siteKey(ref)) ? '3 2' : undefined }} />}
           <title>{`${label} · ${t(kind === 'pd' ? 'pd' : 'gm')}${prevValue != null ? ` · ${t('before', { value: fmt(prevValue) })}` : ''}${before?.pd != null && value != null ? ` · ${t('change', { before: before.pd, pd: signed(Math.round(value) - before.pd), cal: signed(changeOfCal(site, before)) })}` : ''}`}</title>
         </g>
       );

@@ -585,6 +585,14 @@ export const API_ROUTES = {
         LIST:   '/subscriptions',
         CREATE: '/subscriptions',
     },
+    /** Comandos de voz (workflow "Voz - Interpretar", generado por scripts/n8n/generate-help-workflows.mjs). */
+    VOICE: {
+        /**
+         * Frase que el intérprete local de un módulo no entendió: { domain, text, context } →
+         * { domain, confidence, result } validado (OpenAI, no lee ni escribe la base).
+         */
+        INTERPRET: '/voice/interpret',
+    },
     /**
      * Asistente guiado (workflows generados por scripts/n8n/generate-help-workflows.mjs).
      * Ver docs/onboarding-asistente.md.
@@ -598,8 +606,6 @@ export const API_ROUTES = {
         ASSISTANT_CHAT:      '/help/assistant/chat',
         /** 👍/👎 de una respuesta: alimenta la cola de preguntas sin resolver. */
         ASSISTANT_FEEDBACK:  '/help/assistant/feedback',
-        /** Comando de voz que el intérprete local no entendió: OpenAI → JSON validado (sin escribir nada). */
-        VOICE_COMMAND:       '/help/voice/command',
         /** Versión del catálogo publicado en la BD del cliente. */
         CATALOG_VERSION:     '/help/catalog/version',
         /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */
@@ -623,8 +629,6 @@ export const API_ROUTES = {
         EXAM_DELETE:  '/perio/exams/delete',
         EXAM_LINK_INVOICE: '/perio/exams/link-invoice',
         EXAM_AMEND:   '/perio/exams/amend',
-        /** Ruta de Next.js (no n8n): respaldo con IA del dictado, src/app/api/ai/perio-dictation */
-        DICTATION_FALLBACK: '/api/ai/perio-dictation',
     },
     // Ficha estética — flujo n8n "Aesthetic Record" (database/scripts/151)
     AESTHETIC_RECORD: {

@@ -59,7 +59,7 @@
     {
       "id": "type",
       "title": "Or type it",
-      "details": "The same command typed, then Enter. If a phrase is not understood, the AI rewrites it."
+      "details": "The same command typed, then Enter. If a phrase is not understood, the AI interprets it (dashed underline); when in doubt it asks “Did you mean…?”."
     },
     {
       "id": "help",

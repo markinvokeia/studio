@@ -1,5 +1,4 @@
-import { interpretWithAi } from '@/lib/voice/ai';
-import { labOrdersAiContext } from '@/lib/voice/commands/lab-orders';
+import { interpretLabOrders, LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { chooseLab, confirmDraft, resolveDue, resolvePatient, resolveService } from '@/lib/voice/commands/lab-orders-draft';
 import { ORDER_RE } from '@/lib/voice/commands/lab-orders-parse';
 import { openVoiceLabOrderDraft } from '@/lib/voice/lab-order-draft-bridge';
@@ -51,7 +50,7 @@ async function run(parsed: CreateParsed, ctx: VoiceCommandContext) {
   if (!ai) {
     ctx.show({ title, message: t('VoiceCommands.interpreting'), tone: 'info' });
     try {
-      ai = await interpretWithAi(parsed.raw, ctx);
+      ai = await interpretLabOrders(parsed.raw, ctx);
     } catch (error) {
       if (ctx.signal.aborted) throw error;
       console.warn('[voice] AI interpretation failed', error);
@@ -142,9 +141,10 @@ function fromAi(result: VoiceAiResult, raw: string): CreateParsed | null {
   return result.intent === 'lab_order.create' ? { raw, ai: result } : null;
 }
 
-registerVoiceCommand<CreateParsed>({
+registerVoiceCommand<CreateParsed, VoiceAiResult>({
   id: 'lab-orders.create',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   match,
   run,
-  ai: { context: labOrdersAiContext, from: fromAi },
+  ai: { from: fromAi },
 });

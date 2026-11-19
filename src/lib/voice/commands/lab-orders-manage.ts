@@ -2,7 +2,7 @@ import { startOfToday } from 'date-fns';
 
 import { emitLabOrderChanged, requestLabOrdersView, type LabOrdersViewRequest } from '@/lib/lab-orders-events';
 import { formatDisplayDate } from '@/lib/utils';
-import { errorText, labOrdersAiContext, speakDate } from '@/lib/voice/commands/lab-orders';
+import { errorText, LAB_ORDERS_VOICE_DOMAIN, speakDate } from '@/lib/voice/commands/lab-orders';
 import {
   parseLabOrderEdit,
   parseLabOrdersList,
@@ -294,45 +294,47 @@ async function runList(parsed: LabListParsed, ctx: VoiceCommandContext) {
     patient_id: patient?.id,
     ...(parsed.dueToday ? { due_from: today, due_to: today } : {}),
   };
-  const what = [
-    parsed.overdue ? t('VoiceCommands.labOrders.listOverdue') : '',
-    parsed.urgent ? t('VoiceCommands.labOrders.listUrgent') : '',
-    parsed.dueToday ? t('VoiceCommands.labOrders.listDueToday') : '',
-    laboratory ? t('VoiceCommands.labOrders.listOf', { name: laboratory.name }) : '',
-    patient ? t('VoiceCommands.labOrders.listOf', { name: patient.name }) : '',
-  ].filter(Boolean).join(', ');
   if (onlyView) {
     const message = t('VoiceCommands.labOrders.listView', { view: parsed.view ?? 'list' });
     await ctx.finish({ title, message, tone: 'success' }, message);
     return;
   }
   const total = await searchLabOrders({ ...filters, limit: 1, offset: 0 }, opts).then((r) => r.total).catch(() => null);
+  // Los adjetivos concuerdan con la cantidad ("1 orden atrasada", "3 órdenes atrasadas"); sin cantidad, en plural.
+  const count = total ?? 2;
+  const what = [
+    parsed.overdue ? t('VoiceCommands.labOrders.listOverdue', { count }) : '',
+    parsed.urgent ? t('VoiceCommands.labOrders.listUrgent', { count }) : '',
+    parsed.dueToday ? t('VoiceCommands.labOrders.listDueToday') : '',
+    laboratory ? t('VoiceCommands.labOrders.listOf', { name: laboratory.name }) : '',
+    patient ? t('VoiceCommands.labOrders.listOf', { name: patient.name }) : '',
+  ].filter(Boolean).join(', ') || t('VoiceCommands.labOrders.listAll', { count });
   const message = total === null
-    ? t('VoiceCommands.labOrders.listShownNoCount', { what: what || t('VoiceCommands.labOrders.listAll') })
-    : t('VoiceCommands.labOrders.listShown', { count: total, what: what || t('VoiceCommands.labOrders.listAll') });
+    ? t('VoiceCommands.labOrders.listShownNoCount', { what })
+    : t('VoiceCommands.labOrders.listShown', { count: total, what });
   await ctx.finish({ title, message, tone: 'success' }, message);
 }
 
 // ── Registro ──────────────────────────────────────────────────────────────────
 
-registerVoiceCommand<{ orderId: number }>({
+registerVoiceCommand<{ orderId: number }, VoiceAiResult>({
   id: 'lab-orders.status',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   priority: PRIORITY,
   match: (normalized) => parseLabOrderStatus(normalized),
   run: runStatus,
   ai: {
-    context: labOrdersAiContext,
     from: (result: VoiceAiResult) => (result.intent === 'lab_order.status' && result.order_id ? { orderId: result.order_id } : null),
   },
 });
 
-registerVoiceCommand<LabEditParsed>({
+registerVoiceCommand<LabEditParsed, VoiceAiResult>({
   id: 'lab-orders.edit',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   priority: PRIORITY,
   match: (normalized, raw) => parseLabOrderEdit(normalized, raw),
   run: runEdit,
   ai: {
-    context: labOrdersAiContext,
     from: (result: VoiceAiResult) => {
       if (result.intent !== 'lab_order.update' || !result.order_id) return null;
       const parsed: LabEditParsed = { orderId: result.order_id };
@@ -344,13 +346,13 @@ registerVoiceCommand<LabEditParsed>({
   },
 });
 
-registerVoiceCommand<LabListParsed>({
+registerVoiceCommand<LabListParsed, VoiceAiResult>({
   id: 'lab-orders.list',
+  domain: LAB_ORDERS_VOICE_DOMAIN,
   priority: PRIORITY,
   match: (normalized) => parseLabOrdersList(normalized),
   run: runList,
   ai: {
-    context: labOrdersAiContext,
     from: (result: VoiceAiResult) => {
       if (result.intent !== 'lab_order.list') return null;
       const f = result.filter;

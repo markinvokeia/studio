@@ -160,3 +160,114 @@ export function listenOnce(locale: string, { onInterim, timeoutMs, signal }: Lis
     }
   });
 }
+
+export type ContinuousListeningError = 'not-allowed' | 'unavailable';
+
+export interface ContinuousListeningOptions {
+  /** Cada frase apenas el navegador la da por terminada. */
+  onPhrase: (text: string) => void;
+  /** Lo que se está diciendo ('' al cerrar una frase). */
+  onInterim?: (text: string) => void;
+  /** Sin permiso o sin micrófono: se deja de escuchar. */
+  onError?: (error: ContinuousListeningError) => void;
+  /** Se dejó de escuchar del todo (stop, abort o un error que no deja seguir). */
+  onEnd?: () => void;
+}
+
+export interface ContinuousListening {
+  stop: () => void;
+  abort: () => void;
+  /** Deja de escuchar sin terminar (mientras habla el asistente, para no escucharse a sí mismo). */
+  pause: () => void;
+  resume: () => void;
+}
+
+/**
+ * Dictado continuo (periodontograma): entrega cada frase al cerrarla, sin esperar a que se apague
+ * el micrófono. El navegador corta el reconocimiento tras un silencio; mientras no se pida parar,
+ * se reinicia solo. Devuelve null si el navegador no tiene reconocimiento de voz.
+ */
+export function startContinuousListening(locale: string, { onPhrase, onInterim, onError, onEnd }: ContinuousListeningOptions): ContinuousListening | null {
+  const Ctor = getSpeechRecognitionCtor();
+  if (!Ctor) return null;
+  let wanted = true;
+  let paused = false;
+  let current: ISpeechRecognition | null = null;
+  let ended = false;
+
+  const finish = () => {
+    if (ended) return;
+    ended = true;
+    onEnd?.();
+  };
+  const fail = (error: ContinuousListeningError) => {
+    wanted = false;
+    onError?.(error);
+  };
+
+  const launch = () => {
+    const recognition = new Ctor();
+    recognition.lang = speechLang(locale);
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let live = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          const text = result[0].transcript.trim();
+          if (text) onPhrase(text);
+        } else {
+          live += result[0].transcript;
+        }
+      }
+      onInterim?.(live.trim());
+    };
+    recognition.onerror = (event) => {
+      const error = (event as Event & { error?: string }).error;
+      if (error === 'not-allowed' || error === 'service-not-allowed') fail('not-allowed');
+      else if (error === 'audio-capture') fail('unavailable');
+      // 'no-speech' y 'network' cortan la sesión; onend la vuelve a empezar.
+    };
+    recognition.onend = () => {
+      current = null;
+      onInterim?.('');
+      if (!wanted) { finish(); return; }
+      if (paused) return;
+      setTimeout(() => { if (wanted && !paused && !current) launch(); }, 150);
+    };
+    current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      current = null;
+      fail('unavailable');
+      finish();
+    }
+  };
+
+  launch();
+  if (ended) return null;
+  return {
+    stop: () => {
+      wanted = false;
+      if (current) current.stop();
+      else finish();
+    },
+    abort: () => {
+      wanted = false;
+      if (current) current.abort();
+      else finish();
+    },
+    pause: () => {
+      if (!wanted || paused) return;
+      paused = true;
+      current?.abort();
+    },
+    resume: () => {
+      if (!paused) return;
+      paused = false;
+      if (wanted && !current) launch();
+    },
+  };
+}
