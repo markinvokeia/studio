@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { HelpScopeProvider } from '@/components/help/help-scope';
+import { useSlotDialogVoice } from '@/components/appointments/use-slot-dialog-voice';
 import { minutesToTimeString, planSlotEnable, type ClosureChange, type Interval } from '@/components/calendar/calendar-gaps';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +37,7 @@ import { deleteClinicException, upsertClinicException } from '@/services/clinic-
 
 import { API_ROUTES } from '@/constants/routes';
 import type { ClinicException, ClinicSchedule } from '@/lib/types';
+import type { SlotDialogVoiceControl, SlotDialogVoiceStatus } from '@/lib/voice/dialog-voice';
 
 /** Day/branch the user right-clicked, with the hours that apply to it. */
 export interface EnableSlotTarget {
@@ -65,6 +67,9 @@ interface EnableSlotDialogProps {
     onOpenChange: (open: boolean) => void;
     /** Reloads the clinic exceptions so the calendar reflects the new hours. */
     onEnabled: () => Promise<void>;
+    /** Voice: hours/notes to set and "Confirm" (see `useSlotDialogVoice`). */
+    voiceControl?: SlotDialogVoiceControl | null;
+    onVoiceStatus?: (status: SlotDialogVoiceStatus | null) => void;
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -92,7 +97,7 @@ export const enableSlotSchema = (t: (key: string) => string) => z.object({
 
 type EnableSlotFormValues = z.infer<ReturnType<typeof enableSlotSchema>>;
 
-export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled }: EnableSlotDialogProps) {
+export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled, voiceControl, onVoiceStatus }: EnableSlotDialogProps) {
     const t = useTranslations('AppointmentsPage.enableSlot');
     const tCommon = useTranslations('Common');
     const locale = useLocale();
@@ -168,6 +173,31 @@ export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled 
             showErrorToast: false,
         },
     );
+
+    const canSubmit = !!plan?.changesSomething && !missingPermission;
+    const windowStart = hhmmToMinutes(startTime);
+    const windowEnd = hhmmToMinutes(endTime);
+    const voiceStatus = React.useMemo<SlotDialogVoiceStatus | null>(() => (target ? {
+        canSubmit,
+        checking: false,
+        saving: save.isPending,
+        noChange: !!plan && !plan.changesSomething,
+        missingPermission,
+        locked: 0,
+        affected: 0,
+        startMin: windowStart,
+        endMin: windowEnd,
+        error: submissionError,
+    } : null), [target, canSubmit, save.isPending, plan, missingPermission, windowStart, windowEnd, submissionError]);
+    const voiceApply = React.useCallback((c: SlotDialogVoiceControl) => {
+        const opts = { shouldDirty: true, shouldValidate: true } as const;
+        if (c.startMin != null) form.setValue('start_time', minutesToTimeString(c.startMin), opts);
+        if (c.endMin != null) form.setValue('end_time', minutesToTimeString(c.endMin), opts);
+        if (c.notes != null) form.setValue('notes', c.notes, { shouldDirty: true });
+    }, [form]);
+    const runSave = save.run;
+    const voiceSubmit = React.useCallback(() => { void form.handleSubmit(() => runSave())(); }, [form, runSave]);
+    useSlotDialogVoice(voiceControl, voiceStatus, { apply: voiceApply, submit: voiceSubmit, onStatus: onVoiceStatus });
 
     const dateLabel = target ? formatDisplayDateWithWeekday(format(target.day, 'yyyy-MM-dd'), locale) : '';
     const scopeLabel = target?.sedeId ? (target.sedeName || t('thisBranch')) : t('allBranches');

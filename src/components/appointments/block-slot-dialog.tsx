@@ -32,6 +32,7 @@ import {
 } from '@/components/appointments/enable-slot-dialog';
 import { minutesToTimeString, planSlotBlock, type Interval, type OpeningChange } from '@/components/calendar/calendar-gaps';
 import { HelpScopeProvider } from '@/components/help/help-scope';
+import { useSlotDialogVoice } from '@/components/appointments/use-slot-dialog-voice';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -41,6 +42,7 @@ import { deleteClinicException, upsertClinicException } from '@/services/clinic-
 
 import { API_ROUTES } from '@/constants/routes';
 import type { Appointment, ClinicException, ClinicSchedule } from '@/lib/types';
+import type { SlotDialogVoiceControl, SlotDialogVoiceStatus } from '@/lib/voice/dialog-voice';
 
 /** Day/branch the user right-clicked, with what the closure has to be planned against. */
 export interface BlockSlotTarget {
@@ -68,6 +70,9 @@ interface BlockSlotDialogProps {
     onBlocked: () => Promise<void>;
     /** The day's appointments in the target's calendars, visible or not. */
     loadDayAppointments: (target: BlockSlotTarget) => Promise<Appointment[]>;
+    /** Voice: hours/notes to set and "Confirm" (see `useSlotDialogVoice`). */
+    voiceControl?: SlotDialogVoiceControl | null;
+    onVoiceStatus?: (status: SlotDialogVoiceStatus | null) => void;
 }
 
 /** Same statuses `get_available_users()` doesn't count as taking up the time. */
@@ -85,7 +90,7 @@ function appointmentWindow(appointment: Appointment): Interval | null {
     return { startMin, endMin };
 }
 
-export function BlockSlotDialog({ target, permissions, onOpenChange, onBlocked, loadDayAppointments }: BlockSlotDialogProps) {
+export function BlockSlotDialog({ target, permissions, onOpenChange, onBlocked, loadDayAppointments, voiceControl, onVoiceStatus }: BlockSlotDialogProps) {
     const t = useTranslations('AppointmentsPage.blockSlot');
     const tCommon = useTranslations('Common');
     const locale = useLocale();
@@ -213,6 +218,29 @@ export function BlockSlotDialog({ target, permissions, onOpenChange, onBlocked, 
 
     const hasLocked = !!plan && plan.locked.length > 0;
     const checkingAppointments = dayAppointments === null;
+
+    const canSubmit = !!plan?.changesSomething && !missingPermission && !hasLocked && !checkingAppointments;
+    const voiceStatus = React.useMemo<SlotDialogVoiceStatus | null>(() => (target ? {
+        canSubmit,
+        checking: checkingAppointments,
+        saving: save.isPending,
+        noChange: !!plan && !plan.changesSomething,
+        missingPermission,
+        locked: plan?.locked.length ?? 0,
+        affected: affectedAppointments.length,
+        startMin: blocked?.startMin ?? null,
+        endMin: blocked?.endMin ?? null,
+        error: submissionError,
+    } : null), [target, canSubmit, checkingAppointments, save.isPending, plan, missingPermission, affectedAppointments.length, blocked, submissionError]);
+    const voiceApply = React.useCallback((c: SlotDialogVoiceControl) => {
+        const opts = { shouldDirty: true, shouldValidate: true } as const;
+        if (c.startMin != null) form.setValue('start_time', minutesToTimeString(c.startMin), opts);
+        if (c.endMin != null) form.setValue('end_time', minutesToTimeString(c.endMin), opts);
+        if (c.notes != null) form.setValue('notes', c.notes, { shouldDirty: true });
+    }, [form]);
+    const runSave = save.run;
+    const voiceSubmit = React.useCallback(() => { void form.handleSubmit(() => runSave())(); }, [form, runSave]);
+    useSlotDialogVoice(voiceControl, voiceStatus, { apply: voiceApply, submit: voiceSubmit, onStatus: onVoiceStatus });
 
     return (
         <Dialog

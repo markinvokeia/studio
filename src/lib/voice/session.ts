@@ -2,7 +2,7 @@ import { speakAssistant, stopAssistantSpeech } from '@/hooks/use-assistant-voice
 import { useVoiceCommand } from '@/stores/voice-command-store';
 import { parseChoice, parseYesNo, normalizeSpeech } from '@/lib/voice/parse';
 import { interpretWithAi } from '@/lib/voice/ai';
-import { listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
+import { getVoiceDomain, listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
 import { listenOnce, startHoldListening, type HoldListening } from '@/lib/voice/speech-recognition';
 
 import type { VoiceCard, VoiceCommandContext } from '@/lib/types';
@@ -174,7 +174,9 @@ async function runCommand(text: string) {
       }
     }
     if (!found) {
-      await ctx.finish({ title: deps.t('VoiceCommands.notUnderstoodTitle'), message: deps.t('VoiceCommands.notUnderstood'), tone: 'error' }, deps.t('VoiceCommands.notUnderstood'));
+      // Los ejemplos del primer módulo de la pantalla que tenga los suyos.
+      const key = deps.domains.map((id) => getVoiceDomain(id)?.notUnderstoodKey).find(Boolean) ?? 'VoiceCommands.notUnderstood';
+      await ctx.finish({ title: deps.t('VoiceCommands.notUnderstoodTitle'), message: deps.t(key), tone: 'error' }, deps.t(key));
       return;
     }
     await found.command.run(found.parsed, ctx);

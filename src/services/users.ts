@@ -27,6 +27,8 @@ export interface PatientMatch {
   id: string;
   name: string;
   phone_number: string;
+  /** Doctor de cabecera, si el paciente tiene uno. */
+  doctor_id?: string;
 }
 
 /** Pacientes que coinciden con un nombre (mismo endpoint que el selector de pacientes). */
@@ -35,7 +37,9 @@ export async function searchPatients(search: string, options?: ApiRequestOptions
   const first = Array.isArray(data) ? data[0] : null;
   const rows: unknown[] = first ? first.json?.data ?? first.data ?? [] : data?.data ?? [];
   return rows.flatMap((row) => {
-    const u = row as { id?: string | number; name?: string; phone_number?: string };
-    return u?.id != null && u.name ? [{ id: String(u.id), name: u.name, phone_number: u.phone_number ?? '' }] : [];
+    const u = row as { id?: string | number; name?: string; phone_number?: string; doctor_id?: string | number | null };
+    return u?.id != null && u.name
+      ? [{ id: String(u.id), name: u.name, phone_number: u.phone_number ?? '', ...(u.doctor_id != null ? { doctor_id: String(u.doctor_id) } : {}) }]
+      : [];
   });
 }

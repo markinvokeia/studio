@@ -41,21 +41,30 @@ export function VoiceCommandHost({ domains }: { domains: readonly string[] }) {
   return <VoiceCommandRoot domains={domains} />;
 }
 
+interface VoiceCommandButtonProps {
+  compact?: boolean;
+  className?: string;
+  /** Help id de la pantalla (`<ruta>.btn.voice`). */
+  helpId?: string;
+  /** Ayuda del botón con un ejemplo de la pantalla (default: el de órdenes de laboratorio). */
+  hint?: string;
+}
+
 /** Micrófono de la pantalla: escucha una frase (lo mismo que mantener Ctrl+Espacio). */
-export function VoiceCommandButton({ compact = false, className }: { compact?: boolean; className?: string }) {
+export function VoiceCommandButton({ compact = false, className, helpId = 'lab-orders.btn.voice', hint }: VoiceCommandButtonProps) {
   const t = useTranslations('VoiceCommands');
   const listening = useVoiceCommand((s) => s.phase === 'listening');
   if (!useRecognitionSupported()) return null;
   return (
     <Button
       type="button"
-      data-help-id="lab-orders.btn.voice"
+      data-help-id={helpId}
       size="sm"
       variant={listening ? 'destructive' : 'outline'}
       className={cn('h-9 gap-1.5', className)}
       aria-pressed={listening}
       aria-label={t('button')}
-      title={t('buttonHint')}
+      title={hint ?? t('buttonHint')}
       // Escuchando: el clic corta. Si el asistente espera una respuesta, el clic la escucha.
       onClick={() => (listening ? cancelVoice() : void listenByClick())}
     >

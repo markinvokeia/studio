@@ -104,6 +104,10 @@ import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDial
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
+import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
+import { publishCalendarVoice, type CalendarVoiceActions, type CalendarVoiceFormPatch, type CalendarVoiceFormRequest } from '@/lib/voice/calendar-bridge';
+import type { FormVoiceControl, SlotDialogVoiceControl, SlotDialogVoiceStatus } from '@/lib/voice/dialog-voice';
+import { CALENDAR_VOICE_DOMAIN } from '@/lib/voice/commands/calendar';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
@@ -845,6 +849,9 @@ async function getDoctorCalendarMap(calendars: CalendarType[]): Promise<Map<stri
     return map;
 }
 
+/** Comandos de voz de esta pantalla (los del calendario). */
+const CALENDAR_VOICE_DOMAINS = [CALENDAR_VOICE_DOMAIN];
+
 export default function AppointmentsPage() {
     const breakpoint = useCalendarBreakpoint();
     const isMobile = breakpoint === 'mobile';
@@ -867,6 +874,7 @@ export default function AppointmentsPage() {
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
+    const tVoice = useTranslations('VoiceCommands');
     const tSearch = useTranslations('Calendar.search');
     const tDrag = useTranslations('Calendar.drag');
     const tConfirmClose = useTranslations('ConfirmCloseDialog');
@@ -923,6 +931,13 @@ export default function AppointmentsPage() {
     const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
+    /** Último rango cuyas citas terminaron de cargar (la voz espera a que cubra el día pedido). */
+    const [loadedRange, setLoadedRange] = React.useState<{ start: Date; end: Date } | null>(null);
+    // Comandos de voz sobre el formulario: día y hora nuevos al reprogramar, "Guardar" y si está guardando.
+    const [voiceRescheduleTo, setVoiceRescheduleTo] = React.useState<{ date: string; time: string } | null>(null);
+    const [voiceSubmitSignal, setVoiceSubmitSignal] = React.useState(0);
+    const [isDialogSaving, setIsDialogSaving] = React.useState(false);
+    const [voiceFormPatch, setVoiceFormPatch] = React.useState<{ seq: number; doctor?: UserType | null; services?: Service[]; date?: string; time?: string } | null>(null);
     const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
     const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
@@ -1528,6 +1543,8 @@ export default function AppointmentsPage() {
             setScheduleNextData(null);
             setPendingScheduleNotifId(undefined);
             setScheduleNextResolvedServices(undefined);
+            setVoiceRescheduleTo(null);
+            setVoiceFormPatch(null);
         }
     };
 
@@ -1579,6 +1596,9 @@ export default function AppointmentsPage() {
         summary?: string;
         doctor?: UserType | null;
         calendar?: CalendarType | null;
+        /** Nueva cita por voz: paciente y servicios ya elegidos. */
+        user?: UserType | null;
+        services?: Service[];
     } | null>(null);
 
     const [scheduleNextData, setScheduleNextData] = React.useState<{
@@ -2463,10 +2483,8 @@ export default function AppointmentsPage() {
         pendingQuickViewCancelRef.current = () => { cancelled = true; cancelAnimationFrame(raf); };
     }, [handleEventClick]);
 
-    const handleSelectSearchResult = React.useCallback((result: CalendarSearchResult) => {
-        const appt = searchResults.find((a) => a.id === result.id);
-        if (!appt) return;
-        setSelectedSearchId(result.id);
+    /** Salta a una cita, la resalta y abre su detalle (buscador y comandos de voz). */
+    const focusAppointment = React.useCallback((appt: Appointment) => {
 
         // La búsqueda es global, pero la grilla solo dibuja las citas de las agendas
         // y los doctores visibles. Si la cita elegida cae fuera de ese filtro, se
@@ -2516,7 +2534,14 @@ export default function AppointmentsPage() {
             // Resto de vistas: el detalle siempre vive en el panel lateral.
             handleEventClick({ ...appt, kind: 'appointment' }, undefined, { forceSidePanel: true });
         }
-    }, [searchResults, handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft, openCustomQuickViewForResult]);
+    }, [handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft, setPersonalizedCalendarId, openCustomQuickViewForResult]);
+
+    const handleSelectSearchResult = React.useCallback((result: CalendarSearchResult) => {
+        const appt = searchResults.find((a) => a.id === result.id);
+        if (!appt) return;
+        setSelectedSearchId(result.id);
+        focusAppointment(appt);
+    }, [searchResults, focusAppointment]);
 
     // Keep the panel's quote/invoice section in sync when the selected appointment's
     // quote changes (inline change/associate/create a quote, or quick bill).
@@ -2651,6 +2676,7 @@ export default function AppointmentsPage() {
                 setSelectedReminder(savedReminder);
             }
             toast({ title: tReminders('done') });
+            return true;
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -2658,6 +2684,7 @@ export default function AppointmentsPage() {
                 description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
+            return false;
         }
     }, [tReminders, toast, describeError]);
 
@@ -2680,6 +2707,7 @@ export default function AppointmentsPage() {
                 throw new Error(result?.message || tReminders('errorDesc'));
             }
             toast({ title: tReminders('deleted') });
+            return true;
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -2687,17 +2715,18 @@ export default function AppointmentsPage() {
                 description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
+            return false;
         }
     }, [tReminders, toast, describeError]);
 
     // Bloqueo por recordatorio: marcar hecho o borrar dos veces seguidas ya no
     // dispara dos POST (el segundo se ignora mientras el primero está en vuelo).
     const markReminderDoneAction = useKeyedAsyncAction(
-        async (reminder: CalendarReminder) => { await runMarkReminderDone(reminder); },
+        async (reminder: CalendarReminder) => runMarkReminderDone(reminder),
         { showErrorToast: false },
     );
     const reminderDeleteAction = useKeyedAsyncAction(
-        async (reminder: CalendarReminder, scope: CalendarItemScope) => { await runDeleteReminderWithScope(reminder, scope); },
+        async (reminder: CalendarReminder, scope: CalendarItemScope) => runDeleteReminderWithScope(reminder, scope),
         { showErrorToast: false },
     );
 
@@ -2737,6 +2766,7 @@ export default function AppointmentsPage() {
         }
         setEditingAppointment(appointment);
         setIsReschedulingMode(true);
+        setVoiceRescheduleTo(null);
         setCreateOpen(true);
     };
 
@@ -2800,9 +2830,9 @@ export default function AppointmentsPage() {
      * Arrastrar es corregir la hora, no reprogramar con el paciente; el menú
      * contextual "Reprogramar" sigue haciendo lo otro.
      */
-    const runApplyEventTimeChange = React.useCallback(async (result: CalendarDragResult) => {
+    const runApplyEventTimeChange = React.useCallback(async (result: CalendarDragResult): Promise<boolean> => {
         const { data, start, end, originalStart, originalEnd, mode } = result;
-        if (start.getTime() === originalStart.getTime() && end.getTime() === originalEnd.getTime()) return;
+        if (start.getTime() === originalStart.getTime() && end.getTime() === originalEnd.getTime()) return true;
 
         const targetCalendarId = result.context?.groupBy === 'calendar'
             ? String(result.context.value)
@@ -2820,7 +2850,7 @@ export default function AppointmentsPage() {
         // puede crear ahí — cortarlo acá solo impedía moverlo después.
         if (!isReminder && (result.blocked || isDateTimeBlocked(start, targetCalendarId, end))) {
             toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
-            return;
+            return false;
         }
 
         // Siempre toLocalISOString: toISOString() corre la cita 3 h en GMT-3.
@@ -2845,6 +2875,7 @@ export default function AppointmentsPage() {
                 const saved = normalizeReminder(res?.reminder || res);
                 if (saved) setReminders((prev) => prev.map((item) => (item.id === reminder.id ? saved : item)));
                 toast({ title: mode === 'move' ? tToasts('appointmentMoved') : tToasts('appointmentResized') });
+                return true;
             } catch (error) {
                 // Rollback local en vez de refetch: una card que se queda mal puesta
                 // hasta que vuelve la red se lee como un bug.
@@ -2854,8 +2885,8 @@ export default function AppointmentsPage() {
                     title: tReminders('error'),
                     description: describeError(error, tReminders('errorDesc')),
                 });
+                return false;
             }
-            return;
         }
 
         const appointment = data as Appointment;
@@ -2877,6 +2908,7 @@ export default function AppointmentsPage() {
                         minutes: Math.round((end.getTime() - start.getTime()) / 60000),
                     }),
             });
+            return true;
         } catch (error) {
             setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? appointment : a)));
             toast({
@@ -2884,13 +2916,14 @@ export default function AppointmentsPage() {
                 title: tToasts('error'),
                 description: describeError(error, tToasts('unexpectedError')),
             });
+            return false;
         }
     }, [personalizedCalendarId, isDateTimeBlocked, toast, tToasts, tReminders, describeError]);
 
     // Bloqueo por evento para mover/redimensionar (drag, resize y los submenús
     // "Mover a…"/"Duración"): dos gestos seguidos no compiten por el mismo upsert.
     const eventTimeAction = useKeyedAsyncAction(
-        async (result: CalendarDragResult) => { await runApplyEventTimeChange(result); },
+        async (result: CalendarDragResult) => runApplyEventTimeChange(result),
         { showErrorToast: false },
     );
     const applyEventTimeChange = (result: CalendarDragResult) => {
@@ -3138,17 +3171,19 @@ export default function AppointmentsPage() {
             // contexto y ve el toast de error.
             setSoftDeleteTarget(null);
             toast({ title: tToasts('appointmentDeleted'), description: tToasts('appointmentDeletedDesc') });
+            return true;
         } catch (error) {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
                 description: describeError(error, tToasts('failedDelete')),
             });
+            return false;
         }
     }, [toast, tToasts, describeError]);
 
     // Bloqueo síncrono del borrado suave (menú contextual y panel de detalle).
-    const softDelete = useAsyncAction<[Appointment], void>(runSoftDelete, { showErrorToast: false });
+    const softDelete = useAsyncAction<[Appointment], boolean>(runSoftDelete, { showErrorToast: false });
     const handleSoftDelete = softDelete.run;
     const isSoftDeleting = softDelete.isPending;
 
@@ -3289,6 +3324,7 @@ export default function AppointmentsPage() {
             setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
             setReminders(fetchedReminders);
             setAppointmentsError(false);
+            setLoadedRange({ start: fetchRange.start, end: fetchRange.end });
         } catch {
             // Error ≠ vacío: se conservan las citas ya cargadas y se avisa con
             // "Reintentar" (el detalle ya quedó en consola desde los fetchers).
@@ -3798,7 +3834,7 @@ export default function AppointmentsPage() {
         }
     };
 
-    const runEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+    const runEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string): Promise<boolean> => {
         const colorHex = colorMap.get(colorId);
         if (eventData.kind === 'reminder') {
             const color = colorHex || eventData.color || '#8b5cf6';
@@ -3828,8 +3864,9 @@ export default function AppointmentsPage() {
                     description: describeError(error, tReminders('errorDesc')),
                 });
                 forceRefresh();
+                return false;
             }
-            return;
+            return true;
         }
 
         const appointment = eventData as Appointment;
@@ -3879,6 +3916,7 @@ export default function AppointmentsPage() {
                 description: tToasts('colorUpdatedDesc'),
             });
             forceRefresh(); // Re-fetch to confirm state
+            return true;
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -3887,6 +3925,7 @@ export default function AppointmentsPage() {
             });
             // Revert optimistic update on failure
             forceRefresh();
+            return false;
         }
     };
 
@@ -3894,7 +3933,7 @@ export default function AppointmentsPage() {
     // etiquetas no compiten por el mismo upsert.
     const colorChangeAction = useKeyedAsyncAction(
         async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
-            await runEventColorChange(eventData, colorId);
+            return runEventColorChange(eventData, colorId);
         },
         { showErrorToast: false },
     );
@@ -4856,6 +4895,285 @@ export default function AppointmentsPage() {
         }
         return computeRangeGaps(gapBusyEvents, gapVisibleDays, clinicSchedules);
     }, [gapsActive, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, gapBusyEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, schedulesForSede, exceptionsForSede, timelineSede, calendars]);
+
+    // ── Comandos de voz (src/lib/voice/commands/calendar*.ts) ─────────────────
+    // La voz ve lo mismo que la pantalla y pide las cosas con las funciones de la
+    // pantalla: nunca cambia este estado por su cuenta.
+    const voiceVisibleAppointments = React.useMemo(() => {
+        const doctorIds = new Set(selectedDoctorIds.map(String));
+        const calendarIds = new Set((isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds).map(String));
+        return appointments.filter((appt) => {
+            const doctorId = String(appt.doctorId || '');
+            const calendarId = String(appt.calendar_source_id || appt.calendar_id || '');
+            return (!doctorId || doctorIds.has(doctorId)) && (!calendarId || calendarIds.has(calendarId));
+        });
+    }, [appointments, selectedDoctorIds, selectedCalendarIds, isCustomMode, activeCalendarId]);
+
+    const openVoiceAppointmentForm = React.useCallback((request: CalendarVoiceFormRequest): 'dialog' | 'inline' => {
+        const startKey = { date: format(request.start, 'yyyy-MM-dd'), time: format(request.start, 'HH:mm') };
+        if (request.mode === 'edit' && request.appointment) {
+            // Igual que "Editar" del menú: la tarjeta en el calendario o el formulario.
+            if (openInlineDraftForAppointment(request.appointment, false)) return 'inline';
+            setInlineDraft(null);
+            setVoiceRescheduleTo(null);
+            setEditingAppointment(request.appointment);
+            setIsReschedulingMode(false);
+            setCreateOpen(true);
+            return 'dialog';
+        }
+        if (request.mode === 'reschedule' && request.appointment) {
+            // Igual que "Reprogramar" del menú: en modo personalizado, la tarjeta en el calendario.
+            if (calendarMode === 'custom' && openInlineDraftForAppointment(request.appointment, true)) {
+                moveInlineDraftTo(request.start);
+                return 'inline';
+            }
+            setInlineDraft(null);
+            setEditingAppointment(request.appointment);
+            setIsReschedulingMode(true);
+            setVoiceRescheduleTo(startKey);
+            setCreateOpen(true);
+            return 'dialog';
+        }
+        const doctor = request.doctor ?? null;
+        const calendar = request.calendar ?? null;
+        const servicesForDraft = request.services ?? [];
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        setEditingAppointment(null);
+        if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
+            const calendarId = calendar?.id ?? (isCustomMode ? activeCalendarId : null);
+            const context = groupBy === 'doctor' && doctor && !isCustomMode
+                ? { groupBy: 'doctor' as const, value: String(doctor.id) }
+                : calendarId ? { groupBy: 'calendar' as const, value: String(calendarId) } : undefined;
+            const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
+            const total = servicesForDraft.length ? sumServicesDuration(servicesForDraft, doctorServices, services) : 0;
+            setInlineDraft(createInlineDraftState({
+                date: request.start,
+                context,
+                durationMin: total > 0 ? total : newAppointmentMinutes,
+                patient: request.patient ?? null,
+                services: servicesForDraft,
+                doctor,
+                calendar: calendar ?? (calendarId ? (calendars.find((c) => String(c.id) === String(calendarId)) ?? null) : null),
+                notes: '',
+                summary: '',
+            }));
+            return 'inline';
+        }
+        setInlineDraft(null);
+        setIsReschedulingMode(false);
+        setScheduleNextData(null);
+        setSlotInitialData({ ...startKey, doctor, calendar, user: request.patient ?? null, services: servicesForDraft });
+        setCreateOpen(true);
+        return 'dialog';
+    }, [
+        calendarMode, openInlineDraftForAppointment, moveInlineDraftTo, currentView, isCustomMode,
+        calendarSettings?.inline_appointment_creation, activeCalendarId, groupBy, doctorServiceMap, services,
+        newAppointmentMinutes, calendars, setInlineDraft, setEditingAppointment, setIsReschedulingMode, setCreateOpen,
+    ]);
+
+    // Voz en "Bloquear / Habilitar horario" y en el formulario de recordatorio: pedidos
+    // numerados que los diálogos aplican una vez, y lo que ellos avisan.
+    const [slotVoiceControl, setSlotVoiceControl] = React.useState<SlotDialogVoiceControl | null>(null);
+    const [slotVoiceStatus, setSlotVoiceStatus] = React.useState<SlotDialogVoiceStatus | null>(null);
+    const [reminderVoiceControl, setReminderVoiceControl] = React.useState<FormVoiceControl | null>(null);
+    const [reminderVoiceStatus, setReminderVoiceStatus] = React.useState<{ saving: boolean; error: string | null } | null>(null);
+    const [reminderVoiceTitle, setReminderVoiceTitle] = React.useState<string | null>(null);
+
+    const voiceSearchAppointments = React.useCallback(async (query: string) => {
+        const rows = await searchAppointments({ q: query, limit: 50 });
+        return rows
+            .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t, colorSourcesFor))
+            .filter((a): a is Appointment => a !== null);
+    }, [calendars, services, doctors, t, colorSourcesFor]);
+
+    const voiceActions: CalendarVoiceActions = {
+        goToDate: (date) => setSearchFocusDate(new Date(date.getTime())),
+        setView: (view) => { setCurrentView(view); setInlineDraft(null); },
+        setSelectedDoctorIds,
+        setSelectedCalendarIds,
+        setActiveCalendar: (id) => {
+            setSelectedCalendarIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+            setPersonalizedCalendarId(id);
+        },
+        setGroupBy,
+        openSearch: (query) => {
+            setIsBulkMode(false);
+            setGapsActive(false);
+            setSelectedGap(null);
+            setSearchCollapsed(false);
+            setSearchActive(true);
+            setSearchQuery(query);
+        },
+        closeSearch: handleCloseSearch,
+        setGapsActive: (on) => {
+            if (!on) { handleCloseGaps(); return; }
+            setIsBulkMode(false);
+            setSearchActive(false);
+            resetSearchState();
+            setGapsActive(true);
+        },
+        focusAppointment,
+        searchAppointments: voiceSearchAppointments,
+        changeStatus: (appointment, status, extra) => updateStatus({ appointment, newStatus: status, ...extra }),
+        openAppointmentForm: openVoiceAppointmentForm,
+        patchAppointmentForm: (patch: CalendarVoiceFormPatch) => {
+            if (inlineDraft) {
+                setInlineDraft((d) => {
+                    if (!d) return d;
+                    const doctor = patch.doctor !== undefined ? patch.doctor : d.doctor;
+                    const next = { ...d, doctor, ...(patch.start ? { date: patch.start } : {}) };
+                    if (patch.services) {
+                        const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
+                        const total = sumServicesDuration(patch.services, doctorServices, services);
+                        return { ...next, services: patch.services, ...(total > 0 ? { durationMin: total } : {}) };
+                    }
+                    return next;
+                });
+                return;
+            }
+            if (!isCreateOpen) return;
+            setVoiceFormPatch((prev) => ({
+                seq: (prev?.seq ?? 0) + 1,
+                doctor: patch.doctor,
+                services: patch.services,
+                date: patch.start ? format(patch.start, 'yyyy-MM-dd') : undefined,
+                time: patch.start ? format(patch.start, 'HH:mm') : undefined,
+            }));
+        },
+        submitAppointmentForm: () => {
+            if (inlineDraft) void saveInlineDraft.run();
+            else if (isCreateOpen) setVoiceSubmitSignal((n) => n + 1);
+        },
+        changeColor: async (appointment, colorId) => (await colorChangeAction.run(colorEventKey(appointment), appointment, colorId)) === true,
+        reassign: async (appointment, change) => !!(await reassignAction.run(appointment.id, appointment, change)),
+        retime: async (appointment, start, end) => {
+            const originalStart = appointment.start?.dateTime ? parseISO(appointment.start.dateTime.replace(/Z$/, '')) : null;
+            const originalEnd = appointment.end?.dateTime ? parseISO(appointment.end.dateTime.replace(/Z$/, '')) : null;
+            if (!originalStart || !originalEnd) return false;
+            const result = await eventTimeAction.run(String(appointment.id), {
+                data: { ...appointment, kind: 'appointment' as const },
+                eventId: String(appointment.id),
+                mode: start.getTime() === originalStart.getTime() ? 'resize-end' : 'move',
+                start,
+                end,
+                originalStart,
+                originalEnd,
+                blocked: false,
+            });
+            return result === true;
+        },
+        deleteAppointment: async (appointment) => (await softDelete.run(appointment)) === true,
+        openAppointmentTool: (appointment, target) => {
+            if (target === 'session') { void handleOpenClinicSession(appointment); return 'ok'; }
+            if (!appointment.patientId) return 'noPatient';
+            const { patientId, patientName } = appointment;
+            switch (target) {
+                case 'history': openPatientHistory(patientId, patientName); break;
+                case 'documents': openPatientDocuments(patientId, patientName); break;
+                case 'appointments': openPatientAppointments(patientId, patientName); break;
+                case 'accounts':
+                    if (!canViewPatientStatement) return 'denied';
+                    openAccountStatement(patientId, patientName);
+                    break;
+                case 'patient': {
+                    const contact = getEffectiveAppointmentContact(appointment);
+                    openPatientView({ userId: patientId, userName: patientName, userEmail: contact.email, userPhone: contact.phone, initialTab: 'info' });
+                    break;
+                }
+                case 'bill': handleQuickBillFromContext(appointment); break;
+            }
+            return 'ok';
+        },
+        openSlotDialog: ({ kind, day, sedeId, startMin, endMin }) => {
+            if (!blockUnavailable || effectiveSchedules.length === 0) return 'unavailable';
+            const sid = sedeId ?? timelineSede;
+            const schedules = sedeId && sedeId !== timelineSede ? schedulesForSede(sedeId) : effectiveSchedules;
+            const base = {
+                day,
+                sedeId: sid || undefined,
+                sedeName: sid ? sedes.find((s) => String(s.id) === sid)?.name : undefined,
+                singleBranch: sedes.length <= 1,
+                schedules,
+                initialStartMin: startMin,
+                initialEndMin: endMin,
+            };
+            setSlotVoiceControl(null);
+            setSlotVoiceStatus(null);
+            if (kind === 'enable') {
+                setBlockSlotTarget(null);
+                setEnableSlotTarget({ ...base, exceptions: exceptionsForSede(sid) });
+            } else {
+                setEnableSlotTarget(null);
+                setBlockSlotTarget({
+                    ...base,
+                    exceptions: clinicExceptions,
+                    calendarIds: calendars.filter((c) => !sid || String(c.sede_id ?? '') === sid).map((c) => String(c.id)),
+                });
+            }
+            return 'opened';
+        },
+        controlSlotDialog: (control) => setSlotVoiceControl((prev) => ({ ...control, seq: (prev?.seq ?? 0) + 1 })),
+        closeSlotDialog: () => {
+            setBlockSlotTarget(null);
+            setEnableSlotTarget(null);
+        },
+        openReminderForm: ({ type, start, title }) => {
+            setEditingReminder(null);
+            setReminderInitialDate(start);
+            setReminderInitialType(type);
+            setReminderInitialCalendarId(isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null);
+            setReminderVoiceTitle(title);
+            setReminderVoiceControl(null);
+            setIsReminderFormOpen(true);
+        },
+        submitReminderForm: () => setReminderVoiceControl((prev) => ({ seq: (prev?.seq ?? 0) + 1, submit: true })),
+        closeReminderForm: () => {
+            setIsReminderFormOpen(false);
+            setEditingReminder(null);
+            setReminderInitialDate(null);
+            setReminderVoiceTitle(null);
+        },
+        markReminderDone: async (reminder) => (await markReminderDoneAction.run(reminder.id, reminder)) === true,
+        deleteReminder: async (reminder, scope) => (await reminderDeleteAction.run(reminder.id, reminder, scope)) === true,
+        print: () => setIsPrintScheduleOpen(true),
+        refresh: forceRefresh,
+    };
+
+    // Se publica en cada render (sin deps): la voz siempre ve el último estado.
+    React.useLayoutEffect(() => {
+        publishCalendarVoice({
+            actions: voiceActions,
+            state: {
+                ready: !isDataLoading,
+                view: currentView,
+                customMode: isCustomMode,
+                range: fetchRange,
+                loadedRange,
+                loading: isRefreshing,
+                appointments,
+                visibleAppointments: voiceVisibleAppointments,
+                doctors,
+                calendars,
+                sedes,
+                services,
+                selectedDoctorIds,
+                selectedCalendarIds,
+                activeCalendarId,
+                groupBy,
+                gapsActive,
+                gaps: calendarGaps,
+                searchActive,
+                form: { kind: inlineDraft ? 'inline' : isCreateOpen ? 'dialog' : null, saving: isSavingInline || isDialogSaving },
+                reminders,
+                timelineSedeId: timelineSede,
+                slotDialog: blockSlotTarget
+                    ? { kind: 'block', status: slotVoiceStatus }
+                    : enableSlotTarget ? { kind: 'enable', status: slotVoiceStatus } : null,
+                reminderForm: isReminderFormOpen ? (reminderVoiceStatus ?? { saving: false, error: null }) : null,
+            },
+        });
+    });
+    React.useEffect(() => () => publishCalendarVoice(null), []);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
@@ -5993,6 +6311,12 @@ export default function AppointmentsPage() {
                             extraActions={
                                 <TooltipProvider>
                                     <div className="flex items-center gap-1.5">
+                                        <VoiceCommandButton
+                                            compact={secondaryIconOnly}
+                                            helpId="appointments.btn.voice"
+                                            hint={tVoice('calendar.buttonHint')}
+                                            className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0 px-0' : 'h-10 w-10 shrink-0 px-0') : 'h-10 shrink-0'}
+                                        />
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -6364,6 +6688,8 @@ export default function AppointmentsPage() {
                 permissions={enableSlotPermissions}
                 onOpenChange={(open) => { if (!open) setEnableSlotTarget(null); }}
                 onEnabled={loadClinicExceptions}
+                voiceControl={slotVoiceControl}
+                onVoiceStatus={setSlotVoiceStatus}
             />
 
             <BlockSlotDialog
@@ -6372,6 +6698,8 @@ export default function AppointmentsPage() {
                 onOpenChange={(open) => { if (!open) setBlockSlotTarget(null); }}
                 onBlocked={loadClinicExceptions}
                 loadDayAppointments={loadDayAppointmentsForBlock}
+                voiceControl={slotVoiceControl}
+                onVoiceStatus={setSlotVoiceStatus}
             />
 
             <AppointmentFormDialog
@@ -6389,7 +6717,12 @@ export default function AppointmentsPage() {
                 checkDoctorAvailability={checkDoctorAvailability}
                 isDateTimeBlocked={isDateTimeBlocked}
                 onRequestRefresh={forceRefresh}
+                rescheduleTo={isReschedulingMode ? voiceRescheduleTo : null}
+                submitSignal={voiceSubmitSignal}
+                voicePatch={voiceFormPatch}
+                onSavingChange={setIsDialogSaving}
             />
+            <VoiceCommandHost domains={CALENDAR_VOICE_DOMAINS} />
             <PrintScheduleDialog
                 open={isPrintScheduleOpen}
                 onOpenChange={setIsPrintScheduleOpen}
@@ -6453,6 +6786,7 @@ export default function AppointmentsPage() {
                     if (!open) {
                         setEditingReminder(null);
                         setReminderInitialDate(null);
+                        setReminderVoiceTitle(null);
                     }
                 }}
                 initialDate={reminderInitialDate}
@@ -6463,6 +6797,9 @@ export default function AppointmentsPage() {
                 scope={pendingScope}
                 editingReminder={editingReminder}
                 onSave={handleSaveReminder}
+                initialTitle={reminderVoiceTitle}
+                voiceControl={reminderVoiceControl}
+                onVoiceStatus={setReminderVoiceStatus}
             />
 
             {clinicSessionAppointment && (

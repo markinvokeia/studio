@@ -1052,6 +1052,51 @@ EJEMPLOS
 
 FORMATO: {"commands":[...],"confidence":0.0}`;
 
+const CALENDAR_VOICE_PROMPT = `Interpretás comandos de voz del equipo de una clínica (recepción, doctores) sobre el CALENDARIO DE CITAS de Invoke IA.
+Recibís una frase dictada (puede venir con errores del reconocimiento de voz, en español o inglés) y devolvés SOLO un objeto JSON, sin texto alrededor ni bloques de código.
+
+INTENTS
+- "calendar.navigate": ir a un día ("andá al jueves", "mostrame el 3 de diciembre") → date; o avanzar/retroceder lo que muestra la pantalla ("siguiente", "para atrás") → step 1 / -1.
+- "calendar.view": cambiar la vista → view: "day", "week", "month", "year", "schedule" (agenda/lista) o "2-day" … "6-day". Si además se nombra un día, date.
+- "calendar.filter": mostrar u ocultar doctores, agendas (consultorios, sillones) o sedes. filter_op: "only" (solo esos), "add" (sumar), "remove" (sacar), "all" (todos / sacar filtros). Los ids van en doctor_ids, calendar_ids o sede_ids; filter_target dice cuál.
+- "calendar.group": agrupar las columnas → group_by: "doctor", "calendar" o "none".
+- "calendar.search": buscar citas por texto (paciente, teléfono, documento) → query.
+- "calendar.agenda": qué citas hay un día ("¿qué tengo mañana?", "¿cuántos pacientes vienen el lunes?") → date; si se nombra un doctor, doctor_id.
+- "calendar.next": quién sigue / próximo paciente de hoy.
+- "calendar.patient_next": cuándo es la próxima cita de un paciente → patient.
+- "calendar.gaps": huecos / horarios libres / disponibilidad un día → date y period ("morning" / "afternoon" / null).
+- "calendar.status": cambiar el estado de UNA cita → status y la cita: patient (nombre tal como se dijo) y/o time ("la de las 10"), date si se dijo el día.
+  Estados: "scheduled" (agendada), "confirmed" (confirmó), "arrived" (llegó, está en sala), "arrived_late" (llegó tarde), "in_progress" (pasó a consulta, en atención), "completed" (terminó, se atendió), "attended_late" (atendido tarde), "no_show" (no vino, faltó), "cancelled" (cancelar/anular), "pending" (pendiente).
+  Al cancelar, cancellation_reason si se dijo: "in_time" (avisó con tiempo), "late" (avisó tarde), "no_notice" (sin aviso), "by_doctor" (la cancela el doctor), "by_clinic" (la cancela la clínica); si no, null.
+- "calendar.create": dar una cita nueva → patient (nombre tal como se dijo), date, time, doctor_id, calendar_id y service_ids (tratamientos) si se nombraron.
+- "calendar.reschedule": mover una cita existente a otro día u hora → la cita: patient y/o from_time, from_date (si se dijo cuándo es ahora); el destino: date y/o time.
+- "calendar.edit": abrir o editar una cita existente ("editá la cita de Luis", "a la cita de Ana ponele el doctor Pérez y una limpieza") → la cita: patient y/o from_time, from_date; los cambios si se dijeron: doctor_id, service_ids (tratamientos a agregar), date y/o time nuevos.
+En los intents que siguen, LA CITA se dice con patient y/o from_time, from_date (cuándo es ahora):
+- "calendar.color": cambiar el color de una cita → color: "1" lavanda, "2" verde claro/salvia, "3" violeta/uva, "4" rosa/flamenco, "5" amarillo/banana, "6" naranja/mandarina, "7" celeste/turquesa, "8" gris/grafito, "9" azul/arándano, "10" verde/albahaca, "11" rojo/tomate, "none" sin color.
+- "calendar.move_calendar": pasar una cita a otra agenda (consultorio, sillón, box) sin cambiar día ni hora → calendar_id.
+- "calendar.assign_doctor": cambiar SOLO el doctor de una cita ("pasá la cita de Ana al doctor Pérez") → doctor_id.
+- "calendar.duration": cambiar cuánto dura una cita ("que dure 45 minutos", "alargala a una hora") → minutes.
+- "calendar.delete": borrar una cita ("borrá la cita de Ana"). Siempre se confirma en pantalla.
+- "calendar.open": abrir algo de la cita → target: "history" (historia clínica), "documents" (imágenes y archivos), "accounts" (estado de cuenta, saldo), "appointments" (historial de citas del paciente), "patient" (datos del paciente), "session" (sesión clínica), "bill" (cobrar, cobro rápido).
+- "calendar.block": bloquear/cerrar una franja horaria de la clínica ("bloqueá el lunes de 14 a 16 por reunión") → date, time (inicio) y end_time (fin; todo el día = "00:00" a "23:59"), sede_ids si se nombró una sede, title = el motivo si se dijo.
+- "calendar.enable": habilitar/abrir una franja fuera de horario ("habilitá el sábado de 9 a 13") → igual que calendar.block.
+- "calendar.reminder": crear un recordatorio o una nota ("recordame mañana a las 9 llamar al laboratorio") → reminder_type ("reminder" o "note"), date, time, title (lo que hay que anotar, tal como se dijo).
+- "calendar.reminder_done": marcar un recordatorio como hecho → date, time y/o title (palabras de su texto).
+- "calendar.reminder_delete": borrar un recordatorio o nota → date, time y/o title.
+- "calendar.print": imprimir o exportar la agenda.
+- "calendar.refresh": actualizar / recargar el calendario.
+- "unknown": cualquier otra cosa, o si no estás seguro.
+
+REGLAS
+1. Usá SOLO ids de DOCTORES, AGENDAS, SEDES y TRATAMIENTOS que estén en las listas. Si no coincide con ninguno, null o []. Nunca inventes ids.
+2. Fechas YYYY-MM-DD calculadas desde FECHA DE HOY ("mañana", "el lunes" = el próximo lunes, "el 14" = el más cercano). Para dar o mover una cita, nunca una fecha pasada. Horas HH:mm en 24 h; sin "de la mañana" / "de la tarde", de 1 a 6 es de la tarde (una clínica no atiende de madrugada).
+3. patient: el nombre tal como se dijo, sin inventar apellidos. Nunca devuelvas datos del paciente que no estén en la frase.
+4. Borrar una cita es "calendar.delete", nunca un estado: no devuelvas status "deleted".
+5. confidence entre 0 y 1: qué tan seguro estás del intent y los datos. Si la frase es ambigua, confidence < 0.5.
+
+FORMATO (todas las claves siempre):
+{"intent":"...","date":null,"time":null,"from_date":null,"from_time":null,"step":null,"view":null,"filter_op":null,"filter_target":null,"doctor_ids":[],"calendar_ids":[],"sede_ids":[],"group_by":null,"patient":null,"query":null,"doctor_id":null,"calendar_id":null,"service_ids":[],"status":null,"cancellation_reason":null,"period":null,"color":null,"minutes":null,"end_time":null,"title":null,"reminder_type":null,"target":null,"confidence":0.0}`;
+
 /**
  * Código JS de cada módulo, que se pega en los nodos Code:
  * - prepare(ctx, body): { lines, meta }: líneas del prompt con el contexto (listas cerradas) y lo
@@ -1182,6 +1227,112 @@ const VOICE_DOMAINS = {
   return result;
 }`,
   },
+  calendar: {
+    system: CALENDAR_VOICE_PROMPT,
+    prepare: `(ctx) => {
+  const rows = (v, max) => (Array.isArray(v) ? v : []).slice(0, max);
+  const doctors = rows(ctx.doctors, 80).map(d => ({ id: String((d && d.id) || ''), name: String((d && d.name) || '').slice(0, 80) })).filter(d => d.id && d.name);
+  const calendars = rows(ctx.calendars, 80).map(c => ({ id: String((c && c.id) || ''), name: String((c && c.name) || '').slice(0, 80), sede: String((c && c.sede) || '').slice(0, 80) })).filter(c => c.id && c.name);
+  const sedes = rows(ctx.sedes, 40).map(s => ({ id: String((s && s.id) || ''), name: String((s && s.name) || '').slice(0, 80) })).filter(s => s.id && s.name);
+  const services = rows(ctx.services, 150).map(s => ({ id: String((s && s.id) || ''), name: String((s && s.name) || '').slice(0, 80) })).filter(s => s.id && s.name);
+  const day = v => (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v)) ? String(v) : '?');
+  return {
+    lines: [
+      '',
+      'PANTALLA: vista ' + String(ctx.view || '?').slice(0, 12) + ', del ' + day(ctx.visible_from) + ' al ' + day(ctx.visible_to) + (ctx.custom_mode === true ? ' (modo personalizado: una agenda por vez)' : ''),
+      '',
+      'DOCTORES (id · nombre):',
+      doctors.map(d => '- ' + d.id + ' · ' + d.name).join('\\n') || '(ninguno)',
+      '',
+      'AGENDAS (id · nombre · sede):',
+      calendars.map(c => '- ' + c.id + ' · ' + c.name + (c.sede ? ' · ' + c.sede : '')).join('\\n') || '(ninguna)',
+      '',
+      'SEDES (id · nombre):',
+      sedes.map(s => '- ' + s.id + ' · ' + s.name).join('\\n') || '(ninguna)',
+      '',
+      'TRATAMIENTOS (id · nombre):',
+      services.map(s => '- ' + s.id + ' · ' + s.name).join('\\n') || '(ninguno)',
+    ],
+    meta: { doctors: doctors.map(d => d.id), calendars: calendars.map(c => c.id), sedes: sedes.map(s => s.id), services: services.map(s => s.id) },
+  };
+}`,
+    validate: `(p, m, today) => {
+  // Lista cerrada: ids que mandó el frontend, fechas y horas reales, estados y vistas conocidos.
+  const INTENTS = ['calendar.navigate', 'calendar.view', 'calendar.filter', 'calendar.group', 'calendar.search', 'calendar.agenda', 'calendar.next', 'calendar.patient_next', 'calendar.gaps', 'calendar.status', 'calendar.create', 'calendar.reschedule', 'calendar.edit',
+    'calendar.color', 'calendar.move_calendar', 'calendar.assign_doctor', 'calendar.duration', 'calendar.delete', 'calendar.open', 'calendar.block', 'calendar.enable',
+    'calendar.reminder', 'calendar.reminder_done', 'calendar.reminder_delete', 'calendar.print', 'calendar.refresh', 'unknown'];
+  const COLORS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', 'none'];
+  const TARGETS = ['history', 'documents', 'accounts', 'appointments', 'patient', 'session', 'bill'];
+  const VIEWS = ['day', 'week', 'month', 'year', '2-day', '3-day', '4-day', '5-day', '6-day', 'schedule'];
+  const STATUSES = ['scheduled', 'confirmed', 'arrived', 'arrived_late', 'in_progress', 'completed', 'attended_late', 'no_show', 'cancelled', 'pending'];
+  const REASONS = ['in_time', 'late', 'no_notice', 'by_doctor', 'by_clinic'];
+  const isDate = v => typeof v === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  const isTime = v => typeof v === 'string' && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(v);
+  const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+  const oneOf = (list, v) => (list.includes(v) ? v : null);
+  const ids = (v, allowed, max) => [...new Set((Array.isArray(v) ? v : []).map(String).filter(x => allowed.includes(x)))].slice(0, max || 20);
+  const one = (v, allowed) => (v != null && allowed.includes(String(v)) ? String(v) : null);
+  const confidence = Number(p.confidence);
+  const intent = oneOf(INTENTS, p.intent) || 'unknown';
+  const future = ['calendar.create', 'calendar.reschedule', 'calendar.edit', 'calendar.block', 'calendar.enable', 'calendar.reminder'].includes(intent);
+  const minutes = Number(p.minutes);
+  const r = {
+    intent,
+    date: isDate(p.date) && (!future || p.date >= today) ? p.date : null,
+    time: isTime(p.time) ? p.time : null,
+    from_date: isDate(p.from_date) ? p.from_date : null,
+    from_time: isTime(p.from_time) ? p.from_time : null,
+    step: p.step === 1 || p.step === -1 ? p.step : null,
+    view: oneOf(VIEWS, p.view),
+    filter_op: oneOf(['only', 'add', 'remove', 'all'], p.filter_op),
+    filter_target: oneOf(['doctor', 'calendar', 'sede'], p.filter_target),
+    doctor_ids: ids(p.doctor_ids, m.doctors),
+    calendar_ids: ids(p.calendar_ids, m.calendars),
+    sede_ids: ids(p.sede_ids, m.sedes),
+    group_by: oneOf(['none', 'doctor', 'calendar'], p.group_by),
+    patient: str(p.patient, 80),
+    query: str(p.query, 80),
+    doctor_id: one(p.doctor_id, m.doctors),
+    calendar_id: one(p.calendar_id, m.calendars),
+    service_ids: ids(p.service_ids, m.services, 10),
+    status: oneOf(STATUSES, p.status),
+    cancellation_reason: oneOf(REASONS, p.cancellation_reason),
+    period: oneOf(['morning', 'afternoon'], p.period),
+    color: oneOf(COLORS, p.color == null ? null : String(p.color)),
+    minutes: Number.isInteger(minutes) && minutes >= 5 && minutes <= 720 ? minutes : null,
+    end_time: isTime(p.end_time) ? p.end_time : null,
+    title: str(p.title, 120),
+    reminder_type: oneOf(['reminder', 'note'], p.reminder_type),
+    target: oneOf(TARGETS, p.target),
+    confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
+  };
+  // Sin lo esencial no hay comando.
+  const missing = {
+    'calendar.navigate': !r.date && !r.step,
+    'calendar.view': !r.view,
+    'calendar.filter': !r.filter_op || (r.filter_op !== 'all' && !r.doctor_ids.length && !r.calendar_ids.length && !r.sede_ids.length),
+    'calendar.group': !r.group_by,
+    'calendar.search': !r.query,
+    'calendar.patient_next': !r.patient,
+    'calendar.status': !r.status || !(r.patient || r.time),
+    'calendar.create': !r.patient && !r.date && !r.time,
+    'calendar.reschedule': !(r.patient || r.from_time) || (!r.date && !r.time),
+    'calendar.edit': !(r.patient || r.from_time),
+    'calendar.color': !r.color || !(r.patient || r.from_time),
+    'calendar.move_calendar': !r.calendar_id || !(r.patient || r.from_time),
+    'calendar.assign_doctor': !r.doctor_id || !(r.patient || r.from_time),
+    'calendar.duration': !r.minutes || !(r.patient || r.from_time),
+    'calendar.delete': !(r.patient || r.from_time),
+    'calendar.open': !r.target || !(r.patient || r.from_time),
+    'calendar.block': !r.date && !r.time,
+    'calendar.enable': !r.date && !r.time,
+    'calendar.reminder_done': !r.title && !r.time,
+    'calendar.reminder_delete': !r.title && !r.time,
+  };
+  if (missing[r.intent]) r.intent = 'unknown';
+  return r;
+}`,
+  },
   perio: {
     system: PERIO_VOICE_PROMPT,
     prepare: `(ctx) => {
@@ -1275,6 +1426,17 @@ MÓDULOS (domain):
               confidence }
   intent: lab_order.move | create | open | update | status | list | edit | draft_edit | unknown
   Ids y fechas validados contra la lista cerrada que mandó el frontend (que además revalida).
+- calendar (pantalla de citas)
+  context = { doctors: [{ id, name }], calendars: [{ id, name, sede }], sedes: [{ id, name }],
+              services: [{ id, name }], view, visible_from, visible_to, custom_mode }
+            (sin datos de pacientes: el nombre dicho viaja solo dentro de la frase)
+  result  = { intent, date, time, from_date, from_time, step, view, filter_op, filter_target,
+              doctor_ids, calendar_ids, sede_ids, group_by, patient, query, doctor_id, calendar_id,
+              service_ids, status, cancellation_reason, period, confidence }
+  intent: calendar.navigate | view | filter | group | search | agenda | next | patient_next | gaps |
+          status | create | reschedule | edit | unknown
+  Cambiar estados, dar y mover citas siempre se confirma en la pantalla (dar y mover abren el
+  formulario de siempre ya completo). Borrar no es un comando.
 - perio (dictado del periodontograma, cuando el intérprete local no entendió la frase)
   context = { pass: 'ps'|'mg'|'fm', line: 'value'|'bop'|'sup'|'plaque',
               cursor: { tooth, side: 'v'|'i', site: 'distal'|'center'|'mesial' } | null, fm_tooth,

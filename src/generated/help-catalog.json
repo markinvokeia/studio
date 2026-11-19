@@ -1,5 +1,5 @@
 {
- "version": "8933dbfc79098a49",
+ "version": "21af38c2121d9eb3",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3859,6 +3859,13 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Comandos de voz del calendario: clic en el micrófono y hablar, o mantener Ctrl+Espacio. Ejemplos: «andá al jueves», «vista semanal», «solo el doctor Pérez», «¿qué tengo mañana?», «¿quién sigue?», «¿cuándo viene Ana Gómez?», «¿hay huecos el jueves a la tarde?», «Ana Gómez llegó», «cancelá la de las 3 sin aviso», «nueva cita para Ana Gómez el lunes a las 10», «pasá la cita de Ana al viernes a las 11», «editá la cita de Ana y ponele el doctor Pérez», «poné la cita de Ana en rojo», «pasá la de las 10 al consultorio 2», «pasá la cita de Ana al doctor Pérez», «que la cita de Ana dure 45 minutos», «borrá la cita de las 3», «abrí la historia clínica de Ana», «cobrale a Juan Pérez», «bloqueá el lunes de 14 a 16 por reunión», «habilitá el sábado de 9 a 13», «recordame mañana a las 9 llamar al laboratorio», «marcá como hecho el recordatorio de las 10», «imprimí la agenda». Cambiar un estado, el color, la agenda, el doctor o la duración, o borrar, se confirma diciendo «sí»; bloquear y habilitar abren la ventana de siempre con la franja y se pueden corregir las horas («de 15 a 17») antes del «sí»; dar, mover o editar una cita abre el formulario de siempre ya completo; mientras confirma se puede corregir («con el doctor Pérez», «agregá limpieza», «a las 11») y «sí» lo guarda. Solo en Chrome y Edge.",
+     "id": "appointments.btn.voice",
+     "kind": "btn",
+     "label": "Voz",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Alto de las franjas horarias.",
      "id": "appointments.btn.zoom",
      "kind": "btn",
@@ -4347,7 +4354,8 @@
     "Cancelar no es eliminar: una cancelación con su motivo queda en el historial y en los reportes; eliminar es para citas cargadas por error.",
     "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
     "Al crear un paciente desde la cita podés cargar sus dependientes en el mismo formulario: se guardan todos con Guardar. Al editarlo, cada cambio en los dependientes se guarda en el momento.",
-    "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas."
+    "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas.",
+    "Con el botón Voz (o manteniendo Ctrl+Espacio) se maneja el calendario hablando: moverse de día, filtrar, preguntar qué hay, cambiar estados, dar, mover o editar citas, cambiarles color, agenda, doctor o duración, borrarlas, abrir la historia o la cuenta del paciente, bloquear o habilitar horarios y anotar recordatorios. Todo lo que cambia algo se confirma antes."
    ],
    "title": "Citas",
    "useCases": [
@@ -8520,7 +8528,7 @@
      "id": "lab-orders.btn.voice",
      "kind": "btn",
      "label": "Voz",
-     "source": "src/components/voice/voice-command-host.tsx"
+     "source": "knowledge/screens/lab-orders.json"
     },
     {
      "id": "lab-orders.field.category_id",

@@ -49,6 +49,7 @@ import type {
   ReminderRecurrenceEndMode,
   ReminderRecurrenceFreq,
 } from '@/lib/types';
+import type { FormVoiceControl } from '@/lib/voice/dialog-voice';
 
 export interface ReminderFormValues {
   type: CalendarItemType;
@@ -80,6 +81,12 @@ interface ReminderFormDialogProps {
   scope?: CalendarItemScope;
   editingReminder?: CalendarReminder | null;
   onSave: (values: ReminderFormValues) => void | Promise<void>;
+  /** Título ya escrito al crear (lo dictado por voz). */
+  initialTitle?: string | null;
+  /** Voz: "Guardar" con todas las validaciones del formulario. */
+  voiceControl?: FormVoiceControl | null;
+  /** Voz: si está guardando y el error que quedó en el formulario. */
+  onVoiceStatus?: (status: { saving: boolean; error: string | null } | null) => void;
 }
 
 const DEFAULT_DURATION_MINUTES = 15;
@@ -124,6 +131,9 @@ export function ReminderFormDialog({
   scope = 'occurrence',
   editingReminder,
   onSave,
+  initialTitle = null,
+  voiceControl,
+  onVoiceStatus,
 }: ReminderFormDialogProps) {
   const t = useTranslations('Reminders');
   const tGeneral = useTranslations('General');
@@ -152,6 +162,18 @@ export function ReminderFormDialog({
   const [color, setColor] = React.useState(getPriorityColor('MEDIUM'));
   const [error, setError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const lastVoiceSeq = React.useRef(0);
+
+  React.useEffect(() => {
+    if (!open || !voiceControl || voiceControl.seq === lastVoiceSeq.current) return;
+    lastVoiceSeq.current = voiceControl.seq;
+    if (voiceControl.submit) formRef.current?.requestSubmit();
+  }, [open, voiceControl]);
+
+  React.useEffect(() => {
+    onVoiceStatus?.(open ? { saving: isSubmitting, error } : null);
+  }, [open, isSubmitting, error, onVoiceStatus]);
   const isColorManuallySelectedRef = React.useRef(false);
   const itemType = editingReminder?.type ?? initialType;
   const isNote = itemType === 'note';
@@ -172,7 +194,7 @@ export function ReminderFormDialog({
     const nextPriority = editingReminder?.priority ?? 'MEDIUM';
     const persistedColor = normalizeSelectableColor(editingReminder?.color);
 
-    setTitle(editingReminder?.title ?? '');
+    setTitle(editingReminder?.title ?? initialTitle ?? '');
     setDescription(editingReminder?.description ?? '');
     setDate(format(start, 'yyyy-MM-dd'));
     setIsAllDay(allDay);
@@ -200,7 +222,7 @@ export function ReminderFormDialog({
     setColor(persistedColor ?? getPriorityColor(nextPriority));
     isColorManuallySelectedRef.current = persistedColor !== null;
     setError(null);
-  }, [editingReminder, initialCalendarId, initialDate, open]);
+  }, [editingReminder, initialCalendarId, initialDate, initialTitle, open]);
 
   React.useEffect(() => {
     if (!open || isColorManuallySelectedRef.current) return;
@@ -334,7 +356,7 @@ export function ReminderFormDialog({
       }}
     >
       <DialogContent maxWidth="md" confirmOnClose isDirty={title.trim() !== ''}>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {isNote

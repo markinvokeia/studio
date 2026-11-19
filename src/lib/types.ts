@@ -4660,6 +4660,8 @@ export interface VoiceCommandContext {
 export interface VoiceDomain<R = unknown> {
   /** Id que viaja a POST voice/interpret ('lab_orders'): el servidor elige su prompt con esto. */
   id: string;
+  /** Clave i18n del «No entendí» con ejemplos de este módulo (default: VoiceCommands.notUnderstood). */
+  notUnderstoodKey?: string;
   /**
    * Cuando el intérprete local no entiende la frase se le pregunta a la IA. `context` arma lo que
    * la IA necesita saber (nunca datos de pacientes; sin él, lo pasa quien pregunta, como el dictado
@@ -4806,5 +4808,102 @@ export interface VoiceAiResult {
   filter: VoiceAiListFilter | null;
   /** lab_order.draft_edit y lab_order.edit (en este, vacío si solo se pidió abrirla para editar). */
   draft_edit: VoiceAiDraftEdit | null;
+  confidence: number;
+}
+
+// ── Calendario por voz (módulo `calendar` de voice/interpret) ───────────────────
+
+/** Las vistas del calendario (mismo conjunto que CalendarView de components/calendar). */
+export type CalendarVoiceView = 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | '4-day' | '5-day' | '6-day' | 'schedule';
+
+export type CalendarVoiceIntent =
+  /** Ir a una fecha ("andá al jueves") o avanzar/retroceder (`step`). */
+  | 'calendar.navigate'
+  /** Cambiar la vista ("vista semanal"). */
+  | 'calendar.view'
+  /** Mostrar / ocultar doctores, agendas o sedes ("solo el doctor Pérez"). */
+  | 'calendar.filter'
+  /** Agrupar las columnas por doctor o agenda. */
+  | 'calendar.group'
+  /** Abrir el buscador de citas con un texto. */
+  | 'calendar.search'
+  /** "¿Qué tengo mañana?": citas de un día (no cambia nada). */
+  | 'calendar.agenda'
+  /** "¿Quién sigue?": la próxima cita de hoy. */
+  | 'calendar.next'
+  /** "¿Cuándo viene Ana Gómez?": la próxima cita de un paciente. */
+  | 'calendar.patient_next'
+  /** "¿Hay huecos el jueves a la tarde?". */
+  | 'calendar.gaps'
+  /** Cambiar el estado de una cita ("Ana llegó", "cancelá la de las 10"). */
+  | 'calendar.status'
+  /** Nueva cita (abre el formulario completo). */
+  | 'calendar.create'
+  /** Reprogramar una cita (abre el formulario de reprogramación completo). */
+  | 'calendar.reschedule'
+  | 'calendar.edit'
+  /** Menú de la cita: color, agenda, doctor, duración, borrar, abrir lo del paciente / sesión / cobro. */
+  | 'calendar.color'
+  | 'calendar.move_calendar'
+  | 'calendar.assign_doctor'
+  | 'calendar.duration'
+  | 'calendar.delete'
+  | 'calendar.open'
+  /** Bloquear / habilitar una franja (horarios de excepción). */
+  | 'calendar.block'
+  | 'calendar.enable'
+  /** Recordatorios y notas: crear, marcar hecho, borrar. */
+  | 'calendar.reminder'
+  | 'calendar.reminder_done'
+  | 'calendar.reminder_delete'
+  /** Barra: imprimir/exportar la agenda, actualizar. */
+  | 'calendar.print'
+  | 'calendar.refresh'
+  | 'unknown';
+
+/** `result` de voice/interpret para el módulo calendar, validado (lo que no cierra viene en null). */
+export interface CalendarVoiceAiResult {
+  intent: CalendarVoiceIntent;
+  /** 'YYYY-MM-DD': el día del que se habla (en reschedule, el NUEVO día). */
+  date: string | null;
+  /** 'HH:mm' (en reschedule, la NUEVA hora). */
+  time: string | null;
+  /** reschedule: día y hora actuales de la cita, si se dijeron ("la del martes a las 10"). */
+  from_date: string | null;
+  from_time: string | null;
+  /** navigate: 1 siguiente, -1 anterior (sin fecha). */
+  step: 1 | -1 | null;
+  view: CalendarVoiceView | null;
+  /** filter: qué hacer y con qué (ids de las listas cerradas). */
+  filter_op: 'only' | 'add' | 'remove' | 'all' | null;
+  filter_target: 'doctor' | 'calendar' | 'sede' | null;
+  doctor_ids: string[];
+  calendar_ids: string[];
+  sede_ids: string[];
+  group_by: 'none' | 'doctor' | 'calendar' | null;
+  /** Nombre del paciente tal como se dijo. */
+  patient: string | null;
+  /** search: el texto a buscar. */
+  query: string | null;
+  /** create: doctor, agenda y servicios (ids de las listas). */
+  doctor_id: string | null;
+  calendar_id: string | null;
+  service_ids: string[];
+  /** status: el estado nuevo. */
+  status: AppointmentStatus | null;
+  cancellation_reason: Exclude<CancellationReason, 'other' | 'reschedule'> | null;
+  /** gaps: parte del día. */
+  period: 'morning' | 'afternoon' | null;
+  /** color: id del color del menú ('1'…'11') o 'none' (sin color propio). */
+  color: string | null;
+  /** duration: minutos nuevos. */
+  minutes: number | null;
+  /** block / enable: fin de la franja ('HH:mm'; el inicio va en `time`). */
+  end_time: string | null;
+  /** reminder: lo que hay que anotar; reminder_done / reminder_delete: palabras de su título. */
+  title: string | null;
+  reminder_type: 'reminder' | 'note' | null;
+  /** open: qué abrir de la cita. */
+  target: 'history' | 'documents' | 'accounts' | 'appointments' | 'patient' | 'session' | 'bill' | null;
   confidence: number;
 }

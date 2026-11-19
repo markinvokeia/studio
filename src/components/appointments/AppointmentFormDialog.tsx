@@ -110,6 +110,14 @@ interface AppointmentFormDialogProps {
     /** Refresca los datos de la agenda. Se llama cuando un guardado hace timeout,
      *  porque el backend pudo haberlo aplicado igual. */
     onRequestRefresh?: () => void;
+    /** Reprogramar (comando de voz): el día y la hora nuevos; el fin conserva la duración. */
+    rescheduleTo?: { date: string; time: string } | null;
+    /** Cada cambio de este número presiona "Guardar" (lo usa la voz al decir «sí»). */
+    submitSignal?: number;
+    /** Cambios dictados por voz al formulario abierto; se aplican cada vez que cambia `seq`. */
+    voicePatch?: { seq: number; doctor?: UserType | null; services?: Service[]; date?: string; time?: string } | null;
+    /** Avisa cuándo empieza y termina un guardado (la voz espera el resultado). */
+    onSavingChange?: (saving: boolean) => void;
 }
 
 /** Firma de un conjunto de servicios (ids ordenados) para saber si cambió. */
@@ -134,6 +142,10 @@ export function AppointmentFormDialog({
     userQuotes: externalUserQuotes,
     isDateTimeBlocked,
     onRequestRefresh,
+    rescheduleTo,
+    submitSignal,
+    voicePatch,
+    onSavingChange,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
@@ -467,6 +479,15 @@ export function AppointmentFormDialog({
                     });
                 }
 
+                const originalStart = editingAppointment.start?.dateTime ? parseISO(editingAppointment.start.dateTime.replace(/Z$/, '')) : null;
+                const originalEnd = editingAppointment.end?.dateTime ? parseISO(editingAppointment.end.dateTime.replace(/Z$/, '')) : null;
+                const originalEndTime = originalEnd && isValid(originalEnd) ? format(originalEnd, 'HH:mm') : '';
+                // Reprogramar por voz: día y hora nuevos con la misma duración.
+                const movedTo = mode === 'reschedule' && rescheduleTo ? rescheduleTo : null;
+                const movedStart = movedTo ? parse(`${movedTo.date} ${movedTo.time}`, 'yyyy-MM-dd HH:mm', new Date()) : null;
+                const movedEndTime = movedStart && isValid(movedStart) && originalStart && originalEnd && isValid(originalStart) && isValid(originalEnd)
+                    ? format(addMinutes(movedStart, Math.max(0, differenceInMinutes(originalEnd, originalStart))), 'HH:mm')
+                    : originalEndTime;
                 setAppointment({
                     // Sin paciente asignado (típico de las citas importadas de Google) el
                     // selector tiene que verse vacío, no con el 'N/A' que deja el mapeo.
@@ -488,9 +509,9 @@ export function AppointmentFormDialog({
                         is_active: true, avatar: ''
                     } : null,
                     calendar: foundCalendar || null,
-                    date: editingAppointment.date || '',
-                    time: editingAppointment.time || '',
-                    endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '',
+                    date: movedTo?.date ?? (editingAppointment.date || ''),
+                    time: movedTo?.time ?? (editingAppointment.time || ''),
+                    endTime: movedTo ? movedEndTime : originalEndTime,
                     notes: editingAppointment.notes || '',
                     // El mapper rellena el summary con el placeholder "Ninguno" cuando
                     // la cita no trae uno; en el campo eso tiene que verse vacío.
@@ -554,7 +575,7 @@ export function AppointmentFormDialog({
                 setOriginalCalendarId(undefined);
             }
         }
-    }, [open, editingAppointment, initialData, calendars]);
+    }, [open, editingAppointment, initialData, calendars, mode, rescheduleTo]);
 
     // Service Search Logic
     React.useEffect(() => {
@@ -1072,6 +1093,39 @@ export function AppointmentFormDialog({
     const saveAppointment = useAsyncAction<[], void>(runSaveFlow, { showErrorToast: false });
     const isSavingAppointment = saveAppointment.isPending;
     const handleSave = saveAppointment.run;
+
+    // Cambios por voz: lo mismo que elegir doctor / tratamientos / día y hora a mano.
+    const lastVoicePatchRef = React.useRef(voicePatch?.seq);
+    React.useEffect(() => {
+        if (!voicePatch || voicePatch.seq === lastVoicePatchRef.current) return;
+        lastVoicePatchRef.current = voicePatch.seq;
+        if (!open) return;
+        const { doctor, services, date, time } = voicePatch;
+        const defaultCalendar = doctor?.calendar_source_id
+            ? calendars.find(c => String(c.id) === String(doctor.calendar_source_id)) ?? null
+            : null;
+        setHasBeenEdited(true);
+        setAppointment(prev => ({
+            ...prev,
+            ...(doctor !== undefined ? { doctor, ...(defaultCalendar ? { calendar: defaultCalendar } : {}) } : {}),
+            ...(services ? { services } : {}),
+            ...(date ? { date } : {}),
+            ...(time ? { time } : {}),
+        }));
+        setErrors(prev => prev.filter(err => !(
+            (doctor && err === 'doctor') || (defaultCalendar && err === 'calendar') || (services?.length && err === 'services')
+            || (date && err === 'date') || (time && err === 'time')
+        )));
+    }, [voicePatch, open, calendars]);
+
+    // «Sí» por voz = el botón Guardar, con todas sus validaciones y avisos.
+    const lastSubmitSignalRef = React.useRef(submitSignal);
+    React.useEffect(() => {
+        if (submitSignal === undefined || submitSignal === lastSubmitSignalRef.current) return;
+        lastSubmitSignalRef.current = submitSignal;
+        if (open && !isSessionDialogOpen) void handleSave();
+    }, [submitSignal, open, isSessionDialogOpen, handleSave]);
+    React.useEffect(() => { onSavingChange?.(isSavingAppointment); }, [isSavingAppointment, onSavingChange]);
 
     const loadLinkedSession = React.useCallback(async (appt: Appointment) => {
         const patientId = appt.patientId;

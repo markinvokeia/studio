@@ -7,3 +7,7 @@ import '@/lib/voice/commands/lab-orders-create';
 import '@/lib/voice/commands/lab-orders-manage';
 import '@/lib/voice/commands/lab-orders-edit';
 import '@/lib/voice/commands/perio';
+import '@/lib/voice/commands/calendar';
+import '@/lib/voice/commands/calendar-query';
+import '@/lib/voice/commands/calendar-manage';
+import '@/lib/voice/commands/calendar-actions';

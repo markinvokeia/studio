@@ -121,6 +121,15 @@ export function parseChoice(normalized: string, count: number, labels: string[] 
  * más larga gana) o, si no, la que comparte más palabras significativas. null si ninguna.
  */
 export function bestNameMatch(normalizedText: string, labels: string[]): number | null {
+  return bestNameMatchScored(normalizedText, labels)?.index ?? null;
+}
+
+/**
+ * Lo mismo que bestNameMatch, con el puntaje: > 100 = el nombre entero está en lo dicho; si no,
+ * hasta 50 + palabras según la parte del nombre que se dijo. Sirve para comparar entre listas
+ * (¿"Pérez" es un doctor o una agenda?).
+ */
+export function bestNameMatchScored(normalizedText: string, labels: string[]): { index: number; score: number } | null {
   const textWords = new Set(normalizedText.split(' ').filter((w) => w.length > 2));
   let best: { index: number; score: number } | null = null;
   labels.forEach((label, index) => {
@@ -135,7 +144,7 @@ export function bestNameMatch(normalizedText: string, labels: string[]): number 
     }
     if (score > 0 && (!best || score > best.score)) best = { index, score };
   });
-  return (best as { index: number; score: number } | null)?.index ?? null;
+  return best as { index: number; score: number } | null;
 }
 
 // ── Fechas ────────────────────────────────────────────────────────────────────
