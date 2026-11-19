@@ -36,8 +36,8 @@ const NOTES_MAX = 2000;
 
 const optsOf = (ctx: VoiceCommandContext) => ({ signal: ctx.signal, timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
-/** Busca la orden; si no está o falla, lo dice y devuelve null. */
-async function loadOrder(ctx: VoiceCommandContext, orderId: number, title: string): Promise<LabOrderDetail | null> {
+/** Busca la orden; si no está o falla, lo dice y devuelve null. También la usa "editá la orden 45". */
+export async function loadOrder(ctx: VoiceCommandContext, orderId: number, title: string): Promise<LabOrderDetail | null> {
   ctx.show({ title, message: ctx.t('VoiceCommands.labOrders.looking'), tone: 'info' });
   try {
     return await fetchLabOrderDetail(orderId, optsOf(ctx));

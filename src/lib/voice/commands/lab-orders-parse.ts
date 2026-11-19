@@ -157,10 +157,58 @@ export function parseLabOrdersList(normalized: string): LabListParsed | null {
   return { overdue, urgent, dueToday, view, clear, count, who, whoIsLab };
 }
 
-// ── Correcciones a la orden en creación ──────────────────────────────────────
+// ── Editar una orden existente en el asistente ───────────────────────────────
+
+export interface LabEditOrderParsed {
+  orderId: number;
+  /**
+   * Lo que se pidió cambiar además de "editá la orden 45" (la frase entera, como se dijo), o null
+   * si solo se pidió abrirla para editar. Se toma como la primera corrección.
+   */
+  change: string | null;
+}
+
+const EDIT_VERB_RE = /\b(edita|editar|editame|editala|editamela|editemos|modifica|modificar|modificame|modificala|corregi|corregir|corrige|corregila|corregime|edit|modify)\b/;
+/** Cambios que solo se hacen en el asistente: trabajos, piezas, paciente, laboratorio o descripción. */
+const EDIT_CHANGE_RE = new RegExp([
+  /\b(agreg\w*|anad\w*|sumale)\b/.source,
+  /\b(saca\w*|quita\w*|borra\w*|cambi\w*)\s+(?:el|la|los|las|the)\s+(?!etapa\b|fecha\b|entrega\b|urgen|nota|orden|order|pedido)\w+/.source,
+  /\b(piezas?|dientes?|muelas?|descripcion|cantidad|tooth|teeth)\b/.source,
+  // Otro paciente, no "se la entregamos al paciente".
+  /\b(?:otro|otra|nuevo|cambi\w*(?:\s+(?:de|el))?)\s+(?:paciente|patient)\b|\b(?:paciente|patient)\s+(?:es|correcto|equivocado|is)\b/.source,
+  // "la orden 45 es para María López" / "es de Dental Sur" (no "es para el viernes").
+  /\bes (?:para|de) (?!el\b|la\b|los\b|las\b|hoy\b|manana\b|pasado\b|lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d)/.source,
+].join('|'));
+/** Lo que no dice nada además del verbo y el número ("editá la orden 45, por favor"). */
+const EDIT_FILLER_RE = /\b(la|el|los|las|lo|de|del|a|al|y|que|por|favor|porfa|quiero|necesito|vamos|podes|puedes|me|the|please|i|want|to|nro|numero|number)\b/g;
 
 /**
- * Lo que se dijo en vez de "sí" mientras se pregunta "¿La creo?" ("que sea urgente", "no la
+ * "editá la orden 45", "modificá la 45: agregale un perno en la 21", "a la orden 45 sacale la
+ * corona", "la orden 45 es para María López". Lo simple (entrega, urgente, nota) va por el camino
+ * corto de parseLabOrderEdit, sin abrir el asistente.
+ */
+export function parseLabOrderEditOpen(normalized: string, raw: string): LabEditOrderParsed | null {
+  const order = normalized.match(ORDER_RE);
+  if (!order) return null;
+  const orderId = Number(order[1]);
+  if (!Number.isInteger(orderId) || orderId <= 0) return null;
+  const verb = EDIT_VERB_RE.test(normalized);
+  // "agregale una nota a la orden 45" es una nota, no una edición del trabajo.
+  const withoutNote = normalized.replace(/\b(agreg\w*|anad\w*|sumale)\s+(?:una\s+|la\s+)?nota\b/g, ' ');
+  const change = EDIT_CHANGE_RE.test(withoutNote);
+  if (!verb && !change) return null;
+  // "la 45 ya se la entregamos al paciente", "llegó la 45 con las piezas": es un movimiento de etapa.
+  const moveIntent = parseLabOrderVoice(normalized)?.intent;
+  if (!verb && moveIntent && moveIntent !== 'move') return null;
+  if (change) return { orderId, change: raw };
+  const rest = normalized.replace(order[0], ' ').replace(EDIT_VERB_RE, ' ').replace(EDIT_FILLER_RE, ' ').trim();
+  return { orderId, change: rest ? raw : null };
+}
+
+// ── Correcciones a la orden abierta (alta o edición) ─────────────────────────
+
+/**
+ * Lo que se dijo en vez de "sí" mientras se pregunta "¿La creo?" / "¿Guardo los cambios?" ("que sea urgente", "no la
  * envíes", "al laboratorio Dental Sur", "entrega el viernes", "anotá color A2"). Solo lo simple:
  * trabajos, piezas y paciente los interpreta la IA.
  */

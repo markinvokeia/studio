@@ -978,10 +978,11 @@ INTENTS
 - "lab_order.update": cambiar algo de una orden existente (con número): la fecha de entrega (due_date), marcarla o desmarcarla urgente (urgent_change) o agregarle una nota (note_add). Ej.: "la 45 la entregan el lunes", "la 45 ya no es urgente", "anotale a la 45 color A2".
 - "lab_order.status": preguntar cómo está una orden existente (con número): etapa, entrega. Ej.: "¿en qué anda la 45?".
 - "lab_order.list": ver un grupo de órdenes en la pantalla. Ej.: "mostrame las atrasadas", "¿cuántas urgentes hay?", "las de Ana Pérez", "las de Dental Sur", "en el tablero", "sacá los filtros".
-- "lab_order.draft_edit": SOLO cuando viene ORDEN EN CREACIÓN: la frase corrige esa orden (todavía sin número). Ej.: "que sea urgente", "agregá un perno en la 21", "sacá la corona", "la corona es en la 46", "que sean dos", "es para María López", "al laboratorio Dental Sur", "no la envíes", "entrega el viernes".
+- "lab_order.edit": editar una orden existente (con número) en otra cosa que la entrega, lo urgente o una nota: sus trabajos, piezas, cantidad, descripción, laboratorio o paciente, o pedir abrirla para editarla. Lo que se pide cambiar va en draft_edit (regla 9; vacío si solo se pidió editarla). Ej.: "editá la 45", "a la 45 agregale un perno en la 21", "a la 45 sacale la corona", "la 45 es para María López", "la 45 va al laboratorio Dental Sur".
+- "lab_order.draft_edit": SOLO cuando viene ORDEN EN CREACIÓN u ORDEN EN EDICIÓN: la frase corrige esa orden. Ej.: "que sea urgente", "agregá un perno en la 21", "sacá la corona", "la corona es en la 46", "que sean dos", "es para María López", "al laboratorio Dental Sur", "no la envíes", "entrega el viernes".
 - "unknown": cualquier otra cosa, o si no estás seguro.
 
-Si viene ORDEN EN CREACIÓN, el intent es "lab_order.draft_edit" o "unknown" (nunca otro).
+Si viene ORDEN EN CREACIÓN u ORDEN EN EDICIÓN, el intent es "lab_order.draft_edit" o "unknown" (nunca otro).
 
 REGLAS
 1. Usá SOLO ids de ETAPAS y LABORATORIOS que estén en las listas. Si no coincide con ninguno, null. Nunca inventes ids.
@@ -994,14 +995,15 @@ REGLAS
 6. lab_order.update: urgent_change = true (marcar urgente), false (quitar urgente) o null; note_add = el texto de la nota tal como se dictó o null; due_date si cambia la entrega. Lo que no se pidió, en null.
 7. lab_order.list: filter = {"overdue":bool,"urgent":bool,"due_today":bool,"view":"list"|"board"|null,"clear":bool,"count":bool}. count = true si se preguntó cuántas. Si se nombra un paciente va en patient; un laboratorio, su id en laboratory_id. En los demás intents filter = null.
 8. confidence entre 0 y 1: qué tan seguro estás del intent y los datos. Si la frase es ambigua, confidence < 0.5.
-9. lab_order.draft_edit: draft_edit = {"patient":null,"add_items":[],"remove_items":[],"update_items":[],"work_description":null,"laboratory_id":null,"clear_laboratory":false,"send":null,"due_date":null,"urgent":null,"note_add":null} con SOLO lo que se pidió cambiar:
+9. lab_order.draft_edit y lab_order.edit: draft_edit = {"patient":null,"add_items":[],"remove_items":[],"update_items":[],"work_description":null,"laboratory_id":null,"clear_laboratory":false,"send":null,"due_date":null,"urgent":null,"note_add":null} con SOLO lo que se pidió cambiar:
    - patient: otro paciente (nombre tal como se dijo).
    - add_items: trabajos nuevos [{service, quantity, teeth}] como en la regla 4.
-   - remove_items: nombres de los trabajos a quitar, tal como figuran en la ORDEN EN CREACIÓN.
-   - update_items: [{service, quantity, teeth}] para cambiar cantidad o piezas de un trabajo que ya está (service = su nombre en la ORDEN EN CREACIÓN; null si hay uno solo o si son las piezas generales). Lo que no cambia, null.
+   - remove_items: nombres de los trabajos a quitar, tal como figuran en la orden.
+   - update_items: [{service, quantity, teeth}] para cambiar cantidad o piezas de un trabajo que ya está (service = su nombre en la orden; null si hay uno solo o si son las piezas generales). Lo que no cambia, null.
    - work_description: nueva descripción libre del trabajo (reemplaza la anterior).
    - laboratory_id: id del laboratorio nombrado; clear_laboratory = true si se pidió sacarlo.
-   - send: true (enviarla al crearla), false (no enviarla) o null. due_date: nueva entrega (implica enviarla).
+   - send: true (enviarla al crearla), false (no enviarla) o null. due_date: nueva entrega (en la creación implica enviarla).
+   - En una ORDEN EN EDICIÓN (o con lab_order.edit) la orden ya existe: send siempre null; due_date solo cambia la entrega.
    - urgent: true / false / null. note_add: texto a agregar a las notas.
    En los demás intents draft_edit = null.
 
@@ -1021,9 +1023,9 @@ de pacientes).
 
 ENTRADA: { text, locale, today: 'YYYY-MM-DD', weekday, timezone, route,
            context: { stages: [{ id, name, kind }], laboratories: [{ id, name }],
-                      draft?: { items, teeth, work_description, laboratory, send, due_date,
-                                is_urgent, notes } } }
-           (draft = la orden que se está creando por voz, sin el paciente: la frase la corrige)
+                      draft?: { mode: 'create'|'edit', order_id, stage, items, teeth,
+                                work_description, laboratory, send, due_date, is_urgent, notes } } }
+           (draft = la orden abierta por voz —nueva o en edición—, sin el paciente: la frase la corrige)
 RESPUESTA: { result: { intent, order_id, stage_id, move_kind, effective_date, due_date,
              laboratory_id, patient, items: [{ service, quantity, teeth }], work_description,
              teeth, is_urgent, send, notes, urgent_change, note_add,
@@ -1031,7 +1033,7 @@ RESPUESTA: { result: { intent, order_id, stage_id, move_kind, effective_date, du
              draft_edit: { patient, add_items, remove_items, update_items, work_description,
                            laboratory_id, clear_laboratory, send, due_date, urgent, note_add },
              confidence } }
-intent: lab_order.move | create | open | update | status | list | draft_edit | unknown
+intent: lab_order.move | create | open | update | status | list | edit | draft_edit | unknown
 Ids y fechas validados contra la lista cerrada que mandó el frontend (que además revalida).`,
   [
     webhook('help/voice/command', 'POST'),
@@ -1047,19 +1049,24 @@ const laboratories = (Array.isArray(ctx.laboratories) ? ctx.laboratories : []).s
   .map(l => ({ id: String((l && l.id) || ''), name: String((l && l.name) || '').slice(0, 80) }))
   .filter(l => l.id && l.name);
 const today = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(body.today)) ? String(body.today) : new Date().toISOString().slice(0, 10);
-// Orden que se está creando por voz (sin el paciente): la frase es una corrección.
+// Orden abierta por voz, nueva o en edición (sin el paciente): la frase es una corrección.
 const d = ctx.draft && typeof ctx.draft === 'object' ? ctx.draft : null;
+const editing = Boolean(d && d.mode === 'edit');
 const short = (v, max) => String(v == null ? '' : v).slice(0, max);
 const draftLines = d ? [
   '',
-  'ORDEN EN CREACIÓN (la frase la corrige):',
+  editing
+    ? 'ORDEN EN EDICIÓN n.º ' + (Number(d.order_id) || '?') + ', etapa ' + (short(d.stage, 80) || '?') + ' (ya existe; la frase la corrige):'
+    : 'ORDEN EN CREACIÓN (la frase la corrige):',
   '- Trabajos: ' + ((Array.isArray(d.items) ? d.items : []).slice(0, 10)
     .map(i => short(i && i.service, 80) + ' x' + (Number(i && i.quantity) || 1) + (Array.isArray(i && i.teeth) && i.teeth.length ? ' (piezas ' + i.teeth.slice(0, 32).join(', ') + ')' : ''))
     .join('; ') || '(ninguno)'),
   '- Piezas generales: ' + ((Array.isArray(d.teeth) ? d.teeth.slice(0, 32).join(', ') : '') || '(ninguna)'),
   '- Descripción: ' + (short(d.work_description, 300) || '(ninguna)'),
   '- Laboratorio: ' + (short(d.laboratory, 80) || '(ninguno)'),
-  '- Enviar al crear: ' + (d.send === true ? 'sí, entrega ' + short(d.due_date, 10) : 'no'),
+  editing
+    ? '- Entrega: ' + (short(d.due_date, 10) || '(sin fecha)')
+    : '- Enviar al crear: ' + (d.send === true ? 'sí, entrega ' + short(d.due_date, 10) : 'no'),
   '- Urgente: ' + (d.is_urgent === true ? 'sí' : 'no'),
   '- Notas: ' + (short(d.notes, 300) || '(ninguna)'),
 ] : [];
@@ -1079,7 +1086,7 @@ const prompt = [
   'FRASE: ' + JSON.stringify(text),
 ].join('\\n');
 
-return [{ json: { userId, text, today, stages, laboratories, hasDraft: Boolean(d), prompt } }];`),
+return [{ json: { userId, text, today, stages, laboratories, hasDraft: Boolean(d), editing, prompt } }];`),
     {
       id: 'node-agent',
       name: 'Interpretar',
@@ -1097,7 +1104,7 @@ try {
 }
 
 // Lista cerrada: solo ids que mandó el frontend, fechas válidas y piezas FDI.
-const INTENTS = ['lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'lab_order.draft_edit', 'unknown'];
+const INTENTS = ['lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list', 'lab_order.draft_edit', 'lab_order.edit', 'unknown'];
 const KINDS = ['send', 'received', 'complete', 'cancel', 'next'];
 const stageIds = new Set(q.stages.map(s => s.id));
 const labIds = new Set(q.laboratories.map(l => l.id));
@@ -1132,7 +1139,8 @@ const draftEdit = de ? {
   work_description: str(de.work_description, 500),
   laboratory_id: typeof de.laboratory_id === 'string' && labIds.has(de.laboratory_id) ? de.laboratory_id : null,
   clear_laboratory: de.clear_laboratory === true,
-  send: bool(de.send),
+  // Una orden que ya existe no se envía desde acá (se mueve de etapa).
+  send: q.editing || intent === 'lab_order.edit' ? null : bool(de.send),
   due_date: isDate(de.due_date) && de.due_date >= q.today ? de.due_date : null,
   urgent: bool(de.urgent),
   note_add: str(de.note_add, 500),
@@ -1163,11 +1171,11 @@ const result = {
     clear: p.filter.clear === true,
     count: p.filter.count === true,
   } : null,
-  draft_edit: intent === 'lab_order.draft_edit' ? draftEdit : null,
+  draft_edit: intent === 'lab_order.draft_edit' || intent === 'lab_order.edit' ? draftEdit : null,
   confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
 };
 // Lo que actúa sobre una orden existente necesita su número.
-if (['lab_order.move', 'lab_order.open', 'lab_order.update', 'lab_order.status'].includes(intent) && !result.order_id) result.intent = 'unknown';
+if (['lab_order.move', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.edit'].includes(intent) && !result.order_id) result.intent = 'unknown';
 // Con una orden en creación solo vale corregirla; sin ella, draft_edit no tiene sentido.
 if (q.hasDraft ? !['lab_order.draft_edit', 'unknown'].includes(result.intent) : result.intent === 'lab_order.draft_edit') result.intent = 'unknown';
 if (result.intent === 'lab_order.draft_edit' && !result.draft_edit) result.intent = 'unknown';

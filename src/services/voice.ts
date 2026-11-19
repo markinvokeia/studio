@@ -8,7 +8,7 @@ const VOICE_AI_TIMEOUT_MS = 25_000;
 
 const INTENTS: VoiceAiIntent[] = [
   'lab_order.move', 'lab_order.create', 'lab_order.open', 'lab_order.update', 'lab_order.status', 'lab_order.list',
-  'lab_order.draft_edit', 'unknown',
+  'lab_order.draft_edit', 'lab_order.edit', 'unknown',
 ];
 const MOVE_KINDS = ['send', 'received', 'complete', 'cancel', 'next'] as const;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -115,7 +115,7 @@ export function sanitizeVoiceAiResult(raw: unknown, context: Partial<VoiceAiCont
     urgent_change: typeof r.urgent_change === 'boolean' ? r.urgent_change : null,
     note_add: str(r.note_add, 500),
     filter: listFilter(r.filter),
-    draft_edit: intent === 'lab_order.draft_edit' ? draftEdit(r.draft_edit, labIds, date) : null,
+    draft_edit: intent === 'lab_order.draft_edit' || intent === 'lab_order.edit' ? draftEdit(r.draft_edit, labIds, date) : null,
     confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
   };
 }
