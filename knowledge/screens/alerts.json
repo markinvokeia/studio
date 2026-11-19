@@ -63,6 +63,10 @@
     "alerts.btn.view-patient": {
       "label": "Ver al paciente"
     },
+    "alerts.btn.view-lab-order": {
+      "label": "Ver la orden de laboratorio",
+      "description": "En las alertas de órdenes de laboratorio, el título abre la orden: etapa, fecha de entrega, laboratorio e historial, con «Mover a…» y el acceso a la ficha del paciente."
+    },
     "alerts.btn.send-email": {
       "label": "Enviar correo"
     },

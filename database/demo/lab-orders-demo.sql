@@ -520,10 +520,8 @@ BEGIN
             -- Recibido en clínica: avisar al doctor para que agende la colocación.
             ('rec', 'enter', NULL::integer, true,  false),
             -- Prueba en boca: más de 5 días esperando el ajuste → aviso una vez.
-            ('pru', 'dwell', NULL::integer, true,  false),
-            -- Entrega vencida (igual que lo que 169 configuró en las etapas originales).
-            ('pru', 'due',   NULL::integer, true,  false),
-            ('rec', 'due',   NULL::integer, true,  false)
+            ('pru', 'dwell', NULL::integer, true,  false)
+            -- La entrega vencida la avisa el atraso de la etapa a la que se envió (script 177).
         ) AS t(k, trig, repeat_days, to_doctor, to_creator)
     LOOP
         INSERT INTO public.lab_stage_alerts (stage_id, trigger, repeat_every_days, notify_order_doctor, notify_order_creator,

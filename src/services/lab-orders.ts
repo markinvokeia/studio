@@ -81,6 +81,9 @@ function toOrder(raw: any): LabOrder | null {
     work_summary: raw.work_summary || raw.work_description || null,
     teeth: Array.isArray(raw.teeth) ? raw.teeth.map(Number) : [],
     due_date: raw.due_date ? String(raw.due_date).slice(0, 10) : null,
+    due_stage_id: raw.due_stage_id != null ? Number(raw.due_stage_id) : null,
+    // Sin el script 177 la fecha cuenta en cualquier etapa no final (como en el 169).
+    due_applies: raw.due_applies != null ? raw.due_applies === true : !!raw.due_date && raw.is_pending !== false,
     notes: raw.notes ?? null,
     current_stage_id: Number(raw.current_stage_id),
     stage_name: raw.stage_name ?? '',

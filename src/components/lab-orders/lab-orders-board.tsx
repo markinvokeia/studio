@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
-  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderNumber, LabOrderUrgentBadge, isUrgentPending,
+  LabOrderAttachmentsCount, LabOrderDaysInStage, LabOrderDueLabel, LabOrderNoLabBadge, LabOrderNumber, LabOrderUrgentBadge, daysUntilDue, isUrgentPending,
   labOrderWork, nextLabStage, urgentFirst, useLabOrderErrorText,
 } from '@/components/lab-orders/lab-order-shared';
 import { LabOrderMoveDialog, labOrderMoveNeeds, type LabOrderMoveDetails, type LabOrderMoveRequest } from '@/components/lab-orders/lab-order-laboratory-dialog';
@@ -228,8 +228,11 @@ export function LabOrdersBoard({ stages, filters, sort, reloadKey, canChangeStag
     inFlightRef.current.add(orderId);
 
     // Optimista: la tarjeta pasa ya a la columna destino, marcada como "guardando".
-    // La entrega vencida sigue salvo que llegue a una etapa final.
-    const stillPastDue = order.is_past_due && target?.kind !== 'final';
+    // La fecha de entrega es plazo en la etapa donde se fija (al enviar) o se fijó (script 177).
+    const dueDate = details?.dueDate ?? order.due_date;
+    const dueStageId = details?.dueDate ? toStageId : order.due_stage_id;
+    const dueApplies = !!dueDate && target?.kind !== 'final' && dueStageId === toStageId;
+    const stillPastDue = dueApplies && !!dueDate && daysUntilDue(dueDate) < 0;
     setData((prev) => prev && placeOrder(prev, {
       ...order,
       current_stage_id: toStageId,
@@ -241,7 +244,9 @@ export function LabOrdersBoard({ stages, filters, sort, reloadKey, canChangeStag
       is_overdue: stillPastDue,
       is_stage_overdue: false,
       is_past_due: stillPastDue,
-      days_past_due: stillPastDue ? order.days_past_due : 0,
+      days_past_due: stillPastDue && dueDate ? -daysUntilDue(dueDate) : 0,
+      due_stage_id: dueStageId,
+      due_applies: dueApplies,
       is_pending: target ? target.kind !== 'final' : order.is_pending,
       ...(laboratory ? { laboratory_id: laboratory.id, laboratory_name: laboratory.name } : {}),
       ...(details?.dueDate ? { due_date: details.dueDate } : {}),

@@ -6241,6 +6241,7 @@
     "actions": {
       "sendEmail": "Enviar Correo",
       "viewPatient": "Ver perfil del paciente",
+      "viewLabOrder": "Ver orden de laboratorio",
       "sendEmailUnavailable": "El paciente no tiene correo",
       "markCompleted": "Marcar como Completada",
       "sendSms": "Enviar SMS",
@@ -10581,14 +10582,9 @@
       },
       "dwell": {
         "title": "{days, plural, =0 {Si una orden se demora en esta etapa} one {Si una orden pasa más de # día en esta etapa} other {Si una orden pasa más de # días en esta etapa}}",
-        "hint": "Son los días de atraso de la etapa: pasado ese plazo la orden también figura como atrasada.",
+        "hint": "Son los días de atraso de la etapa: pasado ese plazo la orden también figura como atrasada. En la etapa a la que se envía la orden, el plazo es su fecha de entrega.",
         "notForFinal": "Las etapas finales no tienen atraso, así que no llevan alerta por permanencia.",
         "needsThreshold": "Cargá los días de atraso de la etapa para poder avisar por permanencia."
-      },
-      "due": {
-        "title": "Si se pasa la fecha de entrega",
-        "hint": "Al día siguiente de la fecha, si la orden sigue en esta etapa.",
-        "notForFinal": "Las etapas finales no tienen entrega pendiente, así que no llevan esta alerta."
       },
       "repeat": {
         "label": "Frecuencia",

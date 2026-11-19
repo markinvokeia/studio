@@ -1,5 +1,5 @@
 {
- "version": "fb3fa630b6a9ca18",
+ "version": "9b7896ae133f09cb",
  "locale": "en",
  "journey": [
   {
@@ -3033,6 +3033,13 @@
      "source": "src/app/[locale]/alerts/page.tsx"
     },
     {
+     "description": "On lab order alerts the title opens the order: stage, due date, lab and history, with “Move to…” and a link to the patient profile.",
+     "id": "alerts.btn.view-lab-order",
+     "kind": "btn",
+     "label": "View lab order",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
      "id": "alerts.btn.view-patient",
      "kind": "btn",
      "label": "View patient",
@@ -3152,6 +3159,70 @@
      "kind": "section",
      "label": "Summary",
      "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.delete",
+     "kind": "btn",
+     "label": "Delete",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.edit",
+     "kind": "btn",
+     "label": "Edit",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.move-option",
+     "kind": "btn",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.move-to",
+     "kind": "btn",
+     "label": "Other stage…",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.open-patient",
+     "kind": "btn",
+     "label": "View patient",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail",
+     "kind": "section",
+     "label": "Edit",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-laboratory",
+     "kind": "section",
+     "label": "Laboratory",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-services",
+     "kind": "section",
+     "label": "Teeth {teeth}",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-stage",
+     "kind": "section",
+     "label": "Move to “{stage}”",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-work",
+     "kind": "section",
+     "label": "Job",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.move-menu",
+     "kind": "section",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     }
    ],
    "id": "alerts",
@@ -6622,13 +6693,6 @@
     },
     {
      "description": "Shows the alert’s repetition, roles, users and channels.",
-     "id": "config.lab-stages.btn.customize-due",
-     "kind": "btn",
-     "label": "Customize",
-     "source": "knowledge/screens/config.lab-stages.json"
-    },
-    {
-     "description": "Shows the alert’s repetition, roles, users and channels.",
      "id": "config.lab-stages.btn.customize-dwell",
      "kind": "btn",
      "label": "Customize",
@@ -6670,7 +6734,7 @@
      "source": "knowledge/screens/config.lab-stages.json"
     },
     {
-     "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none.",
+     "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none. In the stage an order is sent to, they suggest the due date (today + these days) and that date becomes the deadline.",
      "id": "config.lab-stages.field.new-overdue-days",
      "kind": "field",
      "label": "Overdue days",
@@ -6690,17 +6754,10 @@
      "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
     },
     {
-     "description": "Alerts the day after the due date if the order is still in this stage; once or repeated. Not available for final stages. New stages have it on (order doctor and creator, in the app).",
-     "id": "config.lab-stages.section.alert-due",
-     "kind": "section",
-     "label": "If the due date passes",
-     "source": "knowledge/screens/config.lab-stages.json"
-    },
-    {
-     "description": "Alerts when the order goes over the stage’s overdue days; once or every X days (in Customize). Only for non-final stages with overdue days.",
+     "description": "Alerts when the order goes over the stage’s overdue days or, in the stage it was sent to, the day after its due date; once or every X days (in Customize). Only for non-final stages with overdue days.",
      "id": "config.lab-stages.section.alert-dwell",
      "kind": "section",
-     "label": "If an order spends more days than expected",
+     "label": "If an order is overdue",
      "source": "knowledge/screens/config.lab-stages.json"
     },
     {
@@ -6757,7 +6814,7 @@
    "permissions": [
     "LAB_STAGES_CONFIG"
    ],
-   "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order is overdue or past its due date.",
+   "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order reaches a stage or is overdue.",
    "route": "/config/lab-stages",
    "status": "draft",
    "summary": "Stages of the lab order workflow.",
@@ -6766,7 +6823,7 @@
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
     "List changes apply when you press Save. Alerts of an already saved stage are saved from their window, unless the page has other pending changes.",
-    "Each stage can alert when an order arrives, when it spends more days than expected and when the due date passes. Each alert reads as a sentence (“Alerts the order’s doctor in the app”); “Customize” adds roles, users, email or WhatsApp and repetition. Alerts also go to the Alert Center."
+    "Each stage can alert when an order arrives and when it is overdue. In the stage the order is sent to, overdue means past its due date (suggested from the stage days and editable); in the others, past the stage days. Each alert reads as a sentence (“Alerts the order’s doctor in the app”); “Customize” adds roles, users, email or WhatsApp and repetition. Alerts also go to the Alert Center."
    ],
    "title": "Lab Stages",
    "useCases": [
@@ -26512,19 +26569,11 @@
     },
     {
      "action": "highlight",
-     "details": "When the order goes past the stage’s overdue days. In “Customize” you can repeat it every X days.",
+     "details": "When the order goes past the stage’s overdue days; in the stage it is sent to, the day after its due date. In “Customize” you can repeat it every X days.",
      "id": "dwell",
      "skipIfMissing": true,
      "target": "config.lab-stages.section.alert-dwell",
-     "title": "If it spends more days than expected"
-    },
-    {
-     "action": "highlight",
-     "details": "The day after the due date, if the order is still in this stage.",
-     "id": "due",
-     "skipIfMissing": true,
-     "target": "config.lab-stages.section.alert-due",
-     "title": "If the due date passes"
+     "title": "If the order is overdue"
     },
     {
      "action": "confirm",
@@ -26534,7 +26583,7 @@
      "title": "Save"
     }
    ],
-   "summary": "Choose who is alerted and how when an order enters the stage, stays too long or misses its due date.",
+   "summary": "Choose who is alerted and how when an order enters the stage or is overdue.",
    "title": "Set up a stage’s alerts"
   },
   {
@@ -26560,14 +26609,14 @@
     },
     {
      "action": "highlight",
-     "details": "In the order of the workflow; drag the icon on the left to reorder. There is one initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage becomes overdue.",
+     "details": "In workflow order; drag the handle on the left to reorder. There is a single initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage is overdue; in the stage an order is sent to, they suggest the due date.",
      "id": "active",
      "target": "config.lab-stages.section.active",
      "title": "Active stages"
     },
     {
      "action": "highlight",
-     "details": "The bell shows how many alerts it has: when an order arrives, if it takes too long, and if the due date passes.",
+     "details": "The bell shows how many alerts it has: when an order arrives and if it is overdue (by the stage days or, where it was sent, by the due date).",
      "id": "alerts",
      "target": "config.lab-stages.btn.alerts-first",
      "title": "Stage alerts"

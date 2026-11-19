@@ -2,13 +2,13 @@
   "id": "config.lab-stages",
   "status": "draft",
   "summary": "Etapas del circuito de órdenes de laboratorio.",
-  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
+  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden llega a una etapa o se atrasa.",
   "tips": [
     "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
     "Los cambios de la lista se aplican al pulsar Guardar. Los avisos de una etapa ya guardada se guardan desde su ventana, salvo que la página tenga otros cambios pendientes.",
-    "Cada etapa puede avisar cuando una orden llega, cuando pasa más días de los previstos y cuando se pasa la fecha de entrega. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
+    "Cada etapa puede avisar cuando una orden llega y cuando se atrasa. En la etapa a la que se envía la orden, el atraso es la fecha de entrega (que se propone con los días de la etapa y se puede cambiar); en las demás, los días de la etapa. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
   ],
   "useCases": [
     "config.lab-stages.overview",
@@ -53,12 +53,8 @@
       "description": "Avisa cada vez que una orden pasa a esta etapa. La frase dice a quién y por dónde; con los botones se elige el doctor de la orden o quien la creó."
     },
     "config.lab-stages.section.alert-dwell": {
-      "label": "Si una orden pasa más días de los previstos",
-      "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso."
-    },
-    "config.lab-stages.section.alert-due": {
-      "label": "Si se pasa la fecha de entrega",
-      "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa; una vez o repetido. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema)."
+      "label": "Si una orden se atrasa",
+      "description": "Avisa cuando la orden supera los días de atraso de la etapa o, en la etapa a la que se envió, al día siguiente de su fecha de entrega; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso."
     },
     "config.lab-stages.section.new-stage": {
       "label": "Etapa nueva",
@@ -74,7 +70,7 @@
     },
     "config.lab-stages.field.new-overdue-days": {
       "label": "Días de atraso",
-      "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan."
+      "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan. En la etapa a la que se envía la orden, proponen la fecha de entrega (hoy + estos días) y el atraso pasa a ser esa fecha."
     },
     "config.lab-stages.btn.apply-alerts": {
       "label": "Guardar / Aplicar",
@@ -93,10 +89,6 @@
       "description": "Muestra los roles, usuarios y canales (sistema, email, WhatsApp con plantilla) del aviso."
     },
     "config.lab-stages.btn.customize-dwell": {
-      "label": "Personalizar",
-      "description": "Muestra la repetición, los roles, usuarios y canales del aviso."
-    },
-    "config.lab-stages.btn.customize-due": {
       "label": "Personalizar",
       "description": "Muestra la repetición, los roles, usuarios y canales del aviso."
     }

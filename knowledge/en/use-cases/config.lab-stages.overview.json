@@ -19,12 +19,12 @@
     {
       "id": "active",
       "title": "Active stages",
-      "details": "In the order of the workflow; drag the icon on the left to reorder. There is one initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage becomes overdue."
+      "details": "In workflow order; drag the handle on the left to reorder. There is a single initial stage, where every new order starts, and at least one final stage. The days mark when an order in that stage is overdue; in the stage an order is sent to, they suggest the due date."
     },
     {
       "id": "alerts",
       "title": "Stage alerts",
-      "details": "The bell shows how many alerts it has: when an order arrives, if it takes too long, and if the due date passes."
+      "details": "The bell shows how many alerts it has: when an order arrives and if it is overdue (by the stage days or, where it was sent, by the due date)."
     },
     {
       "id": "inactive",

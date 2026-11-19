@@ -23,7 +23,10 @@ import type { LabOrder, LabOrdersErrorCode, LabStage, LabStageKind, Laboratory }
 export interface LabOrderMoveNeeds {
   /** Sin laboratorio, una orden solo puede ir a una etapa final (script 170). */
   laboratory: boolean;
-  /** Enviar (salir de la etapa inicial hacia una no final) fija la fecha de entrega (script 172). */
+  /**
+   * Fecha de entrega: al enviar (salir de la etapa inicial hacia una no final, script 172) y al volver
+   * a la etapa donde se fijó la fecha anterior (p. ej. reenviar al laboratorio, script 177).
+   */
   dueDate: boolean;
 }
 
@@ -32,14 +35,17 @@ export interface LabOrderMoveNeeds {
  * `errorCode`: el backend lo pidió aunque los datos locales digan otra cosa (etapas cambiadas).
  */
 export function labOrderMoveNeeds(
-  order: Pick<LabOrder, 'laboratory_id' | 'stage_kind'>,
-  target: Pick<LabStage, 'kind'> | { kind: LabStageKind } | undefined | null,
+  order: Pick<LabOrder, 'laboratory_id' | 'stage_kind' | 'current_stage_id' | 'due_stage_id'>,
+  target: Pick<LabStage, 'id' | 'kind'> | { id?: number; kind: LabStageKind } | undefined | null,
   errorCode?: LabOrdersErrorCode,
 ): LabOrderMoveNeeds | null {
   if (!target) return null;
   const laboratory = errorCode === 'LABORATORY_REQUIRED' || (!order.laboratory_id && target.kind !== 'final');
-  const dueDate = errorCode === 'DUE_DATE_REQUIRED'
-    || (order.stage_kind === 'initial' && target.kind !== 'initial' && target.kind !== 'final');
+  const sending = order.stage_kind === 'initial' && target.kind !== 'initial' && target.kind !== 'final';
+  // Vuelve a la etapa donde se fijó la fecha: la anterior ya no sirve de plazo.
+  const returning = target.kind !== 'final' && target.id != null
+    && target.id === order.due_stage_id && target.id !== order.current_stage_id;
+  const dueDate = errorCode === 'DUE_DATE_REQUIRED' || sending || returning;
   return laboratory || dueDate ? { laboratory, dueDate } : null;
 }
 

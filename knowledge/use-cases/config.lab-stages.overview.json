@@ -25,14 +25,14 @@
       "action": "highlight",
       "target": "config.lab-stages.section.active",
       "title": "Etapas activas",
-      "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada."
+      "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada; en la etapa a la que se envía, proponen la fecha de entrega."
     },
     {
       "id": "alerts",
       "action": "highlight",
       "target": "config.lab-stages.btn.alerts-first",
       "title": "Avisos de la etapa",
-      "details": "La campana dice cuántos avisos tiene: cuando llega una orden, si se demora, y si se pasa la fecha de entrega."
+      "details": "La campana dice cuántos avisos tiene: cuando llega una orden y si se atrasa (por los días de la etapa o, donde se envió, por la fecha de entrega)."
     },
     {
       "id": "inactive",

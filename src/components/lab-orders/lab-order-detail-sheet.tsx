@@ -51,6 +51,12 @@ export interface LabOrderDetailSheetProps {
   onChanged: (order: LabOrder | null) => void;
   /** Solo lectura (historia clínica sin permiso de escritura): sin editar, eliminar ni mover. */
   readOnly?: boolean;
+  /**
+   * Botón "Abrir ficha del paciente" junto al nombre. Por defecto solo en el panel (Órdenes de
+   * laboratorio): desde la ficha del paciente ya se está en él. Desde otras pantallas (Centro de
+   * alertas) se pasa true.
+   */
+  showOpenPatient?: boolean;
 }
 
 export interface LabOrderDetailPanelProps extends LabOrderDetailSheetProps {
@@ -161,6 +167,7 @@ function LabOrderLaboratorySection({ laboratory }: { laboratory: LabOrderLaborat
 /** Detalle de una orden: datos, "Mover a…" (alternativa al arrastre, también en celular) e historial de etapas. */
 function LabOrderDetailView({
   orderId, stages, onClose, onChanged, isExpanded, onToggleExpanded, variant, readOnly = false,
+  showOpenPatient = variant === 'panel',
 }: LabOrderDetailPanelProps & { variant: 'panel' | 'sheet' }) {
   const t = useTranslations('LabOrdersPage');
   const { open: openPatientView } = usePatientView();
@@ -397,9 +404,9 @@ function LabOrderDetailView({
               <dt className="text-muted-foreground">{t('columns.patient')}</dt>
               <dd className="flex min-w-0 flex-wrap items-center gap-x-2">
                 <span className="truncate">{detail.patient_name}</span>
-                {/* Desde la ficha del paciente (sheet) ya se está en el paciente. Abre su ficha
-                    encima, sin salir de las órdenes. */}
-                {variant === 'panel' && (
+                {/* Abre la ficha encima, sin salir de la orden (no desde la ficha del paciente:
+                    ahí ya se está en él). */}
+                {showOpenPatient && (
                   <Can permission={PATIENTS_PERMISSIONS.VIEW_DETAIL}>
                     <button
                       type="button"

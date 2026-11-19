@@ -47,6 +47,10 @@
     "alerts.btn.view-patient": {
       "label": "View patient"
     },
+    "alerts.btn.view-lab-order": {
+      "label": "View lab order",
+      "description": "On lab order alerts the title opens the order: stage, due date, lab and history, with “Move to…” and a link to the patient profile."
+    },
     "alerts.btn.send-email": {
       "label": "Send email"
     },
