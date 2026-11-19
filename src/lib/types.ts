@@ -763,8 +763,9 @@ export type CalendarColorSettings = CalendarColorSources & {
 export type LabStageKind = 'initial' | 'intermediate' | 'final';
 
 /**
- * Disparador de una alerta de etapa: al entrar a la etapa, por permanencia (más de overdue_days)
- * o por fecha de entrega vencida mientras la orden está en la etapa (script 169).
+ * Disparador de una alerta de etapa: al entrar a la etapa o por atraso ('dwell': más de
+ * overdue_days o, en la etapa donde se fijó la fecha de entrega, pasada esa fecha). 'due' ya no se
+ * configura (script 177): queda como texto del aviso de atraso por la fecha de entrega.
  */
 export type LabStageAlertTrigger = 'enter' | 'dwell' | 'due';
 
@@ -787,9 +788,8 @@ export interface LabStageAlertConfig {
 
 export interface LabStageAlerts {
   enter: LabStageAlertConfig | null;
+  /** Atraso: días en la etapa o, en la etapa donde se fijó la fecha de entrega, esa fecha (script 177). */
   dwell: LabStageAlertConfig | null;
-  /** Entrega vencida (nunca en etapas finales). */
-  due: LabStageAlertConfig | null;
 }
 
 /** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
@@ -857,8 +857,12 @@ export interface LabOrder {
   work_summary: string | null;
   /** Piezas dentales (FDI). Con servicios, la unión de las de cada uno. */
   teeth: number[];
-  /** Fecha de entrega prometida ('YYYY-MM-DD'). Desde el día siguiente, si no llegó a una etapa final, la orden está atrasada. */
+  /** Fecha de entrega prometida ('YYYY-MM-DD'). Es el plazo de la etapa en la que se fijó (due_stage_id). */
   due_date: string | null;
+  /** Etapa en la que se fijó la fecha de entrega (script 177). */
+  due_stage_id: number | null;
+  /** La orden está en esa etapa: el atraso es la fecha de entrega y no los días de la etapa. */
+  due_applies: boolean;
   notes: string | null;
   current_stage_id: number;
   stage_name: string;
@@ -872,9 +876,9 @@ export interface LabOrder {
   is_pending: boolean;
   /** Atrasada: is_stage_overdue o is_past_due. Nunca en etapa final. */
   is_overdue: boolean;
-  /** Lleva más de stage_overdue_days en la etapa. */
+  /** Lleva más de stage_overdue_days en la etapa (fuera de la etapa de la fecha de entrega). */
   is_stage_overdue: boolean;
-  /** La fecha de entrega ya pasó (desde el día siguiente) y no está en una etapa final. */
+  /** La fecha de entrega ya pasó (desde el día siguiente) y la orden sigue en la etapa donde se fijó. */
   is_past_due: boolean;
   /** Días desde la fecha de entrega cuando is_past_due; 0 si no. */
   days_past_due: number;

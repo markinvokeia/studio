@@ -1,7 +1,7 @@
 {
   "id": "config.lab-stages.alerts",
   "title": "Set up a stage’s alerts",
-  "summary": "Choose who is alerted and how when an order enters the stage, stays too long or misses its due date.",
+  "summary": "Choose who is alerted and how when an order enters the stage or is overdue.",
   "module": "Business Setup",
   "inputs": {},
   "keywords": [
@@ -29,13 +29,8 @@
     },
     {
       "id": "dwell",
-      "title": "If it spends more days than expected",
-      "details": "When the order goes past the stage’s overdue days. In “Customize” you can repeat it every X days."
-    },
-    {
-      "id": "due",
-      "title": "If the due date passes",
-      "details": "The day after the due date, if the order is still in this stage."
+      "title": "If the order is overdue",
+      "details": "When the order goes past the stage’s overdue days; in the stage it is sent to, the day after its due date. In “Customize” you can repeat it every X days."
     },
     {
       "id": "apply",

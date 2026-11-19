@@ -1,5 +1,5 @@
 {
- "version": "636be1f19bdcf15c",
+ "version": "2eae8c8e52adc09a",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3130,6 +3130,13 @@
      "source": "src/app/[locale]/alerts/page.tsx"
     },
     {
+     "description": "En las alertas de órdenes de laboratorio, el título abre la orden: etapa, fecha de entrega, laboratorio e historial, con «Mover a…» y el acceso a la ficha del paciente.",
+     "id": "alerts.btn.view-lab-order",
+     "kind": "btn",
+     "label": "Ver la orden de laboratorio",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
      "id": "alerts.btn.view-patient",
      "kind": "btn",
      "label": "Ver al paciente",
@@ -3249,6 +3256,70 @@
      "kind": "section",
      "label": "Resumen",
      "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.move-option",
+     "kind": "btn",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.move-to",
+     "kind": "btn",
+     "label": "Otra etapa…",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.btn.open-patient",
+     "kind": "btn",
+     "label": "Ver ficha",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail",
+     "kind": "section",
+     "label": "Editar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-laboratory",
+     "kind": "section",
+     "label": "Laboratorio",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-services",
+     "kind": "section",
+     "label": "Piezas {teeth}",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-stage",
+     "kind": "section",
+     "label": "Pasar a «{stage}»",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.detail-work",
+     "kind": "section",
+     "label": "Trabajo",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "id": "lab-orders.section.move-menu",
+     "kind": "section",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     }
    ],
    "id": "alerts",
@@ -6755,13 +6826,6 @@
     },
     {
      "description": "Muestra la repetición, los roles, usuarios y canales del aviso.",
-     "id": "config.lab-stages.btn.customize-due",
-     "kind": "btn",
-     "label": "Personalizar",
-     "source": "knowledge/screens/config.lab-stages.json"
-    },
-    {
-     "description": "Muestra la repetición, los roles, usuarios y canales del aviso.",
      "id": "config.lab-stages.btn.customize-dwell",
      "kind": "btn",
      "label": "Personalizar",
@@ -6803,7 +6867,7 @@
      "source": "knowledge/screens/config.lab-stages.json"
     },
     {
-     "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan.",
+     "description": "Días en la etapa a partir de los cuales la orden se marca atrasada. Vacío: sin límite. Las finales no llevan. En la etapa a la que se envía la orden, proponen la fecha de entrega (hoy + estos días) y el atraso pasa a ser esa fecha.",
      "id": "config.lab-stages.field.new-overdue-days",
      "kind": "field",
      "label": "Días de atraso",
@@ -6823,17 +6887,10 @@
      "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
     },
     {
-     "description": "Avisa al día siguiente de la fecha de entrega si la orden sigue en esta etapa; una vez o repetido. No existe en etapas finales. Las etapas nuevas la traen encendida (doctor y quien creó la orden, en el sistema).",
-     "id": "config.lab-stages.section.alert-due",
-     "kind": "section",
-     "label": "Si se pasa la fecha de entrega",
-     "source": "knowledge/screens/config.lab-stages.json"
-    },
-    {
-     "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso.",
+     "description": "Avisa cuando la orden supera los días de atraso de la etapa o, en la etapa a la que se envió, al día siguiente de su fecha de entrega; una vez o repetido cada X días (en Personalizar). Solo en etapas no finales con días de atraso.",
      "id": "config.lab-stages.section.alert-dwell",
      "kind": "section",
-     "label": "Si una orden pasa más días de los previstos",
+     "label": "Si una orden se atrasa",
      "source": "knowledge/screens/config.lab-stages.json"
     },
     {
@@ -6890,7 +6947,7 @@
    "permissions": [
     "LAB_STAGES_CONFIG"
    ],
-   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden se atrasa o se vence su entrega.",
+   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, a partir de cuántos días en una etapa la orden se considera atrasada y a quién avisar cuando una orden llega a una etapa o se atrasa.",
    "route": "/config/lab-stages",
    "status": "draft",
    "summary": "Etapas del circuito de órdenes de laboratorio.",
@@ -6899,7 +6956,7 @@
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
     "Los cambios de la lista se aplican al pulsar Guardar. Los avisos de una etapa ya guardada se guardan desde su ventana, salvo que la página tenga otros cambios pendientes.",
-    "Cada etapa puede avisar cuando una orden llega, cuando pasa más días de los previstos y cuando se pasa la fecha de entrega. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
+    "Cada etapa puede avisar cuando una orden llega y cuando se atrasa. En la etapa a la que se envía la orden, el atraso es la fecha de entrega (que se propone con los días de la etapa y se puede cambiar); en las demás, los días de la etapa. Cada aviso se lee como una frase («Se avisa al doctor de la orden en el sistema»); «Personalizar» agrega roles, usuarios, email o WhatsApp y repetición. Los avisos también quedan en el Centro de alertas."
    ],
    "title": "Etapas de Laboratorio",
    "useCases": [
@@ -27278,19 +27335,11 @@
     },
     {
      "action": "highlight",
-     "details": "Cuando la orden supera los días de atraso de la etapa. En «Personalizar» se elige repetirlo cada X días.",
+     "details": "Cuando la orden supera los días de atraso de la etapa; en la etapa a la que se envía, al día siguiente de su fecha de entrega. En «Personalizar» se elige repetirlo cada X días.",
      "id": "dwell",
      "skipIfMissing": true,
      "target": "config.lab-stages.section.alert-dwell",
-     "title": "Si pasa más días de los previstos"
-    },
-    {
-     "action": "highlight",
-     "details": "Al día siguiente de la fecha de entrega, si la orden sigue en esta etapa.",
-     "id": "due",
-     "skipIfMissing": true,
-     "target": "config.lab-stages.section.alert-due",
-     "title": "Si se pasa la fecha de entrega"
+     "title": "Si la orden se atrasa"
     },
     {
      "action": "confirm",
@@ -27300,7 +27349,7 @@
      "title": "Guardar"
     }
    ],
-   "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa, se queda de más o se le vence la entrega.",
+   "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa o se atrasa.",
    "title": "Configurar las alertas de una etapa"
   },
   {
@@ -27325,14 +27374,14 @@
     },
     {
      "action": "highlight",
-     "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada.",
+     "details": "En el orden del circuito; se reordenan arrastrando el ícono de la izquierda. Hay una sola inicial, donde entra toda orden nueva, y al menos una final. Los días marcan desde cuándo una orden en esa etapa está atrasada; en la etapa a la que se envía, proponen la fecha de entrega.",
      "id": "active",
      "target": "config.lab-stages.section.active",
      "title": "Etapas activas"
     },
     {
      "action": "highlight",
-     "details": "La campana dice cuántos avisos tiene: cuando llega una orden, si se demora, y si se pasa la fecha de entrega.",
+     "details": "La campana dice cuántos avisos tiene: cuando llega una orden y si se atrasa (por los días de la etapa o, donde se envió, por la fecha de entrega).",
      "id": "alerts",
      "target": "config.lab-stages.btn.alerts-first",
      "title": "Avisos de la etapa"

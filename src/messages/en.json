@@ -6276,6 +6276,7 @@
     "actions": {
       "sendEmail": "Send Email",
       "viewPatient": "View patient profile",
+      "viewLabOrder": "View lab order",
       "sendEmailUnavailable": "Patient has no email",
       "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",
@@ -10643,14 +10644,9 @@
       },
       "dwell": {
         "title": "{days, plural, =0 {If an order stays too long in this stage} one {If an order spends more than # day in this stage} other {If an order spends more than # days in this stage}}",
-        "hint": "It's the stage's overdue threshold: after that the order also shows as overdue.",
+        "hint": "It's the stage's overdue threshold: after that the order also shows as overdue. In the stage an order is sent to, the deadline is its due date instead.",
         "notForFinal": "Final stages are never overdue, so they have no time-in-stage alert.",
         "needsThreshold": "Set the stage overdue days to notify on time in stage."
-      },
-      "due": {
-        "title": "If the due date passes",
-        "hint": "The day after the due date, if the order is still in this stage.",
-        "notForFinal": "Final stages have no pending delivery, so they have no overdue-delivery alert."
       },
       "repeat": {
         "label": "Frequency",

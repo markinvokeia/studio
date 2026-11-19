@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { Can } from '@/components/auth/Can';
-import { DEFAULT_LAB_DUE_ALERT, LabStageAlertsDialog, labStageAlertIssues } from '@/components/lab-orders/lab-stage-alerts-dialog';
+import { LabStageAlertsDialog, labStageAlertIssues } from '@/components/lab-orders/lab-stage-alerts-dialog';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
@@ -56,7 +56,7 @@ interface DraftStage {
   alerts: LabStageAlerts;
 }
 
-const NO_ALERTS: LabStageAlerts = { enter: null, dwell: null, due: null };
+const NO_ALERTS: LabStageAlerts = { enter: null, dwell: null };
 
 function toDraft(stage: LabStage): DraftStage {
   return {
@@ -70,7 +70,7 @@ function toDraft(stage: LabStage): DraftStage {
     ordersCount: stage.orders_count,
     inUse: stage.in_use,
     moveOrdersTo: null,
-    alerts: stage.alerts ?? NO_ALERTS,
+    alerts: { enter: stage.alerts?.enter ?? null, dwell: stage.alerts?.dwell ?? null },
   };
 }
 
@@ -84,11 +84,10 @@ function toSaveItem(stage: DraftStage): LabStageSaveItem {
     overdue_days: stage.kind !== 'final' && overdue > 0 ? overdue : null,
     is_active: stage.isActive,
     move_orders_to: stage.isActive ? null : stage.moveOrdersTo,
-    // Una final (o sin umbral) no tiene alerta por permanencia; una final tampoco por entrega vencida.
+    // Una final (o sin umbral) no tiene alerta por atraso.
     alerts: {
       enter: stage.alerts.enter,
       dwell: stage.kind !== 'final' && overdue > 0 ? stage.alerts.dwell : null,
-      due: stage.kind !== 'final' ? stage.alerts.due : null,
     },
   };
 }
@@ -109,7 +108,7 @@ function validate(stages: DraftStage[]): ValidationIssue[] {
   if (stages.some((s) => s.overdueDays !== '' && !(Number.parseInt(s.overdueDays, 10) > 0))) issues.push('invalidOverdue');
   // Se borró el umbral de una etapa que tenía alerta por permanencia: al guardar se perdería.
   if (stages.some((s) => s.alerts.dwell && s.kind !== 'final' && !(Number.parseInt(s.overdueDays, 10) > 0))) issues.push('dwellWithoutThreshold');
-  if (stages.some((s) => [s.alerts.enter, s.alerts.dwell, s.alerts.due].some((a) => labStageAlertIssues(a).length > 0))) issues.push('invalidAlerts');
+  if (stages.some((s) => [s.alerts.enter, s.alerts.dwell].some((a) => labStageAlertIssues(a).length > 0))) issues.push('invalidAlerts');
   return issues;
 }
 
@@ -186,8 +185,8 @@ export default function LabStagesConfigPage() {
 
   const changeKind = (key: string, kind: LabStageKind) => {
     const stage = stages.find((s) => s.key === key);
-    // Una etapa final no tiene atraso ni, por lo tanto, alertas por permanencia o entrega vencida.
-    update(key, kind === 'final' ? { kind, overdueDays: '', alerts: { enter: stage?.alerts.enter ?? null, dwell: null, due: null } } : { kind });
+    // Una etapa final no tiene atraso ni, por lo tanto, alerta por atraso.
+    update(key, kind === 'final' ? { kind, overdueDays: '', alerts: { enter: stage?.alerts.enter ?? null, dwell: null } } : { kind });
   };
 
   // Opciones de las alertas (roles, personal, plantillas): se piden al abrir el diálogo por primera vez.
@@ -207,8 +206,7 @@ export default function LabStagesConfigPage() {
     const draft: DraftStage = {
       key: `new-${newKeyRef.current}`, id: null, name: '', color: DEFAULT_COLOR, kind: 'intermediate',
       overdueDays: '', isActive: true, ordersCount: 0, inUse: false, moveOrdersTo: null,
-      // Una etapa nueva ya avisa si la entrega se vence mientras la orden está en ella.
-      alerts: { ...NO_ALERTS, due: { ...DEFAULT_LAB_DUE_ALERT } },
+      alerts: NO_ALERTS,
     };
     // Antes de la primera final: el circuito suele terminar en las finales.
     setStages((prev) => {
@@ -486,7 +484,7 @@ interface SortableStageRowProps {
   onDeactivate: () => void;
   onRemove: () => void;
   onEditAlerts: () => void;
-  /** La campana que señalan las guías: la de la primera etapa no final (las finales no tienen avisos de demora ni de entrega). */
+  /** La campana que señalan las guías: la de la primera etapa no final (las finales no tienen avisos de atraso). */
   isAlertsGuideTarget: boolean;
 }
 
@@ -499,7 +497,7 @@ function SortableStageRow({ stage, position, isAlertsGuideTarget, disabled, onCh
   // Una etapa nueva o sin uso se puede borrar; con órdenes o historial solo se desactiva.
   const canRemove = !stage.inUse;
   const isFinal = stage.kind === 'final';
-  const alertCount = [stage.alerts.enter, stage.alerts.dwell, stage.alerts.due].filter(Boolean).length;
+  const alertCount = [stage.alerts.enter, stage.alerts.dwell].filter(Boolean).length;
   // Ids de ayuda solo en la etapa recién agregada (sin guardar): la guía de alta la completa.
   const isNew = stage.id == null;
 

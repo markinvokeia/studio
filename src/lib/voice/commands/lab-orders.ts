@@ -214,7 +214,9 @@ async function run(parsed: LabVoiceParsed, ctx: VoiceCommandContext) {
   }
 
   // ── Lo que pide el movimiento: laboratorio y fecha de entrega al enviar ──
-  const sending = order.stage_kind === 'initial' && target.kind === 'intermediate';
+  // Volver a la etapa donde se fijó la fecha (reenviar al laboratorio) también es enviar: fecha nueva (script 177).
+  const sending = (order.stage_kind === 'initial' && target.kind === 'intermediate')
+    || (target.kind !== 'final' && target.id === order.due_stage_id && target.id !== order.current_stage_id);
   let laboratory: Laboratory | null = null;
   let dueDate: string | null = null;
   try {

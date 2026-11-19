@@ -213,7 +213,7 @@ export function useLabStayText() {
 
 const PILL ='inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium';
 
-/** "Vencida hace N días": la fecha de entrega pasó y la orden no llegó a una etapa final. */
+/** "Vencida hace N días": la fecha de entrega pasó y la orden sigue en la etapa donde se fijó. */
 export function LabOrderPastDueBadge({
   order, className,
 }: { order: Pick<LabOrder, 'is_past_due' | 'days_past_due' | 'due_date'>; className?: string }) {
@@ -246,13 +246,14 @@ export const DUE_SOON_DAYS = 7;
  */
 export function LabOrderDueLabel({
   order, onlySoon = false, className,
-}: { order: Pick<LabOrder, 'due_date' | 'is_pending' | 'is_past_due' | 'days_past_due'>; onlySoon?: boolean; className?: string }) {
+}: { order: Pick<LabOrder, 'due_date' | 'is_pending' | 'is_past_due' | 'days_past_due' | 'due_applies'>; onlySoon?: boolean; className?: string }) {
   const t = useTranslations('LabOrdersPage');
   if (!order.due_date || !order.is_pending) return null;
   if (order.is_past_due) return <LabOrderPastDueBadge order={order} className={className} />;
   const days = daysUntilDue(order.due_date);
   const date = formatDisplayDate(order.due_date);
-  if (days >= DUE_SOON_DAYS || days < 0) {
+  // Fuera de la etapa donde se fijó, la fecha ya no es plazo: solo se muestra.
+  if (days >= DUE_SOON_DAYS || days < 0 || !order.due_applies) {
     return onlySoon ? null : <span className={cn('truncate text-[11px] text-muted-foreground', className)}>{t('dueShort', { date })}</span>;
   }
   const text = days === 0 ? t('dueToday') : days === 1 ? t('dueTomorrow') : t('dueInDays', { days });
@@ -297,7 +298,7 @@ export function LabOrderStatusNote({ order, className }: { order: LabOrder; clas
       </span>
     );
   }
-  if (order.due_date) {
+  if (order.due_date && order.due_applies) {
     const days = daysUntilDue(order.due_date);
     if (days >= 0 && days < DUE_SOON_DAYS) {
       const text = days === 0 ? t('dueToday') : days === 1 ? t('dueTomorrow') : t('dueInDays', { days });

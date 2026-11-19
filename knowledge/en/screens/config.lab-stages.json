@@ -1,13 +1,13 @@
 {
   "id": "config.lab-stages",
   "summary": "Stages of the lab order workflow.",
-  "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order is overdue or past its due date.",
+  "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, after how many days in a stage the order is considered overdue, and who to notify when an order reaches a stage or is overdue.",
   "tips": [
     "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
     "List changes apply when you press Save. Alerts of an already saved stage are saved from their window, unless the page has other pending changes.",
-    "Each stage can alert when an order arrives, when it spends more days than expected and when the due date passes. Each alert reads as a sentence (“Alerts the order’s doctor in the app”); “Customize” adds roles, users, email or WhatsApp and repetition. Alerts also go to the Alert Center."
+    "Each stage can alert when an order arrives and when it is overdue. In the stage the order is sent to, overdue means past its due date (suggested from the stage days and editable); in the others, past the stage days. Each alert reads as a sentence (“Alerts the order’s doctor in the app”); “Customize” adds roles, users, email or WhatsApp and repetition. Alerts also go to the Alert Center."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -47,12 +47,8 @@
       "description": "Alerts every time an order moves into this stage. The sentence says who and how; the buttons pick the order’s doctor or its creator."
     },
     "config.lab-stages.section.alert-dwell": {
-      "label": "If an order spends more days than expected",
-      "description": "Alerts when the order goes over the stage’s overdue days; once or every X days (in Customize). Only for non-final stages with overdue days."
-    },
-    "config.lab-stages.section.alert-due": {
-      "label": "If the due date passes",
-      "description": "Alerts the day after the due date if the order is still in this stage; once or repeated. Not available for final stages. New stages have it on (order doctor and creator, in the app)."
+      "label": "If an order is overdue",
+      "description": "Alerts when the order goes over the stage’s overdue days or, in the stage it was sent to, the day after its due date; once or every X days (in Customize). Only for non-final stages with overdue days."
     },
     "config.lab-stages.section.new-stage": {
       "label": "New stage",
@@ -68,7 +64,7 @@
     },
     "config.lab-stages.field.new-overdue-days": {
       "label": "Overdue days",
-      "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none."
+      "description": "Days in the stage after which the order is marked overdue. Empty: no limit. Final stages have none. In the stage an order is sent to, they suggest the due date (today + these days) and that date becomes the deadline."
     },
     "config.lab-stages.btn.apply-alerts": {
       "label": "Save / Apply",
@@ -87,10 +83,6 @@
       "description": "Shows the alert’s roles, users and channels (app, email, WhatsApp with a template)."
     },
     "config.lab-stages.btn.customize-dwell": {
-      "label": "Customize",
-      "description": "Shows the alert’s repetition, roles, users and channels."
-    },
-    "config.lab-stages.btn.customize-due": {
       "label": "Customize",
       "description": "Shows the alert’s repetition, roles, users and channels."
     }

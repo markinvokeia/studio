@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, BellRing, CalendarX, ChevronDown, Clock, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, BellRing, ChevronDown, Clock, SlidersHorizontal } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -31,12 +31,6 @@ export const DEFAULT_LAB_STAGE_ALERT: LabStageAlertConfig = {
   channel_whatsapp: false,
   email_template_id: null,
   whatsapp_template_id: null,
-};
-
-/** Entrega vencida por defecto (etapa nueva, y lo que siembra el script 169): doctor y quien creó la orden. */
-export const DEFAULT_LAB_DUE_ALERT: LabStageAlertConfig = {
-  ...DEFAULT_LAB_STAGE_ALERT,
-  notify_order_creator: true,
 };
 
 export type LabStageAlertIssue = 'noRecipients' | 'noChannel' | 'whatsappTemplate' | 'invalidRepeat';
@@ -84,7 +78,10 @@ function isSimpleAlert(alert: LabStageAlertConfig | null): boolean {
   );
 }
 
-/** Alertas de una etapa: al entrar, por permanencia y por entrega vencida, cada una con destinatarios y canales. */
+/**
+ * Alertas de una etapa: al entrar y por atraso, cada una con destinatarios y canales. El atraso en la
+ * etapa donde se fijó la fecha de entrega es esa fecha (script 177): no hay una alerta aparte.
+ */
 export function LabStageAlertsDialog({
   open, onOpenChange, stageName, stageKind, overdueDays, value, options, optionsError, onRetryOptions, disabled = false, savesNow, onSave,
 }: LabStageAlertsDialogProps) {
@@ -101,13 +98,11 @@ export function LabStageAlertsDialog({
   }, [open]);
 
   const dwellAvailable = stageKind !== 'final' && overdueDays != null;
-  const dueAvailable = stageKind !== 'final';
   const effective: LabStageAlerts = {
     enter: draft.enter,
     dwell: dwellAvailable ? draft.dwell : null,
-    due: dueAvailable ? draft.due : null,
   };
-  const hasIssues = [effective.enter, effective.dwell, effective.due].some((alert) => labStageAlertIssues(alert).length > 0);
+  const hasIssues = [effective.enter, effective.dwell].some((alert) => labStageAlertIssues(alert).length > 0);
   const isDirty = JSON.stringify(effective) !== JSON.stringify(value);
 
   const save = useAsyncAction(async (alerts: LabStageAlerts) => { await onSave(alerts); }, {
@@ -174,27 +169,6 @@ export function LabStageAlertsDialog({
               <p className="mt-1 text-xs text-muted-foreground">
                 {stageKind === 'final' ? t('dwell.notForFinal') : t('dwell.needsThreshold')}
               </p>
-            </section>
-          )}
-
-          {dueAvailable ? (
-            <AlertSection
-              trigger="due"
-              icon={<CalendarX className="h-4 w-4" />}
-              value={draft.due}
-              onChange={(due) => setDraft((d) => ({ ...d, due }))}
-              options={options}
-              disabled={busy}
-              showIssues={showIssues}
-              defaultValue={DEFAULT_LAB_DUE_ALERT}
-            />
-          ) : (
-            <section className="rounded-xl border border-dashed border-border p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                <CalendarX className="h-4 w-4" />
-                {t('due.title')}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{t('due.notForFinal')}</p>
             </section>
           )}
         </DialogBody>

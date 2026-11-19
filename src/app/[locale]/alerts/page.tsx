@@ -15,14 +15,16 @@ import { Can } from '@/components/auth/Can';
 import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { API_ROUTES } from '@/constants/routes';
-import { ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
+import { AlertInstance, AlertAction, AlertCategory, LabStage } from '@/lib/types';
 import { api } from '@/services/api';
 import { usePatientView } from '@/stores/patient-view-store';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
+import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sheet';
+import { fetchLabStages } from '@/services/lab-stages';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import {
     AlertTriangle,
@@ -534,6 +536,26 @@ function AlertsCenterPageContent() {
         });
     }, [openPatient, patientContactByPatientId, getAlertPatientId]);
 
+    // Alertas de órdenes de laboratorio: el título abre la orden (el mismo panel que la ficha del
+    // paciente → Laboratorio); desde ahí sigue estando "Abrir ficha del paciente".
+    const canViewLabOrders = hasPermission(LAB_ORDERS_PERMISSIONS.VIEW);
+    const [labOrderId, setLabOrderId] = React.useState<number | null>(null);
+    const [labStages, setLabStages] = React.useState<LabStage[] | null>(null);
+
+    const getAlertLabOrderId = React.useCallback((alert: AlertInstance): number | null => {
+        if (alert.reference_table !== 'lab_orders') return null;
+        const id = Number(alert.reference_id);
+        return Number.isInteger(id) && id > 0 ? id : null;
+    }, []);
+
+    const openLabOrderFromAlert = React.useCallback((orderId: number) => {
+        setLabOrderId(orderId);
+        if (labStages) return;
+        fetchLabStages()
+            .then((data) => setLabStages(data.filter((s) => s.is_active)))
+            .catch(() => { /* sin etapas solo falta "Mover a…"; el detalle igual se muestra */ });
+    }, [labStages]);
+
     const openAlertEmailComposer = React.useCallback((alert: AlertInstance) => {
         setAlertForEmailComposer(alert);
         setIsAlertEmailDialogOpen(true);
@@ -844,7 +866,18 @@ function AlertsCenterPageContent() {
                                                 <div className="flex-1 min-w-0 flex flex-col gap-2">
                                                     {/* Row 1: title + details */}
                                                     <div>
-                                                        {alert.patient_id ? (
+                                                        {canViewLabOrders && getAlertLabOrderId(alert) ? (
+                                                            <button
+                                                                type="button"
+                                                                data-help-id="alerts.btn.view-lab-order"
+                                                                onClick={() => openLabOrderFromAlert(getAlertLabOrderId(alert)!)}
+                                                                title={t('actions.viewLabOrder')}
+                                                                className="group flex items-start gap-1.5 text-left font-semibold leading-snug text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+                                                            >
+                                                                <span>{alert.title}</span>
+                                                                <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                                                            </button>
+                                                        ) : alert.patient_id ? (
                                                             <button
                                                                 type="button"
                                                                 data-help-id="alerts.btn.view-patient"
@@ -1207,6 +1240,17 @@ function AlertsCenterPageContent() {
                     if (alertForEmailComposer) completeAlertSilently(alertForEmailComposer.id);
                 }}
             />
+
+            {canViewLabOrders && (
+                <LabOrderDetailSheet
+                    orderId={labOrderId}
+                    stages={labStages ?? []}
+                    showOpenPatient
+                    onClose={() => setLabOrderId(null)}
+                    // Mover o editar la orden puede resolver sus alertas: se recarga la lista.
+                    onChanged={() => { void loadAlerts(); refreshAlerts(); }}
+                />
+            )}
 
             {/* Floating Bulk Actions Bar */}
             <Can permission={ALERT_CENTER_PERMISSIONS.BULK_ACTIONS}>

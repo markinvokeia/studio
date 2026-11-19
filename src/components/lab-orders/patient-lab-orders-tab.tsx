@@ -52,7 +52,7 @@ function parseUtc(iso: string): Date {
 function matchesAlert(order: LabOrder, filter: AlertFilter): boolean {
   if (filter === 'overdue') return order.is_overdue;
   if (filter === 'noLab') return !order.laboratory_id;
-  if (!order.due_date || order.is_past_due) return false;
+  if (!order.due_date || order.is_past_due || !order.due_applies) return false;
   const days = daysUntilDue(order.due_date);
   return days >= 0 && days < DUE_SOON_DAYS;
 }

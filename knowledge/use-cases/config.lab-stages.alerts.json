@@ -2,7 +2,7 @@
   "id": "config.lab-stages.alerts",
   "title": "Configurar las alertas de una etapa",
   "module": "Configuración de Negocio",
-  "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa, se queda de más o se le vence la entrega.",
+  "summary": "Elegir a quién avisar y por qué canal cuando una orden entra a la etapa o se atrasa.",
   "screens": [
     "config.lab-stages"
   ],
@@ -40,16 +40,8 @@
       "id": "dwell",
       "action": "highlight",
       "target": "config.lab-stages.section.alert-dwell",
-      "title": "Si pasa más días de los previstos",
-      "details": "Cuando la orden supera los días de atraso de la etapa. En «Personalizar» se elige repetirlo cada X días.",
-      "skipIfMissing": true
-    },
-    {
-      "id": "due",
-      "action": "highlight",
-      "target": "config.lab-stages.section.alert-due",
-      "title": "Si se pasa la fecha de entrega",
-      "details": "Al día siguiente de la fecha de entrega, si la orden sigue en esta etapa.",
+      "title": "Si la orden se atrasa",
+      "details": "Cuando la orden supera los días de atraso de la etapa; en la etapa a la que se envía, al día siguiente de su fecha de entrega. En «Personalizar» se elige repetirlo cada X días.",
       "skipIfMissing": true
     },
     {
