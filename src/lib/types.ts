@@ -4475,13 +4475,18 @@ export interface VoiceAiContext {
   stages: Array<{ id: number; name: string; kind: string }>;
   laboratories: Array<{ id: string; name: string }>;
   /**
-   * Orden que se está creando (el asistente de alta abierto por voz): la frase es una corrección.
-   * Sin el paciente: solo trabajos, laboratorio y envío.
+   * Orden abierta en el asistente por voz (alta o edición): la frase es una corrección.
+   * Sin el paciente: solo trabajos, laboratorio, entrega y envío.
    */
   draft?: VoiceAiDraftContext;
 }
 
 export interface VoiceAiDraftContext {
+  /** 'create': orden nueva (sin número); 'edit': la orden `order_id`, que ya existe. Sin el campo, alta. */
+  mode?: 'create' | 'edit';
+  order_id?: number | null;
+  /** Edición: etapa en la que está (la entrega solo se cambia si ya se envió). */
+  stage?: string | null;
   items: VoiceAiItem[];
   /** Piezas de la orden cuando no hay trabajos del catálogo. */
   teeth: number[];
@@ -4505,7 +4510,7 @@ export interface VoiceAiDraftEdit {
   work_description: string | null;
   laboratory_id: string | null;
   clear_laboratory: boolean;
-  /** true: enviarla al crearla; false: no enviarla. */
+  /** true: enviarla al crearla; false: no enviarla. En la edición no se usa (se envía moviéndola de etapa). */
   send: boolean | null;
   due_date: string | null;
   urgent: boolean | null;
@@ -4521,8 +4526,13 @@ export type VoiceAiIntent =
   | 'lab_order.status'
   /** "Mostrame las atrasadas": filtra la pantalla de órdenes. */
   | 'lab_order.list'
-  /** Corrección a la orden que se está creando por voz ("que sea urgente", "agregá un perno"). */
+  /** Corrección a la orden abierta por voz, nueva o en edición ("que sea urgente", "agregá un perno"). */
   | 'lab_order.draft_edit'
+  /**
+   * Editar una orden existente (con número) en el asistente: "editá la 45", "a la 45 agregale un
+   * perno", "la 45 es para María López". Lo que se pide cambiar viene en `draft_edit`.
+   */
+  | 'lab_order.edit'
   | 'unknown';
 
 /** Filtros pedidos con lab_order.list. */
@@ -4568,7 +4578,7 @@ export interface VoiceAiResult {
   note_add: string | null;
   /** lab_order.list. Paciente y laboratorio van en `patient` y `laboratory_id`. */
   filter: VoiceAiListFilter | null;
-  /** lab_order.draft_edit. */
+  /** lab_order.draft_edit y lab_order.edit (en este, vacío si solo se pidió abrirla para editar). */
   draft_edit: VoiceAiDraftEdit | null;
   confidence: number;
 }

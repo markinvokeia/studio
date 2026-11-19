@@ -112,15 +112,20 @@ export interface LabOrderDraft {
   /** "Crear y enviar" ya elegido, con su fecha de entrega. */
   send?: boolean;
   send_due_date?: string;
+  /** Edición: la fecha de entrega de la orden ('YYYY-MM-DD'; vacía si no tiene). Solo la lee y cambia la voz. */
+  due_date?: string;
   /** Abrir directo en Revisar (todo lo necesario ya viene cargado). */
   startAtReview?: boolean;
 }
 
-/** Lo que la voz puede cambiar de un alta abierta ("que sea urgente", "agregá un perno en la 21"). */
+/**
+ * Lo que la voz puede cambiar del asistente abierto ("que sea urgente", "agregá un perno en la 21").
+ * `send`/`send_due_date` son del alta; `due_date`, de la edición.
+ */
 export type LabOrderDraftPatch = Partial<Pick<LabOrderDraft,
-  'patient' | 'items' | 'teeth' | 'work_description' | 'laboratory' | 'is_urgent' | 'notes' | 'send' | 'send_due_date'>>;
+  'patient' | 'items' | 'teeth' | 'work_description' | 'laboratory' | 'is_urgent' | 'notes' | 'send' | 'send_due_date' | 'due_date'>>;
 
-/** Acceso de la voz al alta abierta: leer cómo está (con lo que se cambió a mano) y corregirla. */
+/** Acceso de la voz al asistente abierto (alta o edición): leer cómo está (con lo que se cambió a mano) y corregirlo. */
 export interface LabOrderDraftControl {
   read: () => LabOrderDraft;
   apply: (patch: LabOrderDraftPatch) => void;
@@ -211,7 +216,7 @@ export interface LabOrderFormDialogProps {
   submitSignal?: number;
   /** El guardado pedido no salió: el error del servidor, o null si faltan datos del formulario. */
   onSubmitFailed?: (message: string | null) => void;
-  /** Alta abierta por voz: recibe el acceso para leerla y corregirla (null al cerrarse). */
+  /** Abierto por voz (alta o edición): recibe el acceso para leerlo y corregirlo (null al cerrarse). */
   voiceControl?: (control: LabOrderDraftControl | null) => void;
 }
 
@@ -419,7 +424,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     }
   };
 
-  // "Sí" por voz: el mismo envío que el botón Crear (con su validación).
+  // "Sí" por voz: el mismo envío que el botón Crear / Guardar cambios (con su validación).
   const lastSignalRef = React.useRef(submitSignal);
   React.useEffect(() => {
     if (submitSignal === lastSignalRef.current) return;
@@ -430,7 +435,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitSignal]);
 
-  // Voz: leer el alta como está ahora y aplicarle correcciones (siempre con el estado del último render).
+  // Voz: leer el formulario como está ahora y aplicarle correcciones (siempre con el estado del último render).
   const draftControlRef = React.useRef<LabOrderDraftControl | null>(null);
   const draftControl: LabOrderDraftControl = {
     read: () => {
@@ -451,8 +456,9 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
         is_urgent: v.is_urgent,
         notes: v.notes ?? '',
         // Sin etapa a la que enviar, "Crear y enviar" no existe.
-        send: Boolean(stages) && v.send,
-        send_due_date: v.send_due_date ?? '',
+        send: !isEdit && Boolean(stages) && v.send,
+        send_due_date: isEdit ? '' : v.send_due_date ?? '',
+        ...(isEdit ? { due_date: v.due_date ?? '' } : {}),
       };
     },
     apply: (patch) => {
@@ -484,6 +490,8 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
       if (patch.notes !== undefined) form.setValue('notes', patch.notes, opts);
       if (patch.send !== undefined) form.setValue('send', patch.send, opts);
       if (patch.send_due_date !== undefined) form.setValue('send_due_date', patch.send_due_date, opts);
+      // La entrega solo se edita si la orden ya se envió (como el campo).
+      if (patch.due_date !== undefined && dueMode !== 'hidden') form.setValue('due_date', patch.due_date, opts);
       form.clearErrors();
       setSubmissionError(null);
       setStep('review');
@@ -494,14 +502,14 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
     draftControlRef.current = draftControl;
   });
   React.useEffect(() => {
-    if (!open || isEdit || !voiceControl) return;
+    if (!open || !voiceControl) return;
     voiceControl({
       read: () => draftControlRef.current!.read(),
       apply: (patch) => draftControlRef.current!.apply(patch),
       subscribe: (listener) => draftControlRef.current!.subscribe(listener),
     });
     return () => voiceControl(null);
-  }, [open, isEdit, voiceControl]);
+  }, [open, voiceControl]);
 
   const submitLabel = isEdit ? t('form.saveChanges') : sending ? t('wizard.createAndSend') : t('form.create');
 

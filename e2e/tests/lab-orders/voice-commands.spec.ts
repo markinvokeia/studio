@@ -400,6 +400,108 @@ test.describe('Comandos de voz — órdenes de laboratorio', () => {
     expect(captured.stageChanges).toHaveLength(0);
   });
 
+  test('"editá la orden N": abre la edición, aplica correcciones (local e IA) y "sí" guarda', async ({ page }) => {
+    const captured = await interceptLabOrders(page);
+    const aiRequests: { context: Record<string, unknown> }[] = [];
+    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as { context: Record<string, unknown> };
+      aiRequests.push(body);
+      const result = body.context.draft
+        ? { intent: 'lab_order.draft_edit', draft_edit: { update_items: [{ service: null, quantity: null, teeth: [46] }] }, confidence: 0.9 }
+        : { intent: 'unknown', confidence: 0 };
+      await route.fulfill({ json: { result } });
+    });
+    const saves: Record<string, unknown>[] = [];
+    await page.route(/\/lab-orders\/save(\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      saves.push(body);
+      const detail = captured.details.get(Number(body.id)) ?? {};
+      await route.fulfill({ json: [{ ...detail, is_urgent: body.is_urgent }] });
+    });
+    await page.goto('/lab-orders');
+    const id = await firstInitialOrderId(page, captured);
+    const card = page.locator('[data-voice-card]');
+
+    await pushToTalk(page, `editá la orden ${id}`);
+    const dialog = page.getByRole('dialog', { name: new RegExp(`(Editar orden|Edit order) #${id}`) });
+    await expect(dialog).toBeVisible({ timeout: 20_000 });
+    await expect(card).toContainText(/qu(é|e) (querés|quieres) cambiar/i, { timeout: 20_000 });
+    const detail = captured.details.get(id) as { patient_name: string; is_urgent: boolean };
+    await expect(card).toContainText(detail.patient_name);
+
+    // Local, sin IA: lo contrario de lo urgente que tiene; la tarjeta lo marca "antes → ahora".
+    await say(page, detail.is_urgent ? 'que no sea urgente' : 'que sea urgente');
+    await expect(card).toContainText(detail.is_urgent ? /Sí → No/ : /No → Sí/, { timeout: 15_000 });
+    await expect(card).toContainText(/«sí» para guardar/);
+    expect(aiRequests).toHaveLength(0);
+
+    // Con la IA: recibe la orden en edición (con su número, sin el paciente).
+    await say(page, 'la pieza es la cuarenta y seis');
+    await expect(card).toContainText('(46)', { timeout: 20_000 });
+    expect(aiRequests).toHaveLength(1);
+    const draft = aiRequests[0].context.draft as Record<string, unknown>;
+    expect(draft).toMatchObject({ mode: 'edit', order_id: id, send: false });
+    expect(JSON.stringify(draft)).not.toContain(detail.patient_name);
+    await page.screenshot({ path: 'test-results/voice-edit-confirm.png' });
+
+    await say(page, 'sí');
+    await expect(card).toContainText(new RegExp(`orden ${id}`), { timeout: 20_000 });
+    await expect(dialog).toBeHidden();
+    expect(saves).toHaveLength(1);
+    expect(saves[0]).toMatchObject({ id, is_urgent: !detail.is_urgent });
+    const savedItems = saves[0].items as { teeth: number[] }[];
+    expect(savedItems.length ? savedItems[0].teeth : saves[0].teeth).toEqual([46]);
+    expect(captured.stageChanges).toHaveLength(0);
+  });
+
+  test('cambiar el paciente de una orden por voz: se marca en rojo y se guarda solo con "sí"', async ({ page }) => {
+    const captured = await interceptLabOrders(page);
+    await page.goto('/lab-orders');
+    await firstInitialOrderId(page, captured);
+    // Dos órdenes de DEV con pacientes distintos (sus detalles se leen abriéndolas).
+    const ids = await page.locator('[data-lab-card-id]').evaluateAll((cards) => cards.slice(0, 8).map((c) => Number(c.getAttribute('data-lab-card-id'))));
+    let target: { id: number; patient_name: string; patient_id: string } | null = null;
+    let other: { patient_name: string; patient_id: string } | null = null;
+    for (const cardId of ids) {
+      await page.locator(`[data-lab-card-id="${cardId}"]`).click();
+      await expect.poll(() => captured.details.has(cardId), { timeout: 20_000 }).toBeTruthy();
+      await page.keyboard.press('Escape');
+      const d = captured.details.get(cardId) as { id: number; patient_name: string; patient_id: string };
+      if (!target) target = d;
+      else if (String(d.patient_id) !== String(target.patient_id)) { other = d; break; }
+    }
+    test.skip(!target || !other, 'DEV no tiene dos órdenes de pacientes distintos en el tablero');
+
+    const aiRequests: { context: Record<string, unknown> }[] = [];
+    await page.route(/\/help\/voice\/command(\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as { context: Record<string, unknown> };
+      aiRequests.push(body);
+      await route.fulfill({ json: { result: { intent: 'lab_order.draft_edit', draft_edit: { patient: other!.patient_name }, confidence: 0.9 } } });
+    });
+    const saves: Record<string, unknown>[] = [];
+    await page.route(/\/lab-orders\/save(\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      saves.push(body);
+      await route.fulfill({ json: [{ ...captured.details.get(target!.id), patient_id: body.patient_id, patient_name: other!.patient_name }] });
+    });
+
+    const card = page.locator('[data-voice-card]');
+    await pushToTalk(page, `la orden ${target!.id}, el paciente es ${other!.patient_name}`);
+    const dialog = page.getByRole('dialog', { name: new RegExp(`(Editar orden|Edit order) #${target!.id}`) });
+    await expect(dialog).toBeVisible({ timeout: 20_000 });
+    await answerChoicesUntil(page, card, /«sí» para guardar/);
+    await expect(card).toContainText(`${target!.patient_name} → ${other!.patient_name}`);
+    await expect(dialog).toContainText(other!.patient_name);
+    expect(aiRequests.length).toBeGreaterThan(0);
+    expect(saves).toHaveLength(0);
+    await page.screenshot({ path: 'test-results/voice-edit-patient.png' });
+
+    await say(page, 'sí');
+    await expect(card).toContainText(new RegExp(`orden ${target!.id}`), { timeout: 20_000 });
+    expect(saves).toHaveLength(1);
+    expect(saves[0]).toMatchObject({ id: target!.id, patient_id: String(other!.patient_id) });
+  });
+
   test('"mostrame las órdenes atrasadas" filtra la pantalla y dice cuántas hay', async ({ page }) => {
     const captured = await interceptLabOrders(page);
     await page.goto('/lab-orders');
