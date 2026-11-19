@@ -28,6 +28,9 @@ import { Input } from '@/components/ui/input';
 import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
+
+import { TeethPicker } from '@/components/dental/teeth-picker';
+
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
@@ -246,14 +249,17 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
                 <FormField control={form.control} name="tooth_number" render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('fields.tooth')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="-"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                      />
-                    </FormControl>
+                    <div className="flex gap-1.5">
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="-"
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                          />
+                        </FormControl>
+                        <TeethPicker mode="single" value={field.value == null ? '' : String(field.value)} onChange={(next) => field.onChange(next === '' ? '' : Number(next))} />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )} />

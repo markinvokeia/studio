@@ -57,6 +57,7 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 /**
@@ -709,11 +710,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                         <FormField control={form.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">{t('quoteDialog.items.toothNumber')}</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="number" placeholder="-" {...field}
-                                                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                                                                    />
-                                                                </FormControl>
+                                                                <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                    <FormControl>
+                                                                        <Input className="pl-7" type="number" placeholder="-" {...field}
+                                                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                                                                        />
+                                                                    </FormControl>
+                                                                </ToothInputWithPicker>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -837,11 +840,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                         <td className="p-1">
                                                             <FormField control={form.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormControl>
-                                                                        <Input type="number" placeholder="-" {...field}
-                                                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                                                                        />
-                                                                    </FormControl>
+                                                                    <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                        <FormControl>
+                                                                            <Input className="pl-7" type="number" placeholder="-" {...field}
+                                                                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                                                                            />
+                                                                        </FormControl>
+                                                                    </ToothInputWithPicker>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />

@@ -43,6 +43,7 @@ import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem, Invoice } from '@/lib/types';
 import { fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
+import { TeethPicker, ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { formatDisplayDate, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -2032,17 +2033,20 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                   <td className="p-1">
                                     <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                       <FormItem>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            min={11}
-                                            max={85}
-                                            placeholder="—"
-                                            {...field}
-                                            value={field.value ?? ''}
-                                            onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
-                                          />
-                                        </FormControl>
+                                        <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              min={11}
+                                              max={85}
+                                              placeholder="—"
+                                              className="pl-7"
+                                              {...field}
+                                              value={field.value ?? ''}
+                                              onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                            />
+                                          </FormControl>
+                                        </ToothInputWithPicker>
                                         <FormMessage />
                                       </FormItem>
                                     )} />
@@ -2224,9 +2228,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UserQuotes.dialogs.itemDialog.toothNumberOptional')}</FormLabel>
-                      <FormControl>
-                        <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                      </FormControl>
+                      <div className="flex gap-1.5">
+                        <FormControl>
+                          <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                        </FormControl>
+                        <TeethPicker mode="single" value={field.value == null ? '' : String(field.value)} onChange={(next) => field.onChange(next === '' ? undefined : next)} />
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )} />

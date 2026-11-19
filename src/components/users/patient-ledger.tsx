@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
@@ -1184,7 +1185,13 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             {...form.register('description')}
           />
         </FieldIcon>
-        <FieldIcon icon={ToothIcon} className="[grid-area:tooth]">
+        {/* The tooth glyph is the picker trigger: the slot is too narrow for a separate button. */}
+        <ToothInputWithPicker
+          className="[grid-area:tooth]"
+          size="sm"
+          value={form.watch('tooth_number')}
+          onChange={(next) => form.setValue('tooth_number', next, { shouldDirty: true, shouldValidate: true })}
+        >
           <Input
             type="number"
             min={0}
@@ -1194,7 +1201,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             className="h-8 pl-7 text-sm"
             {...form.register('tooth_number')}
           />
-        </FieldIcon>
+        </ToothInputWithPicker>
       </InlineEditorShell>
     </form>
   );

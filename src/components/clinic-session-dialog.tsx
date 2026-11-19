@@ -37,6 +37,7 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { useHelpScope } from '@/components/help/help-scope';
 import { composeHelpId } from '@/lib/help/help-id';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+import { TeethPicker, ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface ClinicSessionDialogProps {
@@ -859,14 +860,23 @@ export function ClinicSessionDialog({
                                 {annotationMode && (
                                     <div className="space-y-2">
                                         <Label>{t('annotation.piece')}</Label>
-                                        <Input
-                                            value={form.pieza || ''}
-                                            onChange={(e) => {
-                                                setIsDirty(true);
-                                                setForm(prev => ({ ...prev, pieza: e.target.value }));
-                                            }}
-                                            placeholder={t('annotation.piecePlaceholder')}
-                                        />
+                                        <div className="flex gap-1.5">
+                                            <Input
+                                                value={form.pieza || ''}
+                                                onChange={(e) => {
+                                                    setIsDirty(true);
+                                                    setForm(prev => ({ ...prev, pieza: e.target.value }));
+                                                }}
+                                                placeholder={t('annotation.piecePlaceholder')}
+                                            />
+                                            <TeethPicker
+                                                value={form.pieza || ''}
+                                                onChange={(next) => {
+                                                    setIsDirty(true);
+                                                    setForm(prev => ({ ...prev, pieza: next }));
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 )}
 
@@ -1438,17 +1448,28 @@ export function ClinicSessionDialog({
                                                 </div>
                                             ) : treatments.map((treatment, index) => (
                                                 <div key={index} className="flex gap-2 items-start p-2 bg-background border rounded-md">
-                                                    <Input
-                                                        type="number"
-                                                        placeholder={t('treatments.toothNumber')}
-                                                        value={treatment.numero_diente ?? ''}
-                                                        onChange={(e) => {
+                                                    <ToothInputWithPicker
+                                                        size="sm"
+                                                        className="w-20 shrink-0"
+                                                        value={treatment.numero_diente}
+                                                        onChange={(next) => {
                                                             setTreatments(prev => prev.map((t, i) =>
-                                                                i === index ? { ...t, numero_diente: e.target.value ? parseInt(e.target.value, 10) : null } : t
+                                                                i === index ? { ...t, numero_diente: next ? Number(next) : null } : t
                                                             ));
                                                         }}
-                                                        className="h-7 text-xs px-2 w-16"
-                                                    />
+                                                    >
+                                                        <Input
+                                                            type="number"
+                                                            placeholder={t('treatments.toothNumber')}
+                                                            value={treatment.numero_diente ?? ''}
+                                                            onChange={(e) => {
+                                                                setTreatments(prev => prev.map((t, i) =>
+                                                                    i === index ? { ...t, numero_diente: e.target.value ? parseInt(e.target.value, 10) : null } : t
+                                                                ));
+                                                            }}
+                                                            className="h-7 text-xs pl-7 pr-1"
+                                                        />
+                                                    </ToothInputWithPicker>
                                                     <Textarea
                                                         placeholder={t('treatments.treatmentPlaceholder')}
                                                         value={treatment.descripcion}

@@ -1,6 +1,7 @@
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { TeethPicker, ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
@@ -2260,9 +2261,11 @@ export default function QuotesPage() {
                                                             <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel className="text-xs">{t('quoteDialog.items.toothNumber')}</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
-                                                                    </FormControl>
+                                                                    <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                        <FormControl>
+                                                                            <Input className="pl-7" type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
+                                                                        </FormControl>
+                                                                    </ToothInputWithPicker>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />
@@ -2373,9 +2376,11 @@ export default function QuotesPage() {
                                                             <td className="p-1">
                                                                 <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormControl>
-                                                                            <Input type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
-                                                                        </FormControl>
+                                                                        <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                            <FormControl>
+                                                                                <Input className="pl-7" type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
+                                                                            </FormControl>
+                                                                        </ToothInputWithPicker>
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )} />
@@ -2537,17 +2542,20 @@ export default function QuotesPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder={t('placeholders.toothNumber')}
-                                                    {...field}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        field.onChange(value === '' ? '' : Number(value));
-                                                    }}
-                                                />
-                                            </FormControl>
+                                            <div className="flex gap-1.5">
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder={t('placeholders.toothNumber')}
+                                                        {...field}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            field.onChange(value === '' ? '' : Number(value));
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <TeethPicker mode="single" value={field.value == null ? '' : String(field.value)} onChange={(next) => field.onChange(next === '' ? '' : Number(next))} />
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )}

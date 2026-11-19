@@ -7584,7 +7584,21 @@
     "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo.",
     "loadError": "No se pudieron cargar los datos.",
     "retry": "Reintentar",
-    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?"
+    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?",
+    "teethPicker": {
+      "open": "Elegir piezas en el odontograma",
+      "openOne": "Elegir la pieza en el odontograma",
+      "title": "Tocá las piezas",
+      "titleOne": "Tocá la pieza",
+      "dentition": "Dentición",
+      "permanent": "Permanente",
+      "primary": "Temporal",
+      "tooth": "Pieza {tooth}",
+      "selected": "Elegidas: {teeth}",
+      "selectedOne": "Elegida: {tooth}",
+      "none": "Ninguna elegida",
+      "clear": "Limpiar"
+    }
   },
   "ImportPage": {
     "title": "Importar Datos",
@@ -11156,17 +11170,6 @@
       "cancel": "Cancelar",
       "done": "Listo",
       "retry": "Reintentar"
-    },
-    "teethPicker": {
-      "open": "Elegir piezas en el odontograma",
-      "title": "Tocá las piezas",
-      "dentition": "Dentición",
-      "permanent": "Permanente",
-      "primary": "Temporal",
-      "tooth": "Pieza {tooth}",
-      "selected": "Elegidas: {teeth}",
-      "none": "Ninguna elegida",
-      "clear": "Limpiar"
     },
     "reload": "Recargar"
   },

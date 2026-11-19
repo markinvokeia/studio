@@ -7584,7 +7584,21 @@
     "timeoutError": "The server took too long to respond. The change may have been saved — refresh before trying again.",
     "loadError": "The data could not be loaded.",
     "retry": "Retry",
-    "unsavedChangesConfirm": "You have unsaved changes. Discard them?"
+    "unsavedChangesConfirm": "You have unsaved changes. Discard them?",
+    "teethPicker": {
+      "open": "Pick teeth on the chart",
+      "openOne": "Pick the tooth on the chart",
+      "title": "Tap the teeth",
+      "titleOne": "Tap the tooth",
+      "dentition": "Dentition",
+      "permanent": "Permanent",
+      "primary": "Primary",
+      "tooth": "Tooth {tooth}",
+      "selected": "Selected: {teeth}",
+      "selectedOne": "Selected: {tooth}",
+      "none": "None selected",
+      "clear": "Clear"
+    }
   },
   "ImportPage": {
     "title": "Import Data",
@@ -11156,17 +11170,6 @@
       "cancel": "Cancel",
       "done": "Done",
       "retry": "Retry"
-    },
-    "teethPicker": {
-      "open": "Pick teeth on the chart",
-      "title": "Tap the teeth",
-      "dentition": "Dentition",
-      "permanent": "Permanent",
-      "primary": "Primary",
-      "tooth": "Tooth {tooth}",
-      "selected": "Selected: {teeth}",
-      "none": "None selected",
-      "clear": "Clear"
     },
     "reload": "Reload"
   },

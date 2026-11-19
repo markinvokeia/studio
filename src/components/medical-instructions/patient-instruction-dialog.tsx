@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { InstructionRichTextEditor } from '@/components/medical-instructions/instruction-rich-text-editor';
+import { TeethPicker } from '@/components/dental/teeth-picker';
 import { usePatientInstructionPrint } from '@/components/medical-instructions/patient-instruction-print-view';
 import { useHelpScope } from '@/components/help/help-scope';
 
@@ -272,14 +273,17 @@ export function PatientInstructionDialog({
                             </div>
                             <div data-help-id={composeHelpId(helpScope, 'field', 'mi-tooth')} className="space-y-2">
                                 <Label>{t('tooth')}</Label>
-                                <Input
-                                    type="number"
-                                    min={11}
-                                    max={85}
-                                    placeholder={t('toothPlaceholder')}
-                                    value={toothNumber}
-                                    onChange={(e) => setToothNumber(e.target.value)}
-                                />
+                                <div className="flex gap-1.5">
+                                    <Input
+                                        type="number"
+                                        min={11}
+                                        max={85}
+                                        placeholder={t('toothPlaceholder')}
+                                        value={toothNumber}
+                                        onChange={(e) => setToothNumber(e.target.value)}
+                                    />
+                                    <TeethPicker mode="single" value={toothNumber} onChange={setToothNumber} />
+                                </div>
                             </div>
                             <div data-help-id={composeHelpId(helpScope, 'field', 'mi-doctor')} className="space-y-2">
                                 <Label>{t('doctor')}</Label>

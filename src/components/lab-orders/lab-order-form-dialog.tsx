@@ -24,7 +24,7 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { LabOrderAttachmentPicker } from '@/components/lab-orders/lab-order-attachments';
 import { LabStageBadge, nextLabStage, parseTeeth, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
-import { LabTeethPicker } from '@/components/lab-orders/lab-teeth-picker';
+import { TeethPicker } from '@/components/dental/teeth-picker';
 
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -702,7 +702,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                                     <FormControl>
                                       <Input {...field} inputMode="numeric" className="h-9" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
                                     </FormControl>
-                                    <LabTeethPicker
+                                    <TeethPicker helpId="lab-orders.btn.teeth-picker" sectionHelpId="lab-orders.section.teeth-picker"
                                       value={field.value}
                                       onChange={(next) => form.setValue(`items.${index}.teeth`, next, { shouldDirty: true, shouldValidate: true })}
                                       disabled={save.isPending}
@@ -772,7 +772,7 @@ export function LabOrderFormDialog({ open, onOpenChange, order, patient, draft, 
                               <FormControl>
                                 <Input {...field} inputMode="numeric" placeholder={t('form.teethPlaceholder')} disabled={save.isPending} />
                               </FormControl>
-                              <LabTeethPicker
+                              <TeethPicker helpId="lab-orders.btn.teeth-picker" sectionHelpId="lab-orders.section.teeth-picker"
                                 value={field.value}
                                 onChange={(next) => form.setValue('teeth', next, { shouldDirty: true, shouldValidate: true })}
                                 disabled={save.isPending}

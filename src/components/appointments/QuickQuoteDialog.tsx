@@ -33,6 +33,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { ToothInputWithPicker } from '@/components/dental/teeth-picker';
 
 interface QuoteItem {
   id: string;
@@ -348,14 +349,17 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                               />
                             </td>
                             <td className="p-1">
-                              <Input
-                                type="number"
-                                min="11"
-                                max="85"
-                                placeholder="—"
-                                value={item.tooth_number || ''}
-                                onChange={(e) => handleUpdateItem(index, 'tooth_number', e.target.value)}
-                              />
+                              <ToothInputWithPicker value={item.tooth_number} onChange={(next) => handleUpdateItem(index, 'tooth_number', next)}>
+                                <Input
+                                  type="number"
+                                  min="11"
+                                  max="85"
+                                  placeholder="—"
+                                  className="pl-7"
+                                  value={item.tooth_number || ''}
+                                  onChange={(e) => handleUpdateItem(index, 'tooth_number', e.target.value)}
+                                />
+                              </ToothInputWithPicker>
                             </td>
                             <td className="p-1 text-center">
                               <Button
