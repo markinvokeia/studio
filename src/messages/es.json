@@ -6639,7 +6639,10 @@
       },
       "badRequest": "Error de validación. Por favor verifique los datos ingresados."
     },
-    "noAccess": "No tiene acceso para ver esta sección."
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "editorBold": "Negrita",
+    "editorItalic": "Cursiva",
+    "editorList": "Lista"
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Plantillas de Indicaciones Médicas",

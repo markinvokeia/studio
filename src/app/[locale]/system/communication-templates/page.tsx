@@ -936,9 +936,9 @@ export default function CommunicationTemplatesPage() {
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                             <div className="flex items-center space-x-1 border rounded-md p-1">
-                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
-                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
-                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])} aria-label={t('editorBold')} title={t('editorBold')}><Bold className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])} aria-label={t('editorItalic')} title={t('editorItalic')}><Italic className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')} aria-label={t('editorList')} title={t('editorList')}><List className="h-4 w-4" /></Button>
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 <Switch id="preview-mode" checked={showPreview} onCheckedChange={setShowPreview} />

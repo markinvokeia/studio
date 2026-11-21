@@ -6639,7 +6639,10 @@
       },
       "badRequest": "Validation error. Please check the entered data."
     },
-    "noAccess": "You don't have access to view this section."
+    "noAccess": "You don't have access to view this section.",
+    "editorBold": "Bold",
+    "editorItalic": "Italic",
+    "editorList": "List"
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Medical Instruction Templates",

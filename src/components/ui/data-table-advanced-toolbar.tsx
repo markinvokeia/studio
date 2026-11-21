@@ -135,6 +135,8 @@ export function DataTableAdvancedToolbar<TData>({
                                 size="sm"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={(e) => e.stopPropagation()}
+                                aria-label={t('toggleColumns')}
+                                title={t('toggleColumns')}
                             >
                                 <SlidersHorizontal className="h-3.5 w-3.5" />
                             </Button>

@@ -60,7 +60,8 @@ async function missing(page: Page): Promise<string[]> {
       void labels;
       if (type === 'file') continue;
       const near = (el.closest('label, [class*="space-y"], div')?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 50);
-      out.push(`${el.tagName.toLowerCase()}${role ? `[role=${role}]` : ''}${type && el.tagName === 'INPUT' ? `[type=${type}]` : ''} «${n.slice(0, 40)}» cerca de «${near}»`);
+      const icon = (el.querySelector('svg')?.getAttribute('class') ?? '').match(/lucide-([a-z0-9-]+)/)?.[1] ?? '';
+      out.push(`${el.tagName.toLowerCase()}${role ? `[role=${role}]` : ''}${type && el.tagName === 'INPUT' ? `[type=${type}]` : ''}${icon ? `{${icon}}` : ''} «${n.slice(0, 40)}» cerca de «${near}»`);
     }
     return [`(la voz ve ${seen})`, ...Array.from(new Set(out))];
   });

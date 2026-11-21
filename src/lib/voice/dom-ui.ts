@@ -123,12 +123,15 @@ function nearbyLabel(el: El): string {
     if (label) return label;
   }
   let up: HTMLElement | null = node.parentElement;
-  for (let depth = 0; up && depth < 4; depth++, up = up.parentElement) {
-    const candidates = Array.from(up.querySelectorAll<HTMLElement>('label, h3, h4, h5, p, span, div'))
-      .filter((n) => n !== node && !n.contains(node) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"]'))
-      .map((n) => text(n))
-      .filter((x) => x.length >= 2 && x.length <= 60);
-    if (candidates.length) return candidates[0];
+  // Primero las etiquetas, después los títulos, al final cualquier texto corto; las de una barra de
+  // herramientas propia (dentro del mismo bloque que otro control) no cuentan.
+  const ok = (n: HTMLElement) => n !== node && !n.contains(node) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"], [role="combobox"]')
+    && !n.closest('[role="toolbar"], button, [role="button"], [role="combobox"]') && !(n.tagName === 'LABEL' && n.getAttribute('for') && document.getElementById(n.getAttribute('for')!) && document.getElementById(n.getAttribute('for')!) !== node);
+  for (let depth = 0; up && depth < 6; depth++, up = up.parentElement) {
+    for (const selector of ['label', 'h3, h4, h5', 'p, span, div']) {
+      const found = Array.from(up.querySelectorAll<HTMLElement>(selector)).filter(ok).map((n) => text(n)).find((x) => x.length >= 2 && x.length <= 60);
+      if (found) return found;
+    }
   }
   return '';
 }
@@ -154,7 +157,10 @@ function classify(el: El, all: Element[]): UiControl | null {
     return { kind: 'button', label, key: uiKey(label), element: el, checked: attr(el, 'aria-checked') === 'true' || attr(el, 'data-state') === 'checked' };
   }
   if (role === 'combobox' && tag !== 'INPUT') {
-    const label = ownLabel(el, all) || nearbyLabel(el);
+    // En una barra de herramientas (la del editor: fuente, tamaño) se nombra por lo que muestra.
+    const node = el as unknown as HTMLElement;
+    const inToolbar = typeof node.closest === 'function' && ((node.parentElement?.parentElement?.querySelectorAll('button').length ?? 0) > 4 || !!node.closest('[role="toolbar"]'));
+    const label = ownLabel(el, all) || (inToolbar ? text(el) : nearbyLabel(el));
     return label ? { kind: 'select', label, key: uiKey(label), element: el, value: text(el) } : null;
   }
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
@@ -164,6 +170,11 @@ function classify(el: El, all: Element[]): UiControl | null {
     if (!label) return null;
     const search = el.type === 'search' || SEARCH_RE.test(normalizeSpeech(`${attr(el, 'placeholder') ?? ''} ${label}`));
     return { kind: search ? 'search' : 'field', label: label.replace(/[*:]/g, '').trim(), key: uiKey(label.replace(/[*:]/g, '')), element: el, value: el.value ?? '' };
+  }
+  // Editor de texto enriquecido (indicaciones, recetas, plantillas): un campo más, se le dicta.
+  if (attr(el, 'contenteditable') === 'true') {
+    const label = ownLabel(el, all, false) || nearbyLabel(el) || attr(el, 'data-placeholder') || '';
+    return label ? { kind: 'field', label: label.replace(/[*:]/g, '').trim(), key: uiKey(label.replace(/[*:]/g, '')), element: el, value: text(el) } : null;
   }
   if (role === 'tab') {
     const label = buttonLabel(el);
@@ -314,6 +325,25 @@ export function findControl(said: string, controls: UiControl[], loose = false):
 
 /** Escribe en el campo como si se tipeara (React se entera del cambio). */
 export function typeInto(element: HTMLElement, value: string) {
+  // Editor enriquecido: se reemplaza el contenido como si se escribiera (el editor se entera).
+  if (element.getAttribute?.('contenteditable') === 'true') {
+    element.focus?.();
+    try {
+      const selection = typeof window !== 'undefined' ? window.getSelection?.() : null;
+      if (selection && typeof document !== 'undefined' && typeof document.createRange === 'function') {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      const ok = typeof document !== 'undefined' && typeof document.execCommand === 'function' && document.execCommand('insertText', false, value);
+      if (!ok) element.textContent = value;
+    } catch {
+      element.textContent = value;
+    }
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
   const el = element as HTMLInputElement;
   const Ctor = el.tagName === 'TEXTAREA'
     ? (typeof HTMLTextAreaElement !== 'undefined' ? HTMLTextAreaElement : null)
@@ -381,7 +411,9 @@ export async function fillField(element: HTMLElement, value: string, signal?: Ab
   for (let i = 0; i < 6 && !signal?.aborted; i++) {
     await new Promise((r) => setTimeout(r, 120));
     el = sameField(el);
-    if ((el as HTMLInputElement).value === value) {
+    const editable = el.getAttribute?.('contenteditable') === 'true';
+    const now = editable ? (el.textContent ?? '').trim() : (el as HTMLInputElement).value;
+    if (editable ? now.includes(value.trim()) : now === value) {
       if (i >= 1) return el; // Se mantuvo dos vueltas: ya no lo borra el reset.
       continue;
     }
