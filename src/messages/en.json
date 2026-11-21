@@ -14522,7 +14522,8 @@
       "patients_info": "patient information",
       "lab-orders_pick": "pick a lab order",
       "perio_dictate": "dictate to the periodontal chart",
-      "documents_act": "something with invoices, payments or quotes"
+      "documents_act": "something with invoices, payments or quotes",
+      "reports_act": "something with the report"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14897,6 +14898,21 @@
       "did_reject": "Rejecting {doc}: answer the prompt.",
       "did_pay": "Opened the payment for {doc}.",
       "did_allocate": "Opened the allocation for {doc}."
+    },
+    "reports": {
+      "title": "Report",
+      "notUnderstood": "I didn’t understand what to do. Try, for example: “last month”, “run the report”, “what does it say?” or “export to Excel”.",
+      "generating": "Running the report.",
+      "generateFirst": "First run the report: say “run the report” or a period.",
+      "printing": "Printing the report.",
+      "noExport": "This report can’t be exported to {format}.",
+      "exporting": "Exporting to {format}.",
+      "noKpis": "This report has no totals to read: it is in the table.",
+      "rows": "{count, plural, =0 {There are no rows.} one {There is # row.} other {There are # rows.}}",
+      "noPeriod": "This report has no period to choose.",
+      "noAllTime": "This report needs a period.",
+      "allTimeSet": "No date filter; running the report.",
+      "periodSet": "Period {from} to {to}; running the report."
     }
   }
 }

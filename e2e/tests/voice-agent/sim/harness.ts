@@ -19,6 +19,7 @@ import { clearSimCashier, publishSimCashier, type SimCashier } from './cashier';
 import { clearSimPatients, publishSimPatients, type SimPatients } from './patients';
 import { clearSimLab, createSimLab, type SimLab } from './lab';
 import { clearSimDocuments, publishSimDocuments, type SimDocuments } from './documents';
+import { clearSimReport, publishSimReport, type SimReport } from './reports';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -58,6 +59,8 @@ export interface VoiceSim {
   lab: () => SimLab | null;
   /** Tablas de facturas, pagos y presupuestos (Ventas y Compras). */
   documents: () => SimDocuments | null;
+  /** Un reporte (se publica en cualquier «/reports/…»). */
+  report: () => SimReport | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -151,7 +154,10 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   let cashier: SimCashier | null = null;
   let patients: SimPatients | null = null;
   let documents: SimDocuments | null = null;
+  let report: SimReport | null = null;
   const mountPage = (to: string) => {
+    clearSimReport();
+    report = to.startsWith('/reports/') ? publishSimReport() : null;
     clearSimDocuments();
     documents = publishSimDocuments(to);
     clearSimLab();
@@ -201,6 +207,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     patients: () => patients,
     lab: () => lab,
     documents: () => documents,
+    report: () => report,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -239,6 +246,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       clearSimPatients();
       clearSimLab();
       clearSimDocuments();
+      clearSimReport();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

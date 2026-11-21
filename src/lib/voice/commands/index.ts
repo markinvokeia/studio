@@ -13,6 +13,7 @@ import '@/lib/voice/commands/alerts';
 import '@/lib/voice/commands/cashier';
 import '@/lib/voice/commands/patients';
 import '@/lib/voice/commands/documents';
+import '@/lib/voice/commands/reports';
 import '@/lib/voice/commands/lab-orders';
 import '@/lib/voice/commands/lab-orders-create';
 import '@/lib/voice/commands/lab-orders-manage';

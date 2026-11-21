@@ -14522,7 +14522,8 @@
       "patients_info": "datos del paciente",
       "lab-orders_pick": "elegir una orden de laboratorio",
       "perio_dictate": "dictar al periodontograma",
-      "documents_act": "algo con facturas, pagos o presupuestos"
+      "documents_act": "algo con facturas, pagos o presupuestos",
+      "reports_act": "algo con el reporte"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿querés {action}?",
     "and": " y ",
@@ -14897,6 +14898,21 @@
       "did_reject": "Rechazo {doc}: contestá el aviso.",
       "did_pay": "Abrí el cobro de {doc}.",
       "did_allocate": "Abrí la asignación de {doc}."
+    },
+    "reports": {
+      "title": "Reporte",
+      "notUnderstood": "No entendí qué hacer. Probá, por ejemplo: «el mes pasado», «generá el reporte», «¿cuánto da?» o «exportá a Excel».",
+      "generating": "Genero el reporte.",
+      "generateFirst": "Primero generá el reporte: decime «generá el reporte» o un período.",
+      "printing": "Imprimo el reporte.",
+      "noExport": "Este reporte no se exporta a {format}.",
+      "exporting": "Exporto a {format}.",
+      "noKpis": "Este reporte no tiene totales para leer: está en la tabla.",
+      "rows": "{count, plural, =0 {No hay filas.} one {Hay # fila.} other {Hay # filas.}}",
+      "noPeriod": "Este reporte no tiene período para elegir.",
+      "noAllTime": "Este reporte necesita un período.",
+      "allTimeSet": "Sin filtro de fecha; genero el reporte.",
+      "periodSet": "Período del {from} al {to}; genero el reporte."
     }
   }
 }

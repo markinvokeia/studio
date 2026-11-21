@@ -1,5 +1,8 @@
 'use client';
 
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { ReportShellVoiceBridge } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -46,6 +49,12 @@ export function ReportShell({
 }: ReportShellProps) {
   const t = useTranslations('ReportShell');
   const helpScope = useHelpScope();
+  // Voz: «generá el reporte», «el mes pasado», «exportá a Excel», «¿cuánto da?» (commands/reports.ts).
+  useVoiceScreen(['reports']);
+  useVoiceBridge<ReportShellVoiceBridge>('reports.shell', {
+    title, isLoading, hasData, generate: onGenerate,
+    exportPDF: onExportPDF ?? null, exportExcel: onExportExcel ?? null, exportCSV: onExportCSV ?? null, print: onPrint ?? null,
+  });
   const hid = (kind: 'section' | 'btn', name: string) => composeHelpId(helpScope, kind, name);
 
   const handleGenerate = useCallback(() => {

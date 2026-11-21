@@ -1,5 +1,8 @@
 'use client';
 
+import { useId } from 'react';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { ReportKpiVoiceBridge } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useHelpScope } from '@/components/help/help-scope';
@@ -38,6 +41,9 @@ export function ReportKPICard({
   className,
 }: ReportKPICardProps) {
   const helpScope = useHelpScope();
+  // Voz: «¿cuánto da?» lee las tarjetas del reporte.
+  const voiceKey = useId();
+  useVoiceBridge<ReportKpiVoiceBridge | null>(`reports.kpi.${voiceKey}`, isLoading || (typeof value !== 'string' && typeof value !== 'number') ? null : { title, value: String(value), subtitle: subtitle ?? '' });
   if (isLoading) {
     return (
       <Card className={cn('flex-1 min-w-[160px]', className)}>

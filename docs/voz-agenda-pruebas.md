@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1907 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1924 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2294,3 +2294,28 @@ DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras,
   - en «new invoice» y «export the invoices»
 - **DO-NAV · Llegar y actuar**
   - «andá a facturas y cobrá la factura 120»
+
+## 99-reports.spec.ts (17)
+
+RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.
+
+- **RP · Generar y período**
+  - «generá el reporte»
+  - «generar»
+  - «corré el reporte»
+  - «consultá el informe»
+  - «el mes pasado» pone el período y genera
+  - «mostrame marzo»
+  - «del 1 al 15»
+  - «desde siempre»
+  - en «run the report» y «last month»
+  - es-ES «genera el informe»
+- **RP · Leer, exportar, imprimir**
+  - sin generar: lo pide
+  - «¿cuánto da?» lee las tarjetas
+  - «cuántas filas hay»
+  - «exportá a Excel», «bajalo en PDF», «imprimilo»
+  - formato que no tiene: lo dice
+  - en «what is the total» y «export to excel»
+- **RP-NAV · Llegar y pedir**
+  - «llevame a reportes de deudores y mostrame el mes pasado»

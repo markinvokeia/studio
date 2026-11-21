@@ -5345,3 +5345,18 @@ export interface DocumentsVoiceBridge {
   filters: Array<{ label: string; value: string }>;
   setFilter: ((value: string) => void) | null;
 }
+
+/** Un reporte para la voz (src/lib/voice/commands/reports.ts): lo publican las piezas comunes. */
+export interface ReportShellVoiceBridge {
+  title: string;
+  isLoading: boolean;
+  hasData: boolean;
+  generate: () => void;
+  exportPDF: (() => void) | null;
+  exportExcel: (() => void) | null;
+  exportCSV: (() => void) | null;
+  print: (() => void) | null;
+}
+export interface ReportKpiVoiceBridge { title: string; value: string; subtitle: string }
+export interface ReportPeriodVoiceBridge { setRange: (from: Date, to: Date) => void; allTime: (() => void) | null }
+export interface ReportTableVoiceBridge { rowCount: number }

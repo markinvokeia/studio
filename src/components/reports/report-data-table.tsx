@@ -1,5 +1,7 @@
 'use client';
 
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { ReportTableVoiceBridge } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
@@ -46,6 +48,7 @@ export function ReportDataTable<TData>({
   columnFilters,
 }: ReportDataTableProps<TData>) {
   const helpScope = useHelpScope();
+  useVoiceBridge<ReportTableVoiceBridge>('reports.table', { rowCount: data.length });
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageIndex, setPageIndex] = useState(0);
 

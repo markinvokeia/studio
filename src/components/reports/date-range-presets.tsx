@@ -1,5 +1,7 @@
 'use client';
 
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { ReportPeriodVoiceBridge } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -42,6 +44,12 @@ export function DateRangePresets({ onChange, className, allowAllTime = false }: 
   const [customTo, setCustomTo] = useState<string>('');
 
   const today = new Date();
+
+  // Voz: «el mes pasado», «del 1 al 15 de marzo» (commands/reports.ts).
+  useVoiceBridge<ReportPeriodVoiceBridge>('reports.period', {
+    setRange: (from, to) => { setActive('custom'); setCustomFrom(format(from, 'yyyy-MM-dd')); setCustomTo(format(to, 'yyyy-MM-dd')); onChange({ from, to }); },
+    allTime: allowAllTime ? () => { setActive('all'); onChange(undefined); } : null,
+  });
 
   const applyPreset = (preset: Preset) => {
     setActive(preset);
