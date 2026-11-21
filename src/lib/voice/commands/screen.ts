@@ -1,6 +1,7 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
-import { controlsOf, createButtons, pickCalendarDay, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
+import { controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
+import { voiceEscape } from '@/lib/voice/dom-dialog';
 import { valueForField } from '@/lib/voice/field-values';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
@@ -34,7 +35,7 @@ type Parsed =
 
 const PRESS_RE = /^(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|pulsa\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click) (?:en|sobre)|haz (?:clic|click) (?:en|sobre)|dale (?:clic |click )?(?:a|al|en)|click(?: on)?|press|tap(?: on)?|hit|push)\s+(?:(?:en|a|al|el|la|on|the)\s+)*(?:(?:boton|button)\s+(?:de\s+)?)?(.+)$/;
 const TAB_RE = /^(?:(?:abri\w*|anda\w*|ve|ir|pasa\w*|cambia\w*|mostra\w*|muestra\w*|go|open|switch|show(?: me)?)\s+(?:(?:a|al|en|to)\s+)?)?(?:(?:la|el|the)\s+)?(?:pestana|solapa|tab)\s+(?:(?:de|del|of)\s+)?(?:(?:la|el|los|las|the)\s+)?(.+)$|^(?:(?:go to|open|switch to|show(?: me)?)\s+)?(?:the\s+)?(.+?)\s+tab$/;
-const FILL_VERB = /^(?:pone\w*|pon|escribi\w*|escribe|completa\w*|llena\w*|carga\w*|ingresa\w*|anota\w*|tipea\w*|set|type|write|fill(?: in)?|enter|put)\s+/;
+const FILL_VERB = /^(?:pone\w*|pon|escribi\w*|escribe|completa\w*|llena\w*|carga\w*|ingresa\w*|anota\w*|tipea\w*|modifica\w*|cambia\w*|edita\w*|asigna\w*|setea\w*|actualiza\w*|corregi\w*|corrige|reemplaza\w*|set|type|write|fill(?: in)?|enter|put|change|update|edit|modify|replace)\s+/;
 const ON_RE = /^(?:activa\w*|activar|prende\w*|prender|encende\w*|enciende|habilita\w*|marca\w*|tilda\w*|turn on|switch on|enable|check|tick)\s+(.+)$/;
 const OFF_RE = /^(?:desactiva\w*|desactivar|apaga\w*|apagar|deshabilita\w*|desmarca\w*|destilda\w*|saca\w* (?:el )?tilde (?:de|a)|turn off|switch off|disable|uncheck|untick)\s+(.+)$/;
 const SELECT_VERB = /^(?:elegi\w*|elige|selecciona\w*|escoge\w*|pone\w*|pon|cambia\w*|choose|select|pick|set|change)\s+/;
@@ -72,16 +73,23 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
   const verb = normalized.match(FILL_VERB);
   const body = verb ? normalized.slice(verb[0].length) : normalized;
   let best: { control: UiControl; value: string | null; len: number } | null = null;
-  for (const control of fields) {
-    const label = normalizeSpeech(control.label);
-    if (!label) continue;
+  // Cada campo con su nombre entero y sin lo de entre paréntesis («Duración (días)» → «duración»).
+  const named = fields.flatMap((control) => {
+    const full = normalizeSpeech(control.label);
+    const short = normalizeSpeech(control.label.replace(/\([^)]*\)/g, ' '));
+    return [...new Set([full, short])].filter(Boolean).map((label) => ({ control, label }));
+  });
+  for (const { control, label } of named) {
     const l = escape(label);
     // «el teléfono es 099…», «teléfono: 099…», «poné en teléfono 099…», «poné el teléfono» (sin valor).
-    const lead = body.match(new RegExp(`^(?:(?:en|in|el campo|the field|el|la|los|las|the|my|mi|su)\\s+)*${l}(?:\\s(es|son|sea|a|con|is|are|to|with|as|como))?(?:\\s(.*))?$`));
+    // «el nombre de la clínica a X»: el nombre del campo puede venir con lo que es («de la clínica»).
+    const qual = '(?:\\s(?:de|del|of)\\s(?:(?:la|el|los|las|the)\\s)?[a-z]+(?:\\s[a-z]+)?)?';
+    const lead = (verb ? body.match(new RegExp(`^(?:(?:el campo|the field|el|la|los|las|the|mi|su)\\s+)*${l}${qual}\\s(a|por|es|en|to|as|is|=|con)\\s(.+)$`)) : null)
+      ?? body.match(new RegExp(`^(?:(?:en|in|el campo|the field|el|la|los|las|the|my|mi|su)\\s+)*${l}(?:\\s(es|son|sea|a|con|is|are|to|with|as|como|por|en|=))?(?:\\s(.*))?$`));
     if (lead && (verb || /^(?:es|son|is|are)$/.test(lead[1] ?? '') || raw.includes(':'))) {
       const tail = (lead[2] ?? '').trim();
       const value = tail ? rawTail(raw, normalized, tail) : null;
-      if (!best || label.length > best.len) best = { control, value: value && value.replace(/^(?:es|son|is|are)\s+/i, ''), len: label.length };
+      if (!best || label.length > best.len) best = { control, value: value && value.replace(/^(?:es|son|is|are|a|por|to)\s+/i, ''), len: label.length };
       continue;
     }
     // «poné Ana López en nombre», «type John in name».
@@ -174,6 +182,13 @@ function parseRowAction(normalized: string, surface: UiSurface): Parsed | null {
   return { op: 'rowAction', action: words[0], hits: hits.filter((h) => h.score === best).map(({ row, button, disabled }) => ({ row, button, disabled })) };
 }
 
+/** Cierra la lista o el buscador abierto (sin cortar la voz): la ventana de abajo vuelve a ser el contexto. */
+function closeOpenList() {
+  if (typeof document === 'undefined') return;
+  const pop = Array.from(document.querySelectorAll<HTMLElement>('[data-radix-popper-content-wrapper] > *, [role="listbox"]')).pop();
+  voiceEscape(pop ?? document.activeElement);
+}
+
 /** Qué se pide de la pantalla, o null (no es para esto). */
 export function parseScreen(normalized: string, raw: string, surface: UiSurface | null = readSurface()): Parsed | null {
   if (!surface || !normalized) return null;
@@ -201,6 +216,9 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   if (select) return select.op === 'select' && select.option ? { ...select, option: rawMiddle(raw, select.option) } : select;
   const fill = parseFill(normalized, raw, controlsOf(surface, 'field', 'search'));
   if (fill) return fill;
+  // Un campo bloqueado (hasta «Editar»): se nombra igual; al llenarlo se pone en modo edición.
+  const locked = parseFill(normalized, raw, lockedFields(surface));
+  if (locked) return locked;
   const search = normalized.match(SEARCH_RE);
   if (search) {
     const control = controlsOf(surface, 'search')[0];
@@ -263,6 +281,14 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
         value = (await ctx.ask({ title: title(ctx), message: question, tone: 'info' }, question)).trim();
       }
       if (!value) return;
+      // Bloqueado: primero el «Editar» de su bloque (y se garantiza que quedó editable).
+      const target = await unlockField(parsed.control.element as HTMLElement, ctx.signal);
+      if (!target) {
+        const message = t('VoiceCommands.ui.fieldLocked', { field: parsed.control.label });
+        await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
+        return;
+      }
+      parsed.control.element = target;
       parsed.control.element.focus?.();
       // Como lo espera el campo: hora, fecha, número, color («las 9 y media» → 09:30).
       const typed = valueForField(parsed.control.element, value);
@@ -297,15 +323,23 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       if (box && wanted) {
         const before = options.map((o) => o.label).join('|');
         typeInto(box, wanted);
+        // La búsqueda suele esperar a que se deje de escribir y después consultar: hasta que la lista
+        // cambie y se quede quieta un momento (o pasen 6 s).
         const start = Date.now();
-        while (Date.now() - start < 2500 && !ctx.signal.aborted) {
+        let last = before;
+        let stableSince = Date.now();
+        while (Date.now() - start < 6000 && !ctx.signal.aborted) {
           await new Promise((r) => setTimeout(r, 120));
-          const now = openOptions();
-          if (now.map((o) => o.label).join('|') !== before || (Date.now() - start > 600 && now.length)) { options = now; if (!isScreenLoading()) break; }
+          const now = openOptions().map((o) => o.label).join('|');
+          if (now !== last) { last = now; stableSince = Date.now(); }
+          const changed = now !== before;
+          if (Date.now() - start > 700 && changed && now && Date.now() - stableSince > 350) break;
+          if (Date.now() - start > 2500 && !changed && now) break;
         }
         options = openOptions();
       }
       if (!options.length) {
+        closeOpenList();
         const message = t('VoiceCommands.ui.noOptions', { field: control.label });
         await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
         return;

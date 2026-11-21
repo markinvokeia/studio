@@ -39,7 +39,16 @@ export interface UiSurface {
 type El = HTMLElement & { labels?: ArrayLike<{ textContent: string | null }> | null; type?: string; value?: string; disabled?: boolean };
 
 const attr = (el: Element, name: string) => el.getAttribute?.(name) ?? null;
-const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+/**
+ * El texto de un elemento como se lee: los bloques de adentro separados («Ibuprofeno 600 mg ·
+ * Ibupirac», no «…mgIbupirac»). innerText respeta el diseño; sin él (pruebas), textContent.
+ */
+const text = (el: Element | null | undefined) => {
+  if (!el) return '';
+  const inner = (el as HTMLElement).innerText;
+  const raw = typeof inner === 'string' && inner ? inner.replace(/\n+/g, ' · ') : (el.textContent ?? '');
+  return raw.replace(/\s+/g, ' ').replace(/(?:\s·\s)+/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '').trim();
+};
 
 /** Palabras que no distinguen un control («el», «botón», «the»…). */
 const FILLER = new Set(['el', 'la', 'los', 'las', 'lo', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al', 'a', 'en', 'the', 'an', 'of', 'boton', 'button', 'pestana', 'solapa', 'tab', 'opcion', 'option', 'campo', 'field', 'por', 'favor', 'please', 'mi', 'my', 'su', 'nuevo', 'nueva', 'new']);
@@ -126,7 +135,9 @@ function nearbyLabel(el: El): string {
   // Primero las etiquetas, después los títulos, al final cualquier texto corto; las de una barra de
   // herramientas propia (dentro del mismo bloque que otro control) no cuentan.
   const ok = (n: HTMLElement) => n !== node && !n.contains(node) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"], [role="combobox"]')
-    && !n.closest('[role="toolbar"], button, [role="button"], [role="combobox"]') && !(n.tagName === 'LABEL' && n.getAttribute('for') && document.getElementById(n.getAttribute('for')!) && document.getElementById(n.getAttribute('for')!) !== node);
+    && !n.closest('[role="toolbar"], button, [role="button"], [role="combobox"]')
+    // La etiqueta de otro campo no vale, salvo que sea del mismo bloque (color + su código «#FFFFFF»).
+    && !(n.tagName === 'LABEL' && n.getAttribute('for') && document.getElementById(n.getAttribute('for')!) && document.getElementById(n.getAttribute('for')!) !== node && !n.parentElement?.contains(node));
   for (let depth = 0; up && depth < 6; depth++, up = up.parentElement) {
     for (const selector of ['label', 'h3, h4, h5', 'p, span, div']) {
       const found = Array.from(up.querySelectorAll<HTMLElement>(selector)).filter(ok).map((n) => text(n)).find((x) => x.length >= 2 && x.length <= 60);
@@ -290,6 +301,46 @@ export async function pickCalendarDay(iso: string, signal?: AbortSignal): Promis
     await new Promise((r) => setTimeout(r, 80));
   }
   return false;
+}
+
+/**
+ * Los campos bloqueados de la superficie (deshabilitados o de solo lectura hasta apretar «Editar»):
+ * la voz los puede nombrar igual y, al llenarlos, primero pone la pantalla en modo edición.
+ */
+export function lockedFields(surface: UiSurface | null = readSurface()): UiControl[] {
+  const root = surface?.root as HTMLElement | undefined;
+  if (!root || typeof root.querySelectorAll !== 'function') return [];
+  const all = Array.from(root.querySelectorAll<HTMLElement>('*'));
+  return Array.from(root.querySelectorAll<HTMLElement>('input, textarea, select'))
+    .filter((el) => (isDisabled(el as unknown as El) || attr(el as unknown as El, 'readonly') !== null) && !isHidden(el))
+    .filter((el) => !['hidden', 'file', 'checkbox', 'radio'].includes((el as HTMLInputElement).type))
+    .flatMap((el): UiControl[] => {
+      const label = ownLabel(el as unknown as El, all, false) || nearbyLabel(el as unknown as El) || (attr(el as unknown as El, 'placeholder') ?? '').trim();
+      return label ? [{ kind: 'field', label: label.replace(/[*:]/g, '').trim(), key: uiKey(label.replace(/[*:]/g, '')), element: el }] : [];
+    });
+}
+
+const EDIT_LABEL_RE = /^(?:editar|edit|modificar|habilitar edicion|editar datos|editar informacion)\b/;
+
+/** Pone en modo edición el bloque de ese campo (aprieta su «Editar») y espera a que se habilite. */
+export async function unlockField(field: HTMLElement, signal?: AbortSignal): Promise<HTMLElement | null> {
+  const enabled = (el: HTMLElement) => !(el as HTMLInputElement).disabled && (el as HTMLInputElement).readOnly !== true;
+  if (enabled(field)) return field;
+  let scope: HTMLElement | null = field.parentElement;
+  let button: HTMLElement | null = null;
+  // El «Editar» más cercano hacia arriba (el del panel, la ventana o la página).
+  while (scope && !button) {
+    button = Array.from(scope.querySelectorAll<HTMLElement>('button')).find((b) => !(b as HTMLButtonElement).disabled && EDIT_LABEL_RE.test(normalizeSpeech(`${b.textContent ?? ''} ${b.getAttribute('aria-label') ?? ''}`).trim())) ?? null;
+    scope = scope.parentElement;
+  }
+  if (!button) return null;
+  button.click();
+  for (let i = 0; i < 30 && !signal?.aborted; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    const now = sameField(field);
+    if (enabled(now)) return now;
+  }
+  return null;
 }
 
 /** Los controles de esos tipos. */

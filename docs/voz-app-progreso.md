@@ -55,10 +55,13 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
 | 24 | **El resto de la app auditado** (Pacientes, Ventas, Compras, Caja, Laboratorio, Catálogo, Mi consultorio, Reportes, Roles, Permisos, Estudios) | `core.screen` | ✅ Auditoría de controles por pantalla, alta, detalle y cada pestaña del detalle (`AUDIT_TABS=1`): nombre a los botones de ícono que solo tenían tooltip (11, automático: el texto del tooltip pasa a `aria-label`) y a los que no tenían nada (cerrar detalle de servicios, eliminar medio de pago, actualizar la agenda de Mi consultorio, color de condiciones dentales). Sin huecos en las pestañas de los detalles auditados | vivo |
 
+| 25 | **Editar campos** (en todas las pantallas) | `core.screen` | ✅ «modificá / cambiá / editá / asigná / actualizá / seteá / poné …»; el campo dicho de cualquier forma («el nombre de la clínica a …» → Nombre; «Duración (días)» con «la duración»); con conector «a», «por», «es»; si el campo está bloqueado hasta «Editar», aprieta «Editar» y espera a que se habilite; fechas en cualquier forma al formato del campo (dd/mm/aaaa o fecha), horas, números con unidad («5 días» → 5), colores; receta completa por voz en Mi consultorio (medicamento con buscador, dosis, frecuencia, vía, duración) | `07`, `9d` + vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).
 3. ~~Selectores con búsqueda~~ (fila 21). 5. ~~Configuración del negocio y Sistema~~ (fila 22).
+6. **Estado de cuenta del paciente** (pedido el 2026-11-21): presupuestos y facturas con sus líneas, pagos, imprimir, ver todo, ordenar, moneda principal/secundaria, todas las acciones.
 
 Cada página se cierra con su batería de pruebas en verde (es y en), el flujo de n8n publicado, este documento actualizado y un commit propio.
 

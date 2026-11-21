@@ -313,3 +313,35 @@ test.describe('UI-ROWACT · La acción de una fila («desactivá la etapa X»)',
     expect(uiLog).toEqual(['press:Deactivate']);
   });
 });
+
+test.describe('UI-FIELDNAME · Nombre sin paréntesis y número sin unidad', () => {
+  test('«la duración es 5 días» en «Duración (días)» (numérico)', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.field('Duración (días)', { type: 'number' }), screen.field('Dosis'));
+    await sim.say('la duración es 5 días');
+    expect(uiLog).toEqual(['fill:Duración (días)=5']);
+  });
+  test('«la hora es las 9 y media» en un campo de hora', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.field('Hora', { type: 'time' }));
+    await sim.say('la hora es las 9 y media');
+    expect(uiLog).toEqual(['fill:Hora=09:30']);
+  });
+});
+
+test.describe('UI-EDIT · Editar un campo dicho de cualquier forma', () => {
+  test.beforeEach(async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.field('Nombre'), screen.field('Teléfono'), screen.field('Fecha de inicio', { placeholder: 'dd/mm/aaaa' }), screen.field('Fecha de fin', { placeholder: 'dd/mm/aaaa' }));
+  });
+  for (const [said, want] of [
+    ['modificá el nombre de la clínica a Clínica Prueba', 'fill:Nombre=Clínica Prueba'],
+    ['cambiá el teléfono por 099 123 456', 'fill:Teléfono=099 123 456'],
+    ['editá el nombre a Centro Dental', 'fill:Nombre=Centro Dental'],
+    ['asigná el teléfono 098 765', 'fill:Teléfono=098 765'],
+    ['la fecha de inicio es el 15 de diciembre', 'fill:Fecha de inicio=15/12/2026'],
+    ['poné la fecha de fin el 20 de diciembre', 'fill:Fecha de fin=20/12/2026'],
+  ] as const) {
+    test(`«${said}»`, async () => { await sim.say(said); expect(uiLog[0]?.replace(/\/20\d\d$/, '/2026')).toBe(want); });
+  }
+});

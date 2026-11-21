@@ -220,6 +220,14 @@ const ES: Scenario[] = [
     { say: 'el 15 de diciembre', shows: /Elegí el 15\/12/ },
     { say: 'cancelar', dialog: false },
   ] },
+  { name: 'Mi consultorio: receta por voz (sin guardar)', path: '/es/workspace', steps: [
+    { say: 'el de las 9', shows: /09:00/ },
+    { say: 'hacele una receta', dialog: true, keepOpen: true },
+    { say: 'medicamento ibuprofeno', shows: /Medicamento = Ibuprofeno/ },
+    { say: 'la dosis es 400 mg', value: { selector: 'input', re: /./ } },
+    { say: 'la duración es 5 días', shows: /= 5\./ },
+    { say: 'cancelar', dialog: false },
+  ] },
   { name: 'alertas: leer', path: '/es/alerts', steps: [
     { say: 'cuántas alertas hay', shows: /alerta/i },
     { say: 'qué alertas críticas hay' },

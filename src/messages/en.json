@@ -14577,7 +14577,8 @@
       "datePicked": "Picked {date}.",
       "dateNotPicked": "I couldn't pick {date} on the calendar.",
       "rowActionDone": "Pressed “{action}” on “{row}”.",
-      "rowActionDisabled": "“{action}” isn't available for “{row}” (it's disabled)."
+      "rowActionDisabled": "“{action}” isn't available for “{row}” (it's disabled).",
+      "fieldLocked": "“{field}” can't be edited here (I couldn't find how to switch to edit mode)."
     },
     "rail": {
       "title": "Right panel",

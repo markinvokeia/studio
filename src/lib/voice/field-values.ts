@@ -89,7 +89,10 @@ export function valueForField(el: HTMLElement | null | undefined, spoken: string
   }
   if (type === 'color') return spokenColor(spoken) ?? spoken;
   if (type === 'number' || input?.getAttribute?.('inputmode') === 'numeric' || input?.getAttribute?.('inputmode') === 'decimal') {
-    const num = spokenNumber(spoken);
+    // «5 días», «400 mg», «2 comprimidos»: el número, sin la unidad dicha después.
+    let num = spokenNumber(spoken);
+    const words = normalizeSpeech(spoken).split(' ');
+    for (let n = words.length - 1; num === null && n >= 1; n--) num = spokenNumber(words.slice(0, n).join(' '));
     return num === null ? spoken : String(num);
   }
   return spoken;

@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2228 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2237 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -579,7 +579,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (79)
+## 07-screen.spec.ts (87)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -675,6 +675,16 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «eliminá recibido en clínica»
   - una fila que no está: nada
   - en «deactivate solicitud creada»
+- **UI-FIELDNAME · Nombre sin paréntesis y número sin unidad**
+  - «la duración es 5 días» en «Duración (días)» (numérico)
+  - «la hora es las 9 y media» en un campo de hora
+- **UI-EDIT · Editar un campo dicho de cualquier forma**
+  - «modificá el nombre de la clínica a Clínica Prueba»
+  - «cambiá el teléfono por 099 123 456»
+  - «editá el nombre a Centro Dental»
+  - «asigná el teléfono 098 765»
+  - «la fecha de inicio es el 15 de diciembre»
+  - «poné la fecha de fin el 20 de diciembre»
 
 ## 08-rail.spec.ts (60)
 
@@ -2635,7 +2645,7 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
 - **TB-HELP · Después de «¿qué puedo hacer acá?»**
   - un pedido nuevo se hace sin preguntar si cambiamos de tarea
 
-## 9d-field-values.spec.ts (33)
+## 9d-field-values.spec.ts (34)
 
 FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).
 
@@ -2657,6 +2667,7 @@ FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), f
   - «three point five» → 3.5
   - lo que no es número: null
   - campo numérico
+  - con la unidad: «5 días» → 5, «400 mg» → 400
   - campo de texto: tal cual
 - **FV-TIME · Horas**
   - «las 9 y media» → 09:30

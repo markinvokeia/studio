@@ -19,6 +19,7 @@ test.describe('FV-NUM · Números', () => {
   }
   test('lo que no es número: null', () => { expect(spokenNumber('mucho')).toBeNull(); });
   test('campo numérico', () => { expect(valueForField(input('number'), 'veinte')).toBe('20'); });
+  test('con la unidad: «5 días» → 5, «400 mg» → 400', () => { expect(valueForField(input('number'), '5 días')).toBe('5'); expect(valueForField(input('number'), 'cuatrocientos mg')).toBe('400'); });
   test('campo de texto: tal cual', () => { expect(valueForField(input('text'), 'veinte')).toBe('veinte'); });
 });
 
