@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2309 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2326 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -584,7 +584,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (88)
+## 07-screen.spec.ts (102)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -692,6 +692,21 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «poné la fecha de fin el 20 de diciembre»
 - **UI-ABBR · Etiquetas abreviadas**
   - «la cantidad es 2» en «Cant.»
+- **UI-SYN · Sinónimos de «poner un valor» (verbos y sustantivos) y campo + valor**
+  - «definí la vía oral»
+  - «registrá la dosis 400 mg»
+  - «establecé el precio en 1500»
+  - «fijá la vía a sublingual»
+  - «indicá la dosis 2 comprimidos»
+  - «colocá en notas tomar con comida»
+  - «especificá la vía tópica»
+  - «cambio de vía a oral»
+  - «actualización del precio a 2000»
+  - «nueva dosis 500 mg»
+  - «vía oral»
+  - «dosis 400 mg»
+  - «seteá la vía en oral»
+  - en «set the dosis to 400 mg» / «record the precio 1500»
 
 ## 08-rail.spec.ts (60)
 
@@ -2515,7 +2530,7 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
   - «agregá un artículo» con un presupuesto abierto aprieta «Agregar Artículo» (no crea en la lista)
   - «siguiente página» con una ventana abierta no mueve la lista de atrás
 
-## 9b-clinical-agent.spec.ts (49)
+## 9b-clinical-agent.spec.ts (52)
 
 CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.
 
@@ -2575,6 +2590,10 @@ CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agen
   - «thanks» cierra la respuesta fija (y el caso sigue abierto)
   - markdown: negritas, listas y títulos sin los símbolos
   - para leer en voz alta, sin asteriscos ni numerales
+- **CC-OVERLAY · Con una ventana abierta, lo suyo no va al agente**
+  - «cancelar» con la receta abierta aprieta Cancelar (no le pregunta al agente)
+  - «la dosis es 400 mg» con la receta abierta va al campo
+  - una pregunta del paciente con la receta abierta sí va al agente
 
 ## 9c-tables.spec.ts (90)
 

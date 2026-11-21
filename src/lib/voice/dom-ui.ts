@@ -349,6 +349,14 @@ export async function unlockField(field: HTMLElement, signal?: AbortSignal): Pro
   return null;
 }
 
+/**
+ * Cómo se pide poner un valor en un campo: los verbos (poné, cambiá, actualizá, editá, seteá, definí,
+ * registrá, establecé, fijá, indicá, colocá, especificá, asigná…) y los sustantivos que dicen lo mismo
+ * («cambio de …», «actualización del …», «nuevo valor de …», «nueva dosis …»). Se comparte entre la
+ * ventana abierta y la voz genérica.
+ */
+export const FILL_INTENT_RE = /^(?:(?:(?:el|la|un|una|the|a)\s+)?(?:cambio|modificacion|actualizacion|edicion|correccion|asignacion|definicion|registro|nuevo valor|new value|change|update)\s+(?:(?:de|del|de la|en|en el|en la|para|para el|para la|of|for|to|in)\s+)?|(?:(?:el|la)\s+)?(?:nuevo|nueva|new)\s+(?=[a-z]))|(?:(?:pone\w*|pon|escribi\w*|escribe|completa\w*|llena\w*|carga\w*|ingresa\w*|introduci\w*|introduce|anota\w*|tipea\w*|modifica\w*|cambia\w*|edita\w*|asigna\w*|setea\w*|actualiza\w*|corregi\w*|corrige|reemplaza\w*|defini\w*|define|registra\w*|establece\w*|estableci\w*|fija\w*|indica\w*|coloca\w*|especifica\w*|marca\w* (?:como|en)|set|type|write|fill(?: in)?|enter|put|change|update|edit|modify|replace|define|record|register|specify|assign|input)\s+)/;
+
 /** Los controles de esos tipos. */
 export const controlsOf = (surface: UiSurface, ...kinds: UiKind[]) => surface.controls.filter((c) => kinds.includes(c.kind));
 

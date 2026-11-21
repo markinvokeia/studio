@@ -61,6 +61,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 27 | **Mi consultorio: cambiar de caso** | `workspace` | ✅ «cerrá este caso clínico y abrí el de Leonardo», «quiero ver ahora el de Martín», «ahora el de…», «el paciente X», «el siguiente / anterior / último paciente»; un nombre que coincide con varios prefiere otro distinto del actual | `92` + vivo |
 | 28 | **Prioridad de lo abierto** | `core` | ✅ Con una ventana abierta, las tablas de atrás no se llevan lo dicho (antes «agregá un artículo» creaba un paciente); botones por su verbo conjugado («agregá un artículo» → «Agregar Artículo») | `03`, `9a` + vivo |
 
+| 29 | **Sinónimos para poner un valor** | `core.screen` | ✅ Verbos (poné, cambiá, modificá, editá, actualizá, seteá, definí, registrá, establecé, fijá, indicá, colocá, especificá, asigná, corregí…), sustantivos («cambio de vía a oral», «actualización del precio a 2000», «nueva dosis 400 mg») y el campo con su valor sin verbo («vía oral»). Con una ventana abierta, lo que es un botón o un campo suyo no va al agente clínico; «cancelar» / «cerrar» aprietan el botón equivalente de la ventana | `07`, `9b` + vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).

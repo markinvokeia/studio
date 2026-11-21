@@ -1,3 +1,5 @@
+import { parseScreen } from '@/lib/voice/commands/screen';
+import { pickOverlayButton, pickOverlayField, readTopOverlay } from '@/lib/voice/dom-dialog';
 import { parseYesNo } from '@/lib/voice/parse';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { getVoiceBridge } from '@/lib/voice/screen-bridge';
@@ -72,6 +74,14 @@ registerVoiceCommand<Parsed>({
     if (CLOSE_RE.test(normalized)) return c.open ? { op: 'close' } : null;
     if (REOPEN_RE.test(normalized)) return { op: 'reopen' };
     if (!c.open || !soundsForClinicalAgent(normalized)) return null;
+    // Con una ventana abierta (receta, laboratorio, sesión), lo que es un botón o un campo suyo
+    // («cancelar», «guardar», «la dosis es 400») es para la ventana, no para el agente.
+    const overlay = readTopOverlay();
+    if (overlay && (pickOverlayButton(normalized, overlay) || pickOverlayField(raw, normalized, overlay) || /^(?:cancela\w*|cerra\w*|cierra\w*|guarda\w*|volve\w*|sali\w*|cancel|close|save|back)$/.test(normalized))) return null;
+    if (overlay) {
+      const screen = (() => { try { return parseScreen(normalized, raw); } catch { return null; } })();
+      if (screen && screen.op !== 'help') return null;
+    }
     return { op: 'ask', text: raw.trim() };
   },
   run: async (parsed, ctx) => {

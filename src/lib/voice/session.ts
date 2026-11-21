@@ -615,7 +615,11 @@ function pressOrFillOverlay(heard: string, normalized: string): boolean {
   if (!deps) return false;
   const overlay = readTopOverlay();
   if (!overlay) return false;
-  const button = pickOverlayButton(normalized, overlay);
+  let button = pickOverlayButton(normalized, overlay);
+  // «cancelar», «cerrar», «salir», «volver»: el botón de la ventana que hace eso (Cancelar / Cerrar).
+  if (!button && /^(?:cancela\w*|cerra\w*|cierra\w*|sali\w*|volve\w*|cancel|close|exit|go back)(?:\s+(?:la ventana|esto|eso|it|this))?$/.test(normalized)) {
+    button = overlay.buttons.find((b) => /^(?:cancelar|cerrar|close|cancel|volver|salir)$/i.test(normalizeSpeech(b.label))) ?? null;
+  }
   if (button) {
     button.element.click();
     void quickFinish(deps.t('VoiceCommands.dialogPressed', { label: button.label }));

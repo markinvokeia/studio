@@ -1,3 +1,4 @@
+import { FILL_INTENT_RE } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 
 /**
@@ -251,7 +252,8 @@ export function pickOverlayButton(normalized: string, overlay: OpenOverlay): Ope
   return partial >= 0 ? overlay.buttons[partial] : null;
 }
 
-const FILL = /^(?:pone\w*|pon|escribi\w*|escribe|completa\w*|llena\w*|cambia\w*|carga\w*|ingresa\w*|anota\w*|set|type|write|fill(?: in)?|enter|put|change)\s(?:en |in |el campo |the field |el |la |the )*/;
+// Los verbos y sustantivos de «poner un valor» (los de la voz genérica) más «en el campo …».
+const FILL = new RegExp(`^(?:${FILL_INTENT_RE.source.slice(1)})(?:en |in |el campo |the field |el |la |the )*`);
 
 /** «poné en teléfono 099…», «el email es ana@…», «notas: trae estudios»: el campo y su valor. */
 export function pickOverlayField(raw: string, normalized: string, overlay: OpenOverlay): { field: OverlayField; value: string } | null {

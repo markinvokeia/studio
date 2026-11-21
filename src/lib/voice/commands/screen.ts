@@ -1,5 +1,5 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
-import { controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
+import { FILL_INTENT_RE, controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
 import { actionButtonIndex, voiceEscape } from '@/lib/voice/dom-dialog';
 import { valueForField } from '@/lib/voice/field-values';
@@ -36,7 +36,8 @@ type Parsed =
 
 const PRESS_RE = /^(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|pulsa\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click) (?:en|sobre)|haz (?:clic|click) (?:en|sobre)|dale (?:clic |click )?(?:a|al|en)|click(?: on)?|press|tap(?: on)?|hit|push)\s+(?:(?:en|a|al|el|la|on|the)\s+)*(?:(?:boton|button)\s+(?:de\s+)?)?(.+)$/;
 const TAB_RE = /^(?:(?:abri\w*|anda\w*|ve|ir|pasa\w*|cambia\w*|mostra\w*|muestra\w*|go|open|switch|show(?: me)?)\s+(?:(?:a|al|en|to)\s+)?)?(?:(?:la|el|the)\s+)?(?:pestana|solapa|tab)\s+(?:(?:de|del|of)\s+)?(?:(?:la|el|los|las|the)\s+)?(.+)$|^(?:(?:go to|open|switch to|show(?: me)?)\s+)?(?:the\s+)?(.+?)\s+tab$/;
-const FILL_VERB = /^(?:pone\w*|pon|escribi\w*|escribe|completa\w*|llena\w*|carga\w*|ingresa\w*|anota\w*|tipea\w*|modifica\w*|cambia\w*|edita\w*|asigna\w*|setea\w*|actualiza\w*|corregi\w*|corrige|reemplaza\w*|set|type|write|fill(?: in)?|enter|put|change|update|edit|modify|replace)\s+/;
+// Los verbos y sustantivos de «poner un valor» (ver FILL_INTENT_RE en dom-ui).
+const FILL_VERB = FILL_INTENT_RE;
 const ON_RE = /^(?:activa\w*|activar|prende\w*|prender|encende\w*|enciende|habilita\w*|marca\w*|tilda\w*|turn on|switch on|enable|check|tick)\s+(.+)$/;
 const OFF_RE = /^(?:desactiva\w*|desactivar|apaga\w*|apagar|deshabilita\w*|desmarca\w*|destilda\w*|saca\w* (?:el )?tilde (?:de|a)|turn off|switch off|disable|uncheck|untick)\s+(.+)$/;
 const SELECT_VERB = /^(?:elegi\w*|elige|selecciona\w*|escoge\w*|pone\w*|pon|cambia\w*|choose|select|pick|set|change)\s+/;
@@ -78,7 +79,7 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
   const named = fields.flatMap((control) => {
     const full = normalizeSpeech(control.label);
     const short = normalizeSpeech(control.label.replace(/\([^)]*\)/g, ' '));
-    return [...new Set([full, short])].filter(Boolean).map((label) => ({ control, label }));
+    return [...new Set([full, short])].filter(Boolean).map((label) => ({ control, label, partial: false }));
   });
   // Una palabra del nombre alcanza si es de un solo campo: «el precio es…» → «Precio Unitario»,
   // «el diente es 16» → «Número de Diente».
@@ -89,8 +90,8 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
       counts.get(w)!.add(control);
     }
   }
-  for (const [w, set] of counts) if (set.size === 1 && !named.some((n) => n.label === w)) named.push({ control: [...set][0], label: w });
-  for (const { control, label } of named) {
+  for (const [w, set] of counts) if (set.size === 1 && !named.some((n) => n.label === w)) named.push({ control: [...set][0], label: w, partial: true });
+  for (const { control, label, partial } of named) {
     // Una etiqueta abreviada («Cant.», «Desc.») acepta la palabra entera («cantidad», «descuento»).
     const abbr = /^[a-z]{2,6}$/.test(label) && /\.\s*$/.test(control.label.trim());
     const l = abbr ? `${escape(label)}[a-z]*` : escape(label);
@@ -99,7 +100,9 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
     const qual = '(?:\\s(?:de|del|of)\\s(?:(?:la|el|los|las|the)\\s)?[a-z]+(?:\\s[a-z]+)?)?';
     const lead = (verb ? body.match(new RegExp(`^(?:(?:el campo|the field|el|la|los|las|the|mi|su)\\s+)*${l}${qual}\\s(a|por|es|en|to|as|is|=|con)\\s(.+)$`)) : null)
       ?? body.match(new RegExp(`^(?:(?:en|in|el campo|the field|el|la|los|las|the|my|mi|su)\\s+)*${l}(?:\\s(es|son|sea|a|con|is|are|to|with|as|como|por|en|=))?(?:\\s(.*))?$`));
-    if (lead && (verb || /^(?:es|son|is|are)$/.test(lead[1] ?? '') || raw.includes(':'))) {
+    // Sin verbo también: «vía oral», «dosis 400 mg» (el campo dicho primero y su valor después).
+    const bare = !verb && !partial && control.kind === 'field' && !!lead && !!(lead[2] ?? '').trim() && body.startsWith(label) && label.length >= 3;
+    if (lead && (verb || bare || /^(?:es|son|is|are)$/.test(lead[1] ?? '') || raw.includes(':'))) {
       const tail = (lead[2] ?? '').trim();
       const value = tail ? rawTail(raw, normalized, tail) : null;
       // Con el mismo nombre (una línea nueva de un presupuesto), el de más abajo: la línea recién agregada.

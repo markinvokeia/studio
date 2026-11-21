@@ -354,3 +354,25 @@ test.describe('UI-ABBR · Etiquetas abreviadas', () => {
     expect(uiLog).toEqual(['fill:Cant.=2']);
   });
 });
+
+test.describe('UI-SYN · Sinónimos de «poner un valor» (verbos y sustantivos) y campo + valor', () => {
+  test.beforeEach(async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.field('Vía'), screen.field('Dosis'), screen.field('Precio', { type: 'number' }), screen.field('Notas'));
+  });
+  for (const [said, want] of [
+    ['definí la vía oral', 'fill:Vía=oral'], ['registrá la dosis 400 mg', 'fill:Dosis=400 mg'], ['establecé el precio en 1500', 'fill:Precio=1500'],
+    ['fijá la vía a sublingual', 'fill:Vía=sublingual'], ['indicá la dosis 2 comprimidos', 'fill:Dosis=2 comprimidos'], ['colocá en notas tomar con comida', 'fill:Notas=tomar con comida'],
+    ['especificá la vía tópica', 'fill:Vía=tópica'], ['cambio de vía a oral', 'fill:Vía=oral'], ['actualización del precio a 2000', 'fill:Precio=2000'],
+    ['nueva dosis 500 mg', 'fill:Dosis=500 mg'], ['vía oral', 'fill:Vía=oral'], ['dosis 400 mg', 'fill:Dosis=400 mg'], ['seteá la vía en oral', 'fill:Vía=oral'],
+  ] as const) {
+    test(`«${said}»`, async () => { await sim.say(said); expect(uiLog).toEqual([want]); });
+  }
+  test('en «set the dosis to 400 mg» / «record the precio 1500»', async () => {
+    sim.dispose();
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
+    screen.page(screen.field('Dosis'), screen.field('Precio', { type: 'number' }));
+    await sim.sayAll('set the dosis to 400 mg', 'record the precio 1500');
+    expect(uiLog).toEqual(['fill:Dosis=400 mg', 'fill:Precio=1500']);
+  });
+});

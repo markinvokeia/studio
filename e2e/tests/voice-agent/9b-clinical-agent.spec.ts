@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { openWindow } from './sim/dom';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 import { parseRichText, plainRichText } from '@/components/voice/voice-rich-text';
 import { useVoiceCommand } from '@/stores/voice-command-store';
@@ -237,5 +238,28 @@ test.describe('CC-CARD · La respuesta se lee con calma y con formato', () => {
   });
   test('para leer en voz alta, sin asteriscos ni numerales', () => {
     expect(plainRichText('**Ana**: alergia a la *penicilina*.\n* Pieza 16')).toBe('Ana: alergia a la penicilina.. Pieza 16'.replace('..', '.'));
+  });
+});
+
+test.describe('CC-OVERLAY · Con una ventana abierta, lo suyo no va al agente', () => {
+  test('«cancelar» con la receta abierta aprieta Cancelar (no le pregunta al agente)', async () => {
+    await start();
+    const win = openWindow('Nueva Receta Médica', { buttons: ['Cancelar', 'Guardar'], fields: ['Dosis'] });
+    await sim.say('cancelar');
+    expect(agentLog()).toEqual([]);
+    expect(win.pressed).toEqual(['Cancelar']);
+  });
+  test('«la dosis es 400 mg» con la receta abierta va al campo', async () => {
+    await start();
+    const win = openWindow('Nueva Receta Médica', { buttons: ['Guardar'], fields: ['Dosis'] });
+    await sim.say('la dosis es 400 mg');
+    expect(agentLog()).toEqual([]);
+    expect(win.values.Dosis).toBe('400 mg');
+  });
+  test('una pregunta del paciente con la receta abierta sí va al agente', async () => {
+    await start();
+    openWindow('Nueva Receta Médica', { buttons: ['Guardar'], fields: ['Dosis'] });
+    await sim.say('qué alergias tiene');
+    expect(agentLog()).toEqual(['w1:qué alergias tiene']);
   });
 });
