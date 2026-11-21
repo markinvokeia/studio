@@ -17,6 +17,7 @@ import { clearSimWorkspace, publishSimWorkspace, type SimWorkspace } from './wor
 import { clearSimAlerts, publishSimAlerts, type SimAlerts } from './alerts';
 import { clearSimCashier, publishSimCashier, type SimCashier } from './cashier';
 import { clearSimPatients, publishSimPatients, type SimPatients } from './patients';
+import { clearSimLab, createSimLab, type SimLab } from './lab';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -52,6 +53,8 @@ export interface VoiceSim {
   cashier: () => SimCashier | null;
   /** Pacientes (se publica al estar en «/patients»). */
   patients: () => SimPatients | null;
+  /** Órdenes de laboratorio (backend y pantalla, al estar en «/lab-orders»). */
+  lab: () => SimLab | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -130,9 +133,11 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
         .map((p) => ({ id: p.id, name: p.name, phone_number: p.phone, email: p.email, identity_document: p.document }));
       return json([{ data: rows }]);
     }
-    return null;
+    // El backend de laboratorio simulado (solo en la pantalla de órdenes).
+    return lab?.handle(url, init) ?? null;
   });
 
+  let lab: SimLab | null = null;
   setRoute(locale, route);
   const cal = createSimCalendar({ customMode });
   const rail = createSimRail();
@@ -143,6 +148,8 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   let cashier: SimCashier | null = null;
   let patients: SimPatients | null = null;
   const mountPage = (to: string) => {
+    clearSimLab();
+    lab = to === '/lab-orders' ? createSimLab() : null;
     clearSimPatients();
     patients = to === '/patients' ? publishSimPatients() : null;
     clearSimCashier();
@@ -186,6 +193,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     alerts: () => alerts,
     cashier: () => cashier,
     patients: () => patients,
+    lab: () => lab,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -222,6 +230,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       clearSimAlerts();
       clearSimCashier();
       clearSimPatients();
+      clearSimLab();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

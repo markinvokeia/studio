@@ -26,6 +26,8 @@ import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
 import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { LabOrdersPageVoiceBridge } from '@/lib/types';
 import {
   LabCreateDialog, LabOrdersSetupCard, LabOrdersSetupMenu, LabServicesDialog, useLabSetupStatus, type LabSetupDialog,
 } from '@/components/lab-orders/lab-orders-setup';
@@ -733,6 +735,17 @@ export default function LabOrdersPage() {
       </CardContent>
     </Card>
   );
+
+  // Voz: «abrí la de Ana Pérez», «pasá la primera a recibida», «¿dónde está la de Juan?» (ver
+  // src/lib/voice/commands/lab-orders-pick.ts); lo que se ve y la orden abierta.
+  useVoiceBridge<LabOrdersPageVoiceBridge>('lab_orders.page', {
+    rows: orders.map((o) => ({
+      id: o.id, patient: o.patient_name, laboratory: o.laboratory_name ?? '', stage: o.stage_name, work: o.work_summary ?? '',
+      due: o.due_date, overdue: o.is_overdue, urgent: o.is_urgent,
+    })),
+    selectedId,
+    select: (id) => setSelectedId(id),
+  });
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">

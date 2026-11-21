@@ -16,6 +16,7 @@ import '@/lib/voice/commands/lab-orders';
 import '@/lib/voice/commands/lab-orders-create';
 import '@/lib/voice/commands/lab-orders-manage';
 import '@/lib/voice/commands/lab-orders-edit';
+import '@/lib/voice/commands/lab-orders-pick';
 import '@/lib/voice/commands/perio';
 import '@/lib/voice/commands/calendar';
 import '@/lib/voice/commands/calendar-query';

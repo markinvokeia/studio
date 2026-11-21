@@ -5313,3 +5313,10 @@ export interface PatientsVoiceBridge {
     discharge: (() => void) | null;
   };
 }
+
+/** La pantalla de órdenes de laboratorio para la voz: lo que se ve y la orden abierta. */
+export interface LabOrdersPageVoiceBridge {
+  rows: Array<{ id: number; patient: string; laboratory: string; stage: string; work: string; due: string | null; overdue: boolean; urgent: boolean }>;
+  selectedId: number | null;
+  select: (id: number | null) => void;
+}

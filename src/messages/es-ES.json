@@ -14014,7 +14014,14 @@
       "listView": "{view, select, board {Te muestro el tablero.} other {Te muestro la lista.}}",
       "listShown": "{count, plural, =0 {No hay órdenes {what}.} one {Hay 1 orden {what}: te la muestro.} other {Hay # órdenes {what}: te las muestro.}}",
       "listShownNoCount": "Te muestro las órdenes {what}.",
-      "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «la orden 45 se envió ayer» o «crea una orden para Ana Pérez, corona en la 36»."
+      "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «la orden 45 se envió ayer» o «crea una orden para Ana Pérez, corona en la 36».",
+      "pick": {
+        "title": "Laboratorio",
+        "which": "¿Qué orden?",
+        "notFound": "No he encontrado esa orden en la lista que se ve.",
+        "opened": "He abierto la orden {id} de {patient}.",
+        "resolved": "Orden {id}."
+      }
     },
     "interpreting": "Interpretando lo que has dicho…",
     "aiFailed": "No he podido interpretar la petición ahora. Inténtalo de nuevo en un momento.",
@@ -14512,7 +14519,8 @@
       "cashier_count": "contar el efectivo",
       "patients_list": "buscar o filtrar pacientes",
       "patients_detail": "algo en la ficha del paciente",
-      "patients_info": "datos del paciente"
+      "patients_info": "datos del paciente",
+      "lab-orders_pick": "elegir una orden de laboratorio"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿quieres {action}?",
     "and": " y ",

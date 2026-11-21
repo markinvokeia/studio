@@ -14014,7 +14014,14 @@
       "listView": "{view, select, board {Here is the board.} other {Here is the list.}}",
       "listShown": "{count, plural, =0 {There are no {what} orders.} one {There is 1 {what} order: here it is.} other {There are # {what} orders: here they are.}}",
       "listShownNoCount": "Here are the {what} orders.",
-      "notUnderstood": "I didn't understand what to do. Try, for example: “order 45 was sent yesterday” or “create an order for Ann Smith, crown on 36”."
+      "notUnderstood": "I didn't understand what to do. Try, for example: “order 45 was sent yesterday” or “create an order for Ann Smith, crown on 36”.",
+      "pick": {
+        "title": "Lab orders",
+        "which": "Which order?",
+        "notFound": "I couldn’t find that order in the list being shown.",
+        "opened": "Opened order {id} for {patient}.",
+        "resolved": "Order {id}."
+      }
     },
     "interpreting": "Working out what you said…",
     "aiFailed": "I couldn't interpret that right now. Try again in a moment.",
@@ -14512,7 +14519,8 @@
       "cashier_count": "count the cash",
       "patients_list": "search or filter patients",
       "patients_detail": "something in the patient record",
-      "patients_info": "patient information"
+      "patients_info": "patient information",
+      "lab-orders_pick": "pick a lab order"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",

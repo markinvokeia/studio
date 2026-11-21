@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1835 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1860 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2197,3 +2197,36 @@ PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros 
   - en «how much does he owe» con la ficha
 - **PA-NAV · Llegar y buscar**
   - «andá a pacientes y buscá a Roberto Díaz»
+
+## 96-lab-orders.spec.ts (25)
+
+LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la primera», la orden abierta; abrir, mover de etapa (con confirmación), estado; con backend de laboratorio simulado.
+
+- **LB-PARSE · Qué orden se nombró**
+  - «abrí la de Ana Gómez»
+  - «pasá la de Juan a recibida»
+  - «dónde está la de Juan Pérez»
+  - «la primera llegó»
+  - «mandá la orden de Dental Sur»
+  - «marcala como urgente»
+  - no: «la orden 45 llegó»
+  - no: «mostrame las de Ana»
+  - no: «creá una orden para Ana Gómez»
+  - no: «abrí la caja»
+  - no: «hola»
+- **LB · Por lo que se ve**
+  - «abrí la de Juan Pérez» abre su orden
+  - «abrí la tercera»
+  - «pasá la de Juan a recibida» la mueve
+  - «llegó la de Juan»
+  - «¿dónde está la de Juan?» dice la etapa
+  - «la de Ana» con dos: pregunta cuál
+  - con la orden abierta: «llegó» sin nombrar
+  - «no» deja la orden como está
+  - sin orden abierta ni nombre: no la inventa
+  - nombre que no está: lo dice
+  - con número sigue igual: «la orden 46 llegó»
+  - es-ES «abre la de Juan Pérez»
+  - en «open the one for Juan» y «it arrived»
+- **LB-NAV · Llegar y seguir**
+  - «andá a laboratorio y abrí la de Juan Pérez»
