@@ -4,7 +4,9 @@ import * as React from 'react';
 import { LayoutList, Table2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import type { TableViewMode } from '@/hooks/use-table-view-mode';
+import type { ViewModeVoiceBridge } from '@/lib/types';
 
 interface ViewModeToggleProps {
   value: TableViewMode;
@@ -21,8 +23,13 @@ export function ViewModeToggle({ value, onChange, tableLabel = 'Tabla', listLabe
     { mode: 'list', icon: LayoutList, label: listLabel },
   ];
 
+  // Voz: «vista tabla», «modo lista» (commands/table.ts).
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const voiceKey = React.useId();
+  useVoiceBridge<ViewModeVoiceBridge>(`view.${voiceKey}`, { value, set: onChange, root: () => rootRef.current });
+
   return (
-    <div className={cn('inline-flex h-9 shrink-0 items-center rounded-md border bg-muted/40 p-0.5', className)}>
+    <div ref={rootRef} className={cn('inline-flex h-9 shrink-0 items-center rounded-md border bg-muted/40 p-0.5', className)}>
       {options.map(({ mode, icon: Icon, label }) => (
         <button
           key={mode}

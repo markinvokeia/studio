@@ -2,6 +2,8 @@ import { format } from 'date-fns';
 
 import { publishVoiceBridge } from '@/lib/voice/screen-bridge';
 
+import { screen } from './page';
+
 import type { ReportKpiVoiceBridge, ReportPeriodVoiceBridge, ReportShellVoiceBridge, ReportTableVoiceBridge } from '@/lib/types';
 
 /** Un reporte simulado (lo que publican ReportShell, ReportKPICard, DateRangePresets, ReportDataTable). */
@@ -21,7 +23,16 @@ export function publishSimReport({ allTime = true, withPeriod = true } = {}): Si
       publishVoiceBridge<ReportTableVoiceBridge>('reports.table', { rowCount: 12 }, OWNER);
     },
     exportPDF: () => log.push('pdf'), exportExcel: () => log.push('excel'), exportCSV: null, print: () => log.push('print'),
+    // La barra de filtros, como la del cierre de caja (selectores con sus opciones).
+    filtersRoot: () => filters as unknown as HTMLElement,
   };
+  const filters = screen.group(
+    screen.select('Caja', ['Todas las cajas', 'Caja Principal', 'Caja Recepción Planta Alta', 'Caja Sede Carrasco'], 'Todas las cajas'),
+    screen.select('Método de pago', ['Todos los métodos', 'Efectivo', 'Tarjeta de crédito', 'Transferencia'], 'Todos los métodos'),
+    screen.select('Moneda', ['Todas', 'UYU', 'USD'], 'Todas'),
+    screen.select('Movimiento', ['Ingresos y egresos', 'Solo ingresos', 'Solo egresos'], 'Ingresos y egresos'),
+  );
+  screen.page(filters);
   publishVoiceBridge('reports.shell', shell, OWNER);
   const period: ReportPeriodVoiceBridge = {
     setRange: (from, to) => log.push(`range:${format(from, 'yyyy-MM-dd')}..${format(to, 'yyyy-MM-dd')}`),

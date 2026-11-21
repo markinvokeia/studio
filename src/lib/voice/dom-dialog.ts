@@ -38,7 +38,12 @@ function topDialog(): HTMLElement | null {
   if (typeof document === 'undefined') return null;
   // Avisos (AlertDialog) y ventanitas de elegir marcadas con data-voice-popup (nota de cancelación, alcance de un recordatorio).
   const open = Array.from(document.querySelectorAll<HTMLElement>('[role="alertdialog"][data-state="open"], [role="dialog"][data-state="open"][data-voice-popup]'));
-  return open.length ? open[open.length - 1] : null;
+  if (open.length) return open[open.length - 1];
+  // Una notificación con botones («Deshacer», «Ver») es un aviso más: se lee y se ofrecen sus botones.
+  const toasts = Array.from(document.querySelectorAll<HTMLElement>('[data-voice-toast-action]'))
+    .map((b) => b.closest<HTMLElement>('[data-state="open"]'))
+    .filter((el): el is HTMLElement => !!el);
+  return toasts.length ? toasts[toasts.length - 1] : null;
 }
 
 export function isDialogOpen(): boolean {
@@ -54,8 +59,8 @@ export function openDialogTitle(): string | null {
 export function readOpenDialog(): OpenDialog | null {
   const element = topDialog();
   if (!element) return null;
-  const title = element.querySelector('h2, [id$="-title"]')?.textContent?.trim() ?? '';
-  const description = element.querySelector('p, [id$="-description"]')?.textContent?.trim() ?? '';
+  const title = element.querySelector('h2, [id$="-title"], [data-voice-title]')?.textContent?.trim() ?? '';
+  const description = element.querySelector('p, [id$="-description"], [data-voice-description]')?.textContent?.trim() ?? '';
   const buttons = Array.from(element.querySelectorAll<HTMLButtonElement>('button:not([disabled])'))
     .filter((b) => (b.offsetParent !== null || typeof b.offsetParent === 'undefined') && (b.textContent ?? '').trim())
     .map((b) => ({
@@ -139,6 +144,25 @@ export function hasOpenOverlay(): boolean {
 }
 
 /**
+ * Escape mandado por la voz (para cerrar una lista o una ventana): va marcado para que el Escape de
+ * la voz («Escape cancela») no corte la tarea que lo mandó.
+ */
+export function voiceEscape(target: EventTarget | null | undefined, bubbles = true) {
+  if (!target || typeof KeyboardEvent === 'undefined') return;
+  const event = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles });
+  try { Object.defineProperty(event, 'voiceSynthetic', { value: true }); } catch { /* evento congelado */ }
+  (target as EventTarget & { dispatchEvent?: (e: Event) => boolean }).dispatchEvent?.(event);
+}
+
+export const isVoiceEscape = (event: Event) => (event as Event & { voiceSynthetic?: boolean }).voiceSynthetic === true;
+
+/** La ventana o panel lateral de arriba (o null). */
+export function topOverlayElement(): HTMLElement | null {
+  const overlays = openOverlays();
+  return overlays[overlays.length - 1] ?? null;
+}
+
+/**
  * Cierra la ventana o el panel lateral de arriba como lo cerraría la persona: su botón de cerrar
  * (la X) o, si no tiene, la tecla Escape. Devuelve su título (o '' si no tiene), o null si no había.
  */
@@ -152,7 +176,7 @@ export function closeTopOverlay(): string | null {
     return /\b(?:close|cerrar)\b/.test(label);
   });
   if (closeButton) closeButton.click();
-  else top.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+  else voiceEscape(top);
   return title;
 }
 

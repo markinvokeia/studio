@@ -105,7 +105,29 @@ export function openWindow(title: string, { buttons = [] as string[], fields = [
   return popup;
 }
 
+/** Notificaciones abiertas con botones (Radix Toast con ToastAction). */
+const toasts: FakeDialog[] = [];
+
+/** Abre una notificación con botones («Deshacer», «Ver»); apretar uno la cierra. */
+export function openToast(title: string, actions: string[], { description = '' } = {}): FakePopup {
+  const popup: FakePopup = { title, open: true, pressed: [], close: () => {} };
+  const toast = new FakeDialog('dialog', popup, description, false);
+  popup.close = () => { popup.open = false; const i = toasts.indexOf(toast); if (i >= 0) toasts.splice(i, 1); notify(); };
+  toast.buttons = [
+    new FakeButton('', () => popup.close(), undefined, 'Close'),
+    ...actions.map((label) => {
+      const b = new FakeButton(label, () => { popup.pressed.push(label); popup.close(); });
+      (b as unknown as { closest: () => FakeDialog | null }).closest = () => (popup.open ? toast : null);
+      return b;
+    }),
+  ];
+  toasts.push(toast);
+  notify();
+  return popup;
+}
+
 export function resetDom() {
+  toasts.length = 0;
   dialogs.length = 0;
   screen.reset();
   scrollLog.length = 0;
@@ -134,6 +156,7 @@ g.document = {
   querySelectorAll: (selector: string) => {
     if (selector === '*') return [page];
     if (selector === '[role="option"]') return portal.querySelectorAll('[role="option"]');
+    if (selector === '[data-voice-toast-action]') return toasts.flatMap((t) => t.buttons.filter((b) => b.textContent));
     return dialogs.filter((d) => selector.split(',').some((part) => matches(d, part.trim())));
   },
   querySelector: (selector: string) => {

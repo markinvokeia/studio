@@ -17,6 +17,7 @@ import '@/lib/voice/commands';
 import { LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { answerFromCard, cancelVoice, configureVoiceSession, endPushToTalk, startAlwaysOn, startPushToTalk, stopAlwaysOn, toggleAlwaysOn, updateVoiceDomains, wasAlwaysOn } from '@/lib/voice/session';
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
+import { isVoiceEscape } from '@/lib/voice/dom-dialog';
 import { activeScreenDomains, useVoiceScreenStore } from '@/stores/voice-screen-store';
 import { isSpeechRecognitionSupported } from '@/lib/voice/speech-recognition';
 import { useVoiceCommand } from '@/stores/voice-command-store';
@@ -185,7 +186,8 @@ function VoiceCommandRoot({ domains: fixed }: { domains?: readonly string[] }) {
         }
         return;
       }
-      if (e.key === 'Escape' && useVoiceCommand.getState().phase !== 'idle') cancelVoice();
+      // El Escape que manda la propia voz (para cerrar una lista o una ventana) no la corta.
+      if (e.key === 'Escape' && !isVoiceEscape(e) && useVoiceCommand.getState().phase !== 'idle') cancelVoice();
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.key === 'Control') release();

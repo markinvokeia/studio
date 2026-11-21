@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useHelpScope } from '@/components/help/help-scope';
 import { composeHelpId } from '@/lib/help/help-id';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { ExportDialogVoiceBridge } from '@/lib/types';
 import { differenceInDays, format as formatDate, parseISO, startOfMonth } from 'date-fns';
 import { FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -77,6 +79,17 @@ export function GridExportDialog({
   };
 
   const isDisabled = isExporting || !dateFrom || !dateTo;
+
+  // Voz: «exportá a Excel», «en CSV», «de marzo» (commands/table.ts).
+  const handleExportRef = React.useRef(handleExport);
+  React.useLayoutEffect(() => { handleExportRef.current = handleExport; });
+  useVoiceBridge<ExportDialogVoiceBridge | null>('export.dialog', open ? {
+    formats: ['excel', 'csv'],
+    format,
+    setFormat,
+    setRange: (from, to) => { setDateFrom(formatDate(from, 'yyyy-MM-dd')); setDateTo(formatDate(to, 'yyyy-MM-dd')); setError(null); },
+    submit: () => { void handleExportRef.current(); },
+  } : null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

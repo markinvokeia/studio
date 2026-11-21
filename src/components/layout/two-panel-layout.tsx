@@ -98,7 +98,7 @@ export function TwoPanelLayout({
     if (forceRightOnly && isRightPanelOpen) {
         return (
             <NarrowModeContext.Provider value={{ isNarrow: false }}>
-                <div className={cn("flex-1 w-full overflow-hidden min-h-0", className)}>
+                <div data-voice-panel="detail" className={cn("flex-1 w-full overflow-hidden min-h-0", className)}>
                     {rightPanel}
                 </div>
             </NarrowModeContext.Provider>
@@ -123,7 +123,7 @@ export function TwoPanelLayout({
                             className="h-full relative overflow-hidden"
                             id="left-panel-v4"
                         >
-                            <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-1">
+                            <div ref={leftPanelRef} data-voice-panel="list" className="absolute inset-0 overflow-hidden px-1">
                                 <NarrowModeContext.Provider value={{ isNarrow }}>
                                     {leftPanel}
                                 </NarrowModeContext.Provider>
@@ -144,7 +144,7 @@ export function TwoPanelLayout({
                                 className="h-full relative overflow-hidden"
                                 id="right-panel-v4"
                             >
-                                <div className="absolute inset-0 overflow-hidden px-1">
+                                <div data-voice-panel="detail" className="absolute inset-0 overflow-hidden px-1">
                                     {rightPanel}
                                 </div>
                             </Panel>
@@ -161,6 +161,7 @@ export function TwoPanelLayout({
             <div className={cn("flex flex-col h-full min-h-0 overflow-hidden", className)}>
                 <div
                     ref={leftPanelRef}
+                    data-voice-panel="list"
                     className={cn(
                         "h-full min-h-0 overflow-hidden px-1",
                         isRightPanelOpen ? "hidden" : "block"
@@ -171,7 +172,7 @@ export function TwoPanelLayout({
                     </NarrowModeContext.Provider>
                 </div>
                 {isRightPanelOpen && (
-                    <div className="h-full min-h-0 overflow-hidden flex flex-col px-1">
+                    <div data-voice-panel="detail" className="h-full min-h-0 overflow-hidden flex flex-col px-1">
                         {onBack && (
                             <button
                                 type="button"

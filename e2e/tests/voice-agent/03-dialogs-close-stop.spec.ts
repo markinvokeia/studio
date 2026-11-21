@@ -4,6 +4,7 @@ import { pickDialogButton, type DialogButton } from '@/lib/voice/dom-dialog';
 import { normalizeSpeech } from '@/lib/voice/parse';
 import { isStopListeningPhrase } from '@/lib/voice/wake';
 
+import { openToast } from './sim/dom';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 
 /**
@@ -139,4 +140,40 @@ test.describe('AV-GAPS · Buscar huecos no es buscar citas', () => {
       expect(sim.cal.calls('setGapsActive')).toContainEqual([true]);
     });
   }
+});
+
+test.describe('AV-TOAST · Notificaciones con botones', () => {
+  let sim: VoiceSim;
+  test.afterEach(() => sim.dispose());
+  test('una notificación con botones se lee y ofrece sus botones; «deshacer» lo aprieta', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/appointments' });
+    const toast = openToast('Marcas aplicadas', ['Deshacer', 'Ver'], { description: 'Se marcaron 3 piezas.' });
+    await sim.wait(40);
+    expect(sim.card().title).toBe('Marcas aplicadas');
+    expect(sim.card().choices).toEqual(['Deshacer', 'Ver']);
+    await sim.say('deshacer');
+    expect(toast.pressed).toEqual(['Deshacer']);
+  });
+  test('por posición: «el segundo»', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/appointments' });
+    const toast = openToast('Guardado', ['Deshacer', 'Ver']);
+    await sim.wait(40);
+    await sim.say('el segundo');
+    expect(toast.pressed).toEqual(['Ver']);
+  });
+  test('en «undo»', async () => {
+    sim = await createVoiceSim({ locale: 'en', route: '/appointments' });
+    const toast = openToast('Saved', ['Undo', 'View']);
+    await sim.wait(40);
+    await sim.say('undo');
+    expect(toast.pressed).toEqual(['Undo']);
+  });
+  test('si la notificación se va sola, la pregunta se saca', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/appointments' });
+    const toast = openToast('Guardado', ['Deshacer']);
+    await sim.wait(40);
+    toast.close();
+    await sim.wait(40);
+    expect(sim.store().awaiting).toBeNull();
+  });
 });

@@ -156,6 +156,22 @@ export function readSurface(): UiSurface | null {
     controls.push(control);
   }
   const title = overlays.length ? text(root.querySelector?.('h2, [id$="-title"]') ?? null) : '';
+  // Capas: con el panel de detalle abierto, lo suyo va primero (la pestaña activa antes que el resto
+  // del detalle) y la lista después; así un botón o una pestaña con el mismo nombre es la del detalle.
+  if (!overlays.length && typeof (root as HTMLElement).querySelector === 'function') {
+    const rank = (el: HTMLElement) => {
+      if (typeof el.closest !== 'function') return 2;
+      const detail = el.closest('[data-voice-panel="detail"]');
+      if (!detail) return 2;
+      const tab = el.closest('[role="tabpanel"]');
+      return tab && (tab.getAttribute('data-state') === 'active' || tab.getAttribute('data-state') === null) ? 0 : 1;
+    };
+    const ranked = controls.map((c, i) => ({ c, i, r: rank(c.element) }));
+    if (ranked.some((x) => x.r < 2)) {
+      ranked.sort((a, b) => a.r - b.r || a.i - b.i);
+      return { root, title, isOverlay: false, controls: ranked.map((x) => x.c) };
+    }
+  }
   return { root, title, isOverlay: overlays.length > 0, controls };
 }
 

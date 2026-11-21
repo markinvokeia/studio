@@ -280,25 +280,69 @@ export function DataTable<TData, TValue>({
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
 
-  // Voz: «nuevo medicamento Ibuprofeno», «abrí la sede Centro», «¿cuántos hay?» (commands/crud.ts).
+  // Voz: todo lo que se hace con la tabla (commands/crud.ts y commands/table.ts): crear, abrir,
+  // buscar, filtrar, páginas, cantidad por página, ordenar, columnas, elegir el registro.
   useVoiceScreen(['crud']);
   const voiceKey = React.useId();
-  const voiceRows = table.getRowModel().rows.map((row) => ({
-    id: row.id,
-    label: row.getVisibleCells().map((cell) => cell.getValue()).filter((v) => typeof v === 'string' || typeof v === 'number').slice(0, 3).join(' · '),
-  }));
+  const voiceRootRef = React.useRef<HTMLDivElement | null>(null);
+  const cellText = (value: unknown) => (typeof value === 'string' || typeof value === 'number' ? String(value) : '');
+  const voiceRows = table.getRowModel().rows.map((row) => {
+    const cells: Record<string, string> = {};
+    for (const cell of row.getVisibleCells()) { const v = cellText(cell.getValue()); if (v) cells[cell.column.id] = v; }
+    return { id: row.id, label: Object.values(cells).slice(0, 3).join(' · '), cells };
+  });
+  const searchColumn = useGlobalFilter ? null : table.getColumn(filterColumnId ?? '');
+  const searchValue = useGlobalFilter ? String(table.getState().globalFilter ?? '') : String(searchColumn?.getFilterValue() ?? '');
+  const selectedRowId = Object.keys(finalRowSelection as RowSelectionState).find((k) => (finalRowSelection as RowSelectionState)[k]) ?? null;
+  const { pageIndex, pageSize } = table.getState().pagination;
   useVoiceBridge<CrudVoiceBridge>(`crud.${voiceKey}`, {
     createLabel: createButtonLabel ?? '',
     rows: voiceRows,
     total: rowCount ?? data.length,
     create: onCreate ?? null,
-    open: onRowSelectionChange || onRowClick ? (id) => {
+    open: onRowSelectionChange || onRowClick || enableSingleRowSelection ? (id) => {
       const row = table.getRowModel().rows.find((r) => r.id === id);
       if (!row) return;
+      if (enableSingleRowSelection) table.setRowSelection({ [row.id]: true });
       if (onRowClick) onRowClick(row.original);
-      else onRowSelectionChange?.([row.original]);
+      else if (!enableSingleRowSelection) onRowSelectionChange?.([row.original]);
     } : null,
     refresh: onRefresh ?? null,
+    root: () => voiceRootRef.current,
+    selectedId: selectedRowId,
+    deselect: selectedRowId ? () => table.setRowSelection({}) : null,
+    columns: () => {
+      const root = voiceRootRef.current;
+      return table.getAllLeafColumns()
+        .filter((c) => c.id !== 'select' && c.id !== 'actions')
+        .map((c) => {
+          const th = root?.querySelector<HTMLElement>(`th[data-column-id="${CSS.escape(c.id)}"]`);
+          const headerStr = typeof c.columnDef.header === 'string' ? c.columnDef.header : '';
+          const label = (th?.textContent || columnTranslations[c.id] || headerStr || c.id.replace(/[_-]+/g, ' ')).trim();
+          const sorted = c.getIsSorted();
+          return { id: c.id, label, visible: c.getIsVisible(), canHide: c.getCanHide() && typeof c.accessorFn !== 'undefined', canSort: c.getCanSort(), sort: sorted === false ? null : sorted };
+        })
+        .filter((c) => c.label);
+    },
+    search: useGlobalFilter || searchColumn ? {
+      value: searchValue,
+      set: (text) => { if (useGlobalFilter) table.setGlobalFilter(text); else searchColumn?.setFilterValue(text); table.setPageIndex(0); },
+    } : null,
+    filter: filterOptions && onFilterChange ? { options: filterOptions, value: filterValue || 'all', set: onFilterChange } : null,
+    page: {
+      index: pageIndex,
+      count: Math.max(1, table.getPageCount()),
+      size: pageSize,
+      sizes: [10, 25, 50, 100, 200],
+      go: (index) => table.setPageIndex(index),
+      setSize: (size) => table.setPageSize(size === 'all' ? Math.max(table.getRowCount(), rowCount ?? 0, 1) : size),
+    },
+    sortBy: (columnId, dir) => {
+      const column = table.getColumn(columnId);
+      if (!column) return;
+      if (dir === null) column.clearSorting(); else column.toggleSorting(dir === 'desc');
+    },
+    setColumnVisible: (columnId, visible) => table.getColumn(columnId)?.toggleVisibility(visible),
   });
 
   // Show all rows before printing (Cmd+P); restore afterwards.
@@ -380,7 +424,7 @@ export function DataTable<TData, TValue>({
 
 
   return (
-    <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
+    <div ref={voiceRootRef} data-voice-table className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
       <div className="print:hidden">
         {customToolbar ? (
           typeof customToolbar === 'function' ? (
@@ -436,7 +480,7 @@ export function DataTable<TData, TValue>({
             ))
           ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row, rowIndex) => (
-              <div key={row.id} data-testid="list-item" data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')} onClick={() => {
+              <div key={row.id} data-row-id={row.id} data-testid="list-item" data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')} onClick={() => {
                 if (enableSingleRowSelection) {
                   // Single selection: clicking the selected item deselects it,
                   // clicking another one replaces the selection. Row ids are
@@ -469,6 +513,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <TableHead
                       key={header.id}
+                      data-column-id={header.column.id}
                       style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}
                       className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
                       onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
@@ -504,6 +549,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
+                  data-row-id={row.id}
                   // Guías: la primera fila (la más reciente o la primera del orden) y el resto.
                   data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')}
                   data-state={row.getIsSelected() && 'selected'}

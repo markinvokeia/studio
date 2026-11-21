@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { BarChart2, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useRef } from 'react';
 import { PrintReportHeader } from './print-report-header';
 import { ReportExportActions } from './report-export-actions';
 
@@ -51,9 +51,11 @@ export function ReportShell({
   const helpScope = useHelpScope();
   // Voz: «generá el reporte», «el mes pasado», «exportá a Excel», «¿cuánto da?» (commands/reports.ts).
   useVoiceScreen(['reports']);
+  const filtersRef = useRef<HTMLDivElement | null>(null);
   useVoiceBridge<ReportShellVoiceBridge>('reports.shell', {
     title, isLoading, hasData, generate: onGenerate,
     exportPDF: onExportPDF ?? null, exportExcel: onExportExcel ?? null, exportCSV: onExportCSV ?? null, print: onPrint ?? null,
+    filtersRoot: () => filtersRef.current,
   });
   const hid = (kind: 'section' | 'btn', name: string) => composeHelpId(helpScope, kind, name);
 
@@ -107,7 +109,7 @@ export function ReportShell({
               On mobile: override the page's inner <div class="flex flex-wrap …">
               to become a grid-cols-2 so each filter takes half the width.
             */}
-            <div className="flex-1 min-w-0 max-md:[&>div]:grid max-md:[&>div]:grid-cols-2 max-md:[&>div]:gap-2">
+            <div ref={filtersRef} className="flex-1 min-w-0 max-md:[&>div]:grid max-md:[&>div]:grid-cols-2 max-md:[&>div]:gap-2">
               {filters}
             </div>
             <Button

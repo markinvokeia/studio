@@ -5387,6 +5387,8 @@ export interface ReportShellVoiceBridge {
   exportExcel: (() => void) | null;
   exportCSV: (() => void) | null;
   print: (() => void) | null;
+  /** La barra de filtros (sus selectores: caja, método de pago, moneda, sede, doctor…). */
+  filtersRoot?: () => HTMLElement | null;
 }
 export interface ReportKpiVoiceBridge { title: string; value: string; subtitle: string }
 export interface ReportPeriodVoiceBridge { setRange: (from: Date, to: Date) => void; allTime: (() => void) | null }
@@ -5395,9 +5397,51 @@ export interface ReportTableVoiceBridge { rowCount: number }
 /** Una tabla común (DataTable) para la voz (src/lib/voice/commands/crud.ts): altas, abrir, contar. */
 export interface CrudVoiceBridge {
   createLabel: string;
-  rows: Array<{ id: string; label: string }>;
+  /** Las filas que se ven (la página actual), con el valor de cada columna (por id de columna). */
+  rows: Array<{ id: string; label: string; cells?: Record<string, string> }>;
   total: number;
   create: (() => void) | null;
   open: ((id: string) => void) | null;
   refresh: (() => void) | null;
+  /** El contenedor de la tabla: dice en qué capa está (ventana, pestaña del detalle, lista). */
+  root?: () => HTMLElement | null;
+  /** La fila elegida (la del panel de detalle), si hay. */
+  selectedId?: string | null;
+  /** Suelta la fila elegida (cierra el panel de detalle). */
+  deselect?: (() => void) | null;
+  /** Las columnas, con el nombre como se ve en el encabezado (se lee al momento). */
+  columns?: () => TableVoiceColumn[];
+  /** La barra de búsqueda de la tabla. */
+  search?: { value: string; set: (text: string) => void } | null;
+  /** El filtro de la barra (las opciones que tenga: «Todos», «Facturas», «Notas de crédito»…). */
+  filter?: { options: Array<{ value: string; label: string }>; value: string; set: (value: string) => void } | null;
+  /** Las páginas. `index` desde 0. */
+  page?: { index: number; count: number; size: number; sizes: number[]; go: (index: number) => void; setSize: (size: number | 'all') => void } | null;
+  sortBy?: ((columnId: string, dir: 'asc' | 'desc' | null) => void) | null;
+  setColumnVisible?: ((columnId: string, visible: boolean) => void) | null;
+}
+
+export interface TableVoiceColumn {
+  id: string;
+  label: string;
+  visible: boolean;
+  canHide: boolean;
+  canSort: boolean;
+  sort: 'asc' | 'desc' | null;
+}
+
+/** El selector «Tabla / Lista» de una pantalla (ViewModeToggle). */
+export interface ViewModeVoiceBridge {
+  value: 'table' | 'list';
+  set: (mode: 'table' | 'list') => void;
+  root: () => HTMLElement | null;
+}
+
+/** La ventana «Exportar registros» abierta (GridExportDialog). */
+export interface ExportDialogVoiceBridge {
+  formats: Array<'excel' | 'csv'>;
+  format: 'excel' | 'csv';
+  setFormat: (format: 'excel' | 'csv') => void;
+  setRange: (from: Date, to: Date) => void;
+  submit: () => void;
 }

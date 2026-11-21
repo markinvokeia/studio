@@ -175,6 +175,24 @@ const ES: Scenario[] = [
     { say: 'la semana pasada', shows: /\d{2}\/\d{2}/ },
     { say: 'volvé a hoy', shows: /hoy/i },
   ] },
+  { name: 'tablas: páginas, orden, columnas, buscar, elegir', path: '/es/clinic-catalog/medications', steps: [
+    { say: 'poné 10 por página', shows: /10 por página/ },
+    { say: 'siguiente página', shows: /Página 2 de/ },
+    { say: 'primera página', shows: /Página 1 de/ },
+    { say: 'qué columnas hay', shows: /Columnas:/ },
+    { say: 'ordená por nombre genérico descendente', shows: /Ordené por/ },
+    { say: 'sacá el orden', shows: /Saqué el orden/ },
+    { say: 'buscá ibu', shows: /Busqué «ibu»/ },
+    { say: 'borrá la búsqueda', shows: /Borré la búsqueda/ },
+    { say: 'seleccioná el 2', shows: /Abrí/ },
+    { say: 'cerrá el detalle', shows: /Cerré el detalle/ },
+  ] },
+  { name: 'tablas: facturas (filtro, vista, páginas)', path: '/es/sales/invoices', steps: [
+    { say: 'poné 10 por página', shows: /10 por página/ },
+    { say: 'última página', shows: /Página \d+ de/ },
+    { say: 'vista de lista', shows: /Vista de lista/ },
+    { say: 'vista de tabla', shows: /Vista de tabla/ },
+  ] },
   { name: 'alertas: leer', path: '/es/alerts', steps: [
     { say: 'cuántas alertas hay', shows: /alerta/i },
     { say: 'qué alertas críticas hay' },
@@ -200,6 +218,12 @@ const ES: Scenario[] = [
   { name: 'reportes: llegar, período y leer', path: '/es', steps: [
     { say: 'llevame a reportes de cobros del día y mostrame el mes pasado', url: /\/es\/reports\//, shows: /\d{2}\/\d{2}\/\d{4}/ },
     { say: 'cuánto da' },
+  ] },
+  { name: 'reportes: filtros de la barra', path: '/es/reports/cierre-caja', steps: [
+    { say: 'qué cajas hay', shows: /Cajas: Todas las cajas, / },
+    { say: 'filtrá por la caja sede carrasco', shows: /Filtré por Caja Sede Carrasco/ },
+    { say: 'solo egresos', shows: /Filtré por Solo egresos/ },
+    { say: 'sacá los filtros', shows: /Saqué los filtros/ },
   ] },
   { name: 'reportes: sin período lo genera igual', path: '/es', steps: [
     { say: 'llevame a reportes de deudores y mostrame el mes pasado', url: /\/es\/reports\/deudores/, shows: /lo genero igual/ },
@@ -247,6 +271,13 @@ const EN: Scenario[] = [
     { say: 'the 9 o clock', shows: /09:00/ },
     { say: 'give me a summary of the patient', shows: /Clinical case/ },
     { say: 'close the case', shows: /closed/ },
+  ] },
+  { name: 'tables: pages, columns, search', path: '/en/clinic-catalog/medications', steps: [
+    { say: 'show 10 per page', shows: /10 per page/ },
+    { say: 'next page', shows: /Page 2 of/ },
+    { say: 'which columns are there', shows: /Columns:/ },
+    { say: 'search for ibu', shows: /Searched/ },
+    { say: 'clear the search', shows: /Cleared the search/ },
   ] },
   { name: 'alerts: read', path: '/en/alerts', steps: [
     { say: 'how many alerts are there', shows: /alert/i },

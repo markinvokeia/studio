@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2064 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2171 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -70,7 +70,7 @@ Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar
   - MIC-013 lo que se está diciendo se ve en la tarjeta mientras se habla
   - MIC-014 con la voz del asistente silenciada, lo dicho justo después de un resultado no se pierde
 
-## 03-dialogs-close-stop.spec.ts (84)
+## 03-dialogs-close-stop.spec.ts (88)
 
 AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.
 
@@ -162,6 +162,11 @@ AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que est
   - «find available times» muestra los huecos
   - «look for openings» muestra los huecos
   - «show me the gaps» muestra los huecos
+- **AV-TOAST · Notificaciones con botones**
+  - una notificación con botones se lee y ofrece sus botones; «deshacer» lo aprieta
+  - por posición: «el segundo»
+  - en «undo»
+  - si la notificación se va sola, la pregunta se saca
 
 ## 04-popups-selection.spec.ts (185)
 
@@ -2358,7 +2363,7 @@ DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras,
 - **DO-NAV · Llegar y actuar**
   - «andá a facturas y cobrá la factura 120»
 
-## 99-reports.spec.ts (19)
+## 99-reports.spec.ts (33)
 
 RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.
 
@@ -2385,6 +2390,21 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
 - **RE-NOPERIOD · Reporte sin período**
   - «el mes pasado» en un reporte sin período: lo dice y lo genera igual
   - en «last month» on a report without a period
+- **RE-FILTER · Los filtros de la barra (selectores)**
+  - es «filtrá por la caja principal»
+  - es «la caja sede carrasco»
+  - es «solo efectivo»
+  - es «pagos con tarjeta de crédito»
+  - es «en dólares»
+  - es «solo egresos»
+  - es «mostrá solo ingresos»
+  - es-ES «filtra por transferencia»
+  - en «filter by caja principal»
+  - en «in dollars»
+  - lo que no es ningún filtro lo dice
+  - «sacá los filtros» pone todos en «todos» y genera
+  - «qué cajas hay» lee las opciones
+  - el período sigue siendo el período
 
 ## 9a-crud.spec.ts (29)
 
@@ -2483,3 +2503,104 @@ CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agen
   - «thanks» cierra la respuesta fija (y el caso sigue abierto)
   - markdown: negritas, listas y títulos sin los símbolos
   - para leer en voz alta, sin asteriscos ni numerales
+
+## 9c-tables.spec.ts (89)
+
+TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.
+
+- **TB-PAGE · Páginas y cantidad por página**
+  - es «siguiente página»
+  - es «andá a la página siguiente»
+  - es «pasá a la próxima página»
+  - es «última página»
+  - es «andá a la última página»
+  - es «página 2»
+  - es «andá a la página dos»
+  - es-ES «ve a la página siguiente»
+  - es-ES «última página»
+  - en «next page»
+  - en «go to the last page»
+  - en «page 2»
+  - «página anterior» y «primera página»
+  - en la primera, «página anterior» lo dice
+  - en la última, «siguiente página» lo dice
+  - «página 9» cuando hay 3
+  - una sola página
+  - es «poné 50 por página»
+  - es «mostrá 10 filas por página»
+  - es «100 por página»
+  - es «mostrá de a cincuenta por página»
+  - es «mostrá todos en una página»
+  - es-ES «pon 25 por página»
+  - en «show 50 per page»
+  - en «10 rows per page»
+- **TB-VIEW · Vista tabla / lista**
+  - es «vista de lista»
+  - es «poné la vista de tabla»
+  - es «mostralo como lista»
+  - es «modo tabla»
+  - es-ES «cambia a vista de lista»
+  - en «list view»
+  - en «switch to table view»
+  - «lista» suelta no cambia la vista
+- **TB-COL · Columnas y orden**
+  - es «ocultá la columna teléfono»
+  - es «sacá la columna detalle»
+  - es «mostrá la columna teléfono»
+  - es-ES «oculta la columna teléfono»
+  - en «hide the teléfono column»
+  - en «show the detalle column»
+  - es «ordená por nombre»
+  - es «ordená por nombre descendente»
+  - es «ordená por fecha de alta de mayor a menor»
+  - es «nombre de la z a la a»
+  - es «ordená la lista por detalle ascendente»
+  - es-ES «ordena por nombre»
+  - en «sort by nombre descending»
+  - en «sort by fecha de alta»
+  - una columna que no se puede ocultar lo dice
+  - una columna por la que no se ordena lo dice
+  - «sacá el orden»
+  - «qué columnas hay»
+  - en «which columns are there»
+  - una columna que no existe no se toma
+- **TB-SEARCH · Buscar y filtrar**
+  - «buscá ibuprofeno» escribe y dice lo que sale
+  - sin resultados
+  - «borrá la búsqueda»
+  - es-ES «busca paracetamol»
+  - en «search for amoxicilina»
+  - es «solo las notas de crédito»
+  - es «filtrá por facturas»
+  - es «mostrá solo las facturas»
+  - es «mostrá todas»
+  - es-ES «filtra por notas de crédito»
+  - en «only facturas»
+  - un filtro que la tabla no tiene no se toma
+- **TB-ROW · Elegir el registro**
+  - es «seleccioná el 3»
+  - es «abrí el registro 2»
+  - es «seleccioná la fila número 4»
+  - es «abrí el tercero»
+  - es «seleccioná el último»
+  - es «el primero»
+  - es «abrí el registro tres»
+  - es-ES «selecciona el 2»
+  - en «select row 3»
+  - en «open the second one»
+  - un número que no está lo dice
+  - es «abrí el que tiene teléfono 093552000»
+  - es «seleccioná el registro con detalle 600 mg»
+  - es «abrí el que tiene fecha de alta 02/03/2026»
+  - en «open the one with teléfono 094553000»
+  - por columna con varios: pregunta
+  - «cerrá el detalle» suelta el registro
+  - en «back to the list»
+- **TB-EXPORT · Exportar**
+  - con la ventana de exportar abierta: «exportá a CSV»
+  - sin decir el formato: pregunta
+  - PDF no está: pregunta entre los que hay
+  - en «export to excel»
+  - sin nada para exportar lo dice
+- **TB-LAYER · La tabla de arriba primero**
+  - con dos tablas (lista y la de una pestaña del detalle), «siguiente página» va a la de arriba
