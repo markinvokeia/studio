@@ -1,5 +1,7 @@
 'use client';
 
+import { useDocumentsVoice } from '@/hooks/use-documents-voice';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -477,6 +479,31 @@ export function RecentQuotesTable({
       defaultEmails: quote.userEmail || '',
     });
   };
+
+  // Voz: «el presupuesto P-10», «confirmá el de Juan», «imprimí el primero», «cobralo».
+  const { open: openBillingWizardVoice } = useBillingWizard();
+  useDocumentsVoice(quotes, (q) => ({
+    id: String(q.id), docNo: String(q.doc_no ?? q.quote_doc_no ?? q.id), party: q.user_name ?? '',
+    total: Number(q.total) || 0, paid: null, currency: String(q.currency ?? ''),
+    status: String(q.status ?? ''), paymentStatus: q.payment_status ?? null, date: String((q as { created_at?: string }).created_at ?? ''),
+  }), {
+    kind: 'quote', isSales, compact: isCompact,
+    actions: {
+      select: onRowSelectionChange ? (q) => onRowSelectionChange([q]) : null,
+      print: canPrintQuote ? handlePrintQuote : null,
+      email: canSendQuoteEmail ? handleSendEmailClick : null,
+      edit: canEditQuote ? onEdit : null,
+      confirm: canConfirmQuote && onQuoteActionRequest ? (q) => onQuoteActionRequest(q, 'confirm') : null,
+      reject: canRejectQuote && onQuoteActionRequest ? (q) => onQuoteActionRequest(q, 'reject') : null,
+      pay: isSales ? (q) => openBillingWizardVoice({ quoteId: String(q.id), quote: q, patientId: q.user_id, patientName: q.user_name, isSales }) : null,
+      allocate: null,
+    },
+    create: onCreate ?? null,
+    refresh: onRefresh ?? null,
+    exportList: onExport ?? null,
+    filters: [],
+    setFilter: null,
+  });
 
   const actionPermissions = React.useMemo<QuoteActionPermissions>(() => ({
     canEdit: canEditQuote,

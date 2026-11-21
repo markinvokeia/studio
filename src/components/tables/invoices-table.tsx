@@ -2,6 +2,7 @@
 'use client';
 
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useDocumentsVoice } from '@/hooks/use-documents-voice';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -371,6 +372,30 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       () => { if (onRefresh) onRefresh(); },
     );
   }, [openBillingWizard, isSales, onRefresh]);
+
+  // Voz: «la factura 120», «cobrá la de Juan», «imprimí la primera», «¿cuánto suman las pendientes?».
+  useDocumentsVoice(invoices, (inv) => ({
+    id: String(inv.id), docNo: String(inv.doc_no ?? inv.invoice_doc_no ?? inv.id), party: inv.user_name ?? '',
+    total: Number(inv.total) || 0, paid: Number(inv.paid_amount) || 0, currency: String(inv.currency ?? ''),
+    status: String(inv.status ?? ''), paymentStatus: inv.payment_status ?? null, date: String((inv as { invoice_date?: string; created_at?: string }).invoice_date ?? (inv as { created_at?: string }).created_at ?? ''),
+  }), {
+    kind: 'invoice', isSales, compact: isCompact,
+    actions: {
+      select: onRowSelectionChange ? (inv) => onRowSelectionChange([inv]) : null,
+      print: onPrint, email: onSendEmail,
+      edit: (inv) => { if (String(inv.status).toLowerCase() !== 'draft') return; setEditingInvoice(inv); setIsFormDialogOpen(true); },
+      confirm: (inv) => { if (String(inv.status).toLowerCase() !== 'draft') return; setConfirmingInvoice(inv); setIsConfirmDialogOpen(true); },
+      reject: null,
+      // Como la acción de la fila: factura confirmada y no pagada del todo.
+      pay: (inv) => { if (String(inv.status).toLowerCase() === 'booked' && inv.payment_status?.toLowerCase() !== 'paid') handleAddPaymentClick(inv); },
+      allocate: null,
+    },
+    create: canCreate && onCreate ? onCreate : null,
+    refresh: onRefresh ?? null,
+    exportList: onExport ?? null,
+    filters: filterOptions ?? [],
+    setFilter: onFilterChange ?? null,
+  });
 
   const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {

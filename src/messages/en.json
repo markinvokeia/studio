@@ -14521,7 +14521,8 @@
       "patients_detail": "something in the patient record",
       "patients_info": "patient information",
       "lab-orders_pick": "pick a lab order",
-      "perio_dictate": "dictate to the periodontal chart"
+      "perio_dictate": "dictate to the periodontal chart",
+      "documents_act": "something with invoices, payments or quotes"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14863,6 +14864,39 @@
     "perio": {
       "title": "Periodontal chart",
       "sent": "To the periodontal chart: “{phrase}”."
+    },
+    "documents": {
+      "title": "Documents",
+      "kind_invoice": "invoices",
+      "kind_payment": "payments",
+      "kind_quote": "quotes",
+      "none": "There are no {kind} in the list.",
+      "noPending": "There are no pending {kind} in the list.",
+      "read": "{count, plural, one {There is # document} other {There are # documents}} in {kind}; they add up to {sum}.",
+      "readPending": "{count, plural, one {There is # pending} other {There are # pending}} in {kind}; {sum} left to collect.",
+      "noFilter": "There is no “{filter}” filter in this list.",
+      "filtered": "Filter: {filter}.",
+      "did_create": "Opened a new one in {kind}.",
+      "did_export": "Opened the {kind} export.",
+      "did_refresh": "Refreshing {kind}.",
+      "notFound": "I couldn’t find that in the {kind} list.",
+      "which": "Which one?",
+      "cant_open": "This list can’t open documents.",
+      "cant_print": "This list can’t print.",
+      "cant_email": "This list can’t send emails.",
+      "cant_edit": "That document can’t be edited (only drafts).",
+      "cant_confirm": "That document can’t be confirmed.",
+      "cant_reject": "That document can’t be rejected.",
+      "cant_pay": "That document can’t be collected (it must be confirmed and have a balance).",
+      "cant_allocate": "This list can’t allocate.",
+      "did_open": "Opened {doc} for {party}.",
+      "did_print": "Printing {doc}.",
+      "did_email": "Opened the email for {doc} to {party}.",
+      "did_edit": "Opened {doc} for editing.",
+      "did_confirm": "Confirming {doc}: answer the prompt.",
+      "did_reject": "Rejecting {doc}: answer the prompt.",
+      "did_pay": "Opened the payment for {doc}.",
+      "did_allocate": "Opened the allocation for {doc}."
     }
   }
 }

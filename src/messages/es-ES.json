@@ -14521,7 +14521,8 @@
       "patients_detail": "algo en la ficha del paciente",
       "patients_info": "datos del paciente",
       "lab-orders_pick": "elegir una orden de laboratorio",
-      "perio_dictate": "dictar al periodontograma"
+      "perio_dictate": "dictar al periodontograma",
+      "documents_act": "algo con facturas, pagos o presupuestos"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿quieres {action}?",
     "and": " y ",
@@ -14863,6 +14864,39 @@
     "perio": {
       "title": "Periodontograma",
       "sent": "Al periodontograma: «{phrase}»."
+    },
+    "documents": {
+      "title": "Documentos",
+      "kind_invoice": "facturas",
+      "kind_payment": "pagos",
+      "kind_quote": "presupuestos",
+      "none": "No hay {kind} en la lista.",
+      "noPending": "No hay {kind} pendientes en la lista.",
+      "read": "{count, plural, one {Hay # documento} other {Hay # documentos}} en {kind}; suman {sum}.",
+      "readPending": "{count, plural, one {Hay # pendiente} other {Hay # pendientes}} en {kind}; falta cobrar {sum}.",
+      "noFilter": "No hay un filtro «{filter}» en esta lista.",
+      "filtered": "Filtro: {filter}.",
+      "did_create": "He abierto el alta de {kind}.",
+      "did_export": "He abierto la exportación de {kind}.",
+      "did_refresh": "Actualizo {kind}.",
+      "notFound": "No he encontrado eso en la lista de {kind}.",
+      "which": "¿Cuál?",
+      "cant_open": "En esta lista no se puede abrir.",
+      "cant_print": "En esta lista no se puede imprimir.",
+      "cant_email": "En esta lista no se puede mandar por mail.",
+      "cant_edit": "Ese documento no se puede editar (solo los borradores).",
+      "cant_confirm": "Ese documento no se puede confirmar.",
+      "cant_reject": "Ese documento no se puede rechazar.",
+      "cant_pay": "Ese documento no se puede cobrar (tiene que estar confirmado y con saldo).",
+      "cant_allocate": "En esta lista no se puede asignar.",
+      "did_open": "He abierto {doc} de {party}.",
+      "did_print": "Imprimo {doc}.",
+      "did_email": "He abierto el mail de {doc} para {party}.",
+      "did_edit": "He abierto {doc} para editarlo.",
+      "did_confirm": "Confirmo {doc}: contesta el aviso.",
+      "did_reject": "Rechazo {doc}: contesta el aviso.",
+      "did_pay": "He abierto el cobro de {doc}.",
+      "did_allocate": "He abierto la asignación de {doc}."
     }
   }
 }

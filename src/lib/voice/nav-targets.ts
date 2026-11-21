@@ -258,6 +258,12 @@ export const ROUTE_VOICE_DOMAINS: Record<string, string[]> = {
   '/alerts': ['alerts'],
   '/cashier': ['cashier'],
   '/patients': ['patients'],
+  '/sales/quotes': ['documents'],
+  '/sales/invoices': ['documents'],
+  '/sales/payments': ['documents'],
+  '/purchases/quotes': ['documents'],
+  '/purchases/invoices': ['documents'],
+  '/purchases/payments': ['documents'],
   // Las subpáginas de Caja no tienen voz propia (todavía): la genérica.
   '/cashier/miscellaneous-transactions': [],
   '/cashier/miscellaneous-categories': [],

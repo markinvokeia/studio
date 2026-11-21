@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useDocumentsVoice } from '@/hooks/use-documents-voice';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -305,6 +306,23 @@ interface PaymentsTableProps {
 export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, rowCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true, typeFilter, onTypeFilterChange }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
+  // Voz: «el pago 45», «imprimí el recibo de Juan», «asigná el primero».
+  useDocumentsVoice(payments, (p) => ({
+    id: String(p.id), docNo: String(p.doc_no ?? p.payment_doc_no ?? p.id), party: p.user_name ?? '',
+    total: Number(p.source_amount ?? p.amount_applied) || 0, paid: null, currency: String(p.source_currency ?? ''),
+    status: String((p as { status?: string }).status ?? ''), paymentStatus: null, date: String(p.payment_date ?? ''),
+  }), {
+    kind: 'payment', isSales, compact: isCompact,
+    actions: {
+      select: onRowSelectionChange ? (p) => onRowSelectionChange([p]) : null,
+      print: onPrint, email: onSendEmail, edit: onEdit, confirm: null, reject: null, pay: null, allocate: onAllocate,
+    },
+    create: canCreate && onCreate ? onCreate : null,
+    refresh: onRefresh ?? null,
+    exportList: onExport ?? null,
+    filters: [],
+    setFilter: null,
+  });
   const { hasPermission } = usePermissions();
   const tActions = useTranslations('PaymentsPage.actions');
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');

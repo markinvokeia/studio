@@ -5320,3 +5320,28 @@ export interface LabOrdersPageVoiceBridge {
   selectedId: number | null;
   select: (id: number | null) => void;
 }
+
+/** Una tabla de documentos (facturas, pagos, presupuestos) para la voz (src/lib/voice/commands/documents.ts). */
+export interface DocumentsVoiceBridge {
+  kind: 'invoice' | 'payment' | 'quote';
+  isSales: boolean;
+  /** Tabla chica (dentro de un detalle): la principal es la que no lo es. */
+  compact: boolean;
+  rows: Array<{ id: string; docNo: string; party: string; total: number; paid: number | null; currency: string; status: string; paymentStatus: string | null; date: string }>;
+  /** Lo que se puede hacer con una fila (null: no en esta tabla o sin permiso). */
+  actions: {
+    select: ((id: string) => void) | null;
+    print: ((id: string) => void) | null;
+    email: ((id: string) => void) | null;
+    edit: ((id: string) => void) | null;
+    confirm: ((id: string) => void) | null;
+    reject: ((id: string) => void) | null;
+    pay: ((id: string) => void) | null;
+    allocate: ((id: string) => void) | null;
+  };
+  create: (() => void) | null;
+  refresh: (() => void) | null;
+  exportList: (() => void) | null;
+  filters: Array<{ label: string; value: string }>;
+  setFilter: ((value: string) => void) | null;
+}

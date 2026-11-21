@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1877 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1907 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2255,3 +2255,42 @@ PE · Periodontograma con el botón único: con el examen abierto lo dicho va a 
   - el dictado propio pide prestado el micrófono y lo devuelve
   - si el botón Voz estaba apagado, no lo prende al devolver
   - prender el botón Voz avisa (para apagar el dictado propio)
+
+## 98-documents.spec.ts (30)
+
+DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras, ficha): leer y sumar (pendientes), abrir/imprimir/mail/editar/confirmar/rechazar/cobrar/asignar una fila (número, nombre, posición), crear, exportar, actualizar, filtrar.
+
+- **DO-READ · Leer y sumar**
+  - «cuántas facturas hay»
+  - «cuánto suman las pendientes»
+  - «cuántos presupuestos hay»
+  - en «how many invoices are there»
+- **DO-ROW · Una fila**
+  - «abrí la factura 120»
+  - «abrí la factura F-121»
+  - «imprimí la de Juan Pérez»
+  - «mandá por mail la factura 122»
+  - «editá la de Carlos»
+  - «confirmá la factura 122»
+  - «cobrá la factura 120»
+  - «cobrá la última»
+  - «abrí la segunda»
+  - «imprimí el pago 45»
+  - «asigná el pago 45»
+  - «la de Ana» con dos: pregunta
+  - número que no está: lo dice
+  - presupuestos: confirmar, rechazar, cobrar
+  - compras: «imprimí la de Dental Sur»
+  - es-ES «imprime la factura 120»
+  - en «print invoice 120», «email the one for Juan Pérez», «collect invoice 123»
+- **DO-LIST · Crear, exportar, actualizar, filtrar**
+  - «nueva factura»
+  - «exportá las facturas»
+  - «actualizá las facturas»
+  - «solo las pagadas»
+  - «mostrame solo las pendientes»
+  - «nuevo presupuesto» en presupuestos
+  - filtro que no existe: lo dice
+  - en «new invoice» y «export the invoices»
+- **DO-NAV · Llegar y actuar**
+  - «andá a facturas y cobrá la factura 120»
