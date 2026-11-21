@@ -86,7 +86,7 @@ export function parseDocuments(normalized: string): DocParsed | null {
   const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
   const kind = kindIn(t);
   const pendingOnly = /\b(?:pendientes?|impagas?|sin pagar|sin cobrar|que (?:deben|faltan)|adeudad\w*|unpaid|pending|outstanding|overdue)\b/.test(t);
-  if (/^(?:cuant[oa]s?|cuanto (?:suman?|da|es|hay)|(?:cual es |decime )?el total|que (?:facturas|pagos|presupuestos) hay|how (?:many|much)|what is the total|whats the total|total)\b/.test(t) && (kind || /\b(?:suman?|total)\b/.test(t))) {
+  if (/^(?:cuant[oa]s?|cuanto (?:suman?|da|es|hay)|(?:cual es |decime )?el total|que (?:facturas|pagos|presupuestos) hay|how (?:many|much)|what is the total|whats the total|total)\b/.test(t) && (kind || /\b(?:suman?|total|add up|sum|owed|pending|outstanding)\b/.test(t))) {
     return { op: 'read', kind, target: null, pendingOnly, filter: null };
   }
   const filter = t.match(/^(?:(?:mostra\w*|ver|filtra\w*|show(?: me)?|filter(?: by)?)\s+)?(?:solo|solamente|only)\s+(?:las |los |the )?(.+)$/);

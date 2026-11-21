@@ -71,8 +71,8 @@
     },
     {
       "id": "agent",
-      "title": "Clinical agent",
-      "details": "Ask it about the last procedure, what's due today or the alerts; it can prepare the session or the odontogram for you to review."
+      "title": "Clinical agent by voice",
+      "details": "With the appointment selected, tap Voice and ask about the patient (summary, allergies, what’s due today) or dictate the session or the odontogram for you to review."
     }
   ]
 }

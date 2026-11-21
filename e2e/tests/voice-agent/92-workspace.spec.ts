@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 import { publishSimWorkspace } from './sim/workspace';
+import { useVoiceCommand } from '@/stores/voice-command-store';
 
 /**
  * MC · Mi consultorio por voz (src/lib/voice/commands/workspace.ts): elegir la cita, preguntar la
@@ -101,6 +102,99 @@ test.describe('MC-FILTER · Lo que muestra la agenda', () => {
   test('«las agendas» pregunta cuál', async () => { await start(); await sim.say('ver las agendas'); await sim.say('la primera'); expect(log()).toEqual(['calendar:c1']); });
   test('«mostrame del 1 al 15»', async () => { await start(); await sim.say('mostrame del 1 al 15'); expect(log()[0]).toMatch(/^range:\d{4}-\d{2}-01\.\.\d{4}-\d{2}-15$/); });
   test('en «show me tomorrow» y «my appointments»', async () => { await start('en'); await sim.sayAll('show me tomorrow', 'my appointments'); expect(log()).toEqual(['preset:tomorrow', 'view:mine']); });
+});
+
+test.describe('MC-FILTER2 · Pestañas, calendario y fecha (también juntos)', () => {
+  const day = (rx: RegExp) => (l: string[]) => expect(l.some((x) => rx.test(x))).toBe(true);
+  for (const [locale, said, want] of [
+    ['es', 'asignadas a mí', ['view:mine']], ['es', 'mostrame las asignadas a mí', ['view:mine']], ['es', 'mis citas', ['view:mine']],
+    ['es', 'pasá a mis calendarios', ['calendar:c1']], ['es', 'mis calendarios', ['calendar:c1']], ['es', 'el calendario sillón 2', ['calendar:c2']],
+    ['es', 'mostrame el sillón 2', ['calendar:c2']], ['es', 'mis citas de mañana', ['view:mine', 'preset:tomorrow']],
+    ['es', 'el sillón 2 mañana', ['calendar:c2', 'preset:tomorrow']], ['es', 'las citas de mañana', ['preset:tomorrow']],
+    ['es', 'la semana que viene', ['preset:next7']], ['es', 'mostrame el mes', ['preset:month']], ['es', 'hoy', ['preset:today']], ['es', 'volvé a hoy', ['preset:today']],
+    ['es-ES', 'enséñame mis calendarios', ['calendar:c1']], ['es-ES', 'las asignadas a mí', ['view:mine']],
+    ['en', 'assigned to me', ['view:mine']], ['en', 'my calendars', ['calendar:c1']], ['en', 'appointments for tomorrow', ['preset:tomorrow']], ['en', 'the calendar Sillón 2', ['calendar:c2']],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => {
+      sim = await createVoiceSim({ locale, route: '/workspace' });
+      // «mis calendarios» sin decir cuál: con varios pregunta; se elige el primero.
+      await sim.say(said);
+      if (sim.store().awaiting === 'choice') await sim.say(locale === 'en' ? 'the first one' : 'el primero');
+      expect(log()).toEqual([...want]);
+      expect(sim.navigations).toEqual([]);
+    });
+  }
+  for (const [said, rx] of [
+    ['el martes', /^range:(\d{4}-\d{2}-\d{2})\.\.\1$/], ['la agenda del martes', /^range:(\d{4}-\d{2}-\d{2})\.\.\1$/], ['el 15 de diciembre', /^range:\d{4}-12-15\.\.\d{4}-12-15$/],
+    ['la semana pasada', /^range:/], ['desde el 1 hasta el 10', /^range:\d{4}-\d{2}-01\.\.\d{4}-\d{2}-10$/], ['del 1 al 10 de diciembre', /^range:\d{4}-12-01\.\.\d{4}-12-10$/],
+    ['las citas del mes pasado', /^range:\d{4}-\d{2}-01\.\./], ['show last week', /^range:/],
+  ] as const) {
+    test(`«${said}»`, async () => { sim = await createVoiceSim({ locale: /^show/.test(said) ? 'en' : 'es', route: '/workspace' }); await sim.say(said); day(rx)(log()); expect(sim.navigations).toEqual([]); });
+  }
+  test('«¿qué tengo el viernes?» pone el día y lee la agenda', async () => {
+    await start();
+    await sim.say('qué tengo el viernes');
+    expect(log()[0]).toMatch(/^range:(\d{4}-\d{2}-\d{2})\.\.\1$/);
+    expect(sim.card().message).toMatch(/^(?:Tenés \d+ citas|No hay citas)/);
+  });
+  test('con el caso clínico abierto, las fechas siguen siendo de la agenda (no van al agente)', async () => {
+    await start();
+    await sim.sayAll('el de las 9', 'mis citas de mañana');
+    expect(log()).toEqual(['select:w1', 'view:mine', 'preset:tomorrow']);
+    expect(sim.workspace()!.agentLog).toEqual([]);
+  });
+  test('«le hice una limpieza hoy» no es un filtro', async () => {
+    await start();
+    await sim.sayAll('el de las 9', 'le hice una limpieza hoy');
+    expect(log()).toEqual(['select:w1', 'agent:prepare']);
+    expect(sim.workspace()!.agentLog).toEqual(['w1:le hice una limpieza hoy']);
+  });
+});
+
+test.describe('MC-SWITCH · Cambiar de caso clínico (de paciente)', () => {
+  for (const [locale, said, want] of [
+    ['es', 'cambiá de Ana a Juan', 'select:w2'], ['es', 'cambia de Ana Gómez a Juan Pérez', 'select:w2'], ['es', 'seleccioná a Juan', 'select:w2'],
+    ['es', 'pasá a Juan', 'select:w2'], ['es', 'cambiá a Carlos', 'select:w3'], ['es', 'ahora Sofía', 'select:w4'], ['es', 'quiero ver a Juan', 'select:w2'],
+    ['es', 'cambiá al paciente Carlos López', 'select:w3'], ['es', 'abrí el caso de Sofía', 'select:w4'],
+    ['es-ES', 'cambia de Ana a Juan', 'select:w2'], ['es-ES', 'selecciona a Carlos', 'select:w3'],
+    ['en', 'switch from Ana to Juan', 'select:w2'], ['en', 'select Carlos', 'select:w3'], ['en', 'switch to Sofía', 'select:w4'],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => {
+      sim = await createVoiceSim({ locale, route: '/workspace' });
+      await sim.say(locale === 'en' ? 'the 9 o clock' : 'el de las 9');
+      await sim.say(said);
+      expect(log()).toEqual(['select:w1', want]);
+      expect(sim.workspace()!.agentLog).toEqual([]);
+      expect(useVoiceCommand.getState().clinicalCase?.appointmentId).toBe(want.slice(7));
+    });
+  }
+  test('un nombre que no está en la lista no cambia de caso', async () => {
+    await start();
+    await sim.sayAll('el de las 9', 'cambiá a Roberto');
+    expect(log()).toEqual(['select:w1']);
+  });
+});
+
+test.describe('MC-DATE · Cambiar la fecha', () => {
+  for (const [locale, said, rx] of [
+    ['es', 'cambiá la fecha al martes', /^range:(\d{4}-\d{2}-\d{2})\.\.\1$/], ['es', 'cambiá la fecha a mañana', /^preset:tomorrow$/],
+    ['es', 'poné la fecha de mañana', /^preset:tomorrow$/], ['es-ES', 'cambia la fecha a mañana', /^preset:tomorrow$/],
+    ['en', 'change the date to tomorrow', /^preset:tomorrow$/], ['es', 'mis citas asignadas a mí', /^view:mine$/],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => { sim = await createVoiceSim({ locale, route: '/workspace' }); await sim.say(said); expect(log()[0]).toMatch(rx); });
+  }
+  test('«cambialo de fecha» pregunta cuál', async () => {
+    await start();
+    await sim.say('cambialo de fecha');
+    expect(sim.card().message).toMatch(/^¿Qué fecha querés ver\?/);
+    await sim.say('el 15 de diciembre');
+    expect(log()).toEqual([expect.stringMatching(/^range:\d{4}-12-15\.\.\d{4}-12-15$/)]);
+  });
+  test('en «change the date» asks which', async () => {
+    sim = await createVoiceSim({ locale: 'en', route: '/workspace' });
+    await sim.sayAll('change the date', 'tomorrow');
+    expect(log()).toEqual(['preset:tomorrow']);
+  });
 });
 
 test.describe('MC-NAV · Llegar y seguir', () => {

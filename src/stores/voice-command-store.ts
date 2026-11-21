@@ -20,6 +20,11 @@ interface VoiceCommandState {
   awake: boolean;
   /** Cita en foco (nombre del paciente) para la tarjeta. */
   focusLabel: string | null;
+  /**
+   * Caso clínico abierto (Mi consultorio con una cita elegida): lo que se pide es de ese paciente y
+   * va al agente clínico. `open: false` = se cerró por voz (hasta elegir otra cita o reabrirlo).
+   */
+  clinicalCase: { appointmentId: string; patient: string; open: boolean } | null;
   /** Lo que se pidió y se está haciendo (la tarea de la pila). */
   task: string | null;
   /** Plan de varios pasos: en cuál va. */
@@ -49,6 +54,7 @@ export const useVoiceCommand = create<VoiceCommandState>((set) => ({
   alwaysOn: false,
   awake: false,
   focusLabel: null,
+  clinicalCase: null,
   hearing: false,
   set: (patch) => set(patch),
   reset: () => set(INITIAL),

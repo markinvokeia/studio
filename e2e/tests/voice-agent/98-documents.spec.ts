@@ -18,6 +18,10 @@ test.describe('DO-READ · Leer y sumar', () => {
   test('«cuánto suman las pendientes»', async () => { await start(); await sim.say('cuánto suman las pendientes'); expect(sim.card().message).toMatch(/^Hay 3 pendientes en facturas; falta cobrar .*5\.?200/); });
   test('«cuántos presupuestos hay»', async () => { await start('/sales/quotes'); await sim.say('cuántos presupuestos hay'); expect(sim.card().message).toMatch(/^Hay 2 documentos en presupuestos/); });
   test('en «how many invoices are there»', async () => { await start('/sales/invoices', 'en'); await sim.say('how many invoices are there'); expect(sim.card().message).toMatch(/^There are 4 documents in invoices/); });
+  for (const said of ['how much do the pending ones add up to', 'how much is pending', 'what is the total of the unpaid ones', 'how much is outstanding'] as const) {
+    test(`en «${said}»`, async () => { await start('/sales/invoices', 'en'); await sim.say(said); expect(sim.card().message).toMatch(/^There are 3 pending in invoices/); });
+  }
+  test('es-ES «¿cuánto suman las pendientes?»', async () => { await start('/sales/invoices', 'es-ES'); await sim.say('¿cuánto suman las pendientes?'); expect(sim.card().message).toMatch(/^Hay 3 pendientes en facturas/); });
 });
 
 test.describe('DO-ROW · Una fila', () => {

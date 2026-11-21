@@ -101,9 +101,9 @@
     {
       "id": "agent",
       "action": "highlight",
-      "target": "workspace.btn.agent-chat",
-      "title": "Agente clínico",
-      "details": "Preguntale por el último procedimiento, qué toca hoy o las alertas; puede preparar la sesión o el odontograma para que los revises.",
+      "target": "rail.btn.voice",
+      "title": "Agente clínico por voz",
+      "details": "Con la cita elegida, tocá Voz y preguntale por el paciente (resumen, alergias, qué toca hoy) o dictale la sesión o el odontograma para que los revises.",
       "skipIfMissing": true
     }
   ]

@@ -1,4 +1,5 @@
-import { controlsOf, readSurface, typeInto } from '@/lib/voice/dom-ui';
+import { controlsOf, fillField, readSurface } from '@/lib/voice/dom-ui';
+import { currentRoute, isOnRoute, listNavTargets } from '@/lib/voice/nav-targets';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
@@ -26,6 +27,35 @@ const VERB_WORDS = /\b(?:nuev[oa]s?|agregar|agrega|crear|crea|añadir|anadir|add
 /** Las palabras de la cosa que crea la tabla («Nuevo medicamento» → «medicamento»). */
 const nounOf = (label: string) => normalizeSpeech(label).replace(VERB_WORDS, ' ').replace(/\s+/g, ' ').trim();
 
+/** Singular y plural valen igual («medicamento» = «medicamentos», «sede» = «sedes»). */
+const sameWord = (a: string, b: string) => a === b || `${a}s` === b || `${b}s` === a || `${a}es` === b || `${b}es` === a;
+
+/** Cuántas palabras del principio de lo dicho son la cosa («unidad de medida kilo» → 3). */
+function nounPrefix(words: string[], noun: string): number {
+  const nw = noun.split(' ').filter(Boolean);
+  if (!nw.length || words.length < nw.length) return 0;
+  return nw.every((w, i) => sameWord(words[i], w)) ? nw.length : 0;
+}
+
+/**
+ * Lo que es la cosa en la pantalla actual, según el menú (en español e inglés): «Medicamentos»,
+ * «Sedes», «Unidades de medida»… Casi ninguna tabla dice en el botón qué crea («Nuevo»).
+ */
+export function routeNouns(route = currentRoute()): string[] {
+  const here = listNavTargets({ t: null, hasPermission: () => true })
+    .filter((n) => n.href !== '/' && isOnRoute(n.href, route))
+    .sort((a, b) => b.href.length - a.href.length);
+  if (!here.length) return [];
+  const best = here[0].href;
+  return here.filter((n) => n.href === best).flatMap((n) => n.names);
+}
+
+/** «sede», «paciente»…: lo que se crea en otra pantalla del menú. */
+function isOtherThing(word: string, pageNouns: string[]): boolean {
+  if (!word || pageNouns.some((n) => n.split(' ').some((w) => sameWord(word, w)))) return false;
+  return listNavTargets({ t: null, hasPermission: () => true }).some((n) => n.names.some((name) => !name.includes(' ') && sameWord(word, name)));
+}
+
 type Parsed =
   | { op: 'create'; name: string | null; rawName: string | null }
   | { op: 'open'; text: string }
@@ -35,7 +65,7 @@ type Parsed =
 const CREATE_RE = /^(?:(?:nuev[oa]|agrega\w*|crea\w*|da\w* de alta|carga\w*|anad\w*|add|new|create)\s+)(?:(?:un|una|otro|otra|a|an|another)\s+)?(.*)$/;
 const NAMED_RE = /\s+(?:llamad[oa]|que se llame|con (?:el )?nombre|de nombre|named|called)\s+(.+)$/;
 
-export function parseCrud(normalized: string, raw: string, createLabels: string[]): Parsed | null {
+export function parseCrud(normalized: string, raw: string, createLabels: string[], pageNouns: string[] = []): Parsed | null {
   const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
   if (/^(?:cuant[oa]s (?:hay|son|tenemos|tengo|registros hay)|cuant[oa]s \w+ (?:hay|tenemos)|how many (?:are there|do we have|\w+ are there))$/.test(t)) return { op: 'count' };
   if (/^(?:actualiza\w*|recarga\w*|refresca\w*|refresh|reload)(?: (?:la )?(?:lista|tabla|the list|the table))?$/.test(t)) return { op: 'refresh' };
@@ -45,14 +75,17 @@ export function parseCrud(normalized: string, raw: string, createLabels: string[
     let name: string | null = null;
     const named = rest.match(NAMED_RE);
     if (named) { name = named[1]; rest = rest.slice(0, named.index).trim(); }
-    // «nuevo medicamento Ibuprofeno»: lo que sigue a la cosa (según el botón de la tabla) es el nombre.
-    const noun = createLabels.map(nounOf).filter(Boolean).find((n) => rest === n || rest.startsWith(`${n} `) || n.split(' ').some((w) => w.length > 3 && rest.split(' ')[0].startsWith(w.slice(0, -1))));
-    if (!name && noun) {
-      const words = noun.split(' ').length;
-      const after = rest.split(' ').slice(words).join(' ').trim();
-      name = after || null;
-    } else if (!name && !noun && rest && createLabels.length && !createLabels.some((l) => nounOf(l) === '')) {
-      return null; // «nuevo X» que no es lo que crea esta tabla
+    // «nuevo medicamento Ibuprofeno»: lo que sigue a la cosa (según el botón o el menú) es el nombre.
+    const labelNouns = createLabels.map(nounOf).filter(Boolean);
+    const words = rest.split(' ').filter(Boolean);
+    const consumed = Math.max(0, ...[...labelNouns, ...pageNouns].map((n) => nounPrefix(words, n)));
+    const fuzzy = !consumed && labelNouns.some((n) => n.split(' ').some((w) => w.length > 3 && (words[0] ?? '').startsWith(w.slice(0, -1))));
+    if (!name && (consumed || fuzzy)) {
+      name = words.slice(consumed || 1).join(' ').trim() || null;
+    } else if (!name && words.length) {
+      // «nueva sede Carrasco» en Medicamentos: es lo que crea otra pantalla, no esta.
+      if (labelNouns.length || isOtherThing(words[0], pageNouns)) return null;
+      name = rest; // «nuevo Ibuprofeno»
     }
     // El nombre como se dijo (mayúsculas y tildes).
     let rawName: string | null = null;
@@ -71,8 +104,8 @@ export function parseCrud(normalized: string, raw: string, createLabels: string[
 
 /** Lo dicho para buscar en la lista, sin la palabra de la cosa («la sede Pocitos» → «pocitos»). */
 function searchWords(text: string, table: CrudVoiceBridge): string[] {
-  const noun = new Set(nounOf(table.createLabel).split(' ').filter(Boolean).flatMap((w) => [w, `${w}s`, w.replace(/s$/, '')]));
-  return normalizeSpeech(text).split(' ').filter((w) => w.length > 1 && !noun.has(w));
+  const nouns = [nounOf(table.createLabel), ...routeNouns()].flatMap((n) => n.split(' ')).filter((w) => w.length > 2);
+  return normalizeSpeech(text).split(' ').filter((w) => w.length > 1 && !nouns.some((n) => sameWord(w, n)));
 }
 
 async function waitForForm(ctx: VoiceCommandContext): Promise<boolean> {
@@ -91,7 +124,7 @@ registerVoiceCommand<Parsed>({
   match: (normalized, raw) => {
     const all = tablesWith(null);
     if (!all.length) return null;
-    const parsed = parseCrud(normalized, raw, all.filter((b) => b.create).map((b) => b.createLabel));
+    const parsed = parseCrud(normalized, raw, all.filter((b) => b.create).map((b) => b.createLabel), routeNouns());
     if (!parsed) return null;
     if (parsed.op === 'create' && !tablesWith('create').length) return null;
     if (parsed.op === 'refresh' && !tablesWith('refresh').length) return null;
@@ -120,7 +153,7 @@ registerVoiceCommand<Parsed>({
       const fields = surface ? controlsOf(surface, 'field') : [];
       const field = fields.find((f) => /\b(?:nombre|name|descripcion|description|titulo|title)\b/.test(normalizeSpeech(f.label))) ?? fields[0];
       if (!field) { await say(ctx, T(ctx, 'createOpened')); return; }
-      typeInto(field.element, parsed.rawName);
+      await fillField(field.element, parsed.rawName, ctx.signal);
       await say(ctx, T(ctx, 'createFilled', { name: parsed.rawName, field: field.label }));
       return;
     }

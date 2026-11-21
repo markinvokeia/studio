@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1941 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2064 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -56,7 +56,7 @@ Escucha sin palabra de activación («Invoke» se tolera): cómo la transcribe e
   - restRaw conserva tildes: «Inbox IA, nota: Ana trae estudios»
   - retomar y cancelar
 
-## 02-mic.spec.ts (6)
+## 02-mic.spec.ts (7)
 
 Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar los pedazos de una frase.
 
@@ -68,6 +68,7 @@ Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar
   - MIC-011 mientras se sigue hablando (resultados parciales) no se procesa
   - MIC-012 dos pedidos con una pausa larga en el medio son dos pedidos
   - MIC-013 lo que se está diciendo se ve en la tarjeta mientras se habla
+  - MIC-014 con la voz del asistente silenciada, lo dicho justo después de un resultado no se pierde
 
 ## 03-dialogs-close-stop.spec.ts (84)
 
@@ -1995,7 +1996,7 @@ PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/result
   - desde la agenda: «volvé al inicio y decime cuánto producimos hoy»
   - en otra página no se lee el panel
 
-## 92-workspace.spec.ts (54)
+## 92-workspace.spec.ts (108)
 
 MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.
 
@@ -2056,6 +2057,63 @@ MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posici�
   - «las agendas» pregunta cuál
   - «mostrame del 1 al 15»
   - en «show me tomorrow» y «my appointments»
+- **MC-FILTER2 · Pestañas, calendario y fecha (también juntos)**
+  - es «asignadas a mí»
+  - es «mostrame las asignadas a mí»
+  - es «mis citas»
+  - es «pasá a mis calendarios»
+  - es «mis calendarios»
+  - es «el calendario sillón 2»
+  - es «mostrame el sillón 2»
+  - es «mis citas de mañana»
+  - es «el sillón 2 mañana»
+  - es «las citas de mañana»
+  - es «la semana que viene»
+  - es «mostrame el mes»
+  - es «hoy»
+  - es «volvé a hoy»
+  - es-ES «enséñame mis calendarios»
+  - es-ES «las asignadas a mí»
+  - en «assigned to me»
+  - en «my calendars»
+  - en «appointments for tomorrow»
+  - en «the calendar Sillón 2»
+  - «el martes»
+  - «la agenda del martes»
+  - «el 15 de diciembre»
+  - «la semana pasada»
+  - «desde el 1 hasta el 10»
+  - «del 1 al 10 de diciembre»
+  - «las citas del mes pasado»
+  - «show last week»
+  - «¿qué tengo el viernes?» pone el día y lee la agenda
+  - con el caso clínico abierto, las fechas siguen siendo de la agenda (no van al agente)
+  - «le hice una limpieza hoy» no es un filtro
+- **MC-SWITCH · Cambiar de caso clínico (de paciente)**
+  - es «cambiá de Ana a Juan»
+  - es «cambia de Ana Gómez a Juan Pérez»
+  - es «seleccioná a Juan»
+  - es «pasá a Juan»
+  - es «cambiá a Carlos»
+  - es «ahora Sofía»
+  - es «quiero ver a Juan»
+  - es «cambiá al paciente Carlos López»
+  - es «abrí el caso de Sofía»
+  - es-ES «cambia de Ana a Juan»
+  - es-ES «selecciona a Carlos»
+  - en «switch from Ana to Juan»
+  - en «select Carlos»
+  - en «switch to Sofía»
+  - un nombre que no está en la lista no cambia de caso
+- **MC-DATE · Cambiar la fecha**
+  - es «cambiá la fecha al martes»
+  - es «cambiá la fecha a mañana»
+  - es «poné la fecha de mañana»
+  - es-ES «cambia la fecha a mañana»
+  - en «change the date to tomorrow»
+  - es «mis citas asignadas a mí»
+  - «cambialo de fecha» pregunta cuál
+  - en «change the date» asks which
 - **MC-NAV · Llegar y seguir**
   - «andá a mi consultorio y abrí el de las 10»
 
@@ -2256,7 +2314,7 @@ PE · Periodontograma con el botón único: con el examen abierto lo dicho va a 
   - si el botón Voz estaba apagado, no lo prende al devolver
   - prender el botón Voz avisa (para apagar el dictado propio)
 
-## 98-documents.spec.ts (30)
+## 98-documents.spec.ts (35)
 
 DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras, ficha): leer y sumar (pendientes), abrir/imprimir/mail/editar/confirmar/rechazar/cobrar/asignar una fila (número, nombre, posición), crear, exportar, actualizar, filtrar.
 
@@ -2265,6 +2323,11 @@ DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras,
   - «cuánto suman las pendientes»
   - «cuántos presupuestos hay»
   - en «how many invoices are there»
+  - en «how much do the pending ones add up to»
+  - en «how much is pending»
+  - en «what is the total of the unpaid ones»
+  - en «how much is outstanding»
+  - es-ES «¿cuánto suman las pendientes?»
 - **DO-ROW · Una fila**
   - «abrí la factura 120»
   - «abrí la factura F-121»
@@ -2295,7 +2358,7 @@ DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras,
 - **DO-NAV · Llegar y actuar**
   - «andá a facturas y cobrá la factura 120»
 
-## 99-reports.spec.ts (17)
+## 99-reports.spec.ts (19)
 
 RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.
 
@@ -2319,8 +2382,11 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
   - en «what is the total» y «export to excel»
 - **RP-NAV · Llegar y pedir**
   - «llevame a reportes de deudores y mostrame el mes pasado»
+- **RE-NOPERIOD · Reporte sin período**
+  - «el mes pasado» en un reporte sin período: lo dice y lo genera igual
+  - en «last month» on a report without a period
 
-## 9a-crud.spec.ts (17)
+## 9a-crud.spec.ts (29)
 
 LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
 
@@ -2332,7 +2398,15 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
   - en Sedes: «nueva sede Carrasco»
   - «nueva sede» en Medicamentos no es de esta lista
   - es-ES «añade un medicamento llamado Diclofenaco»
-  - en «new medicamento called Diclofenac»
+  - en «add a medication called Diclofenac»
+  - en «new medication Ibuprofen»
+  - en «create a new location Downtown»
+  - el botón de la tabla no dice qué crea: lo dice el menú («nuevo medicamento Ketorolac»)
+  - «nuevo Ibuprofeno» sin decir la cosa: el resto es el nombre
+  - en plural o singular: «nueva unidad de medida Kilogramo»
+  - «nuevo doctor Juan Pérez» en Doctores
+  - es-ES «crea una moneda llamada Euro»
+  - en «new location Downtown» on Medications is not this list
 - **LI-OPEN · Abrir, contar, actualizar**
   - «abrí la amoxicilina»
   - «editá el ibuprofeno» con dos: pregunta
@@ -2341,6 +2415,71 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
   - «cuántos hay»
   - «actualizá la lista»
   - lo que no está no se abre
+  - «abrí el medicamento amoxicilina» (la cosa no se busca)
+  - es-ES «abre la sede Centro» y «actualiza la tabla»
+  - en «open the second one» y «refresh the list»
+  - en «open the location Pocitos»
   - en «open amoxicilina» y «how many are there»
 - **LI-NAV · Llegar y crear**
   - «andá a medicamentos y agregá uno llamado Diclofenac»
+
+## 9b-clinical-agent.spec.ts (49)
+
+CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.
+
+- **CC-CASE · El caso es el paciente elegido**
+  - al elegir la cita queda marcado el caso clínico
+  - sin cita elegida no hay caso: la pregunta no va al agente
+  - otra cita: otro caso (y la pregunta va con esa cita)
+- **CC-ASK · Preguntas y resúmenes al agente clínico**
+  - es «dame un resumen del paciente» va al agente con la cita elegida
+  - es «qué alergias tiene» va al agente con la cita elegida
+  - es «¿Qué le hice la última vez?» va al agente con la cita elegida
+  - es «resumime el caso» va al agente con la cita elegida
+  - es «qué le toca hoy» va al agente con la cita elegida
+  - es «tiene alguna deuda» va al agente con la cita elegida
+  - es-ES «dame un resumen de la paciente» va al agente con la cita elegida
+  - es-ES «¿qué alergias tiene?» va al agente con la cita elegida
+  - en «give me a summary of the patient» va al agente con la cita elegida
+  - en «does she have any allergies» va al agente con la cita elegida
+  - en «what did we do last time» va al agente con la cita elegida
+  - la respuesta se muestra y se lee
+  - el resumen
+  - si el agente no contesta, lo dice
+  - lo que no se pudo hacer se muestra (el motivo de la pantalla)
+- **CC-SESSION · Dictar la sesión, guardar o revisar**
+  - el dictado va entero (aunque tenga varias partes) y el agente pregunta: «guardala»
+  - «revisala» abre la sesión para revisar
+  - «sí» como respuesta va al agente
+  - «completá la sesión: hice una limpieza…» con lo dictado va al agente (no abre la sesión vacía)
+  - «abrí el odontograma y marcá caries en el 16» lo arma el agente
+  - es-ES «le he hecho una limpieza» y «guárdala»
+  - en «I did a cleaning on 16» then «save it»
+- **CC-SCREEN · Lo de la pantalla sigue siendo de la página**
+  - «hacele una receta» lo hace la pantalla con el paciente del caso
+  - «nueva orden de laboratorio» lo hace la pantalla con el paciente del caso
+  - «abrí el periodontograma» lo hace la pantalla con el paciente del caso
+  - «una sesión estética» lo hace la pantalla con el paciente del caso
+  - «abrí la ficha» lo hace la pantalla con el paciente del caso
+  - «completá la sesión clínica» lo hace la pantalla con el paciente del caso
+  - «el de las 10» cambia de paciente (y de caso)
+- **CC-CLOSE · Cerrar el caso**
+  - lo que no es del caso pregunta antes de cerrarlo; «no» se queda
+  - «sí» lo cierra (y ya no se pregunta al agente)
+  - «cerrá el caso» y «volvé al caso»
+  - cerrado, elegir otra cita abre ese caso
+  - es-ES «cierra el caso» / «vuelve al caso»
+  - en «close the case» / «back to the case»
+- **CC-ROOM · La charla de la sala no va al agente**
+  - «bueno bueno»
+  - «muy bien así»
+  - «aguantá un poquito»
+- **CC-CARD · La respuesta se lee con calma y con formato**
+  - la respuesta del agente no se esconde sola y viene con formato
+  - «gracias» cierra la respuesta fija (y el caso sigue abierto)
+  - «cerrá» cierra la respuesta fija (y el caso sigue abierto)
+  - «listo» cierra la respuesta fija (y el caso sigue abierto)
+  - «ok gracias» cierra la respuesta fija (y el caso sigue abierto)
+  - «thanks» cierra la respuesta fija (y el caso sigue abierto)
+  - markdown: negritas, listas y títulos sin los símbolos
+  - para leer en voz alta, sin asteriscos ni numerales

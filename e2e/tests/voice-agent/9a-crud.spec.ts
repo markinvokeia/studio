@@ -32,7 +32,15 @@ test.describe('LI-CREATE · Altas', () => {
   test('en Sedes: «nueva sede Carrasco»', async () => { await start('/config/sedes'); await sim.say('nueva sede Carrasco'); expect(uiLog).toEqual(['fill:Nombre=Carrasco']); });
   test('«nueva sede» en Medicamentos no es de esta lista', async () => { await start(); await sim.say('nueva sede Carrasco'); expect(log()).toEqual([]); });
   test('es-ES «añade un medicamento llamado Diclofenaco»', async () => { await start('/clinic-catalog/medications', 'es-ES'); await sim.say('añade un medicamento llamado Diclofenaco'); expect(uiLog).toEqual(['fill:Nombre=Diclofenaco']); });
-  test('en «new medicamento called Diclofenac»', async () => { await start('/clinic-catalog/medications', 'en'); await sim.say('add a medicamento called Diclofenac'); expect(uiLog).toEqual(['fill:Name=Diclofenac'.replace('Name', 'Nombre')]); });
+  test('en «add a medication called Diclofenac»', async () => { await start('/clinic-catalog/medications', 'en'); await sim.say('add a medication called Diclofenac'); expect(uiLog).toEqual(['fill:Nombre=Diclofenac']); });
+  test('en «new medication Ibuprofen»', async () => { await start('/clinic-catalog/medications', 'en'); await sim.say('new medication Ibuprofen'); expect(log()).toEqual(['create']); expect(uiLog).toEqual(['fill:Nombre=Ibuprofen']); });
+  test('en «create a new location Downtown»', async () => { await start('/config/sedes', 'en'); await sim.say('create a location called Downtown'); expect(uiLog).toEqual(['fill:Nombre=Downtown']); });
+  test('el botón de la tabla no dice qué crea: lo dice el menú («nuevo medicamento Ketorolac»)', async () => { await start(); await sim.say('nuevo medicamento Ketorolac'); expect(uiLog).toEqual(['fill:Nombre=Ketorolac']); });
+  test('«nuevo Ibuprofeno» sin decir la cosa: el resto es el nombre', async () => { await start(); await sim.say('nuevo Ibuprofeno'); expect(uiLog).toEqual(['fill:Nombre=Ibuprofeno']); });
+  test('en plural o singular: «nueva unidad de medida Kilogramo»', async () => { await start('/clinic-catalog/measurement-units'); await sim.say('nueva unidad de medida Kilogramo'); expect(uiLog).toEqual(['fill:Nombre=Kilogramo']); });
+  test('«nuevo doctor Juan Pérez» en Doctores', async () => { await start('/config/doctors'); await sim.say('nuevo doctor Juan Pérez'); expect(uiLog).toEqual(['fill:Nombre=Juan Pérez']); });
+  test('es-ES «crea una moneda llamada Euro»', async () => { await start('/config/currencies', 'es-ES'); await sim.say('crea una moneda llamada Euro'); expect(uiLog).toEqual(['fill:Nombre=Euro']); });
+  test('en «new location Downtown» on Medications is not this list', async () => { await start('/clinic-catalog/medications', 'en'); await sim.say('new location Downtown'); expect(log()).toEqual([]); });
 });
 
 test.describe('LI-OPEN · Abrir, contar, actualizar', () => {
@@ -43,6 +51,10 @@ test.describe('LI-OPEN · Abrir, contar, actualizar', () => {
   test('«cuántos hay»', async () => { await start(); await sim.say('cuántos hay'); expect(sim.card().message).toBe('Hay 4 registros.'); });
   test('«actualizá la lista»', async () => { await start(); await sim.say('actualizá la lista'); expect(log()).toEqual(['refresh']); });
   test('lo que no está no se abre', async () => { await start(); await sim.say('abrí la morfina'); expect(log()).toEqual([]); });
+  test('«abrí el medicamento amoxicilina» (la cosa no se busca)', async () => { await start(); await sim.say('abrí el medicamento amoxicilina'); expect(log()).toEqual(['open:r2']); });
+  test('es-ES «abre la sede Centro» y «actualiza la tabla»', async () => { await start('/config/sedes', 'es-ES'); await sim.sayAll('abre la sede centro', 'actualiza la tabla'); expect(log()).toEqual(['open:r1', 'refresh']); });
+  test('en «open the second one» y «refresh the list»', async () => { await start('/clinic-catalog/medications', 'en'); await sim.sayAll('open the second', 'refresh the list'); expect(log()).toEqual(['open:r2', 'refresh']); });
+  test('en «open the location Pocitos»', async () => { await start('/config/sedes', 'en'); await sim.say('open the location pocitos'); expect(log()).toEqual(['open:r2']); });
   test('en «open amoxicilina» y «how many are there»', async () => { await start('/clinic-catalog/medications', 'en'); await sim.sayAll('open amoxicilina', 'how many are there'); expect(log()).toEqual(['open:r2']); expect(sim.card().message).toBe('There are 4 records.'); });
 });
 

@@ -1,5 +1,5 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
-import { controlsOf, findControl, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
+import { controlsOf, fillField, findControl, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed } from '@/lib/voice/parse';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 
@@ -200,7 +200,7 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       }
       if (!value) return;
       parsed.control.element.focus?.();
-      typeInto(parsed.control.element, value);
+      await fillField(parsed.control.element, value, ctx.signal);
       await done(ctx, t('VoiceCommands.fieldFilled', { field: parsed.control.label, value }));
       return;
     }

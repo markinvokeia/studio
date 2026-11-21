@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
 
+import { clearSimReport, publishSimReport } from './sim/reports';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 
 /**
@@ -42,5 +43,24 @@ test.describe('RP-NAV · Llegar y pedir', () => {
     await sim.say('llevame a reportes de deudores y mostrame el mes pasado');
     expect(sim.navigations).toEqual(['/reports/deudores']);
     expect(log()).toEqual([lastMonth(), 'generate']);
+  });
+});
+
+test.describe('RE-NOPERIOD · Reporte sin período', () => {
+  test('«el mes pasado» en un reporte sin período: lo dice y lo genera igual', async () => {
+    await start();
+    clearSimReport();
+    const r = publishSimReport({ withPeriod: false });
+    await sim.say('el mes pasado');
+    expect(r.log).toEqual(['generate']);
+    expect(sim.card().message).toBe('Este reporte no tiene período para elegir: lo genero igual.');
+  });
+  test('en «last month» on a report without a period', async () => {
+    await start('en');
+    clearSimReport();
+    const r = publishSimReport({ withPeriod: false });
+    await sim.say('last month');
+    expect(r.log).toEqual(['generate']);
+    expect(sim.card().message).toBe('This report has no period to choose: generating it anyway.');
   });
 });

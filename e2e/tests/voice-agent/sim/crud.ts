@@ -10,7 +10,7 @@ export interface SimCrud { bridge: CrudVoiceBridge; log: string[] }
 
 const OWNER = {};
 
-export function publishSimCrud({ createLabel = 'Nuevo medicamento', rows = ['Ibuprofeno · 400 mg', 'Amoxicilina · 500 mg', 'Ibuprofeno · 600 mg', 'Paracetamol · 1 g'] } = {}): SimCrud {
+export function publishSimCrud({ createLabel = '', rows = ['Ibuprofeno · 400 mg', 'Amoxicilina · 500 mg', 'Ibuprofeno · 600 mg', 'Paracetamol · 1 g'] } = {}): SimCrud {
   const log: string[] = [];
   const bridge: CrudVoiceBridge = {
     createLabel,
@@ -19,7 +19,7 @@ export function publishSimCrud({ createLabel = 'Nuevo medicamento', rows = ['Ibu
     create: () => {
       log.push('create');
       // Se abre el formulario (con su campo de nombre), como en la app.
-      openWindow(createLabel, { tree: screen.group(screen.field('Nombre'), screen.field('Descripción'), screen.button('Guardar')) });
+      openWindow(createLabel || 'Nuevo', { tree: screen.group(screen.field('Nombre'), screen.field('Descripción'), screen.button('Guardar')) });
     },
     open: (id) => log.push(`open:${id}`),
     refresh: () => log.push('refresh'),

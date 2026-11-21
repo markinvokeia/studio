@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VoiceRecorderButton } from '@/components/ui/voice-recorder-button';
 import { VoiceChat, type ChatMessage } from '@/components/voice-chat';
-import type { DoctorAgentAction, DoctorAgentActionPayload, DoctorAiQueryResponse, TreatmentDetail } from '@/lib/types';
+import type { DoctorAgentAction, DoctorAgentActionPayload, DoctorAgentVoiceBridge, DoctorAgentVoiceReply, DoctorAiQueryResponse, TreatmentDetail } from '@/lib/types';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import { queryDoctorAi } from '@/services/doctor-ai';
+import { useVoiceCommand } from '@/stores/voice-command-store';
 import { cn, formatDate, sanitizeTextForSpeech } from '@/lib/utils';
 import { Bot, ChevronRight, MessageSquare, Volume2, VolumeX, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -21,7 +23,11 @@ interface DoctorAgentChatProps {
   patientName?: string;
   userId?: string;
   onAction?: (action: DoctorAgentAction) => void | { success?: boolean; message?: string } | Promise<void | { success?: boolean; message?: string }>;
-  presentation?: 'floating' | 'embedded';
+  /**
+   * `voice`: sin ventana: el agente lo usa la voz (lo que dice el doctor va a este mismo agente,
+   * con la cita elegida como caso clínico). Misma lógica, mismas acciones y el mismo historial.
+   */
+  presentation?: 'floating' | 'embedded' | 'voice';
   hasExistingSession?: boolean;
   /** Resolves `{ success: false, message }` when the session couldn't be saved for a known reason */
   onDirectSave?: (payload: DoctorAgentActionPayload) => Promise<void | { success?: boolean; message?: string }>;
@@ -494,14 +500,24 @@ export function DoctorAgentChat({
     ]);
   }, []);
 
-  const applyDoctorResponse = React.useCallback(async (rawResult: unknown) => {
+  const isVoice = presentation === 'voice';
+  // Lo que se dice lo lee la voz (con su micrófono en pausa mientras habla), no el chat.
+  const speakIfChat = React.useCallback(async (text: string) => {
+    if (!isVoice) await speakText(text, locale, ttsEnabled);
+  }, [isVoice, locale, ttsEnabled]);
+
+  const applyDoctorResponse = React.useCallback(async (rawResult: unknown): Promise<DoctorAgentVoiceReply> => {
     const result = normalizeDoctorResponse(rawResult);
     setSuggestions(result.suggestions || []);
+    const reply: DoctorAgentVoiceReply = { texts: [], speech: '', intent: result.intent, acted: false, problems: [], suggestions: result.suggestions || [] };
+    const problem = (message: string) => { appendAssistantMessage(message); reply.problems.push(message); };
 
     const responseText = result.answer || result.output;
     if (responseText) {
       appendAssistantMessage(responseText);
-      await speakText(result.speak_text || responseText, locale, ttsEnabled);
+      reply.texts.push(responseText);
+      reply.speech = result.speak_text || responseText;
+      await speakIfChat(result.speak_text || responseText);
     }
 
     if (result.clinical_brief) {
@@ -514,11 +530,14 @@ export function DoctorAgentChat({
 
       if (briefMessage) {
         appendAssistantMessage(briefMessage);
-        await speakText(result.speak_text || result.clinical_brief.resumen_clinico, locale, ttsEnabled);
+        reply.texts.push(briefMessage);
+        if (!reply.speech) reply.speech = result.speak_text || result.clinical_brief.resumen_clinico;
+        await speakIfChat(result.speak_text || result.clinical_brief.resumen_clinico);
       }
     }
 
     if (result.action) {
+      reply.acted = true;
       if (result.action.type === 'open_clinic_session') {
         // Store as pending — agent will ask the doctor via text what to do next
         setPendingSessionAction(result.action);
@@ -532,12 +551,12 @@ export function DoctorAgentChat({
           try {
             const saveResult = await onDirectSave(payload);
             if (saveResult && saveResult.success === false) {
-              if (saveResult.message) appendAssistantMessage(saveResult.message);
+              if (saveResult.message) problem(saveResult.message);
             } else {
               setPendingSessionAction(null);
             }
           } catch {
-            appendAssistantMessage(t('chatError'));
+            problem(t('chatError'));
           } finally {
             setIsSavingDirect(false);
           }
@@ -553,19 +572,20 @@ export function DoctorAgentChat({
         setPendingSessionAction(null);
         const actionResult = await onAction?.(reviewAction);
         if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
-          appendAssistantMessage(actionResult.message);
+          problem(actionResult.message);
         }
       } else {
         const actionResult = await onAction?.(result.action);
         if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
-          appendAssistantMessage(actionResult.message);
+          problem(actionResult.message);
         }
       }
     }
-  }, [appendAssistantMessage, locale, onAction, onDirectSave, pendingSessionAction, t, ttsEnabled]);
+    return reply;
+  }, [appendAssistantMessage, onAction, onDirectSave, pendingSessionAction, speakIfChat, t]);
 
-  const askDoctorAgent = React.useCallback(async (prompt: string) => {
-    if (!appointmentId) return;
+  const askDoctorAgent = React.useCallback(async (prompt: string, channel: 'voice' | 'text' = 'text'): Promise<DoctorAgentVoiceReply | null> => {
+    if (!appointmentId) return null;
 
     setMessages((prev) => [
       ...prev,
@@ -588,7 +608,7 @@ export function DoctorAgentChat({
         patient_id: patientId,
         doctor_id: doctorId,
         query: prompt,
-        channel: 'text',
+        channel,
         session_id: sessionId,
         token: jwtToken,
         has_existing_session: hasExistingSession,
@@ -598,13 +618,14 @@ export function DoctorAgentChat({
         // it would act on the appointment now on screen.
         const normalized = normalizeDoctorResponse(result);
         appendToStoredDoctorAgentChat(requestSessionId, doctorResponseTexts(normalized), normalized.suggestions);
-        return;
+        return null;
       }
-      await applyDoctorResponse(result);
+      return await applyDoctorResponse(result);
     } catch (error) {
       console.error('Failed to query doctor agent chat:', error);
       if (isStillOnScreen()) appendAssistantMessage(t('chatError'));
       else appendToStoredDoctorAgentChat(requestSessionId, [t('chatError')]);
+      return null;
     } finally {
       setSendingSessionIds((prev) => {
         const next = new Set(prev);
@@ -613,6 +634,25 @@ export function DoctorAgentChat({
       });
     }
   }, [appendAssistantMessage, appointmentId, patientId, doctorId, applyDoctorResponse, sessionId, t]);
+
+  // Voz: el agente con la cita elegida como caso clínico («Caso clínico: Ana Pérez» en la tarjeta).
+  useVoiceBridge<DoctorAgentVoiceBridge | null>('workspace.agent', isVoice && appointmentId ? {
+    appointmentId,
+    patientId,
+    patientName: patientName || '',
+    busy: isSending || isSavingDirect,
+    ask: (query) => askDoctorAgent(query, 'voice'),
+  } : null);
+  React.useEffect(() => {
+    if (!isVoice) return;
+    const current = useVoiceCommand.getState().clinicalCase;
+    if (!appointmentId) { if (current) useVoiceCommand.setState({ clinicalCase: null }); return; }
+    // Otra cita elegida: es otro caso, abierto. La misma (otro render): queda como estaba.
+    if (current?.appointmentId !== appointmentId || current.patient !== (patientName || '')) {
+      useVoiceCommand.setState({ clinicalCase: { appointmentId, patient: patientName || '', open: current?.appointmentId === appointmentId ? current.open : true } });
+    }
+  }, [appointmentId, isVoice, patientName]);
+  React.useEffect(() => () => { if (isVoice) useVoiceCommand.setState({ clinicalCase: null }); }, [isVoice]);
 
   const openChat = React.useCallback(() => {
     if (!appointmentId) return;
@@ -626,7 +666,7 @@ export function DoctorAgentChat({
     setIsMinimized(false);
   }, []);
 
-  if (!appointmentId) return null;
+  if (!appointmentId || isVoice) return null;
 
   const chatCard = (
     <Card data-help-id="workspace.section.agent-chat" className={cn(
@@ -703,7 +743,7 @@ export function DoctorAgentChat({
               <VoiceRecorderButton
                 locale={locale}
                 disabled={isSending}
-                onTranscriptReady={(transcript) => askDoctorAgent(transcript)}
+                onTranscriptReady={(transcript) => { void askDoctorAgent(transcript); }}
               />
             )}
           />

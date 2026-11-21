@@ -1,7 +1,7 @@
 {
   "id": "workspace.agent",
   "title": "Ask the AI clinical agent",
-  "summary": "Ask about the last procedure, what's due today or the patient's alerts, and have it prepare the session.",
+  "summary": "By voice: ask about the patient of the selected appointment (summary, allergies, the last thing done, what's due today) and dictate the session or the odontogram.",
   "module": "My Workspace",
   "keywords": [
     "agent",
@@ -11,7 +11,10 @@
     "clinical summary",
     "dictate",
     "what's due today",
-    "last procedure"
+    "last procedure",
+    "voice",
+    "talk",
+    "clinical case"
   ],
   "steps": [
     {
@@ -25,13 +28,9 @@
       "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top."
     },
     {
-      "id": "open",
-      "title": "Ask the agent"
-    },
-    {
-      "id": "chat",
-      "title": "Clinical agent",
-      "details": "It knows the appointment and the patient's history. Use the shortcuts (the last thing done, what's due today, alerts) or type or dictate your question. It can prepare the clinical session or mark the odontogram: you always review it before saving."
+      "id": "voice",
+      "title": "Turn on Voice and talk to it",
+      "details": "With the appointment selected, the voice card shows “Clinical case: …”: what you ask is about that patient and the clinical agent answers it, knowing the appointment and the history. Ask “give me a summary”, “does she have any allergies?” or “what did we do last time?”, or dictate the session (“I did a cleaning and a filling on 16, next visit a check-up”): it prepares it and asks whether to save it or review it. It also marks the odontogram. “Close the case” stops talking about that patient; “back to the case” resumes it."
     }
   ]
 }

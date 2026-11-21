@@ -1,9 +1,10 @@
 import { format, parseISO } from 'date-fns';
 
-import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
+import { normalizeSpeech, parseChoice, parseSpokenDate } from '@/lib/voice/parse';
 import { parsePeriod } from '@/lib/voice/period';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
 import { getVoiceBridge } from '@/lib/voice/screen-bridge';
+import { useVoiceCommand } from '@/stores/voice-command-store';
 
 import type { VoiceCommandContext, WorkspaceVoiceBridge } from '@/lib/types';
 
@@ -104,6 +105,24 @@ async function pick(ctx: VoiceCommandContext, ref: ApptRef | null, b: WorkspaceV
 
 type SelectParsed = { op: 'select'; ref: ApptRef } | { op: 'whoNext' } | { op: 'list'; preset: Parameters<WorkspaceVoiceBridge['setPreset']>[0] | null };
 
+/**
+ * El paciente al que se quiere pasar, dicho de cualquier forma: «cambiá de Ana a Juan», «switch
+ * from Ana to Juan», «pasá a Juan», «cambiá al paciente Juan», «seleccioná a Juan», «quiero ver a
+ * Juan», «ahora Juan», «select Juan». null si la frase no tiene esa forma (el nombre se confirma
+ * contra las citas que se ven).
+ */
+export function switchTarget(normalized: string): string | null {
+  const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  const from = t.match(/^(?:cambia\w*|pasa\w*|switch|change|move|go)\s+(?:de|del|from)\s+.+?\s+(?:a|al|to)\s+(.+)$/);
+  const to = t.match(/^(?:cambia\w*|pasa\w*|selecciona\w*|elegi\w*|elige|escoge\w*|escogi\w*|quiero ver a|quiero atender a|ver a|ahora|ahora con|vamos con|segui\w* con|atende\w*|llama\w*|abri\w* (?:el caso|la cita|el turno) de|switch to|change to|move to|go to|select|pick|choose|now|open (?:the case|the appointment) (?:of|for)|call)\s+(?:a\s+|al\s+|to\s+)?(.+)$/);
+  const raw = (from?.[1] ?? to?.[1] ?? '').trim();
+  if (!raw) return null;
+  const name = raw.replace(/^(?:(?:el|la|the)\s+)?(?:paciente|patient|caso de|case of|cita de|turno de)\s+/, '').replace(/^(?:el|la|the)\s+/, '').trim();
+  // Lo que no es un nombre (fechas, pestañas, horas) lo entienden los otros comandos.
+  if (!name || /\d/.test(name) || name.split(' ').length > 4) return null;
+  return name;
+}
+
 export function parseWorkspaceSelect(normalized: string): SelectParsed | null {
   const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
   if (/^(?:quien sigue|quien es el (?:siguiente|proximo)|(?:cual|quien) es (?:el|mi) (?:siguiente|proximo)(?: paciente)?|who(?: is|s) next|whos next|who is my next patient)$/.test(t)) return { op: 'whoNext' };
@@ -121,6 +140,8 @@ export function parseWorkspaceSelect(normalized: string): SelectParsed | null {
   const ref = parseApptRef(rest ? ` ${rest}`.replace(/^ /, '') : t);
   // Sin verbo solo lo inequívoco: «el siguiente», «el de las 10», «el próximo paciente».
   if (!ref) return null;
+  // «el siguiente» / «el anterior» es toda la frase («…próxima cita control en 6 meses» es un dictado).
+  if ((ref.by === 'next' || ref.by === 'previous') && !/^(?:(?:el|la|the|al|a)\s+)?(?:que sigue|siguiente|proxim[oa]|next|anterior|previous|prior|last)(?:\s+(?:paciente|cita|turno|patient|appointment|one))?$/.test(rest || t)) return null;
   if (!hasVerb && !/^(?:el|la|the)\b/.test(t) && ref.by !== 'next') return null;
   if (ref.by === 'name' && !hasVerb) return null;
   return { op: 'select', ref };
@@ -132,7 +153,15 @@ registerVoiceCommand<SelectParsed>({
   priority: 42,
   match: (normalized) => {
     const b = ws();
-    const p = b ? parseWorkspaceSelect(normalized) : null;
+    if (!b) return null;
+    // Cambiar de caso: «cambiá de Carolina a Leonardo», «pasá a Leonardo», «seleccioná a Leonardo»,
+    // «ahora Leonardo», «select Leonardo»: el nombre se busca en las citas que se ven.
+    const target = switchTarget(normalized);
+    if (target) {
+      const ref: ApptRef = { by: 'name', name: target };
+      if (resolveRef(ref, b).length) return { op: 'select', ref };
+    }
+    const p = parseWorkspaceSelect(normalized);
     // Un nombre que no está en la agenda («abrí la ficha de alguien más») va al buscador del panel derecho.
     if (p?.op === 'select' && p.ref.by === 'name' && !resolveRef(p.ref, b!).length) return null;
     return p;
@@ -163,7 +192,12 @@ registerVoiceCommand<SelectParsed>({
 // ── Acciones sobre la cita elegida ────────────────────────────────────────────
 
 type ActionKey = keyof WorkspaceVoiceBridge['actions'] | 'odontogram' | 'sessions' | 'anamnesis' | 'timeline';
-interface ActionParsed { action: ActionKey; ref: ApptRef | null }
+interface ActionParsed {
+  action: ActionKey;
+  ref: ApptRef | null;
+  /** Después de la acción se dijo más que a quién («…: hice una limpieza en el 16»): es un dictado. */
+  dictation?: boolean;
+}
 
 const ACTIONS: Array<[RegExp, ActionKey]> = [
   [/\b(?:periodontograma|perio|sondaje|periodontal(?: chart| exam)?|perio chart)\b/, 'perio'],
@@ -177,7 +211,7 @@ const ACTIONS: Array<[RegExp, ActionKey]> = [
   [/\b(?:sesiones|sessions)\b/, 'sessions'],
   [/\b(?:(?:nueva |una |la )?sesion(?: clinica)?|evolucion|registra\w* (?:la )?(?:atencion|consulta)|new session|clinical session|start (?:the |a )?session|session)\b/, 'session'],
 ];
-const ACTION_VERB = /^(?:(?:abri\w*|abre|volve\w* a|hace\w*|haz|crea\w*|empeza\w*|inicia\w*|arranca\w*|nueva|nuevo|registra\w*|carga\w*|mostra\w*|muestra\w*|ver|pasa\w* a|anda\w* a|ve a|ir a|quiero|necesito|open|make|create|start|new|show(?: me)?|go to|write|record|do)\s+)/;
+const ACTION_VERB = /^(?:(?:abri\w*|abre|completa\w*|complete|volve\w* a|hace\w*|haz|crea\w*|empeza\w*|inicia\w*|arranca\w*|nueva|nuevo|registra\w*|carga\w*|mostra\w*|muestra\w*|ver|pasa\w* a|anda\w* a|ve a|ir a|quiero|necesito|open|make|create|start|new|show(?: me)?|go to|write|record|do)\s+)/;
 
 export function parseWorkspaceAction(normalized: string): ActionParsed | null {
   const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
@@ -190,7 +224,8 @@ export function parseWorkspaceAction(normalized: string): ActionParsed | null {
   // «… de Juan», «… para el de las 10»: lo que sigue a la acción.
   const after = t.slice(start + found.m[0].length).trim();
   const ref = after ? parseApptRef(after) : null;
-  return { action, ref: ref && ref.by !== 'position' ? ref : null };
+  const usable = ref && ref.by !== 'position' ? ref : null;
+  return { action, ref: usable, dictation: !!after && !usable && after.split(' ').length >= 3 };
 }
 
 registerVoiceCommand<ActionParsed>({
@@ -203,6 +238,9 @@ registerVoiceCommand<ActionParsed>({
     const b = ws();
     const p = b ? parseWorkspaceAction(normalized) : null;
     if (p?.ref?.by === 'name' && !resolveRef(p.ref, b!).length) return null;
+    // «Completá la sesión: hice una limpieza…» con el caso clínico abierto: lo arma el agente
+    // clínico (abre la sesión o el odontograma con lo dictado), no se abre vacío.
+    if (p?.dictation && (p.action === 'session' || p.action === 'odontogram') && getVoiceBridge('workspace.agent') && useVoiceCommand.getState().clinicalCase?.open) return null;
     return p;
   },
   run: async (parsed, ctx) => {
@@ -235,61 +273,157 @@ registerVoiceCommand<ActionParsed>({
 
 // ── Filtros: día, semana, mes, mis citas, agenda de un consultorio ────────────
 
+type Preset = Parameters<WorkspaceVoiceBridge['setPreset']>[0];
 type FilterParsed =
-  | { op: 'preset'; preset: Parameters<WorkspaceVoiceBridge['setPreset']>[0] }
-  | { op: 'range'; from: Date; to: Date }
-  | { op: 'mine' }
-  | { op: 'calendar'; name: string | null }
-  | { op: 'refresh' };
+  | { op: 'refresh' }
+  | {
+    op: 'set';
+    /** «asignadas a mí» / «mis calendarios» (las dos pestañas del panel de la agenda). */
+    view: 'mine' | 'calendar' | null;
+    /** Qué calendario (undefined: no se dijo; null: «mis calendarios» sin decir cuál → se pregunta si hace falta). */
+    calendar?: string | null;
+    preset?: Preset;
+    range?: { from: Date; to: Date };
+    /** «¿qué tengo el viernes?»: se pone el filtro y se lee la agenda. */
+    read: boolean;
+    /** «cambiá la fecha» sin decir cuál: se pregunta. */
+    askDate?: boolean;
+  };
 
-export function parseWorkspaceFilter(normalized: string): FilterParsed | null {
-  const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
+const MINE_RE = /\b(?:(?:las |los )?asignad[oa]s(?: a mi)?|mis citas|mis turnos|mis pacientes|mi agenda|(?:las|los) mi[oa]s|assigned to me|my appointments|my patients|my schedule|mine)\b/;
+const CALENDARS_RE = /\b(?:mis calendarios|mis agendas|mis consultorios|(?:los|las) (?:calendarios|agendas|consultorios)|por (?:calendario|agenda)|my calendars|the calendars|calendars)\b/;
+const ONE_CALENDAR_RE = /\b(?:(?:el|la|del|de la|the)\s+)?(?:calendario|agenda|consultorio|calendar)\s+(?:de\s+|del\s+|de la\s+)?(.+)$/;
+const WEEKDAY_WORDS = 'lunes|martes|miercoles|jueves|viernes|sabado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+const MONTH_WORDS = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|january|february|march|april|may|june|july|august|september|october|november|december';
+/** Lo que queda es solo una fecha («el martes», «del 1 al 10 de diciembre», «la semana pasada»). */
+const DATE_ONLY_RE = new RegExp(`^(?:(?:el|la|los|las|lo|de|del|al|desde|hasta|a|y|en|para|the|on|for|from|to|until|of|in|this|next|last|past|previous|este|esta|dia|dias|day|days|semana|semanas|week|weeks|mes|meses|month|months|ano|year|pasad[oa]|anterior|que viene|proxim[oa]s?|siguiente|hoy|manana|ayer|pasado|today|tomorrow|yesterday|after|st|nd|rd|th|\\d{1,4}|\\d{1,2}/\\d{1,2}|${WEEKDAY_WORDS}|${MONTH_WORDS})\\s*)+$`);
+const PRESETS: Array<[RegExp, Preset]> = [
+  [/^(?:el dia de )?(?:hoy|today)$/, 'today'], [/^(?:manana|tomorrow)$/, 'tomorrow'], [/^(?:esta semana|la semana|(?:the )?week|this week)$/, 'week'],
+  [/^(?:(?:los )?proximos 7 dias|(?:la )?proxima semana|la semana que viene|next 7 days|next week)$/, 'next7'], [/^(?:este mes|el mes|this month|the month)$/, 'month'],
+  [/^(?:el mes que viene|el proximo mes|next month)$/, 'nextMonth'], [/^(?:el mes pasado|el mes anterior|last month|previous month)$/, 'prevMonth'],
+];
+
+/**
+ * Los filtros del panel de la agenda del día: la pestaña («asignadas a mí» / «mis calendarios»),
+ * qué calendario y la fecha (día, semana, mes, rango), juntos o por separado: «mis citas de
+ * mañana», «mis calendarios, el sillón 2, el martes», «la semana pasada», «del 1 al 10 de
+ * diciembre», «¿qué tengo el viernes?». «Mis calendarios» es la pestaña, no el menú Calendarios.
+ */
+export function parseWorkspaceFilter(normalized: string, calendars: Array<{ name: string }> = []): FilterParsed | null {
+  const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/[¿?]/g, '').replace(/\s+/g, ' ').trim();
   if (/^(?:actualiza\w*|recarga\w*|refresca\w*|refresh|reload|update)(?: la agenda| mi agenda| the (?:list|schedule))?$/.test(t)) return { op: 'refresh' };
-  if (/^(?:(?:mostra\w*|ver|ve|volve\w* a|anda\w* a|show(?: me)?|go back to|back to)\s+)?(?:solo )?(?:mis (?:citas|pacientes|turnos)|mi agenda|las mias|my (?:appointments|patients|schedule)|mine)$/.test(t)) return { op: 'mine' };
-  const cal = t.match(/^(?:(?:mostra\w*|ver|ve|cambia\w* a|pasa\w* a|anda\w* a|show(?: me)?|switch to|go to)\s+)?(?:la |the )?(?:agenda|calendario|calendar|consultorio)\s+(?:de\s+|del\s+)?(.+)$/);
-  if (cal && !/^(?:hoy|manana|today|tomorrow)$/.test(cal[1])) return { op: 'calendar', name: cal[1] };
-  if (/^(?:(?:mostra\w*|ver|ve|show(?: me)?)\s+)?(?:las |los |the )?(?:agendas|calendarios|calendars|por agenda)$/.test(t)) return { op: 'calendar', name: null };
-  const body = t.replace(/^(?:(?:mostra\w*|muestra\w*|ver|ve|anda\w* a|pasa\w* a|cambia\w* a|filtra\w*|show(?: me)?|go to|switch to|view)\s+)/, '');
-  const presets: Array<[RegExp, Parameters<WorkspaceVoiceBridge['setPreset']>[0]]> = [
-    [/^(?:hoy|today)$/, 'today'], [/^(?:manana|tomorrow)$/, 'tomorrow'], [/^(?:esta semana|la semana|this week)$/, 'week'],
-    [/^(?:(?:los )?proximos 7 dias|(?:la )?proxima semana|next 7 days|next week)$/, 'next7'], [/^(?:este mes|el mes|this month)$/, 'month'],
-    [/^(?:el mes que viene|el proximo mes|next month)$/, 'nextMonth'], [/^(?:el mes pasado|el mes anterior|last month)$/, 'prevMonth'],
-  ];
-  const preset = presets.find(([re]) => re.test(body))?.[1];
-  if (preset && (t !== body || preset !== 'today')) return { op: 'preset', preset };
-  if (t !== body) {
-    const period = parsePeriod(body);
-    if (period) return { op: 'range', from: period.from, to: period.to };
+  let body = t;
+  let read = false;
+  const question = body.match(/^(?:que|cuant[oa]s|cuales) (?:(?:pacientes|citas|turnos) )?(?:tengo|hay|tenemos|tiene)\s+(.+)$|^(?:what do i have|what s on|whats on|what is on|who do i have|what appointments do i have|how many (?:patients|appointments) do i have)\s+(.+)$/);
+  if (question) { read = true; body = (question[1] ?? question[2]).trim(); }
+  // «cambiá la fecha al martes», «poné la fecha de mañana», «change the date to tomorrow», «cambialo de fecha».
+  let askDate = false;
+  const dateVerb = body.match(/^(?:cambia\w*|pone\w*|move|change|set)\s+(?:(?:la|el|the)\s+)?(?:de\s+)?(?:fecha|dia|date|day)(?:\s+(?:a|al|para|por|de|del|en|to|for))?(?:\s+|$)/);
+  if (dateVerb) { body = body.slice(dateVerb[0].length).trim(); if (!body) askDate = true; }
+  body = body.replace(/^(?:(?:mostra\w*|muestra\w*|ensena\w*|ver|ve|veamos|quiero ver|anda\w* a|pasa\w* a|cambia\w* a|volve\w* a|filtra\w*(?: por)?|pone\w*|abri\w*|elegi\w*|selecciona\w*|show(?: me)?|go to|switch to|view|back to|open|select|let me see|filter(?: by)?)\s+)+/, '').trim();
+  const hadVerb = body !== t || read;
+  let view: 'mine' | 'calendar' | null = null;
+  let calendar: string | null | undefined;
+  if (MINE_RE.test(body)) { view = 'mine'; body = body.replace(new RegExp(MINE_RE.source, 'g'), ' '); }
+  if (CALENDARS_RE.test(body)) { view = 'calendar'; calendar = null; body = body.replace(CALENDARS_RE, ' '); }
+  // Un calendario por su nombre («el sillón 2»), con o sin la palabra «calendario».
+  const named = calendars.map((c) => ({ c, key: normalizeSpeech(c.name) })).filter((x) => x.key && body.includes(x.key)).sort((x, y) => y.key.length - x.key.length)[0];
+  if (named) { view = 'calendar'; calendar = named.c.name; body = body.replace(named.key, ' '); }
+  body = body.replace(/\s+/g, ' ').trim();
+  const one = !named ? body.match(ONE_CALENDAR_RE) : null;
+  if (one && !DATE_ONLY_RE.test(one[1].trim())) { view = 'calendar'; calendar = one[1].trim(); body = body.slice(0, one.index).trim(); }
+  // Lo que queda: la fecha (sin «las citas de», «la agenda del»).
+  let rest = body
+    .replace(/\b(?:(?:el|la|the)\s+)?(?:calendario|consultorio|calendar)\b/g, ' ')
+    .replace(/^(?:(?:y|,)\s+)?(?:(?:(?:las|los|la|el|the)\s+)?(?:citas|turnos|agenda|pacientes|appointments|schedule|patients)\b\s*(?:de la|del|de|para el|para la|para|for|on)?\s*)?/, '')
+    // «de mañana» → «mañana» (pero «del 1 al 15» es el rango).
+    .replace(/^(?:de la|del|de|para el|para la|para|for|on|en|in)\s+(?=\S)(?!\d{1,2}(?:st|nd|rd|th)?\s+(?:de\s+\w+\s+)?(?:al|hasta|to)\b)/, '')
+    .replace(/^(?:el dia|the day)\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // Lo que quedó suelto después de sacar la pestaña o el calendario («el», «de»).
+  if (/^(?:(?:el|la|los|las|de|del|a|al|en|the|of|on|for|y)\s*)*$/.test(rest)) rest = '';
+  let preset: Preset | undefined;
+  let range: { from: Date; to: Date } | undefined;
+  if (rest) {
+    if (!DATE_ONLY_RE.test(rest)) return null;
+    const bare = rest.replace(/^(?:el|la|the)\s+(?=(?:manana|hoy|tomorrow|today)$)/, '');
+    preset = PRESETS.find(([re]) => re.test(rest) || re.test(bare))?.[1];
+    const direction = /\b(?:pasad[oa]|anterior|ayer|last|previous|yesterday)\b/.test(rest) ? 'past' : 'future';
+    // Un día («el martes», «el 15 de diciembre», «el 15», «pasado mañana»): ese día.
+    const isDay = new RegExp(`\\b(?:${WEEKDAY_WORDS})\\b|^(?:(?:el|the)\\s+)?\\d{1,2}(?:st|nd|rd|th)?(?:\\s+(?:de\\s+|of\\s+)?(?:${MONTH_WORDS}))?$|^(?:${MONTH_WORDS})\\s+\\d{1,2}(?:st|nd|rd|th)?$|\\d{1,2}/\\d{1,2}|pasado manana|day after tomorrow|ayer|yesterday`).test(rest);
+    if (!preset && isDay) {
+      const day = parseSpokenDate(rest, direction);
+      if (day) { const d = parseISO(day); range = { from: d, to: d }; }
+    }
+    if (!preset && !range) {
+      const period = parsePeriod(rest);
+      if (period?.kind === 'month' && !/\b\d{4}\b|ano pasado|last year/.test(rest)) {
+        // En la agenda, «diciembre» es el que viene (no el del año pasado).
+        const from = new Date(new Date().getFullYear(), period.from.getMonth(), 1);
+        range = { from, to: new Date(from.getFullYear(), from.getMonth() + 1, 0) };
+      } else if (period && period.kind !== 'today') range = { from: period.from, to: period.to };
+    }
+    if (!preset && !range) return null;
   }
-  return null;
+  if (askDate) return { op: 'set', view: null, read, askDate: true };
+  if (!view && !preset && !range) return null;
+  // «hoy» suelto sin verbo también vale (en Mi consultorio es la agenda de hoy).
+  if (!hadVerb && !view && preset === 'today' && t !== 'hoy' && t !== 'today') return null;
+  return { op: 'set', view, calendar, preset, range, read };
 }
 
 registerVoiceCommand<FilterParsed>({
   id: 'workspace.filter',
   domain: WORKSPACE_VOICE_DOMAIN,
-  priority: 43,
+  // Por encima de navegar: «mis calendarios» es la pestaña del panel, no el menú Calendarios.
+  priority: 51,
   aux: true,
-  match: (normalized) => (ws() ? parseWorkspaceFilter(normalized) : null),
+  match: (normalized) => { const b = ws(); return b ? parseWorkspaceFilter(normalized, b.calendars) : null; },
   run: async (parsed, ctx) => {
-    const b = ws();
+    let b = ws();
     if (!b) return;
     if (parsed.op === 'refresh') { b.refresh(); await say(ctx, T(ctx, 'refreshed')); return; }
-    if (parsed.op === 'mine') { b.setViewMode('mine'); await say(ctx, T(ctx, 'mine')); return; }
-    if (parsed.op === 'calendar') {
+    if (parsed.askDate) {
+      // «Cambiá la fecha»: ¿a cuál? La respuesta se entiende como cualquier fecha de la agenda.
+      for (let tries = 0; tries < 2; tries++) {
+        const question = T(ctx, tries ? 'whichDateAgain' : 'whichDate');
+        const answer = await ctx.ask({ title: T(ctx, 'title'), message: question, tone: 'info' }, question);
+        const again = parseWorkspaceFilter(normalizeSpeech(answer), b.calendars);
+        if (again?.op === 'set' && (again.preset || again.range)) { parsed = again; break; }
+      }
+      if (parsed.op !== 'set' || parsed.askDate) return;
+    }
+    const done: string[] = [];
+    if (parsed.view === 'mine') { b.setViewMode('mine'); done.push(T(ctx, 'mine')); }
+    if (parsed.view === 'calendar') {
       if (!b.calendars.length) { await say(ctx, T(ctx, 'noCalendars'), 'info'); return; }
-      const key = parsed.name ? normalizeSpeech(parsed.name) : '';
-      let cal = key ? b.calendars.find((c) => normalizeSpeech(c.name) === key) ?? b.calendars.find((c) => normalizeSpeech(c.name).includes(key)) : undefined;
+      const key = parsed.calendar ? normalizeSpeech(parsed.calendar) : '';
+      let cal = key ? b.calendars.find((c) => normalizeSpeech(c.name) === key) ?? b.calendars.find((c) => normalizeSpeech(c.name).includes(key) || key.includes(normalizeSpeech(c.name))) : undefined;
+      // «mis calendarios» sin decir cuál: si ya hay uno elegido (o hay uno solo) se queda; si no, se pregunta.
+      if (!cal && !key) cal = b.calendars.find((c) => c.id === b!.calendarId) ?? (b.calendars.length === 1 ? b.calendars[0] : undefined);
       if (!cal) {
         const question = T(ctx, 'whichCalendar');
         const index = await ctx.choose({ title: T(ctx, 'title'), message: question, tone: 'info', choices: b.calendars.map((c) => ({ label: c.name })) }, `${question} ${b.calendars.map((c, i) => `${i + 1}: ${c.name}`).join('. ')}.`);
         cal = b.calendars[index];
       }
       b.setCalendar(cal.id);
-      await say(ctx, T(ctx, 'calendarSet', { name: cal.name }));
+      done.push(T(ctx, 'calendarSet', { name: cal.name }));
+    }
+    if (parsed.preset) { b.setPreset(parsed.preset); done.push(T(ctx, `preset_${parsed.preset}`)); }
+    else if (parsed.range) {
+      b.setRange(parsed.range.from, parsed.range.to);
+      const same = format(parsed.range.from, 'yyyy-MM-dd') === format(parsed.range.to, 'yyyy-MM-dd');
+      done.push(same ? T(ctx, 'daySet', { day: format(parsed.range.from, 'dd/MM') }) : T(ctx, 'rangeSet', { from: format(parsed.range.from, 'dd/MM'), to: format(parsed.range.to, 'dd/MM') }));
+    }
+    if (parsed.read) {
+      b = await loaded(ctx);
+      if (!b) return;
+      const list = sorted(b.appointments);
+      if (!list.length) { await say(ctx, T(ctx, 'empty'), 'info'); return; }
+      await say(ctx, T(ctx, 'list', { count: list.length, first: `${list[0].time} ${list[0].patient}` }), 'info', list.slice(0, 12).map((a) => ({ label: a.time, value: `${a.patient}${a.service ? ` · ${a.service}` : ''}` })));
       return;
     }
-    if (parsed.op === 'preset') { b.setPreset(parsed.preset); await say(ctx, T(ctx, `preset_${parsed.preset}`)); return; }
-    b.setRange(parsed.from, parsed.to);
-    await say(ctx, T(ctx, 'rangeSet', { from: format(parsed.from, 'dd/MM'), to: format(parsed.to, 'dd/MM') }));
+    await say(ctx, done.join(' '));
   },
 });

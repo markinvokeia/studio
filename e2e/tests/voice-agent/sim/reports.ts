@@ -9,7 +9,7 @@ export interface SimReport { shell: ReportShellVoiceBridge; log: string[] }
 
 const OWNER = {};
 
-export function publishSimReport({ allTime = true } = {}): SimReport {
+export function publishSimReport({ allTime = true, withPeriod = true } = {}): SimReport {
   const log: string[] = [];
   const shell: ReportShellVoiceBridge = {
     title: 'Deudores', isLoading: false, hasData: false,
@@ -27,7 +27,7 @@ export function publishSimReport({ allTime = true } = {}): SimReport {
     setRange: (from, to) => log.push(`range:${format(from, 'yyyy-MM-dd')}..${format(to, 'yyyy-MM-dd')}`),
     allTime: allTime ? () => log.push('all-time') : null,
   };
-  publishVoiceBridge('reports.period', period, OWNER);
+  publishVoiceBridge('reports.period', withPeriod ? period : null, OWNER);
   return { shell, log };
 }
 

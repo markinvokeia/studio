@@ -82,7 +82,8 @@ registerVoiceCommand<Parsed>({
       return;
     }
     const period = getVoiceBridge<ReportPeriodVoiceBridge>('reports.period');
-    if (!period) { await say(ctx, T(ctx, 'noPeriod'), 'info'); return; }
+    // Sin período (Deudores, por ejemplo): se dice y se genera igual (es lo que se quiere ver).
+    if (!period) { s.generate(); await say(ctx, T(ctx, 'noPeriodGenerating'), 'info'); return; }
     if (parsed.op === 'allTime') {
       if (!period.allTime) { await say(ctx, T(ctx, 'noAllTime'), 'info'); return; }
       period.allTime();

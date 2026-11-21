@@ -3,6 +3,7 @@ import { useVoiceCommand } from '@/stores/voice-command-store';
 import { parseChoice, parseChoiceDetailed, parseYesNo, normalizeSpeech } from '@/lib/voice/parse';
 import { interpretWithAi } from '@/lib/voice/ai';
 import { closeTopOverlay, hasOpenOverlay, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, type OpenDialog } from '@/lib/voice/dom-dialog';
+import { isScreenLoading, waitScreenReady } from '@/lib/voice/dom-ui';
 import { setAppointmentFocus } from '@/lib/voice/focus';
 import { getVoiceDomain, listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
 import {
@@ -43,7 +44,14 @@ export interface VoiceSessionDeps {
 /** Tiempo para empezar a responder después de una pregunta (Ctrl+Espacio). */
 const ANSWER_WINDOW_MS = 6000;
 /** La tarjeta del resultado se va sola. */
-const RESULT_VISIBLE_MS = 7000;
+const RESULT_VISIBLE_MS = 12000;
+/** Cerrar la tarjeta con un resultado (la del agente clínico no se esconde sola). */
+const DISMISS_RE = /^(?:(?:ok|okay|bueno|listo|dale|ya)\s)?(?:cerra\w*|cierra\w*|cerrar|oculta\w*|esconde\w*|saca\w* (?:eso|la tarjeta)|listo|entendido|gracias|muchas gracias|perfecto|ok|okay|ya (?:lo )?lei|close(?: it| that| the card)?|dismiss|hide(?: it)?|got it|thanks|thank you|perfect)(?:\s(?:la tarjeta|eso|gracias|por favor|please|thanks))*$/;
+/** Cuánto queda a la vista un resultado: lo justo para leerlo (más largo, más tiempo; hasta 30 s). */
+function visibleMs(card: VoiceCard): number {
+  const chars = (card.message?.length ?? 0) + (card.rows ?? []).reduce((n, r) => n + r.label.length + r.value.length, 0);
+  return Math.min(30000, Math.max(RESULT_VISIBLE_MS, 3000 + chars * 70));
+}
 /** Respuestas que no se entienden antes de dejarlo sin hacer. */
 const MAX_UNCLEAR = 2;
 /** Por debajo de esto la IA "adivinó": se dice que no se entendió (igual siempre se confirma). */
@@ -518,6 +526,14 @@ function handleText(text: string, opts: HandleOptions) {
     void cancelTask();
     return;
   }
+  // «cerrá», «listo», «gracias»: con un resultado a la vista (y nada abierto ni pendiente), se cierra la tarjeta.
+  // Si un comando de la pantalla lo entiende («cerrá» cierra la búsqueda o los paneles de la agenda), es de él.
+  if (!pendingStack.length && !controller && store().card && !hasOpenOverlay() && DISMISS_RE.test(normalized)
+    && (store().card!.sticky || !(deps && matchVoiceCommand(deps.domains, normalized, heard)))) {
+    clearTimeout(hideTimer);
+    store().reset();
+    return;
+  }
   if (isForgetFocusPhrase(normalized)) {
     setAppointmentFocus(null);
     void quickFinish(deps!.t('VoiceCommands.focusCleared'));
@@ -694,7 +710,7 @@ async function quickFinish(message: string) {
   if (store().card === card) {
     store().set({ phase: 'idle' });
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, RESULT_VISIBLE_MS);
+    if (!card.sticky) hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, visibleMs(card));
   }
 }
 
@@ -758,6 +774,12 @@ async function interpretPlan(text: string, opts: HandleOptions, signal?: AbortSi
 /** Un pedido sin pregunta abierta: local primero, si no la IA; uno o varios pasos. */
 async function runRequest(heard: string, normalized: string, opts: HandleOptions) {
   if (!deps) return;
+  // Recién abierta la página (o recargando): lo pedido se entiende con lo que va a estar en pantalla.
+  if (isScreenLoading()) {
+    store().set({ phase: 'thinking' });
+    await waitScreenReady();
+    if (!deps) return;
+  }
   const local = matchVoiceCommand(deps.domains, normalized, heard);
   // Varios pedidos en una frase: primero la IA arma el plan completo; si no, lo local. La
   // navegación se encarga sola («andá a pacientes y buscá a Juan»: va y deja el resto para allá).
@@ -789,7 +811,7 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
       const card: VoiceCard = { title: deps.t('VoiceCommands.notUnderstoodTitle'), message: deps.t(key), tone: 'info' };
       store().set({ card, awaiting: null, phase: 'idle' });
       clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, RESULT_VISIBLE_MS);
+      if (!card.sticky) hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, visibleMs(card));
       return;
     }
     const key = deps.domains.map((id) => getVoiceDomain(id)?.notUnderstoodKey).find(Boolean) ?? 'VoiceCommands.notUnderstood';
@@ -806,7 +828,7 @@ async function quickFinishError(title: string, message: string) {
   await speak(deps.locale, message);
   store().set({ phase: 'idle' });
   clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, RESULT_VISIBLE_MS);
+  if (!card.sticky) hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, visibleMs(card));
 }
 
 // ── Ejecutar ──────────────────────────────────────────────────────────────────
@@ -901,6 +923,9 @@ async function runAux(found: Found[], heard: string, source: 'local' | 'ai' = 'l
 
 async function speak(locale: string, speech: string) {
   if (!speech) return;
+  // Con la voz del asistente silenciada no suena nada: no hay eco que descartar y el micrófono
+  // sigue oyendo (si no, lo que se dice justo después de un resultado se perdía).
+  if (useAssistantVoice.getState().muted) return;
   speaking = true;
   continuous?.pause();
   store().set({ phase: 'speaking' });
@@ -1033,10 +1058,11 @@ function createContext(
       if (aux || midPlan) return;
       store().set({ phase: 'idle' });
       clearTimeout(hideTimer);
+      if (card.sticky) return;
       hideTimer = setTimeout(() => {
         // Solo si nadie empezó otro pedido mientras tanto.
         if (store().card === card && store().phase === 'idle' && !pendingStack.length) store().reset();
-      }, RESULT_VISIBLE_MS);
+      }, visibleMs(card));
     },
     handOff: async (text) => {
       const normalized = normalizeSpeech(text);

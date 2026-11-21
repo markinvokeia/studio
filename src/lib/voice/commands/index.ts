@@ -9,6 +9,7 @@ import '@/lib/voice/commands/rail';
 import '@/lib/voice/commands/billing';
 import '@/lib/voice/commands/dashboard';
 import '@/lib/voice/commands/workspace';
+import '@/lib/voice/commands/workspace-agent';
 import '@/lib/voice/commands/alerts';
 import '@/lib/voice/commands/cashier';
 import '@/lib/voice/commands/patients';

@@ -162,7 +162,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   const mountPage = (to: string) => {
     clearSimCrud();
     crud = /^\/(?:clinic-catalog|config|system)\//.test(to)
-      ? publishSimCrud(to.startsWith('/config/sedes') ? { createLabel: 'Nueva sede', rows: ['Centro · Av. Italia 123', 'Pocitos · 21 de Setiembre 2900'] } : {})
+      ? publishSimCrud(to.startsWith('/config/sedes') ? { rows: ['Centro · Av. Italia 123', 'Pocitos · 21 de Setiembre 2900'] } : {})
       : null;
     clearSimReport();
     report = to.startsWith('/reports/') ? publishSimReport() : null;

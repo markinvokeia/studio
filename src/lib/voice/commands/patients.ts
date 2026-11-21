@@ -33,11 +33,17 @@ function asSaid(raw: string, query: string): string {
   return normalizeSpeech(tail) === query ? tail : query;
 }
 
-/** Espera a que la lista termine de cargar. */
+/**
+ * Espera a que la lista se actualice y termine de cargar. La búsqueda espera a que se deje de
+ * escribir antes de pedir (hasta ~0,6 s): hasta que la lista cambie o empiece a cargar, lo que se ve
+ * todavía es lo de antes.
+ */
 async function loaded(ctx: VoiceCommandContext): Promise<PatientsVoiceBridge | null> {
   const start = Date.now();
+  const before = page()?.rows;
   await settle(120);
   let p = page();
+  while (p && !p.loading && p.rows === before && Date.now() - start < 700 && !ctx.signal.aborted) { await settle(50); p = page(); }
   while (p?.loading && Date.now() - start < 6000 && !ctx.signal.aborted) { await settle(); p = page(); }
   return p;
 }

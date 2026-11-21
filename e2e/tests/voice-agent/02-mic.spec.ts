@@ -86,4 +86,15 @@ test.describe('MIC · Juntar los pedazos hasta la pausa', () => {
     expect(sim.store().interim).toBe('andá a');
     await sim.wait(260);
   });
+  test('MIC-014 con la voz del asistente silenciada, lo dicho justo después de un resultado no se pierde', async () => {
+    configureVoiceTiming({ phraseGapMs: 30 });
+    const rec = FakeRecognition.active()!;
+    rec.deliver('vista día');
+    await sim.wait(60);
+    // Enseguida (antes de la cola del eco de 350 ms): no sonó nada, así que no hay eco que descartar.
+    rec.deliver('más zoom');
+    await sim.wait(80);
+    expect(sim.cal.state.view).toBe('day');
+    expect(sim.cal.state.zoom).toBe(1.1);
+  });
 });

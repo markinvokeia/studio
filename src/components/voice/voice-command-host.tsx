@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Check, CheckCircle2, ListChecks, Loader2, Mic, MicOff, Pin, Volume2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ListChecks, Loader2, Mic, MicOff, Pin, Stethoscope, Volume2, X, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 
 import { VoiceLabOrderDialogHost } from '@/components/voice/voice-lab-order-dialog-host';
+import { VoiceRichText } from '@/components/voice/voice-rich-text';
 
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
@@ -239,7 +240,19 @@ function ToneIcon({ tone }: { tone: VoiceCard['tone'] }) {
 
 const CARD_MARGIN = 12;
 const CARD_WIDTH = 320;
+/** Una respuesta larga con formato (el agente clínico) va un poco más ancha. */
+const CARD_WIDTH_RICH = 380;
 const CARD_MIN_WIDTH = 240;
+/** Lo que se separa del botón Voz (lugar para la flechita). */
+const ANCHOR_GAP = 10;
+/** Pegada al botón, la tarjeta ocupa como mucho esto del alto (deja ver la pantalla). */
+const ANCHORED_MAX_VH = 0.6;
+
+interface CardPlacement {
+  style: React.CSSProperties;
+  /** Flechita hacia el botón Voz: en qué borde y a cuánto del principio (o del final) de ese borde. */
+  arrow: { side: 'right' | 'top'; offset: number; fromEnd?: boolean } | null;
+}
 
 /** El diálogo abierto de más arriba (editar/crear cita, avisos…), o null. */
 function topOpenDialog(): HTMLElement | null {
@@ -248,13 +261,22 @@ function topOpenDialog(): HTMLElement | null {
   return open.length ? open[open.length - 1] : null;
 }
 
+/** El botón Voz que se ve (el del riel derecho en escritorio o el de la barra de arriba en el celular). */
+function visibleVoiceButton(): HTMLElement | null {
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-help-id="rail.btn.voice"]')).find((el) => el.offsetWidth > 0 && el.offsetHeight > 0) ?? null;
+}
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
+
 /**
- * Dónde va la tarjeta: abajo a la izquierda; con un diálogo abierto, al costado donde haya lugar
- * (izquierda, si no derecha); si no entra al costado, abajo o arriba sin taparlo, con alto máximo.
- * Se recalcula cuando cambia la pantalla (diálogos que abren o crecen) y al cambiar de tamaño.
+ * Dónde va la tarjeta. Con un diálogo abierto, al costado donde haya lugar (izquierda, si no
+ * derecha) o abajo/arriba sin taparlo: la ventana es lo importante. Si no, sale del botón Voz con
+ * una flechita que lo señala (es la voz la que habla): en escritorio a la izquierda del riel
+ * derecho; en el celular debajo de la barra de arriba. Si no entra, a la esquina de abajo a la
+ * izquierda. Se recalcula cuando cambia la pantalla y al cambiar de tamaño.
  */
-function useCardPlacement(): React.CSSProperties {
-  const [style, setStyle] = React.useState<React.CSSProperties>({ left: CARD_MARGIN, bottom: CARD_MARGIN, width: CARD_WIDTH });
+function useCardPlacement(rich: boolean): CardPlacement {
+  const [placement, setPlacement] = React.useState<CardPlacement>({ style: { left: CARD_MARGIN, bottom: CARD_MARGIN, width: CARD_WIDTH }, arrow: null });
   React.useLayoutEffect(() => {
     let frame = 0;
     let last = '';
@@ -262,9 +284,10 @@ function useCardPlacement(): React.CSSProperties {
       frame = 0;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const width = Math.min(CARD_WIDTH, vw - CARD_MARGIN * 2);
+      const width = Math.min(rich ? CARD_WIDTH_RICH : CARD_WIDTH, vw - CARD_MARGIN * 2);
       const dialog = topOpenDialog();
-      let next: React.CSSProperties = { left: CARD_MARGIN, bottom: CARD_MARGIN, width, maxHeight: vh - CARD_MARGIN * 2 };
+      let next: CardPlacement = { style: { left: CARD_MARGIN, bottom: CARD_MARGIN, width, maxHeight: vh - CARD_MARGIN * 2 }, arrow: null };
+      const button = dialog ? null : visibleVoiceButton();
       if (dialog) {
         const r = dialog.getBoundingClientRect();
         const leftSpace = r.left - CARD_MARGIN * 2;
@@ -272,17 +295,41 @@ function useCardPlacement(): React.CSSProperties {
         if (leftSpace >= CARD_MIN_WIDTH || rightSpace >= CARD_MIN_WIDTH) {
           const onLeft = leftSpace >= Math.min(width, rightSpace) || leftSpace >= width;
           const w = Math.min(width, onLeft ? leftSpace : rightSpace);
-          next = onLeft
+          next.style = onLeft
             ? { left: Math.max(CARD_MARGIN, r.left - CARD_MARGIN - w), bottom: CARD_MARGIN, width: w, maxHeight: vh - CARD_MARGIN * 2 }
             : { left: r.right + CARD_MARGIN, bottom: CARD_MARGIN, width: w, maxHeight: vh - CARD_MARGIN * 2 };
         } else if (vh - r.bottom >= r.top) {
-          next = { left: CARD_MARGIN, bottom: CARD_MARGIN, width, maxHeight: Math.max(120, vh - r.bottom - CARD_MARGIN * 2) };
+          next.style = { left: CARD_MARGIN, bottom: CARD_MARGIN, width, maxHeight: Math.max(120, vh - r.bottom - CARD_MARGIN * 2) };
         } else {
-          next = { left: CARD_MARGIN, top: CARD_MARGIN, width, maxHeight: Math.max(120, r.top - CARD_MARGIN * 2) };
+          next.style = { left: CARD_MARGIN, top: CARD_MARGIN, width, maxHeight: Math.max(120, r.top - CARD_MARGIN * 2) };
+        }
+      } else if (button) {
+        const r = button.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const maxH = Math.round(vh * ANCHORED_MAX_VH);
+        const leftSpace = r.left - ANCHOR_GAP - CARD_MARGIN;
+        const belowSpace = vh - r.bottom - ANCHOR_GAP - CARD_MARGIN;
+        if (cx > vw / 2 && leftSpace >= CARD_MIN_WIDTH && r.height < vh / 3 && vw >= 640) {
+          // Escritorio: el botón está en el riel derecho; la tarjeta a su izquierda, señalándolo.
+          const w = Math.min(width, leftSpace);
+          if (cy > vh / 2) {
+            // El botón abajo: la tarjeta crece hacia arriba desde él.
+            const bottom = clamp(vh - cy - 26, CARD_MARGIN, vh - CARD_MARGIN - 140);
+            next = { style: { right: vw - r.left + ANCHOR_GAP, bottom, width: w, maxHeight: Math.min(maxH, vh - bottom - CARD_MARGIN) }, arrow: { side: 'right', offset: clamp(vh - bottom - cy, 14, 120), fromEnd: true } };
+          } else {
+            const top = clamp(cy - 26, CARD_MARGIN, vh - CARD_MARGIN - 140);
+            next = { style: { right: vw - r.left + ANCHOR_GAP, top, width: w, maxHeight: Math.min(maxH, vh - top - CARD_MARGIN) }, arrow: { side: 'right', offset: clamp(cy - top, 14, 120) } };
+          }
+        } else if (belowSpace >= 160) {
+          // Celular (o el botón arriba): debajo, con la flechita hacia arriba.
+          const w = Math.min(width, vw - CARD_MARGIN * 2);
+          const left = clamp(cx + 24 - w, CARD_MARGIN, vw - CARD_MARGIN - w);
+          next = { style: { left, top: r.bottom + ANCHOR_GAP, width: w, maxHeight: Math.min(maxH, belowSpace) }, arrow: { side: 'top', offset: clamp(cx - left, 14, w - 14) } };
         }
       }
       const key = JSON.stringify(next);
-      if (key !== last) { last = key; setStyle(next); }
+      if (key !== last) { last = key; setPlacement(next); }
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(compute); };
     compute();
@@ -294,15 +341,32 @@ function useCardPlacement(): React.CSSProperties {
       window.removeEventListener('resize', schedule);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, []);
-  return style;
+  }, [rich]);
+  return placement;
+}
+
+/** La flechita que une la tarjeta con el botón Voz. */
+function CardArrow({ arrow }: { arrow: NonNullable<CardPlacement['arrow']> }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'pointer-events-none absolute z-10 h-3 w-3 rotate-45 border-[#7C3AED]/25 bg-card',
+        arrow.side === 'right' ? 'border-r border-t' : 'border-l border-t',
+      )}
+      style={arrow.side === 'right'
+        ? (arrow.fromEnd ? { right: -6, bottom: arrow.offset - 6 } : { right: -6, top: arrow.offset - 6 })
+        : { top: -6, left: arrow.offset - 6 }}
+    />
+  );
 }
 
 function VoiceCardView() {
   const t = useTranslations('VoiceCommands');
   const locale = useLocale();
-  const { phase, interim, heard, card, awaiting, alwaysOn, focusLabel, task, step, suspended } = useVoiceCommand();
-  const placement = useCardPlacement();
+  const { phase, interim, heard, card, awaiting, alwaysOn, focusLabel, task, step, suspended, clinicalCase } = useVoiceCommand();
+  const caseLabel = clinicalCase?.open ? clinicalCase.patient : null;
+  const { style: placement, arrow } = useCardPlacement(!!card?.rich);
   if (phase === 'idle' && !card && !interim) return null;
 
   const status = phase === 'listening' ? t('status.listening')
@@ -314,11 +378,14 @@ function VoiceCardView() {
   const said = phase === 'listening' || (alwaysOn && interim) ? interim : heard;
 
   return (
-    <div className="pointer-events-none fixed z-[80] flex flex-col print:hidden" style={placement} data-voice-card>
+    <div className={cn('pointer-events-none fixed z-[80] flex flex-col print:hidden', arrow?.fromEnd && 'justify-end')} style={placement} data-voice-card data-voice-anchor={arrow?.side ?? 'corner'}>
+      {arrow && <CardArrow arrow={arrow} />}
       <div
         role="region"
         aria-label={t('label')}
-        className="pointer-events-auto flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-[#7C3AED]/25 bg-card text-card-foreground shadow-[0_8px_28px_rgba(60,20,90,0.25)] animate-in fade-in slide-in-from-bottom-1"
+        className={cn('pointer-events-auto flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-[#7C3AED]/25 bg-card text-card-foreground shadow-[0_8px_28px_rgba(60,20,90,0.25)] animate-in fade-in',
+          arrow?.side === 'right' ? 'slide-in-from-right-1' : arrow?.side === 'top' ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1',
+        )}
       >
         <div className="flex shrink-0 items-center gap-1.5 border-b border-[#7C3AED]/15 bg-[#7C3AED]/5 px-3 py-1.5">
           <PhaseIcon phase={phase} />
@@ -337,7 +404,7 @@ function VoiceCardView() {
           </button>
         </div>
 
-        {(task || focusLabel || suspended) && (
+        {(task || focusLabel || caseLabel || suspended) && (
           <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border/60 px-3 py-1 text-[10px] text-muted-foreground">
             {task && (
               <span className="inline-flex min-w-0 max-w-full items-center gap-1" title={task}>
@@ -349,6 +416,12 @@ function VoiceCardView() {
               <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-[#7C3AED]/10 px-1.5 py-px text-[#5B21B6] dark:text-violet-300">
                 <Pin className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">{t('focus', { name: focusLabel })}</span>
+              </span>
+            )}
+            {caseLabel && (
+              <span data-voice-case className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-emerald-500/10 px-1.5 py-px text-emerald-700 dark:text-emerald-300">
+                <Stethoscope className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{t('clinical.chip', { patient: caseLabel })}</span>
               </span>
             )}
             {suspended && <span className="italic">{t('suspended')}</span>}
@@ -389,7 +462,9 @@ function VoiceCardView() {
               {card.message && (
                 <div className="flex items-start gap-1.5">
                   <ToneIcon tone={card.tone} />
-                  <p className={cn('text-xs leading-snug', MESSAGE_TONE[card.tone ?? 'info'])}>{card.message}</p>
+                  {card.rich
+                    ? <VoiceRichText text={card.message} className={cn('min-w-0 flex-1 text-xs leading-snug', MESSAGE_TONE[card.tone ?? 'info'])} />
+                    : <p className={cn('text-xs leading-snug', MESSAGE_TONE[card.tone ?? 'info'])}>{card.message}</p>}
                 </div>
               )}
 

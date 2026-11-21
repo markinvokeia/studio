@@ -14739,7 +14739,10 @@
       "preset_month": "Showing this month.",
       "preset_nextMonth": "Showing next month.",
       "preset_prevMonth": "Showing last month.",
-      "rangeSet": "Showing {from} to {to}."
+      "rangeSet": "Showing {from} to {to}.",
+      "daySet": "Showing {day}.",
+      "whichDate": "Which date do you want to see? For example “tomorrow”, “Tuesday” or “from the 1st to the 10th”.",
+      "whichDateAgain": "I didn't get the date. Say, for example, “tomorrow” or “December 15”."
     },
     "alerts": {
       "title": "Alerts center",
@@ -14911,6 +14914,7 @@
       "noKpis": "This report has no totals to read: it is in the table.",
       "rows": "{count, plural, =0 {There are no rows.} one {There is # row.} other {There are # rows.}}",
       "noPeriod": "This report has no period to choose.",
+      "noPeriodGenerating": "This report has no period to choose: generating it anyway.",
       "noAllTime": "This report needs a period.",
       "allTimeSet": "No date filter; running the report.",
       "periodSet": "Period {from} to {to}; running the report."
@@ -14924,6 +14928,19 @@
       "which": "Which one?",
       "opened": "Opened {label}.",
       "notFound": "I couldn’t find that in the list."
+    },
+    "clinical": {
+      "title": "Clinical case",
+      "chip": "Clinical case: {patient}",
+      "asking": "Asking the clinical agent…",
+      "done": "Done.",
+      "noCase": "There is no open clinical case: pick an appointment.",
+      "closed": "I closed {patient}'s case. What you ask is no longer about that patient; say “back to the case” to resume it.",
+      "reopened": "Back to {patient}'s case.",
+      "noReply": "The clinical agent didn't answer. Try again.",
+      "notCase": "That doesn't look like part of {patient}'s case. Should I close the clinical case and do it separately?",
+      "kept": "Staying on {patient}'s case.",
+      "closedNotUnderstood": "I closed {patient}'s case, but I didn't understand what to do. Say it another way."
     }
   }
 }

@@ -1,5 +1,5 @@
 {
- "version": "3465740bdbfbc84a",
+ "version": "ff69ded1bdea446f",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -19943,13 +19943,6 @@
      "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {
-     "description": "Agente clínico con IA de la cita.",
-     "id": "workspace.btn.agent-chat",
-     "kind": "btn",
-     "label": "Consulta al agente",
-     "source": "knowledge/screens/workspace.json"
-    },
-    {
      "description": "Crea una orden de laboratorio para el paciente de la cita, con el doctor ya elegido (solo quien edita órdenes puede cambiarlo). Al guardar una sesión con servicios de laboratorio, la orden se abre sola, ya cargada.",
      "id": "workspace.btn.lab-order",
      "kind": "btn",
@@ -20267,12 +20260,6 @@
      "kind": "section",
      "label": "Agenda del día",
      "source": "src/components/dashboard/doctor-workspace.tsx"
-    },
-    {
-     "id": "workspace.section.agent-chat",
-     "kind": "section",
-     "label": "Agente clínico",
-     "source": "knowledge/screens/workspace.json"
     },
     {
      "id": "workspace.section.appointment",
@@ -50298,7 +50285,10 @@
     "resumen clinico",
     "dictar",
     "que toca hoy",
-    "ultimo procedimiento"
+    "ultimo procedimiento",
+    "voz",
+    "hablar",
+    "caso clinico"
    ],
    "module": "Mi Consultorio",
    "screens": [
@@ -50322,21 +50312,14 @@
      "until": "workspace.section.focus"
     },
     {
-     "action": "click",
-     "details": "Agente clínico con IA de la cita.",
-     "id": "open",
-     "target": "workspace.btn.agent-chat",
-     "title": "Consulta al agente"
-    },
-    {
      "action": "highlight",
-     "details": "Conoce la cita y la historia del paciente. Usá los atajos (lo último que se hizo, qué toca hoy, alertas) o escribí y dictá tu pregunta. Puede preparar la sesión clínica o marcar el odontograma: siempre lo revisás vos antes de guardar.",
-     "id": "chat",
-     "target": "workspace.section.agent-chat",
-     "title": "Agente clínico"
+     "details": "Con la cita elegida, la tarjeta de voz muestra «Caso clínico: …»: lo que pidas es de ese paciente y lo contesta el agente clínico, que conoce la cita y la historia. Preguntá «dame un resumen», «¿qué alergias tiene?» o «¿qué le hice la última vez?», o dictá la sesión («hice una limpieza y una restauración en el 16, próxima cita control»): la prepara y te pregunta si la guarda o la revisás. También marca el odontograma. «Cerrá el caso» deja de hablar de ese paciente; «volvé al caso» lo retoma.",
+     "id": "voice",
+     "target": "rail.btn.voice",
+     "title": "Prendé la voz y hablale"
     }
    ],
-   "summary": "Preguntar por el último procedimiento, lo que toca hoy o las alertas del paciente, y pedirle que prepare la sesión.",
+   "summary": "Con la voz: preguntar por el paciente de la cita elegida (resumen, alergias, lo último que se hizo, qué toca hoy) y dictarle la sesión o el odontograma.",
    "title": "Consultar al agente clínico con IA"
   },
   {
@@ -50701,11 +50684,11 @@
     },
     {
      "action": "highlight",
-     "details": "Preguntale por el último procedimiento, qué toca hoy o las alertas; puede preparar la sesión o el odontograma para que los revises.",
+     "details": "Con la cita elegida, tocá Voz y preguntale por el paciente (resumen, alergias, qué toca hoy) o dictale la sesión o el odontograma para que los revises.",
      "id": "agent",
      "skipIfMissing": true,
-     "target": "workspace.btn.agent-chat",
-     "title": "Agente clínico"
+     "target": "rail.btn.voice",
+     "title": "Agente clínico por voz"
     }
    ],
    "summary": "Recorrer la agenda del día y el panel del paciente: alertas, ficha, sesiones clínicas, odontograma, receta y agente con IA.",

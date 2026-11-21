@@ -202,6 +202,72 @@ export function typeInto(element: HTMLElement, value: string) {
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+/**
+ * La pantalla está cargando: esqueletos (animate-pulse), indicadores girando o aria-busy en el
+ * contenido. Lo que se pide apenas se abre una página se lee recién con los datos puestos.
+ */
+export function isScreenLoading(): boolean {
+  if (typeof document === 'undefined') return false;
+  try {
+    const main = document.querySelector<HTMLElement>('main');
+    if (!main || typeof main.querySelectorAll !== 'function') return false;
+    return Array.from(main.querySelectorAll<HTMLElement>('.animate-pulse, .animate-spin, [aria-busy="true"]')).some((el) => !isHidden(el));
+  } catch {
+    return false;
+  }
+}
+
+/** Espera (como mucho `maxMs`) a que la pantalla termine de cargar. */
+export async function waitScreenReady(signal?: AbortSignal, maxMs = 4000): Promise<void> {
+  const start = Date.now();
+  while (isScreenLoading() && Date.now() - start < maxMs && !signal?.aborted) {
+    await new Promise((r) => setTimeout(r, 80));
+  }
+}
+
+/**
+ * Después de buscar o filtrar: espera a que la lista se actualice (la búsqueda suele esperar a que
+ * se termine de escribir y después carga) y a que termine de cargar.
+ */
+export async function waitListUpdate(signal?: AbortSignal, debounceMs = 450, maxMs = 5000): Promise<void> {
+  const start = Date.now();
+  // Hasta que empiece a cargar (o pase el tiempo de espera de la búsqueda).
+  while (!isScreenLoading() && Date.now() - start < debounceMs && !signal?.aborted) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  await waitScreenReady(signal, maxMs);
+  await new Promise((r) => setTimeout(r, 60));
+}
+
+/** El mismo campo si React lo volvió a montar (por name o data-help-id). */
+function sameField(element: HTMLElement): HTMLElement {
+  if (element.isConnected !== false || typeof document === 'undefined') return element;
+  const name = element.getAttribute?.('name');
+  const helpId = element.getAttribute?.('data-help-id');
+  const found = (helpId && document.querySelector<HTMLElement>(`[data-help-id="${CSS.escape(helpId)}"]`))
+    || (name && document.querySelector<HTMLElement>(`[name="${CSS.escape(name)}"]`));
+  return found || element;
+}
+
+/**
+ * Escribe y se asegura de que quede: un formulario recién abierto suele resetearse (o volver a
+ * montar el campo) justo después de aparecer y borra lo escrito. Devuelve el campo final.
+ */
+export async function fillField(element: HTMLElement, value: string, signal?: AbortSignal): Promise<HTMLElement> {
+  let el = element;
+  typeInto(el, value);
+  for (let i = 0; i < 6 && !signal?.aborted; i++) {
+    await new Promise((r) => setTimeout(r, 120));
+    el = sameField(el);
+    if ((el as HTMLInputElement).value === value) {
+      if (i >= 1) return el; // Se mantuvo dos vueltas: ya no lo borra el reset.
+      continue;
+    }
+    typeInto(el, value);
+  }
+  return el;
+}
+
 /** Las opciones visibles de una lista desplegable abierta (Radix las pone en un portal). */
 export function openOptions(): UiControl[] {
   if (typeof document === 'undefined') return [];

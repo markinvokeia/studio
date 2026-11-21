@@ -1986,7 +1986,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         onAction={handleDoctorAgentAction}
         hasExistingSession={Boolean(linkedSession)}
         onDirectSave={canManageSessions ? handleAgentDirectSave : undefined}
-        presentation="floating"
+        presentation="voice"
       />
 
 

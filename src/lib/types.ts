@@ -4620,6 +4620,10 @@ export interface VoiceCard {
   /** Opciones para elegir diciendo "el dos" o el nombre (o tocándolas). */
   choices?: VoiceChoice[];
   link?: { label: string; href: string };
+  /** El mensaje viene con formato (markdown de la IA): se muestra con negritas y listas. */
+  rich?: boolean;
+  /** No se esconde sola (una respuesta larga, como la del agente clínico): hasta cerrarla o hablar. */
+  sticky?: boolean;
 }
 
 /** Lo que un comando de voz puede hacer mientras corre. Todo se corta con `signal` (Escape, otro comando). */
@@ -5207,6 +5211,33 @@ export interface WorkspaceVoiceBridge {
     patientFile: ((view?: 'anamnesis' | 'timeline') => void) | null;
   };
   blocked: 'noAppointment' | 'futureDate' | 'noPermission' | 'odontogramSession' | null;
+}
+
+/** Lo que contestó el agente clínico de Mi consultorio a una pregunta por voz. */
+export interface DoctorAgentVoiceReply {
+  /** Lo que se muestra (la respuesta y, si vino, el resumen clínico). */
+  texts: string[];
+  /** Lo que se lee en voz alta. */
+  speech: string;
+  intent: DoctorAiIntent;
+  /** Hizo algo en la pantalla (abrió la sesión, el odontograma, guardó). */
+  acted: boolean;
+  /** Lo que no se pudo hacer (el motivo que da la pantalla). */
+  problems: string[];
+  suggestions: string[];
+}
+
+/**
+ * El agente clínico de Mi consultorio (el mismo del chat «Agente clínico»: POST ai/doctor/query,
+ * con la cita y el paciente elegidos), para la voz (src/lib/voice/commands/workspace-agent.ts).
+ */
+export interface DoctorAgentVoiceBridge {
+  appointmentId: string;
+  patientId?: string;
+  patientName: string;
+  busy: boolean;
+  /** Pregunta al agente. null si la cita ya no está en pantalla o falló. */
+  ask: (query: string) => Promise<DoctorAgentVoiceReply | null>;
 }
 
 /** Lo que el Centro de alertas le ofrece a la voz (src/lib/voice/commands/alerts.ts). */
