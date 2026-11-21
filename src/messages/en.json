@@ -14569,7 +14569,11 @@
       "helpEmpty": "I don’t see any buttons on this screen.",
       "askValue": "What should I enter in {field}?",
       "whatToSearch": "Which {field} should I look for?",
-      "helpTable": "In the table too: “search…”, “sort by…”, “next page”, “50 per page”, “hide the … column”, “select row 3”, “export to Excel”."
+      "helpTable": "In the table too: “search…”, “sort by…”, “next page”, “50 per page”, “hide the … column”, “select row 3”, “export to Excel”.",
+      "datePicked": "Picked {date}.",
+      "dateNotPicked": "I couldn't pick {date} on the calendar.",
+      "rowActionDone": "Pressed “{action}” on “{row}”.",
+      "rowActionDisabled": "“{action}” isn't available for “{row}” (it's disabled)."
     },
     "rail": {
       "title": "Right panel",

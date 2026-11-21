@@ -1,6 +1,7 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
-import { controlsOf, createButtons, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
-import { normalizeSpeech, parseChoiceDetailed } from '@/lib/voice/parse';
+import { controlsOf, createButtons, pickCalendarDay, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
+import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
+import { valueForField } from '@/lib/voice/field-values';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
 
@@ -27,7 +28,9 @@ type Parsed =
   | { op: 'select'; control: UiControl; option: string | null }
   | { op: 'search'; control: UiControl; value: string }
   | { op: 'row'; rows: UiControl[]; index: number | null; ambiguous: number[] | null }
-  | { op: 'help' };
+  | { op: 'help' }
+  | { op: 'date'; iso: string }
+  | { op: 'rowAction'; action: string; hits: Array<{ row: string; button: HTMLElement; disabled: boolean }> };
 
 const PRESS_RE = /^(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|pulsa\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click) (?:en|sobre)|haz (?:clic|click) (?:en|sobre)|dale (?:clic |click )?(?:a|al|en)|click(?: on)?|press|tap(?: on)?|hit|push)\s+(?:(?:en|a|al|el|la|on|the)\s+)*(?:(?:boton|button)\s+(?:de\s+)?)?(.+)$/;
 const TAB_RE = /^(?:(?:abri\w*|anda\w*|ve|ir|pasa\w*|cambia\w*|mostra\w*|muestra\w*|go|open|switch|show(?: me)?)\s+(?:(?:a|al|en|to)\s+)?)?(?:(?:la|el|the)\s+)?(?:pestana|solapa|tab)\s+(?:(?:de|del|of)\s+)?(?:(?:la|el|los|las|the)\s+)?(.+)$|^(?:(?:go to|open|switch to|show(?: me)?)\s+)?(?:the\s+)?(.+?)\s+tab$/;
@@ -128,6 +131,49 @@ function parseRow(normalized: string, rows: UiControl[]): Parsed | null {
   return 'index' in found ? { op: 'row', rows, index: found.index, ambiguous: null } : { op: 'row', rows, index: null, ambiguous: found.ambiguous };
 }
 
+
+const ARTICLE_RE = /^(?:(?:el|la|los|las|lo|al|del|de|a|the|this|that)\s+)+/;
+/** Verbo dicho → la raíz comparable con el botón («desactivá» → «desactiv», «Desactivar» → «desactiv»). */
+const verbRoot = (word: string) => normalizeSpeech(word).replace(/(?:alo|ala|alos|alas|elo|ela|ilo|ila|lo|la|los|las)$/, '').replace(/(?:ar|er|ir|a|e|i)$/, '');
+
+/**
+ * «desactivá la etapa Enviado al laboratorio», «eliminá el feriado Navidad»: la fila que tiene
+ * ese texto y, dentro, el botón de esa acción (aunque aparezca solo al pasar el mouse).
+ */
+function parseRowAction(normalized: string, surface: UiSurface): Parsed | null {
+  const words = normalized.split(' ');
+  if (words.length < 2) return null;
+  const root = surface.root as HTMLElement;
+  if (typeof root.querySelectorAll !== 'function') return null;
+  const verb = verbRoot(words[0]);
+  if (verb.length < 3) return null;
+  const rest = words.slice(1).join(' ').replace(ARTICLE_RE, '');
+  if (!rest) return null;
+  const rows = Array.from(root.querySelectorAll<HTMLElement>('tbody tr, [data-voice-row], [data-row-id], [role="row"], li'));
+  const hits: Array<{ row: string; button: HTMLElement; disabled: boolean; score: number }> = [];
+  for (const row of rows) {
+    const buttons = Array.from(row.querySelectorAll<HTMLElement>('button, [role="menuitem"]'));
+    const button = buttons.find((b) => {
+      const label = normalizeSpeech(`${b.textContent ?? ''} ${b.getAttribute('aria-label') ?? ''} ${b.getAttribute('title') ?? ''}`).trim();
+      return label && verbRoot(label.split(' ')[0]) === verb;
+    });
+    if (!button) continue;
+    // El texto de la fila y lo escrito en sus campos (en Etapas el nombre es un campo editable).
+    const values = Array.from(row.querySelectorAll<HTMLInputElement>('input:not([type="hidden"]):not([type="color"]), textarea')).map((i) => i.value ?? '').filter(Boolean);
+    const shownText = [values.join(' '), (row.textContent ?? '')].join(' ').replace(/\s+/g, ' ').trim();
+    const rowText = normalizeSpeech(shownText);
+    // Lo nombrado (sin «la etapa», «el feriado»: alcanza con que estén las palabras que importan).
+    const named = rest.split(' ').filter((w) => w.length > 2);
+    const hit = named.filter((w) => rowText.includes(w)).length;
+    if (!named.length || hit < Math.max(1, named.length - 1)) continue;
+    const disabled = (button as HTMLButtonElement).disabled === true || button.getAttribute('aria-disabled') === 'true';
+    hits.push({ row: (values[0] || shownText).slice(0, 80), button, disabled, score: hit / named.length });
+  }
+  if (!hits.length) return null;
+  const best = Math.max(...hits.map((h) => h.score));
+  return { op: 'rowAction', action: words[0], hits: hits.filter((h) => h.score === best).map(({ row, button, disabled }) => ({ row, button, disabled })) };
+}
+
 /** Qué se pide de la pantalla, o null (no es para esto). */
 export function parseScreen(normalized: string, raw: string, surface: UiSurface | null = readSurface()): Parsed | null {
   if (!surface || !normalized) return null;
@@ -160,8 +206,19 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
     const control = controlsOf(surface, 'search')[0];
     if (control) return { op: 'search', control, value: rawTail(raw, normalized, search[1]) };
   }
+  // Un calendario a la vista (Feriados, Excepciones): «el 15 de diciembre», «la fecha es el martes», «elegí el 3».
+  if (visibleDayGrid()) {
+    const body = normalized.replace(/^(?:(?:elegi\w*|elige|selecciona\w*|marca\w*|toca\w*|pone\w*|pon|anda\w* al?|ir al?|choose|select|pick|set|go to)\s+)?(?:(?:la\s+)?fecha(?:\s+(?:es|a|de|del|en|para))?\s+|(?:el\s+)?dia\s+|the date(?:\s+(?:is|to))?\s+)?/, '');
+    if (/^(?:(?:el|la|the|on)\s+)?(?:\d{1,2}(?:st|nd|rd|th)?|lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy|manana|pasado manana|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|[a-z]+\s+\d{1,2})\b/.test(body)) {
+      const past = /\b(?:pasad[oa]|anterior|ayer|last|yesterday)\b/.test(body) ? 'past' : 'future';
+      const iso = parseSpokenDate(body, past);
+      if (iso) return { op: 'date', iso };
+    }
+  }
   const row = parseRow(normalized, controlsOf(surface, 'row'));
   if (row) return row;
+  const rowAction = parseRowAction(normalized, surface);
+  if (rowAction) return rowAction;
   // El texto de un botón o pestaña dicho tal cual («guardar», «nuevo paciente», «siguiente»).
   const exact = findControl(normalized, pressables);
   if (exact) return { op: 'press', control: exact };
@@ -207,8 +264,17 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       }
       if (!value) return;
       parsed.control.element.focus?.();
-      await fillField(parsed.control.element, value, ctx.signal);
-      await done(ctx, t('VoiceCommands.fieldFilled', { field: parsed.control.label, value }));
+      // Como lo espera el campo: hora, fecha, número, color («las 9 y media» → 09:30).
+      const typed = valueForField(parsed.control.element, value);
+      if ((parsed.control.element as HTMLElement).tagName === 'SELECT') {
+        const select = parsed.control.element as unknown as HTMLSelectElement;
+        const option = Array.from(select.options ?? []).find((o) => normalizeSpeech(o.text) === normalizeSpeech(typed)) ?? Array.from(select.options ?? []).find((o) => normalizeSpeech(o.text).includes(normalizeSpeech(typed)));
+        if (option) { select.value = option.value; select.dispatchEvent(new Event('change', { bubbles: true })); }
+        await done(ctx, t('VoiceCommands.fieldFilled', { field: parsed.control.label, value: option?.text ?? typed }));
+        return;
+      }
+      await fillField(parsed.control.element, typed, ctx.signal);
+      await done(ctx, t('VoiceCommands.fieldFilled', { field: parsed.control.label, value: typed }));
       return;
     }
     case 'search': {
@@ -288,6 +354,34 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       const row = parsed.rows[index];
       row.element.click();
       await done(ctx, t('VoiceCommands.ui.rowOpened', { label: row.label.slice(0, 80) }), t('VoiceCommands.ui.rowOpenedShort'));
+      return;
+    }
+    case 'rowAction': {
+      let hit = parsed.hits[0];
+      if (parsed.hits.length > 1) {
+        const question = t('VoiceCommands.ui.whichRow');
+        const index = await ctx.choose({ title: title(ctx), message: question, tone: 'info', choices: parsed.hits.slice(0, 8).map((h) => ({ label: h.row })) }, `${question} ${parsed.hits.slice(0, 5).map((h, i) => `${i + 1}: ${h.row}`).join('. ')}.`);
+        hit = parsed.hits[index];
+      }
+      const label = (hit.button.textContent || hit.button.getAttribute('aria-label') || parsed.action).replace(/\s+/g, ' ').trim();
+      if (hit.disabled) {
+        const message = t('VoiceCommands.ui.rowActionDisabled', { action: label, row: hit.row });
+        await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
+        return;
+      }
+      hit.button.click();
+      await done(ctx, t('VoiceCommands.ui.rowActionDone', { action: label, row: hit.row }));
+      return;
+    }
+    case 'date': {
+      const ok = await pickCalendarDay(parsed.iso, ctx.signal);
+      const [y, m, d] = parsed.iso.split('-');
+      if (!ok) {
+        const message = t('VoiceCommands.ui.dateNotPicked', { date: `${d}/${m}/${y}` });
+        await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
+        return;
+      }
+      await done(ctx, t('VoiceCommands.ui.datePicked', { date: `${d}/${m}/${y}` }));
       return;
     }
     case 'help': {

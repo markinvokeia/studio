@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { openWindow } from './sim/dom';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
-import { screen, uiLog } from './sim/page';
+import { FakeEl, screen, uiLog } from './sim/page';
 
 /**
  * UI · Cualquier pantalla con la voz, aunque no tenga voz propia (src/lib/voice/dom-ui.ts): lo que
@@ -277,5 +277,39 @@ test.describe('UI-CREATE · «nuevo» aprieta el botón de alta de la pantalla',
     screen.page(screen.button('Nueva sede'), screen.button('Nuevo consultorio'));
     await sim.say('nuevo');
     expect(uiLog).toEqual([]);
+  });
+});
+
+test.describe('UI-ROWACT · La acción de una fila («desactivá la etapa X»)', () => {
+  const stageRow = (name: string) => {
+    const row = new FakeEl('DIV', { 'data-voice-row': '' }, name);
+    row.append(screen.button('Desactivar'), screen.button('Eliminar'));
+    return row;
+  };
+  test.beforeEach(async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(stageRow('Solicitud creada'), stageRow('Enviado al laboratorio'), stageRow('Recibido en clínica'));
+  });
+  test('«desactivá la etapa enviado al laboratorio»', async () => {
+    await sim.say('desactivá la etapa enviado al laboratorio');
+    expect(uiLog).toEqual(['press:Desactivar']);
+    expect(sim.card().message).toMatch(/^Apreté «Desactivar» en «Enviado al laboratorio/);
+  });
+  test('«eliminá recibido en clínica»', async () => {
+    await sim.say('eliminá recibido en clínica');
+    expect(uiLog).toEqual(['press:Eliminar']);
+  });
+  test('una fila que no está: nada', async () => {
+    await sim.say('desactivá la etapa entregado');
+    expect(uiLog).toEqual([]);
+  });
+  test('en «deactivate solicitud creada»', async () => {
+    sim.dispose();
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
+    const row = new FakeEl('DIV', { 'data-voice-row': '' }, 'Solicitud creada');
+    row.append(screen.button('Deactivate'));
+    screen.page(row);
+    await sim.say('deactivate solicitud creada');
+    expect(uiLog).toEqual(['press:Deactivate']);
   });
 });

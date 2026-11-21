@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2191 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2228 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -579,7 +579,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (75)
+## 07-screen.spec.ts (79)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -670,6 +670,11 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - es-ES «añade uno» → Agregar etapa
   - en «new» → New template
   - con dos botones de alta no adivina
+- **UI-ROWACT · La acción de una fila («desactivá la etapa X»)**
+  - «desactivá la etapa enviado al laboratorio»
+  - «eliminá recibido en clínica»
+  - una fila que no está: nada
+  - en «deactivate solicitud creada»
 
 ## 08-rail.spec.ts (60)
 
@@ -2629,3 +2634,45 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
   - con dos tablas (lista y la de una pestaña del detalle), «siguiente página» va a la de arriba
 - **TB-HELP · Después de «¿qué puedo hacer acá?»**
   - un pedido nuevo se hace sin preguntar si cambiamos de tarea
+
+## 9d-field-values.spec.ts (33)
+
+FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).
+
+- **FV-NUM · Números**
+  - «veinte» → 20
+  - «veintidós» → 22
+  - «ciento cincuenta» → 150
+  - «mil quinientos» → 1500
+  - «dos mil trescientos cuarenta» → 2340
+  - «1.500» → 1500
+  - «1500» → 1500
+  - «3 coma 5» → 3.5
+  - «tres coma cinco» → 3.5
+  - «12,5» → 12.5
+  - «quince por ciento» → 15
+  - «twenty five» → 25
+  - «two thousand» → 2000
+  - «one hundred» → 100
+  - «three point five» → 3.5
+  - lo que no es número: null
+  - campo numérico
+  - campo de texto: tal cual
+- **FV-TIME · Horas**
+  - «las 9 y media» → 09:30
+  - «a las 14» → 14:00
+  - «8:15» → 08:15
+  - «las 3 de la tarde» → 15:00
+  - «mediodía» → 12:00
+  - «nueve y cuarto» → 09:15
+- **FV-DATE · Fechas**
+  - campo date: yyyy-mm-dd
+  - campo de texto dd/mm/aaaa
+  - «mañana»
+- **FV-COLOR · Colores**
+  - «rojo» → #ef4444
+  - «azul oscuro» → #3b82f6
+  - «el color verde» → #22c55e
+  - «#3366FF» → #3366ff
+  - «purple» → #8b5cf6
+  - campo color

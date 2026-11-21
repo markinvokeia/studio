@@ -18,6 +18,7 @@ import { LAB_ORDERS_VOICE_DOMAIN } from '@/lib/voice/commands/lab-orders';
 import { answerFromCard, cancelVoice, configureVoiceSession, endPushToTalk, startAlwaysOn, startPushToTalk, stopAlwaysOn, toggleAlwaysOn, updateVoiceDomains, wasAlwaysOn } from '@/lib/voice/session';
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
 import { isVoiceEscape } from '@/lib/voice/dom-dialog';
+import { readSurface } from '@/lib/voice/dom-ui';
 import { activeScreenDomains, useVoiceScreenStore } from '@/stores/voice-screen-store';
 import { isSpeechRecognitionSupported } from '@/lib/voice/speech-recognition';
 import { useVoiceCommand } from '@/stores/voice-command-store';
@@ -149,6 +150,14 @@ function VoiceCommandRoot({ domains: fixed }: { domains?: readonly string[] }) {
   const { hasPermission } = usePermissions();
   const permissionRef = React.useRef(hasPermission);
   React.useLayoutEffect(() => { permissionRef.current = hasPermission; });
+
+  // Diagnóstico (solo lectura): lo que la voz ve en la pantalla, para las pruebas en la app real.
+  React.useEffect(() => {
+    const w = window as unknown as { __voiceSurface?: () => Array<{ kind: string; label: string }>; __voiceSurfaceEls?: () => HTMLElement[] };
+    w.__voiceSurface = () => (readSurface()?.controls ?? []).map((c) => ({ kind: c.kind, label: c.label }));
+    w.__voiceSurfaceEls = () => (readSurface()?.controls ?? []).map((c) => c.element as HTMLElement);
+    return () => { delete w.__voiceSurface; delete w.__voiceSurfaceEls; };
+  }, []);
 
   React.useEffect(() => {
     configureVoiceSession({

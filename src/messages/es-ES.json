@@ -14569,7 +14569,11 @@
       "helpEmpty": "No veo botones en esta pantalla.",
       "askValue": "¿Qué pongo en {field}?",
       "whatToSearch": "¿Qué {field} busco?",
-      "helpTable": "En la tabla también: «busca…», «ordena por…», «página siguiente», «50 por página», «oculta la columna…», «selecciona el 3», «exporta a Excel»."
+      "helpTable": "En la tabla también: «busca…», «ordena por…», «página siguiente», «50 por página», «oculta la columna…», «selecciona el 3», «exporta a Excel».",
+      "datePicked": "He elegido el {date}.",
+      "dateNotPicked": "No he podido elegir el {date} en el calendario.",
+      "rowActionDone": "He pulsado «{action}» en «{row}».",
+      "rowActionDisabled": "«{action}» no se puede en «{row}» (está deshabilitado)."
     },
     "rail": {
       "title": "Panel derecho",

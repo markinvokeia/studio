@@ -70,7 +70,7 @@ function isHidden(el: Element): boolean {
 
 const isDisabled = (el: El) => el.disabled === true || attr(el, 'aria-disabled') === 'true' || el.hasAttribute?.('disabled');
 
-function ownLabel(el: El, all: Element[]): string {
+function ownLabel(el: El, all: Element[], usePlaceholder = true): string {
   const fromLabels = el.labels && el.labels.length ? text(el.labels[0] as unknown as Element) : '';
   if (fromLabels) return fromLabels;
   const aria = attr(el, 'aria-label');
@@ -85,7 +85,7 @@ function ownLabel(el: El, all: Element[]): string {
     const label = all.find((n) => n.tagName === 'LABEL' && attr(n, 'for') === id);
     if (label && text(label)) return text(label);
   }
-  return (attr(el, 'placeholder') ?? attr(el, 'title') ?? '').trim();
+  return ((usePlaceholder ? attr(el, 'placeholder') : null) ?? attr(el, 'title') ?? '').trim();
 }
 
 function buttonLabel(el: El): string {
@@ -102,6 +102,37 @@ function buttonLabel(el: El): string {
   return '';
 }
 
+/**
+ * El nombre de un control sin etiqueta asociada: en una grilla, la fila y la columna («Citas
+ * email»); si no, el título que tiene al lado (el primer texto corto de su bloque: «Aplicar
+ * descuentos», «Activo», «¿Está Activa?»).
+ */
+function nearbyLabel(el: El): string {
+  const node = el as unknown as HTMLElement;
+  if (typeof node.closest !== 'function') return '';
+  const cell = node.closest('td');
+  if (cell) {
+    const row = cell.parentElement;
+    const cells = row ? Array.from(row.children) : [];
+    const index = cells.indexOf(cell);
+    const rowLabel = cells.map((c) => text(c as Element)).find((x) => x.length >= 2) ?? '';
+    const table = cell.closest('table');
+    const header = table?.querySelectorAll('thead th')[index];
+    const col = header ? text(header) : '';
+    const label = [rowLabel, col].filter(Boolean).join(' ').trim();
+    if (label) return label;
+  }
+  let up: HTMLElement | null = node.parentElement;
+  for (let depth = 0; up && depth < 4; depth++, up = up.parentElement) {
+    const candidates = Array.from(up.querySelectorAll<HTMLElement>('label, h3, h4, h5, p, span, div'))
+      .filter((n) => n !== node && !n.contains(node) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"]'))
+      .map((n) => text(n))
+      .filter((x) => x.length >= 2 && x.length <= 60);
+    if (candidates.length) return candidates[0];
+  }
+  return '';
+}
+
 const SEARCH_RE = /\b(?:buscar|busca|search|filtrar|filter|find)\b/;
 
 function classify(el: El, all: Element[]): UiControl | null {
@@ -112,17 +143,24 @@ function classify(el: El, all: Element[]): UiControl | null {
     return label ? { kind: 'row', label, key: uiKey(label), element: el } : null;
   }
   if (role === 'switch' || role === 'checkbox' || (tag === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio'))) {
-    const label = ownLabel(el, all) || buttonLabel(el);
+    const label = ownLabel(el, all) || buttonLabel(el) || nearbyLabel(el);
     const checked = attr(el, 'aria-checked') === 'true' || attr(el, 'data-state') === 'checked' || (el as unknown as { checked?: boolean }).checked === true;
     return label ? { kind: 'toggle', label, key: uiKey(label), element: el, checked } : null;
   }
+  // Opción de un grupo (RadioGroup, tarjetas a elegir): se elige diciendo su nombre.
+  if (role === 'radio') {
+    const label = buttonLabel(el) || ownLabel(el, all) || nearbyLabel(el);
+    if (!label) return null;
+    return { kind: 'button', label, key: uiKey(label), element: el, checked: attr(el, 'aria-checked') === 'true' || attr(el, 'data-state') === 'checked' };
+  }
   if (role === 'combobox' && tag !== 'INPUT') {
-    const label = ownLabel(el, all);
+    const label = ownLabel(el, all) || nearbyLabel(el);
     return label ? { kind: 'select', label, key: uiKey(label), element: el, value: text(el) } : null;
   }
-  if (tag === 'INPUT' || tag === 'TEXTAREA') {
-    if (el.type === 'hidden' || attr(el, 'readonly') !== null) return null;
-    const label = ownLabel(el, all);
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+    if (el.type === 'hidden' || el.type === 'file' || attr(el, 'readonly') !== null) return null;
+    // El texto de ejemplo («dd/mm/aaaa», «ej., Ibuprofeno») solo si no hay un nombre al lado.
+    const label = ownLabel(el, all, false) || nearbyLabel(el) || (attr(el, 'placeholder') ?? '').trim();
     if (!label) return null;
     const search = el.type === 'search' || SEARCH_RE.test(normalizeSpeech(`${attr(el, 'placeholder') ?? ''} ${label}`));
     return { kind: search ? 'search' : 'field', label: label.replace(/[*:]/g, '').trim(), key: uiKey(label.replace(/[*:]/g, '')), element: el, value: el.value ?? '' };
@@ -187,6 +225,60 @@ const CREATE_LABEL_RE = /^(?:\+\s*)?(?:crear|nuev[oa]|agregar|anadir|dar de alta
 export function createButtons(surface: UiSurface | null = readSurface()): UiControl[] {
   if (!surface) return [];
   return surface.controls.filter((c) => c.kind === 'button' && CREATE_LABEL_RE.test(normalizeSpeech(c.label)));
+}
+
+const MONTH_INDEX: Record<string, number> = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5, julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+};
+
+/** Un calendario a la vista (react-day-picker): su grilla de días. */
+export function visibleDayGrid(): HTMLElement | null {
+  if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return null;
+  try {
+    const grids = Array.from(document.querySelectorAll<HTMLElement>('[role="grid"]')).filter((g) => !isHidden(g) && g.querySelector('button[name="day"], [role="gridcell"]'));
+    return grids[grids.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** El mes que muestra el calendario (por el título de la grilla: «diciembre 2026»). */
+function shownMonth(grid: HTMLElement): { year: number; month: number } | null {
+  const id = grid.getAttribute('aria-labelledby');
+  const caption = (id && document.getElementById(id)?.textContent) || grid.parentElement?.textContent || '';
+  const n = normalizeSpeech(caption);
+  const m = n.match(/([a-z]+)\s+(?:de\s+)?(\d{4})/);
+  if (!m || MONTH_INDEX[m[1]] === undefined) return null;
+  return { year: Number(m[2]), month: MONTH_INDEX[m[1]] };
+}
+
+/**
+ * Elige un día en el calendario a la vista: va de mes en mes (los botones de mes anterior y
+ * siguiente) hasta el pedido y toca ese día. false si no pudo.
+ */
+export async function pickCalendarDay(iso: string, signal?: AbortSignal): Promise<boolean> {
+  const [y, mo, d] = iso.split('-').map(Number);
+  for (let step = 0; step < 36 && !signal?.aborted; step++) {
+    const grid = visibleDayGrid();
+    if (!grid) return false;
+    const shown = shownMonth(grid);
+    if (!shown) return false;
+    const diff = (y - shown.year) * 12 + (mo - 1 - shown.month);
+    if (diff === 0) {
+      const day = Array.from(grid.querySelectorAll<HTMLElement>('button[name="day"], [role="gridcell"]'))
+        .find((b) => (b.textContent ?? '').trim() === String(d) && !/day-outside|day_outside|outside/.test(b.className) && !(b as HTMLButtonElement).disabled);
+      if (!day) return false;
+      day.click();
+      return true;
+    }
+    const root = grid.closest('.rdp, [class*="rdp"]') ?? grid.parentElement?.parentElement ?? document;
+    const nav = root.querySelector<HTMLElement>(diff > 0 ? 'button[name="next-month"]' : 'button[name="previous-month"]');
+    if (!nav) return false;
+    nav.click();
+    await new Promise((r) => setTimeout(r, 80));
+  }
+  return false;
 }
 
 /** Los controles de esos tipos. */

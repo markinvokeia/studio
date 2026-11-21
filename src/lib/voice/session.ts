@@ -4,6 +4,7 @@ import { parseChoice, parseChoiceDetailed, parseYesNo, normalizeSpeech } from '@
 import { interpretWithAi } from '@/lib/voice/ai';
 import { closeTopOverlay, hasOpenOverlay, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, type OpenDialog } from '@/lib/voice/dom-dialog';
 import { isScreenLoading, waitScreenReady } from '@/lib/voice/dom-ui';
+import { valueForField } from '@/lib/voice/field-values';
 import { setAppointmentFocus } from '@/lib/voice/focus';
 import { getVoiceDomain, listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
 import {
@@ -622,8 +623,10 @@ function pressOrFillOverlay(heard: string, normalized: string): boolean {
   }
   const fill = pickOverlayField(heard, normalized, overlay);
   if (fill) {
-    setFieldValue(fill.field, fill.value);
-    void quickFinish(deps.t('VoiceCommands.fieldFilled', { field: fill.field.label, value: fill.value }));
+    // Como lo espera el campo: hora («las 9 y media» → 09:30), fecha, número, color.
+    const value = valueForField(fill.field.element, fill.value);
+    setFieldValue(fill.field, value);
+    void quickFinish(deps.t('VoiceCommands.fieldFilled', { field: fill.field.label, value }));
     return true;
   }
   return false;

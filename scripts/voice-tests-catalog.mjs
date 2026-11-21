@@ -48,6 +48,7 @@ const FILE_INTRO = {
   '99-reports.spec.ts': 'RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.',
   '9b-clinical-agent.spec.ts': 'CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.',
   '9c-tables.spec.ts': 'TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.',
+  '9d-field-values.spec.ts': 'FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).',
   '9a-crud.spec.ts': 'LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.',
   '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
 };

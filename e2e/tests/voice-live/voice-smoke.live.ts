@@ -91,6 +91,10 @@ interface Step {
   dialog?: boolean;
   /** El primer campo de la ventana, con lo escrito. */
   field?: RegExp;
+  /** Un control de la ventana (por selector) con ese valor. */
+  value?: { selector: string; re: RegExp };
+  /** La ventana queda abierta para los pasos que siguen (se cierra en el último). */
+  keepOpen?: boolean;
 }
 interface Scenario { name: string; path: string; steps: Step[] }
 
@@ -113,11 +117,12 @@ async function run(page: Page, { path, steps }: Scenario) {
     const dialog = page.locator('[role="dialog"][data-state="open"]').last();
     if (step.dialog) await expect(dialog, `«${step.say}»`).toBeVisible({ timeout: 15_000 });
     if (step.field) await expect(dialog.locator('input:visible').first(), `«${step.say}»`).toHaveValue(step.field, { timeout: 10_000 });
+    if (step.value) await expect(page.locator('[role="dialog"][data-state="open"]').last().locator(step.value.selector).first(), `«${step.say}»`).toHaveValue(step.value.re, { timeout: 10_000 });
     if (!step.url && !step.shows && !step.dialog) await page.waitForTimeout(1500);
     const text = await answer(page);
     console.log(`  «${step.say}» → ${text}`);
     expect(text, `«${step.say}» → ${text}`).not.toMatch(NOT_UNDERSTOOD);
-    if (step.dialog) {
+    if (step.dialog && !step.keepOpen) {
       // Se cierra sin guardar (Escape; si pregunta por los cambios, se descarta).
       for (let i = 0; i < 3 && await dialog.isVisible().catch(() => false); i++) {
         await page.keyboard.press('Escape');
@@ -199,6 +204,21 @@ const ES: Scenario[] = [
   ] },
   { name: 'configuración: datos de la clínica', path: '/es/config/clinics', steps: [
     { say: 'nuevo', dialog: true },
+  ] },
+  { name: 'configuración: horario (hora dicha)', path: '/es/config/schedules', steps: [
+    { say: 'nuevo', dialog: true, keepOpen: true },
+    { say: 'la hora de inicio es las 9 y media', value: { selector: 'input[type="time"]', re: /^09:30$/ } },
+    { say: 'cancelar', dialog: false },
+  ] },
+  { name: 'configuración: calendario (color dicho)', path: '/es/config/calendars', steps: [
+    { say: 'nuevo', dialog: true, keepOpen: true },
+    { say: 'el color es rojo', value: { selector: 'input[type="color"]', re: /^#ef4444$/ } },
+    { say: 'cancelar', dialog: false },
+  ] },
+  { name: 'configuración: feriado (día en el calendario)', path: '/es/config/holidays', steps: [
+    { say: 'nuevo', dialog: true, keepOpen: true },
+    { say: 'el 15 de diciembre', shows: /Elegí el 15\/12/ },
+    { say: 'cancelar', dialog: false },
   ] },
   { name: 'alertas: leer', path: '/es/alerts', steps: [
     { say: 'cuántas alertas hay', shows: /alerta/i },
