@@ -14523,7 +14523,8 @@
       "lab-orders_pick": "elegir una orden de laboratorio",
       "perio_dictate": "dictar al periodontograma",
       "documents_act": "algo con facturas, pagos o presupuestos",
-      "reports_act": "algo con el reporte"
+      "reports_act": "algo con el reporte",
+      "crud_act": "algo en la lista"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿querés {action}?",
     "and": " y ",
@@ -14913,6 +14914,16 @@
       "noAllTime": "Este reporte necesita un período.",
       "allTimeSet": "Sin filtro de fecha; genero el reporte.",
       "periodSet": "Período del {from} al {to}; genero el reporte."
+    },
+    "crud": {
+      "title": "Lista",
+      "count": "{count, plural, =0 {No hay registros.} one {Hay # registro.} other {Hay # registros.}}",
+      "refreshed": "Actualizo la lista.",
+      "createOpened": "Abrí el alta: decime los datos (por ejemplo «el nombre es …») y «guardar».",
+      "createFilled": "Abrí el alta y puse «{name}» en {field}. Completá lo que falta y decí «guardar».",
+      "which": "¿Cuál?",
+      "opened": "Abrí {label}.",
+      "notFound": "No encontré eso en la lista."
     }
   }
 }

@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1924 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1941 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2319,3 +2319,28 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
   - en «what is the total» y «export to excel»
 - **RP-NAV · Llegar y pedir**
   - «llevame a reportes de deudores y mostrame el mes pasado»
+
+## 9a-crud.spec.ts (17)
+
+LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
+
+- **LI-CREATE · Altas**
+  - «nuevo medicamento Diclofenac» abre el alta y escribe el nombre
+  - «agregá un medicamento llamado Ácido Tranexámico»
+  - «nuevo medicamento» sin nombre: solo abre
+  - después, con la voz genérica: descripción y guardar
+  - en Sedes: «nueva sede Carrasco»
+  - «nueva sede» en Medicamentos no es de esta lista
+  - es-ES «añade un medicamento llamado Diclofenaco»
+  - en «new medicamento called Diclofenac»
+- **LI-OPEN · Abrir, contar, actualizar**
+  - «abrí la amoxicilina»
+  - «editá el ibuprofeno» con dos: pregunta
+  - «abrí el último»
+  - «abrí la sede Pocitos»
+  - «cuántos hay»
+  - «actualizá la lista»
+  - lo que no está no se abre
+  - en «open amoxicilina» y «how many are there»
+- **LI-NAV · Llegar y crear**
+  - «andá a medicamentos y agregá uno llamado Diclofenac»

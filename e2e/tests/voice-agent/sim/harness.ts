@@ -20,6 +20,7 @@ import { clearSimPatients, publishSimPatients, type SimPatients } from './patien
 import { clearSimLab, createSimLab, type SimLab } from './lab';
 import { clearSimDocuments, publishSimDocuments, type SimDocuments } from './documents';
 import { clearSimReport, publishSimReport, type SimReport } from './reports';
+import { clearSimCrud, publishSimCrud, type SimCrud } from './crud';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -61,6 +62,8 @@ export interface VoiceSim {
   documents: () => SimDocuments | null;
   /** Un reporte (se publica en cualquier «/reports/…»). */
   report: () => SimReport | null;
+  /** Una lista con la tabla común (en «/clinic-catalog/…», «/config/…», «/system/…»). */
+  crud: () => SimCrud | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -155,7 +158,12 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   let patients: SimPatients | null = null;
   let documents: SimDocuments | null = null;
   let report: SimReport | null = null;
+  let crud: SimCrud | null = null;
   const mountPage = (to: string) => {
+    clearSimCrud();
+    crud = /^\/(?:clinic-catalog|config|system)\//.test(to)
+      ? publishSimCrud(to.startsWith('/config/sedes') ? { createLabel: 'Nueva sede', rows: ['Centro · Av. Italia 123', 'Pocitos · 21 de Setiembre 2900'] } : {})
+      : null;
     clearSimReport();
     report = to.startsWith('/reports/') ? publishSimReport() : null;
     clearSimDocuments();
@@ -208,6 +216,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     lab: () => lab,
     documents: () => documents,
     report: () => report,
+    crud: () => crud,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -247,6 +256,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       clearSimLab();
       clearSimDocuments();
       clearSimReport();
+      clearSimCrud();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

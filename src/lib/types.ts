@@ -5360,3 +5360,13 @@ export interface ReportShellVoiceBridge {
 export interface ReportKpiVoiceBridge { title: string; value: string; subtitle: string }
 export interface ReportPeriodVoiceBridge { setRange: (from: Date, to: Date) => void; allTime: (() => void) | null }
 export interface ReportTableVoiceBridge { rowCount: number }
+
+/** Una tabla común (DataTable) para la voz (src/lib/voice/commands/crud.ts): altas, abrir, contar. */
+export interface CrudVoiceBridge {
+  createLabel: string;
+  rows: Array<{ id: string; label: string }>;
+  total: number;
+  create: (() => void) | null;
+  open: ((id: string) => void) | null;
+  refresh: (() => void) | null;
+}

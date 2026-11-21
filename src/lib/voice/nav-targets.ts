@@ -259,6 +259,10 @@ export const ROUTE_VOICE_DOMAINS: Record<string, string[]> = {
   '/cashier': ['cashier'],
   '/patients': ['patients'],
   '/reports': ['reports'],
+  // Catálogo, Configuración del negocio y Sistema: listas con la tabla común (crud).
+  '/clinic-catalog': ['crud'],
+  '/config': ['crud'],
+  '/system': ['crud'],
   '/sales/quotes': ['documents'],
   '/sales/invoices': ['documents'],
   '/sales/payments': ['documents'],

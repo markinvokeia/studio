@@ -14523,7 +14523,8 @@
       "lab-orders_pick": "pick a lab order",
       "perio_dictate": "dictate to the periodontal chart",
       "documents_act": "something with invoices, payments or quotes",
-      "reports_act": "something with the report"
+      "reports_act": "something with the report",
+      "crud_act": "something in the list"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14913,6 +14914,16 @@
       "noAllTime": "This report needs a period.",
       "allTimeSet": "No date filter; running the report.",
       "periodSet": "Period {from} to {to}; running the report."
+    },
+    "crud": {
+      "title": "List",
+      "count": "{count, plural, =0 {There are no records.} one {There is # record.} other {There are # records.}}",
+      "refreshed": "Refreshing the list.",
+      "createOpened": "Opened the new form: tell me the details (for example “the name is …”) and “save”.",
+      "createFilled": "Opened the new form and entered “{name}” in {field}. Fill in the rest and say “save”.",
+      "which": "Which one?",
+      "opened": "Opened {label}.",
+      "notFound": "I couldn’t find that in the list."
     }
   }
 }

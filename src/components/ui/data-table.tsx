@@ -1,6 +1,9 @@
 
 'use client';
 
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { CrudVoiceBridge } from '@/lib/types';
 import * as React from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -275,6 +278,27 @@ export function DataTable<TData, TValue>({
     manualPagination: isControlledPagination,
     manualFiltering: !!controlledColumnFilters,
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
+  });
+
+  // Voz: «nuevo medicamento Ibuprofeno», «abrí la sede Centro», «¿cuántos hay?» (commands/crud.ts).
+  useVoiceScreen(['crud']);
+  const voiceKey = React.useId();
+  const voiceRows = table.getRowModel().rows.map((row) => ({
+    id: row.id,
+    label: row.getVisibleCells().map((cell) => cell.getValue()).filter((v) => typeof v === 'string' || typeof v === 'number').slice(0, 3).join(' · '),
+  }));
+  useVoiceBridge<CrudVoiceBridge>(`crud.${voiceKey}`, {
+    createLabel: createButtonLabel ?? '',
+    rows: voiceRows,
+    total: rowCount ?? data.length,
+    create: onCreate ?? null,
+    open: onRowSelectionChange || onRowClick ? (id) => {
+      const row = table.getRowModel().rows.find((r) => r.id === id);
+      if (!row) return;
+      if (onRowClick) onRowClick(row.original);
+      else onRowSelectionChange?.([row.original]);
+    } : null,
+    refresh: onRefresh ?? null,
   });
 
   // Show all rows before printing (Cmd+P); restore afterwards.

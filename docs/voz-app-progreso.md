@@ -37,8 +37,10 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 9 | Periodontograma (sesión) | `perio` | ✅ Con el examen abierto el botón Voz le dicta (`perio-dictate.ts`); un solo micrófono a la vez (`mic-handoff.ts`: el dictado propio pide prestado el micrófono y lo devuelve; prender Voz apaga el dictado propio) | `97` + `e2e/tests/patients/perio-voice-*.spec.ts` |
 | 10 | Ventas y Compras (presupuestos, facturas, pagos) | `documents` | ✅ Desde las tablas compartidas (`use-documents-voice.ts` en InvoicesTable, PaymentsTable, RecentQuotesTable): sirve también en la ficha del paciente. Métodos de pago, servicios, proveedores y productos: voz genérica | `98` |
 | 11 | Reportes (`/reports/*`, los 23) | `reports` | ✅ Desde las piezas comunes (ReportShell, ReportKPICard, DateRangePresets, ReportDataTable): generar, período (lo pone y genera), desde siempre, leer totales, filas, exportar, imprimir; los filtros propios con la voz genérica | `99` |
-| 12 | Catálogo de la clínica | `catalog` | ⏳ Siguiente | — |
-| 13 | Configuración del negocio | `config` | ⏳ (al final) | — |
-| 14 | Sistema | `system` | ⏳ (al final) | — |
+| 12 | Catálogo de la clínica (`/clinic-catalog/*`) | `crud` | ✅ Con la tabla común (DataTable publica `crud`): crear con nombre, abrir por nombre o posición, contar, actualizar; los formularios con la voz genérica | `9a` |
+| 13 | Configuración del negocio (`/config/*`) | `crud` | ✅ Igual que el catálogo (listas con la tabla común); las pantallas de formulario (datos de la clínica, preferencias) con la voz genérica | `9a` |
+| 14 | Sistema (`/system/*`, roles, permisos) | `crud` | ✅ Igual que el catálogo; lo demás con la voz genérica | `9a` |
 
 Cada página se cierra con su batería de pruebas en verde (es y en), el flujo de n8n publicado, este documento actualizado y un commit propio.
+
+**Estado:** todas las zonas de la app tienen voz (propia o genérica). Lo que queda para mejorar se anota acá a medida que aparezca en el uso real.
