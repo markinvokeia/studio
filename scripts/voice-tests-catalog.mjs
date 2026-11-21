@@ -23,6 +23,7 @@ const FILE_INTRO = {
   '06-navigation.spec.ts': 'NV · Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.',
   '07-screen.spec.ts': 'UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.',
   '08-rail.spec.ts': 'RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un paciente, cobro rápido, sede, caja, pantalla de la sala, alertas, bandeja, tipo de cambio, notas, asistente, mostrar/ocultar el panel.',
+  '09-billing.spec.ts': 'CR · Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y precio), cambiar precio/cantidad, descuentos por línea o total (permiso y máximo), quitar, moneda, sede, total, pago mixto, el resto, notas, facturar/cobrar/cerrar; de punta a punta.',
   '10-atomic-es.spec.ts': 'N1 · Atómicos en español: escucha, navegación, vistas, zoom.',
   '11-toolbar-settings-es.spec.ts': 'N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.',
   '12-appointments-es.spec.ts': 'N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.',

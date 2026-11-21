@@ -766,7 +766,7 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
   }
   // Con una ventana abierta, lo que se dice es primero para ella: sus botones y sus campos (salvo
   // que el comando sea el de esa ventana, como el formulario de la cita).
-  if (local?.command.id !== 'calendar.form' && pressOrFillOverlay(heard, normalized)) return;
+  if (local?.command.id !== 'calendar.form' && !local?.command.keepsOverlay && pressOrFillOverlay(heard, normalized)) return;
   if (local) {
     if (local.command.aux && controller) { await runAux([local], heard, 'local'); return; }
     await runFound([local], heard, opts, 'local');
@@ -821,7 +821,7 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
   // estaba abierto (una ventana, un panel lateral) se cierra antes para que se vea lo nuevo.
   if (!found.some((f) => f.command.usesFocus)) {
     setAppointmentFocus(null);
-    const keepsScreen = found.every((f) => ['calendar.close', 'calendar.dialog', 'core.scroll', 'core.screen', 'calendar.form'].includes(f.command.id));
+    const keepsScreen = found.every((f) => f.command.keepsOverlay || ['calendar.close', 'calendar.dialog', 'core.scroll', 'core.screen', 'calendar.form'].includes(f.command.id));
     for (let guard = 0; !keepsScreen && guard < 4 && hasOpenOverlay(); guard++) closeTopOverlay();
   }
   try {

@@ -6,6 +6,7 @@ import '@/lib/voice/commands';
 import { publishCalendarVoice } from '@/lib/voice/calendar-bridge';
 import { resetUiSelection, setAppointmentFocus } from '@/lib/voice/focus';
 import { expectedDomainsFor } from '@/lib/voice/nav-targets';
+import { resetVoiceBridges } from '@/lib/voice/screen-bridge';
 import { activeVoiceDomains, cancelVoice, configureVoiceSession, configureVoiceTiming, isVoiceSettled, startAlwaysOn, stopAlwaysOn, toggleAlwaysOn, updateVoiceDomains } from '@/lib/voice/session';
 import { useVoiceCommand } from '@/stores/voice-command-store';
 
@@ -177,6 +178,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       resetUiSelection();
       publishCalendarVoice(null);
       disposeSimRail();
+      resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;
       resetDom();

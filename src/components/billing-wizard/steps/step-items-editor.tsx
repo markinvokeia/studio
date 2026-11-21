@@ -16,6 +16,10 @@ import type { DiscountMode, Service } from '@/lib/types';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { formatMoney } from '@/lib/currency';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { useAuth } from '@/context/AuthContext';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
+import type { BillingItemsVoiceBridge } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -165,6 +169,49 @@ export function StepItemsEditor({
     },
     [items, onItemsChange],
   );
+
+  // Voz: agregar servicios, cantidad, precio, descuentos, quitar, moneda, sede y el total.
+  const { sedes } = useAuth();
+  const voice: BillingItemsVoiceBridge = {
+    lines: items.map((i) => ({
+      id: i.tempId, name: i.service_name, quantity: i.quantity, unitPrice: i.unit_price, total: i.total,
+      discount: i.discount_mode && i.discount_value ? { mode: i.discount_mode, value: i.discount_value } : null,
+    })),
+    currency,
+    currencies: currencyOptions,
+    gross: totals.grossTotal,
+    discountAmount: totals.discountAmount,
+    total: totals.total,
+    discounts: {
+      scope: discounts.showLineDiscount ? 'line' : discounts.showTotalDiscount ? 'total' : null,
+      canApply: discounts.canApply,
+      maxPct: discounts.maxPct ?? null,
+      document: documentDiscount ?? null,
+    },
+    sedes: (sedes ?? []).map((s) => ({ id: String(s.id), name: String(s.name ?? '') })),
+    sedeId,
+    searchServices: async (query) => {
+      const res = isSales ? await getSalesServices({ search: query, limit: 10 }) : await getPurchaseServices({ search: query, limit: 10 });
+      return res.items.map((sv) => ({ id: String(sv.id), name: sv.name, price: Number(sv.price || 0) }));
+    },
+    add: (service, options) => {
+      const quantity = Math.max(1, Math.round(options?.quantity ?? 1));
+      const price = options?.price ?? service.price;
+      onItemsChange([...items, {
+        tempId: makeTempId(), service_id: service.id, service_name: service.name, unit_price: price, quantity,
+        total: computeGrossTotal(price, quantity), discount_mode: null, discount_value: null,
+      }]);
+      setShowSelector(false);
+    },
+    setQuantity: (id, quantity) => handleQuantityChange(id, String(quantity)),
+    setPrice: (id, price) => handlePriceChange(id, String(price)),
+    remove: (id) => handleDelete(id),
+    setLineDiscount: (id, discount) => setLineDiscount(id, discount ?? { mode: null, value: null }),
+    setDocumentDiscount: (discount) => onDocumentDiscountChange?.({ mode: discount?.mode ?? null, value: discount?.value ?? null }),
+    setCurrency: onCurrencyChange,
+    setSede: onSedeChange,
+  };
+  useVoiceBridge('billing.items', voice);
 
   return (
     <div className="space-y-4">

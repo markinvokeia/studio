@@ -36,7 +36,9 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
-import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
+import type { BillingPaymentVoiceBridge, Credit, Invoice, PaymentMethod } from '@/lib/types';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { CurrencySelect } from '@/components/ui/currency-select';
@@ -713,6 +715,28 @@ export function StepPayment({
     }
   };
   const submit = useAsyncAction(submitPayments);
+
+  // Voz: «en efectivo», «500 con tarjeta y el resto en efectivo», «todo», «en dólares», «cobrá».
+  const { optionsFor: currencyOptionsFor } = useCurrencySettings();
+  const voice: BillingPaymentVoiceBridge = {
+    substep: creditSubStep === 0 ? 'credits' : 'payment',
+    pending: pendingAmountAfterCredits,
+    remaining: remainingAfterPayment,
+    currency: invoiceCurrency,
+    currencies: currencyOptionsFor(invoiceCurrency),
+    methods: paymentMethods.map((m) => ({ id: String(m.id), name: m.name })),
+    entries: (watchedEntries ?? []).map((e) => ({ method: e.method || null, amount: Number(e.amount) || 0, currency: e.payment_currency || invoiceCurrency })),
+    setEntry: (index, patch) => {
+      if (patch.method !== undefined) form.setValue(`entries.${index}.method`, patch.method, { shouldValidate: true, shouldDirty: true });
+      if (patch.currency !== undefined) form.setValue(`entries.${index}.payment_currency`, patch.currency, { shouldValidate: true, shouldDirty: true });
+      if (patch.amount !== undefined) form.setValue(`entries.${index}.amount`, patch.amount, { shouldValidate: true, shouldDirty: true });
+    },
+    addEntry: handleAddEntry,
+    removeEntry: (index) => remove(index),
+    setNotes: (text) => form.setValue('notes', text, { shouldDirty: true }),
+    submit: () => { void form.handleSubmit(submit.run, onInvalidSubmit)(); },
+  };
+  useVoiceBridge('billing.payment', voice);
 
   // ── Invoice detail expandable panel ──
   const renderDetailPanel = () => {

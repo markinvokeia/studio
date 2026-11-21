@@ -17,6 +17,8 @@ import {
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import { api } from '@/services/api';
 import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import {
@@ -24,7 +26,7 @@ import {
   fetchQuoteInvoicesForFinancials,
   type QuoteFinancialSummary,
 } from '@/services/quote-financials';
-import type { Invoice, Quote, QuoteItem, User } from '@/lib/types';
+import type { BillingVoiceBridge, Invoice, Quote, QuoteItem, User } from '@/lib/types';
 import {
   linkInvoiceToAppointment,
   linkInvoiceToClinicSession,
@@ -980,6 +982,25 @@ export function BillingWizardModal() {
   }, [isPaymentStep, pendingInvoicesForPayment, resolvedInvoice]);
 
   const isPaymentFullyPaid = isPaymentStep && paymentPendingAmount <= 0;
+
+  // Voz: mientras el cobro rápido está abierto, lo que se dice es primero para él (paso actual y
+  // los botones del pie que valen ahora). Ver src/lib/voice/commands/billing.ts.
+  useVoiceScreen(isOpen ? ['billing'] : []);
+  const itemsReady = !isProcessing && !isLoadingTreatment && editableItems.length > 0 && !!effectivePatientId && !!freeformSedeId;
+  const quoteReady = !isProcessing && !isFetchingQuoteInvoiced && !treatmentLoadError;
+  const isQuoteStep = !isFreeformFlow && !startFromInvoice && currentStep === 0;
+  const voiceBridge: BillingVoiceBridge = {
+    step: isConfirmationStep ? 'confirmation' : isPatientStep ? 'patient' : isItemsEditorStep ? (isLoadingTreatment ? 'loading' : 'items') : isPaymentStep && !isQuoteStep ? 'payment' : isQuoteStep ? (isLoadingTreatment ? 'loading' : 'quote') : 'loading',
+    patientName: effectivePatientName ?? null,
+    next: isPatientStep && selectedPatient ? () => setCurrentStep(1) : null,
+    invoiceAndPay: isItemsEditorStep && itemsReady ? () => { void handleItemsEditorNext('invoice-and-pay'); }
+      : isQuoteStep && hasSelectedServices && quoteReady ? () => { void handleTreatmentNext('invoice-and-pay'); } : null,
+    invoiceOnly: isItemsEditorStep && itemsReady ? () => { void handleItemsEditorNext('invoice-only'); }
+      : isQuoteStep && hasSelectedServices && quoteReady ? () => { void handleTreatmentNext('invoice-only'); } : null,
+    payOnly: isQuoteStep && !hasSelectedServices && quoteReady && selectedInvoiceIds.size > 0 ? handlePayOnly : null,
+    close: handleClose,
+  };
+  useVoiceBridge(isOpen ? 'billing' : 'billing.closed', voiceBridge);
   // paymentOnly: invoice already exists so "Solo facturar" doesn't apply
   const isPaymentOnly = startFromInvoice || (isFreeformFlow && isPaymentStep);
 

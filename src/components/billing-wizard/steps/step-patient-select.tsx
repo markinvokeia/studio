@@ -5,8 +5,10 @@ import { UserIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { UserSelector } from '@/components/ui/user-selector';
-import type { User } from '@/lib/types';
 import { formatPhoneNumber } from '@/lib/phone-text';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+
+import type { BillingPatientVoiceBridge, User } from '@/lib/types';
 
 interface StepPatientSelectProps {
   selectedPatient: User | null;
@@ -21,6 +23,12 @@ export function StepPatientSelect({
   readonlyPatient,
 }: StepPatientSelectProps) {
   const t = useTranslations('BillingWizard.patient');
+  // Voz: «para Juan Pérez», «el paciente es Ana Gómez».
+  const voice: BillingPatientVoiceBridge = {
+    selected: selectedPatient?.name ?? readonlyPatient?.name ?? null,
+    select: (p) => onPatientChange({ id: p.id, name: p.name, email: p.email ?? '', phone_number: p.phone ?? '' } as User),
+  };
+  useVoiceBridge('billing.patient', voice);
 
   if (readonlyPatient) {
     return (

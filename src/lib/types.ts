@@ -4761,6 +4761,11 @@ export interface VoiceCommand<P = unknown, R = any> {
    * resto para la página nueva). Si reconoce la frase, no se arma un plan con la IA.
    */
   handlesCompound?: boolean;
+  /**
+   * Trabaja dentro de la ventana abierta (el cobro rápido, el formulario de la cita): no la cierra
+   * al empezar y lo dicho no se toma primero como un botón o campo genérico de esa ventana.
+   */
+  keepsOverlay?: boolean;
 }
 
 /** Contexto del módulo lab_orders para la IA (POST voice/interpret). */
@@ -5070,4 +5075,88 @@ export interface RailVoiceBridge {
   notes: { count: number; open: () => void; create: (text: string) => Promise<boolean> } | null;
   exchange: { code: string; rate: number } | null;
   openBilling: (context: { patientId?: string; patientName?: string }) => void;
+}
+
+// ── Cobro rápido por voz (src/lib/voice/commands/billing.ts) ──────────────────
+
+/** Una línea del cobro rápido, como la ve la voz. */
+export interface BillingVoiceLine {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  /** Neto (con el descuento de la línea). */
+  total: number;
+  discount: { mode: DiscountMode; value: number } | null;
+}
+
+export interface BillingVoiceService {
+  id: string;
+  name: string;
+  price: number;
+}
+
+/** El asistente de cobro: en qué paso está y los botones del pie que valen ahora (null = no). */
+export interface BillingVoiceBridge {
+  step: 'patient' | 'items' | 'quote' | 'payment' | 'confirmation' | 'loading';
+  patientName: string | null;
+  next: (() => void) | null;
+  invoiceAndPay: (() => void) | null;
+  invoiceOnly: (() => void) | null;
+  /** Cobrar lo ya facturado (paso del presupuesto sin servicios nuevos). */
+  payOnly: (() => void) | null;
+  close: () => void;
+}
+
+/** Paso «Paciente» del cobro libre. */
+export interface BillingPatientVoiceBridge {
+  selected: string | null;
+  select: (patient: { id: string; name: string; email?: string; phone?: string }) => void;
+}
+
+/** Paso «Servicios» del cobro libre. */
+export interface BillingItemsVoiceBridge {
+  lines: BillingVoiceLine[];
+  currency: string;
+  currencies: string[];
+  gross: number;
+  discountAmount: number;
+  total: number;
+  discounts: {
+    /** Dónde se aplica (null: los descuentos están apagados en la clínica). */
+    scope: 'line' | 'total' | null;
+    canApply: boolean;
+    maxPct: number | null;
+    document: { mode: DiscountMode | null; value: number | null } | null;
+  };
+  sedes: Array<{ id: string; name: string }>;
+  sedeId: string;
+  searchServices: (query: string) => Promise<BillingVoiceService[]>;
+  add: (service: BillingVoiceService, options?: { quantity?: number; price?: number }) => void;
+  setQuantity: (lineId: string, quantity: number) => void;
+  setPrice: (lineId: string, price: number) => void;
+  remove: (lineId: string) => void;
+  setLineDiscount: (lineId: string, discount: { mode: DiscountMode; value: number } | null) => void;
+  setDocumentDiscount: (discount: { mode: DiscountMode; value: number } | null) => void;
+  setCurrency: (currency: string) => void;
+  setSede: (sedeId: string) => void;
+}
+
+/** Paso «Pago». */
+export interface BillingPaymentVoiceBridge {
+  /** 'credits': primero se ofrece usar el saldo a favor. */
+  substep: 'credits' | 'payment';
+  /** Lo que falta cobrar (en la moneda de la factura). */
+  pending: number;
+  /** Lo que queda sin cubrir con lo cargado. */
+  remaining: number;
+  currency: string;
+  currencies: string[];
+  methods: Array<{ id: string; name: string }>;
+  entries: Array<{ method: string | null; amount: number; currency: string }>;
+  setEntry: (index: number, patch: { method?: string; amount?: number; currency?: string }) => void;
+  addEntry: () => void;
+  removeEntry: (index: number) => void;
+  setNotes: (text: string) => void;
+  submit: () => void;
 }

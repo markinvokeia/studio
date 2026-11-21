@@ -26,7 +26,10 @@ export const useVoiceScreenStore = create<VoiceScreenState>((set) => ({
   remove: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
 }));
 
-/** Los módulos activos, sin repetir, en el orden en que se registraron. */
+/**
+ * Los módulos activos, sin repetir: el último que se registró primero (una ventana abierta encima
+ * de la página, como el cobro rápido, va antes que la página para la IA).
+ */
 export function activeScreenDomains(entries: VoiceScreenState['entries']): string[] {
-  return [...new Set(entries.flatMap((e) => e.domains))];
+  return [...new Set([...entries].reverse().flatMap((e) => e.domains))];
 }

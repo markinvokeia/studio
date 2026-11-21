@@ -27,7 +27,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 1 | Menú principal (izquierda): «andá a…», «abrí…», «go to…» | `core` (navegación) | ✅ Los 96 destinos del menú por nombre y sinónimos (es/es-ES/en), con permisos; ambiguos se preguntan; «andá a X y …» va y sigue en la página nueva; IA (n8n, módulo `core`) solo si no se nombró tal cual | `06` (126 casos) |
 | 2 | Panel flotante derecho (riel): paciente, sede, caja, TV, cobrar, alertas, cambio, bandeja, notas, asistente | `core` (riel) | ✅ Puente `rail` (`src/components/voice/rail-voice-bridge.tsx`) y comandos en `src/lib/voice/commands/rail.ts`; en la agenda gana la agenda | `08` |
 | 2b | **Cualquier pantalla** (aunque no tenga voz propia) | `core.screen` | ✅ Lo que se ve se puede tocar: botones, pestañas, campos, interruptores, listas, buscador, filas, «¿qué puedo hacer acá?» (`src/lib/voice/dom-ui.ts`) | `07` |
-| 3 | Panel de control (`/dashboard`) | `dashboard` | ⏳ | — |
+| 2c | **Cobro rápido** (ventana, desde cualquier lado) | `billing` | ✅ Paciente → servicios (agregar con cantidad/precio, editar, descuentos por línea o total con permiso y máximo, quitar, moneda, sede, total) → pago (medios, montos, «el resto», moneda, notas) → facturar/cobrar/cerrar. Puentes en el modal y en cada paso | `09` |
+| 3 | Panel de control (`/`) | `dashboard` | ⏳ Siguiente | — |
 | 4 | Mi consultorio (`/workspace`) | `workspace` | ⏳ | — |
 | 5 | Centro de alertas | `alerts` | ⏳ | — |
 | 6 | Caja | `cashier` | ⏳ | — |

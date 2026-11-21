@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1559 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1618 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -725,6 +725,78 @@ RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un pacient
 - **RL-PRIORITY · En la agenda gana la agenda**
   - «cobrale» con la cita en foco es de la agenda (cobra esa cita)
   - «abrí la cuenta» con la cita en foco es la de ese paciente (agenda)
+
+## 09-billing.spec.ts (59)
+
+CR · Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y precio), cambiar precio/cantidad, descuentos por línea o total (permiso y máximo), quitar, moneda, sede, total, pago mixto, el resto, notas, facturar/cobrar/cerrar; de punta a punta.
+
+- **CR-PAT · Paciente**
+  - «para Juan Pérez» lo elige y pasa a los servicios
+  - el nombre solo en el paso del paciente
+  - varios: pregunta cuál
+  - en «the patient is Carlos López»
+- **CR-ADD · Agregar servicios**
+  - «agregá limpieza»
+  - «agregá una consulta»
+  - «agregá 2 limpiezas»
+  - «agregá dos radiografías»
+  - «sumá una consulta a 800»
+  - «agregá el servicio blanqueamiento»
+  - «agregá extracción simple»
+  - «agregá un servicio» pregunta cuál y lo busca
+  - «agregá extracción» con dos: pregunta cuál
+  - no existe: lo dice
+  - en «add a cleaning» y «add 2 consultations at 900»
+  - es-ES «añade una limpieza»
+- **CR-LINE · Precio, cantidad, quitar**
+  - «el precio de la limpieza a 1200»
+  - «la consulta a 800»
+  - «poné la limpieza en 1.300»
+  - «cantidad de la consulta 3»
+  - «que sean 2 limpiezas»
+  - «quitá la consulta»
+  - «sacá la última»
+  - sin decir cuál con dos: pregunta
+  - en «set the price of limpieza to 1100» y «remove consulta»
+- **CR-DISC · Descuentos (si la clínica los tiene)**
+  - por línea: «10% de descuento a la limpieza»
+  - por línea con una sola: «aplicá un descuento de 200»
+  - «descuento del 15 por ciento» y «sacá el descuento»
+  - sobre el total cuando la clínica lo usa así
+  - más del máximo: lo dice y no lo aplica
+  - descuentos apagados: lo dice
+  - sin permiso: lo dice
+  - en «give 10 percent discount»
+- **CR-INFO · Lo cargado, moneda y sede**
+  - «¿cuánto da?» lee los servicios y el total
+  - «en dólares»
+  - «cambiá la moneda a pesos»
+  - «sede Pocitos»
+  - en «what is the total»
+- **CR-GO · El pie: seguir, facturar, cobrar**
+  - sin servicios no sigue y dice por qué
+  - «facturá y cobrá» pasa al pago
+  - «solo facturar» termina sin cobrar
+  - «siguiente» en el paso del paciente sin paciente: lo pide
+  - en «invoice and collect»
+- **CR-PAY · Pago**
+  - «en efectivo» elige el medio y deja el total
+  - «con tarjeta de débito»
+  - «1000 en efectivo y el resto con tarjeta de crédito»
+  - «pagá 500 con transferencia»
+  - «todo en efectivo»
+  - «agregá otro medio de pago»
+  - «nota: paga el resto la semana que viene»
+  - «cuánto falta»
+  - «cobrá» sin medio: lo pide
+  - «en efectivo» y «cobrá» cobra
+  - «cerrar» al final
+  - en «pay 1000 in cash and the rest by card»
+- **CR-FLOW · De punta a punta, como en la recepción**
+  - desde el panel derecho: «cobrale a Juan Pérez» → servicios → descuento → pago mixto → cobrar
+  - sin paciente: paciente, «¿qué servicio?» se contesta con el nombre
+  - lo de la página de atrás no se toca mientras el cobro está abierto
+  - «cancelar» con el cobro a medias: aprieta Cancelar de la ventana
 
 ## 10-atomic-es.spec.ts (28)
 
