@@ -4666,6 +4666,14 @@ export interface VoiceCommandContext {
    * termina); false = tampoco, el comando sigue (dice que no lo encontró).
    */
   tryAi: () => Promise<boolean>;
+  /**
+   * Lo que sigue del pedido después de este paso, en la pantalla nueva («andá a pacientes y buscá a
+   * Juan»: navegar y después «buscá a Juan»). Se interpreta cuando termina la tarea, con el
+   * contexto de la página a la que se llegó.
+   */
+  followUp: (text: string) => void;
+  /** Los módulos de voz activos ahora (cambian al navegar). */
+  activeDomains: () => readonly string[];
 }
 
 export interface VoiceAskOptions {
@@ -4711,6 +4719,8 @@ export interface VoiceDomain<R = unknown> {
   ai?: {
     context?: (ctx: VoiceCommandContext) => Promise<Record<string, unknown>>;
     sanitize: (raw: unknown, context: Record<string, unknown>) => R;
+    /** Si la frase vale la pena preguntársela a la IA de este módulo (default: siempre). */
+    accepts?: (normalized: string) => boolean;
   };
 }
 
@@ -4746,6 +4756,11 @@ export interface VoiceCommand<P = unknown, R = any> {
    * cambio de contexto: el foco se suelta.
    */
   usesFocus?: boolean;
+  /**
+   * Se ocupa él mismo de una frase con varios pedidos (la navegación: va a la página y deja el
+   * resto para la página nueva). Si reconoce la frase, no se arma un plan con la IA.
+   */
+  handlesCompound?: boolean;
 }
 
 /** Contexto del módulo lab_orders para la IA (POST voice/interpret). */

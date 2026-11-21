@@ -1,4 +1,5 @@
 import { scrollScreen, type ScrollAmount, type ScrollDirection } from '@/lib/voice/dom-scroll';
+import { listNavTargets } from '@/lib/voice/nav-targets';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
 
 import type { VoiceCommandContext } from '@/lib/types';
@@ -10,7 +11,39 @@ import type { VoiceCommandContext } from '@/lib/types';
  */
 export const CORE_VOICE_DOMAIN = 'core';
 
-registerVoiceDomain({ id: CORE_VOICE_DOMAIN });
+/** «llevame donde…», «quiero ir a…», «where do I see…»: vale la pena preguntarle a la IA adónde. */
+const NAV_HINT = /\b(?:anda\w*|ve|vete|ir|vamos|volve\w*|regresa\w*|lleva\w*|navega\w*|entra\w*|pasa(?:me)?|abri\w*|abre\w*|mostra\w*|muestra\w*|donde|adonde|pantalla|seccion|pagina|menu|modulo|go|take me|bring me|navigate|head|open|show me|where|screen|page|section|menu)\b/;
+export const soundsLikeNavigation = (normalized: string) => NAV_HINT.test(normalized);
+
+export interface CoreVoiceAiResult {
+  relation?: 'new' | 'ignore' | 'cancel' | 'resume';
+  intent: 'navigate' | 'unknown';
+  target_key: string | null;
+  rest: string | null;
+  confidence?: number;
+}
+
+registerVoiceDomain<CoreVoiceAiResult>({
+  id: CORE_VOICE_DOMAIN,
+  // La IA del módulo general: a qué sección de la app se quiere ir cuando no se nombró tal cual
+  // («llevame donde veo quién nos debe»). Solo conoce los destinos a los que el usuario puede entrar.
+  ai: {
+    accepts: soundsLikeNavigation,
+    context: async (ctx) => ({
+      targets: listNavTargets({ t: ctx.t, hasPermission: ctx.hasPermission })
+        .filter((target) => target.allowed)
+        .map((target) => ({ key: target.key, label: target.label, section: target.parent ?? '' })),
+    }),
+    sanitize: (raw, context) => {
+      const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+      const keys = new Set(((context.targets as Array<{ key: string }> | undefined) ?? []).map((t) => t.key));
+      const key = typeof r.target_key === 'string' && keys.has(r.target_key) ? r.target_key : null;
+      const relation = ['new', 'ignore', 'cancel', 'resume'].includes(String(r.relation)) ? (r.relation as CoreVoiceAiResult['relation']) : 'new';
+      const intent = r.intent === 'navigate' && key ? 'navigate' : 'unknown';
+      return { relation, intent, target_key: intent === 'navigate' ? key : null, rest: intent === 'navigate' && typeof r.rest === 'string' && r.rest.trim() ? r.rest.trim() : null };
+    },
+  },
+});
 
 // ── Desplazarse ───────────────────────────────────────────────────────────────
 

@@ -20,6 +20,7 @@ const FILE_INTRO = {
   '02-mic.spec.ts': 'Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar los pedazos de una frase.',
   '04-popups-selection.spec.ts': 'AV · Avisos y ventanas: elegir por número, posición («la última», «la de abajo»), hora o texto; apretar botones por nombre; sí/no.',
   '05-core-overlay.spec.ts': 'G · General (cualquier página): desplazarse, prioridad de la ventana o panel abierto (sus botones y campos), cambio de contexto que cierra lo abierto y suelta el foco.',
+  '06-navigation.spec.ts': 'NV · Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.',
   '10-atomic-es.spec.ts': 'N1 · Atómicos en español: escucha, navegación, vistas, zoom.',
   '11-toolbar-settings-es.spec.ts': 'N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.',
   '12-appointments-es.spec.ts': 'N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.',
@@ -58,7 +59,7 @@ for (const file of report.suites ?? []) {
   lines.push('');
 }
 
-const header = `# Agenda por voz · Catálogo de pruebas
+const header = `# Voz en Invoke IA · Catálogo de pruebas
 
 Generado por \`pnpm test:voice:catalog\` desde \`e2e/tests/voice-agent/\` — no editar a mano. **${total} casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).

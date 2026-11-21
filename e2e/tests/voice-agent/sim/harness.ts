@@ -5,7 +5,8 @@ import { createTranslator } from 'next-intl';
 import '@/lib/voice/commands';
 import { publishCalendarVoice } from '@/lib/voice/calendar-bridge';
 import { resetUiSelection, setAppointmentFocus } from '@/lib/voice/focus';
-import { cancelVoice, configureVoiceSession, configureVoiceTiming, isVoiceSettled, startAlwaysOn, stopAlwaysOn, toggleAlwaysOn } from '@/lib/voice/session';
+import { expectedDomainsFor } from '@/lib/voice/nav-targets';
+import { activeVoiceDomains, cancelVoice, configureVoiceSession, configureVoiceTiming, isVoiceSettled, startAlwaysOn, stopAlwaysOn, toggleAlwaysOn, updateVoiceDomains } from '@/lib/voice/session';
 import { useVoiceCommand } from '@/stores/voice-command-store';
 
 import { createSimCalendar, PATIENTS, type SimCalendar } from './calendar';
@@ -52,6 +53,10 @@ export interface VoiceSim {
   /** Permisos que el usuario NO tiene. */
   deny: (...codes: string[]) => void;
   navigations: string[];
+  /** La ruta en la que está (sin locale). */
+  route: () => string;
+  /** Los módulos de voz activos (los de la página más `core`). */
+  domains: () => readonly string[];
   dispose: () => void;
 }
 
@@ -70,7 +75,17 @@ async function settle(timeoutMs = 6000) {
   throw new Error(`La sesión de voz no terminó en ${timeoutMs} ms (fase ${useVoiceCommand.getState().phase})`);
 }
 
-export async function createVoiceSim({ locale = 'es', customMode = true }: { locale?: 'es' | 'es-ES' | 'en'; customMode?: boolean } = {}): Promise<VoiceSim> {
+/** Como la app: cada página registra sus módulos (ROUTE_VOICE_DOMAINS) y `core` está siempre. */
+const domainsFor = (route: string) => [...expectedDomainsFor(route), 'core'];
+
+function setRoute(locale: string, route: string) {
+  const path = `/${locale}${route === '/' ? '' : route.split('?')[0]}`;
+  const g = globalThis as unknown as { location: { pathname: string; href: string } };
+  g.location.pathname = path;
+  g.location.href = `http://voice-sim.test${path}`;
+}
+
+export async function createVoiceSim({ locale = 'es', customMode = true, route = '/appointments' }: { locale?: 'es' | 'es-ES' | 'en'; customMode?: boolean; route?: string } = {}): Promise<VoiceSim> {
   const translator = createTranslator({ locale, messages: MESSAGES[locale] as Record<string, unknown> });
   const denied = new Set<string>();
   const replies: Array<{ match: RegExp; reply: ModelReply }> = [];
@@ -99,14 +114,20 @@ export async function createVoiceSim({ locale = 'es', customMode = true }: { loc
     return null;
   });
 
+  setRoute(locale, route);
   const cal = createSimCalendar({ customMode });
   configureVoiceTiming({ auxReturnMs: 10, awakeIdleMs: 60_000, awakePendingMs: 60_000, phraseGapMs: 0, echoGraceMs: 0 });
   configureVoiceSession({
     locale,
     t: (key, values) => translator(key as never, values as never) as string,
     hasPermission: (code) => !denied.has(code),
-    navigate: (route) => { navigations.push(route); },
-    domains: ['calendar', 'core'],
+    navigate: (to) => {
+      navigations.push(to);
+      // Como el router: la ruta cambia enseguida y la página nueva registra su voz al montarse.
+      setRoute(locale, to);
+      setTimeout(() => updateVoiceDomains(domainsFor(to.split('?')[0])), 15);
+    },
+    domains: domainsFor(route),
   });
   startAlwaysOn();
 
@@ -140,7 +161,10 @@ export async function createVoiceSim({ locale = 'es', customMode = true }: { loc
     ai: { reply: (match, reply) => { replies.push({ match, reply }); } },
     deny: (...codes) => codes.forEach((c) => denied.add(c)),
     navigations,
+    route: () => (globalThis as unknown as { location: { pathname: string } }).location.pathname.replace(/^\/(es-ES|es|en)(?=\/|$)/, '') || '/',
+    domains: () => activeVoiceDomains(),
     dispose: () => {
+      setRoute('es', '/appointments');
       cancelVoice();
       stopAlwaysOn();
       configureVoiceSession(null);

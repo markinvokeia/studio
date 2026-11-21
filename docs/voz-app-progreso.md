@@ -6,7 +6,7 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
 - **Un solo botón Voz**, en el riel derecho, debajo de la mascota. Lo monta el `Header` una vez (`VoiceCommandHost` + `VoiceCommandButton`).
 - **El contexto lo da la página abierta.** Cada pantalla registra sus módulos de voz con `useVoiceScreen([...])` (la agenda: `calendar`; laboratorio: `lab_orders`). Al navegar cambia el contexto **sin apagar el micrófono**.
-- El módulo **`core`** está siempre activo, en todas las páginas (desplazarse, y lo que venga: navegar por el menú, el panel derecho).
+- El módulo **`core`** está siempre activo, en todas las páginas: desplazarse y navegar por el menú (`src/lib/voice/nav-targets.ts`: destinos y sinónimos; `ROUTE_VOICE_DOMAINS`: qué módulo registra cada página, para seguir el pedido después de navegar). Cada página que suma voz agrega su línea ahí.
 - **Lo que está a la vista tiene prioridad**, en este orden:
   1. un aviso abierto (lee sus botones y aprieta el nombrado);
   2. una ventana o panel lateral abierto (sus botones y sus campos);
@@ -23,7 +23,7 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | --- | --- | --- | --- | --- |
 | 0 | **Agenda** (`/appointments`) | `calendar` | ✅ Completa: barra, vistas, zoom, panel, engranaje, exportar, citas, editor, avisos, pacientes (información y acciones), recordatorios, bloqueos | `e2e/tests/voice-agent/` (≈1300 casos es/en) |
 | 0 | **General** (todas las páginas) | `core` | ✅ Desplazarse; avisos, ventanas y campos genéricos; dejar de escuchar; cerrar | `02`, `03`, `04`, `05` |
-| 1 | Menú principal (izquierda): «andá a…», «quiero ver…», «navegá a…» | `core` (navegación) | ⏳ Siguiente: ir a la ruta como primer paso del plan, esperar a que cargue y seguir con el contexto de la página nueva | — |
+| 1 | Menú principal (izquierda): «andá a…», «abrí…», «go to…» | `core` (navegación) | ✅ Los 96 destinos del menú por nombre y sinónimos (es/es-ES/en), con permisos; ambiguos se preguntan; «andá a X y …» va y sigue en la página nueva; IA (n8n, módulo `core`) solo si no se nombró tal cual | `06` (126 casos) |
 | 2 | Panel flotante derecho (riel): paciente, sede, caja, TV, cobrar, alertas, cambio, bandeja, notas, asistente | `core` (riel) | ⏳ | — |
 | 3 | Panel de control (`/dashboard`) | `dashboard` | ⏳ | — |
 | 4 | Mi consultorio (`/workspace`) | `workspace` | ⏳ | — |

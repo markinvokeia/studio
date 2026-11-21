@@ -14482,7 +14482,8 @@
       "calendar_patient_info": "darte información del paciente",
       "calendar_patient_action": "abrir una acción del paciente",
       "other": "hacer eso",
-      "calendar_close": "cerrar lo que está abierto"
+      "calendar_close": "cerrar lo que está abierto",
+      "core_navigate": "ir a otra sección del menú"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿quieres {action}?",
     "and": " y ",
@@ -14499,6 +14500,14 @@
       "left": "Me he movido a la izquierda.",
       "right": "Me he movido a la derecha.",
       "nothing": "No hay nada que desplazar aquí."
+    },
+    "nav": {
+      "title": "Menú",
+      "going": "Abro {page}.",
+      "here": "Ya estás en {page}.",
+      "noPermission": "No tienes acceso a {page}.",
+      "which": "¿A cuál quieres ir?",
+      "notFound": "No he encontrado «{name}» en el menú."
     }
   }
 }

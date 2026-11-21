@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "lucide-react": ["./e2e/tests/voice-agent/sim/lucide-stub.ts"]
+    }
+  }
+}

@@ -14482,7 +14482,8 @@
       "calendar_patient_info": "give you patient information",
       "calendar_patient_action": "open a patient action",
       "other": "do that",
-      "calendar_close": "close what's open"
+      "calendar_close": "close what's open",
+      "core_navigate": "go to another section of the menu"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14499,6 +14500,14 @@
       "left": "Moved left.",
       "right": "Moved right.",
       "nothing": "There's nothing to scroll here."
+    },
+    "nav": {
+      "title": "Menu",
+      "going": "Opening {page}.",
+      "here": "You are already on {page}.",
+      "noPermission": "You don't have access to {page}.",
+      "which": "Which one do you want to open?",
+      "notFound": "I couldn’t find “{name}” in the menu."
     }
   }
 }

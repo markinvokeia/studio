@@ -121,6 +121,17 @@ export function updateVoiceDomains(domains: readonly string[]) {
   if (deps) deps = { ...deps, domains };
 }
 
+/** Los módulos de voz activos ahora (los de la página abierta más `core`). */
+export function activeVoiceDomains(): readonly string[] {
+  return deps?.domains ?? [];
+}
+
+/**
+ * Lo que queda del pedido para después de la tarea («andá a pacientes y buscá a Juan»: «buscá a
+ * Juan» en la página nueva). Lo pone un paso con ctx.followUp y lo toma runFound al terminar.
+ */
+let followUpText: string | null = null;
+
 export function configureVoiceSession(next: VoiceSessionDeps | null) {
   deps = next;
   stopWatchingDialogs?.();
@@ -710,7 +721,9 @@ async function interpretPlan(text: string, opts: HandleOptions, signal?: AbortSi
   inflight++;
   try {
     store().set({ phase: 'thinking' });
+    const normalized = normalizeSpeech(text);
     for (const domain of listVoiceAiDomains(deps.domains)) {
+      if (domain.ai?.accepts && !domain.ai.accepts(normalized)) continue;
       const answer = await interpretWithAi<VoiceAiPlan & Record<string, unknown>>(domain.id, text, ctx, { conversation }).catch((error) => {
         if (own.signal.aborted) throw error;
         console.warn('[voice] AI interpretation failed', domain.id, error);
@@ -738,8 +751,10 @@ async function interpretPlan(text: string, opts: HandleOptions, signal?: AbortSi
 /** Un pedido sin pregunta abierta: local primero, si no la IA; uno o varios pasos. */
 async function runRequest(heard: string, normalized: string, opts: HandleOptions) {
   if (!deps) return;
-  // Varios pedidos en una frase: primero la IA arma el plan completo; si no, lo local.
-  if (isCompoundRequest(heard)) {
+  const local = matchVoiceCommand(deps.domains, normalized, heard);
+  // Varios pedidos en una frase: primero la IA arma el plan completo; si no, lo local. La
+  // navegación se encarga sola («andá a pacientes y buscá a Juan»: va y deja el resto para allá).
+  if (isCompoundRequest(heard) && !local?.command.handlesCompound) {
     const plan = await interpretPlan(heard, opts);
     if (plan?.found.length && plan.relation !== 'ignore') {
       if (plan.found.every((f) => f.command.aux) && controller) { await runAux(plan.found, heard, 'ai'); return; }
@@ -747,7 +762,6 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
       return;
     }
   }
-  const local = matchVoiceCommand(deps.domains, normalized, heard);
   // Con una ventana abierta, lo que se dice es primero para ella: sus botones y sus campos (salvo
   // que el comando sea el de esa ventana, como el formulario de la cita).
   if (local?.command.id !== 'calendar.form' && pressOrFillOverlay(heard, normalized)) return;
@@ -797,6 +811,8 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
   pendingStack.length = 0;
   const own = new AbortController();
   controller = own;
+  followUpText = null;
+  let next: string | null = null;
   clearTimeout(hideTimer);
   store().set({ task: heard, step: found.length > 1 ? { index: 1, total: found.length } : null, suspended: false });
   // Cambio de contexto: un pedido que no tiene nada que ver con la cita en foco la suelta, y lo que
@@ -815,6 +831,7 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
       await found[i].command.run(found[i].parsed, run);
       // Si un paso no se pudo hacer, los que dependen de él no siguen (y se dice dónde se frenó).
       if (run.failed()) {
+        followUpText = null;
         if (i < found.length - 1) {
           const message = deps.t('VoiceCommands.planStopped', { step: `${i + 1}/${found.length}` });
           const last = createContext(deps, own.signal, { midPlan: false });
@@ -832,8 +849,12 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
     if (controller === own) {
       controller = null;
       store().set({ task: null, step: null });
+      if (!own.signal.aborted) next = followUpText;
+      followUpText = null;
     }
   }
+  // Lo que queda del pedido, ya en la pantalla nueva y con sus módulos de voz.
+  if (next && deps) handleText(next, { conversational: false });
 }
 
 let auxController: AbortController | null = null;
@@ -943,6 +964,8 @@ function createContext(
     midPlan,
     source,
     failed: () => failed,
+    followUp: (text) => { if (!aux && !signal.aborted) followUpText = text.trim() || null; },
+    activeDomains: () => deps?.domains ?? d.domains,
     tryAi: async () => {
       if (source !== 'local' || !heard) return false;
       const plan = await interpretPlan(heard, { conversational: false }, signal);

@@ -1132,10 +1132,27 @@ REGLAS
 3. patient: el nombre tal como se dijo, sin inventar. Nunca devuelvas datos del paciente que no estén en la frase.
 4. Si hay dos interpretaciones muy parecidas y las dos muy probables, confidence entre 0.5 y 0.7 (la pantalla pregunta). Si la frase no se entiende, confidence < 0.5.
 5. Varios pedidos en una frase = varios pasos en el orden dicho.
+6. Ir a OTRA sección de la app (pacientes, caja, reportes, ventas, configuración del negocio, el inicio…): no es del calendario. Devolvé confidence 0 y steps []; lo resuelve la navegación general.
 
 FORMATO: {"relation":"new","answer":null,"confidence":0.0,"steps":[{"intent":"...", ...solo los campos que usa}]}
 Ejemplo: "editá la cita de Ana del jueves y ponele el doctor Pérez" → {"relation":"new","answer":null,"confidence":0.9,"steps":[{"intent":"calendar.edit","patient":"Ana","from_date":"2026-11-26","doctor_id":"<id de Pérez>"}]}
 Ejemplo: "la cita de Juan, marcala como llegó y abrí su cuenta" → steps: [{"intent":"calendar.select","patient":"Juan"},{"intent":"calendar.status","status":"arrived"},{"intent":"calendar.open","target":"accounts"}]`;
+
+const CORE_VOICE_PROMPT = `Interpretás pedidos de voz del equipo de una clínica dentro de Invoke IA para MOVERSE por la app (el menú principal), desde cualquier pantalla. La frase viene del reconocimiento de voz (con errores, sin puntuación), en español o en inglés, y puede ser indirecta ("llevame donde veo quién nos debe plata", "quiero cobrarle a alguien", "where do I see today's income").
+
+Devolvé SOLO JSON con:
+- relation: "new" (un pedido), "ignore" (no es para el asistente: charla de la sala), "cancel" (cancelar lo que se hacía), "resume" (seguir con lo de antes).
+- intent: "navigate" (ir a una sección) o "unknown".
+- target_key: la clave de DESTINOS (solo una de la lista; nunca inventes). La pantalla mira el permiso.
+- rest: lo que se pide hacer DESPUÉS de llegar, tal como se dijo ("andá a pacientes y buscá a Juan" → "buscá a Juan"), o null.
+- confidence: 0–1.
+
+REGLAS
+1. Elegí el destino por lo que se quiere ver o hacer: deudas de pacientes → ReportDeudores; lo cobrado hoy → ReportCobrosDia; el dinero de la caja → Cashier; turnos/agenda → Appointments; lo del laboratorio → LabOrders; radiografías → Studies; configurar sedes/horarios/doctores → el destino de esa configuración.
+2. Si la frase pide algo de la pantalla actual (no ir a otro lado) → intent "unknown", confidence < 0.5.
+3. Si dos destinos son igual de probables, el más probable con confidence 0.55–0.7 (la pantalla pregunta). Si uno es claramente el pedido, confidence ≥ 0.8.
+
+FORMATO: {"relation":"new","intent":"navigate","target_key":"ReportDeudores","rest":null,"confidence":0.9}`;
 
 /**
  * Código JS de cada módulo, que se pega en los nodos Code:
@@ -1144,6 +1161,40 @@ Ejemplo: "la cita de Juan, marcala como llegó y abrí su cuenta" → steps: [{"
  * - validate(p, meta, today): el `result` validado, siempre con `confidence` (0–1).
  */
 const VOICE_DOMAINS = {
+  core: {
+    system: CORE_VOICE_PROMPT,
+    prepare: `(ctx, body) => {
+  // Solo los destinos a los que el usuario puede entrar (los manda el frontend).
+  const targets = (Array.isArray(ctx.targets) ? ctx.targets : []).slice(0, 150)
+    .map(t => ({ key: String((t && t.key) || '').slice(0, 60), label: String((t && t.label) || '').slice(0, 80), section: String((t && t.section) || '').slice(0, 60) }))
+    .filter(t => /^[A-Za-z0-9]+$/.test(t.key) && t.label);
+  const c = ctx.conversation && typeof ctx.conversation === 'object' ? ctx.conversation : null;
+  return {
+    lines: [
+      '',
+      'DESTINOS (clave · nombre · sección):',
+      targets.map(t => '- ' + t.key + ' · ' + t.label + (t.section ? ' · ' + t.section : '')).join('\\n') || '(ninguno)',
+      ...(c && c.task ? ['', 'TAREA EN CURSO: ' + String(c.task).slice(0, 200)] : []),
+    ],
+    meta: { keys: targets.map(t => t.key) },
+  };
+}`,
+    validate: `(p, m) => {
+  const keys = new Set(m.keys);
+  const RELATIONS = ['new', 'ignore', 'cancel', 'resume'];
+  const confidence = Number(p.confidence);
+  const key = typeof p.target_key === 'string' && keys.has(p.target_key) ? p.target_key : null;
+  const rest = typeof p.rest === 'string' && p.rest.trim() ? p.rest.trim().slice(0, 300) : null;
+  const intent = p.intent === 'navigate' && key ? 'navigate' : 'unknown';
+  return {
+    relation: RELATIONS.includes(p.relation) ? p.relation : 'new',
+    intent,
+    target_key: intent === 'navigate' ? key : null,
+    rest: intent === 'navigate' ? rest : null,
+    confidence: intent === 'unknown' && !['ignore', 'cancel', 'resume'].includes(p.relation) ? Math.min(0.3, Number.isFinite(confidence) ? confidence : 0) : (Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0),
+  };
+}`,
+  },
   lab_orders: {
     system: LAB_ORDERS_VOICE_PROMPT,
     prepare: `(ctx, body) => {

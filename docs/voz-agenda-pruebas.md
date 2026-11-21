@@ -1,6 +1,6 @@
-# Agenda por voz · Catálogo de pruebas
+# Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1309 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1435 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -432,6 +432,146 @@ G · General (cualquier página): desplazarse, prioridad de la ventana o panel a
 - **CO-SCREEN · El contexto lo da la página, sin apagar el micrófono**
   - al pasar a otra página cambian los comandos y el micrófono sigue prendido
   - lo general (desplazarse) funciona en cualquier página
+
+## 06-navigation.spec.ts (126)
+
+NV · Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.
+
+- **NV-PARSE · Qué es ir a otra página (es)**
+  - «andá a pacientes» → Pacientes
+  - «ir a la caja» → Cashier
+  - «llevame a la agenda» → Appointments
+  - «andá al calendario» → Appointments
+  - «quiero ir a los turnos» → Appointments
+  - «vamos al centro de alertas» → AlertsCenter
+  - «andá a mi consultorio» → DoctorWorkspace
+  - «volvé al inicio» → Dashboard
+  - «ir al panel de control» → Dashboard
+  - «llevame a reportes de deudores» → ReportDeudores
+  - «andá al reporte de cierre de caja» → ReportCierreCaja
+  - «navegá a facturas» → Invoices
+  - «andá a presupuestos» → Quotes
+  - «andá a los presupuestos de compra» → PurchaseQuotes
+  - «entrá a órdenes de laboratorio» → LabOrders
+  - «pasame al laboratorio» → LabOrders
+  - «andá a la pantalla de estudios» → Studies
+  - «ir a configuración del negocio» → BusinessSetup
+  - «andá a doctores» → Doctors
+  - «llevame a las sedes» → Sedes
+  - «andá a facturación y cobranza» → ReportFactCobranza
+  - «andá a la sección de proveedores» → Providers
+  - «quiero ir a la pantalla tv» → TVDisplay
+  - «ir a sesiones de caja» → CashSessions
+  - «andá a ventas» → Sales
+  - «ir a usuarios» → SystemUsers
+  - «andá a monedas» → Currencies
+  - «abrí la caja» → Cashier
+  - «mostrame los reportes» → Reports
+  - «abrí el centro de alertas» → AlertsCenter
+  - «quiero ver los deudores» → ReportDeudores
+  - «centro de alertas» → AlertsCenter
+  - «mi consultorio» → DoctorWorkspace
+  - «andá a pacientes y buscá a Juan» → Pacientes + «buscá a Juan»
+  - «andá a la agenda y mostrame mañana» → Appointments + «mostrame mañana»
+  - «ir a la caja, abrí la caja» → Cashier + «abrí la caja»
+  - «llevame a la agenda y después poné vista semana» → Appointments + «poné vista semana»
+- **NV-PARSE · Qué es ir a otra página (en)**
+  - «go to patients» → Pacientes
+  - «take me to the cashier» → Cashier
+  - «go to the calendar» → Appointments
+  - «navigate to appointments» → Appointments
+  - «open the alerts center» → AlertsCenter
+  - «go to my workspace» → DoctorWorkspace
+  - «go home» → Dashboard
+  - «go back to the dashboard» → Dashboard
+  - «show me the debtors report» → ReportDeudores
+  - «take me to lab orders» → LabOrders
+  - «open invoices» → Invoices
+  - «go to purchase invoices» → PurchaseInvoices
+  - «switch to the reports» → Reports
+  - «go to business setup» → BusinessSetup
+  - «head over to suppliers» → Providers
+  - «bring me to the cash closing report» → ReportCierreCaja
+  - «open the patients page» → Pacientes
+  - «go to the calendar and switch to week view» → Appointments + «switch to week view»
+  - «go to patients and then search for John» → Pacientes + «search for John»
+- **NV-PARSE · Ambiguo: se pregunta solo si dos quedan igual**
+  - «andá a tratamientos» → realizados o en curso
+  - «andá a facturas» no es ambiguo (Facturas de venta)
+  - «andá a pagos» → Pagos (no pagos de compra)
+  - «andá a calendarios» → configuración de calendarios
+- **NV-PARSE · No es ir a otra página**
+  - «andá a mañana»
+  - «ir al lunes»
+  - «andá a la semana que viene»
+  - «go to next week»
+  - «go to tomorrow»
+  - «ir a hoy»
+  - «andá al 15»
+  - «andá a la cita de Juan»
+  - «pasala a confirmada»
+  - «cambiá a vista mes»
+  - «switch to week view»
+  - «volvé atrás»
+  - «go back»
+  - «andá al final»
+  - «abrí la agenda de mañana»
+  - «andá a la agenda del doctor Pérez»
+  - «la caja»
+  - «la agenda»
+  - «sí»
+  - «no»
+  - «la segunda»
+  - «cancelar»
+  - «abrí la cuenta»
+  - «mostrame la historia»
+  - «andá al paciente Juan Pérez»
+  - «move it to 3pm»
+  - «volvé a intentar»
+- **NV-COVER · Cada destino del menú se reconoce por su nombre, en cada idioma**
+  - es: los 96 destinos
+  - es-ES: los 96 destinos
+  - en: los 96 destinos
+  - todos los ítems del menú son destinos
+- **NV · Ir a otra página**
+  - NV-001 desde la agenda «andá a pacientes»: va y cambia el contexto
+  - NV-002 «llevame a reportes de deudores»
+  - NV-003 desde otra página «andá a la agenda»: llega con la voz de la agenda
+  - NV-004 ya está ahí: lo dice y no navega
+  - NV-005 sin permiso: lo dice y no navega
+  - NV-006 ambiguo: pregunta entre los dos y va al elegido
+  - NV-007 ambiguo por número
+  - NV-008 sin IA: lo local alcanza
+  - NV-009 «abrí la caja» desde otra página
+  - NV-010 el nombre solo de varias palabras: «centro de alertas»
+  - NV-011 «volvé al inicio»
+  - NV-012 es-ES «ve a pacientes» (tú)
+  - NV-013 es-ES «llévame a la caja»
+- **NV-CHAIN · Primero va, después sigue en la página nueva**
+  - NV-CH-001 «andá a la agenda y mostrame mañana» desde pacientes
+  - NV-CH-002 «llevame a la agenda y después poné vista mes»
+  - NV-CH-003 ya en la agenda: «andá a la agenda y poné vista día» hace solo lo segundo
+  - NV-CH-004 lo de la agenda no corre en otra página: «andá a pacientes y poné vista mes»
+  - NV-CH-005 en «go to the calendar and switch to month view»
+  - NV-CH-006 en «take me to the calendar, then go to tomorrow»
+  - NV-CH-007 sin permiso no sigue con el resto
+- **NV-CTX · Ir a otra página es un cambio de contexto**
+  - NV-CTX-001 suelta la cita en foco
+  - NV-CTX-002 con una ventana abierta: la cierra y va
+  - NV-CTX-003 con una pregunta abierta: pregunta si deja lo que se estaba haciendo
+  - NV-CTX-004 con una pregunta abierta, «no»: sigue con lo de antes
+  - NV-CTX-005 en la agenda «abrí la configuración» es el engranaje, no la configuración del negocio
+  - NV-CTX-006 en la agenda «mostrame las citas de hoy» sigue siendo de la agenda
+  - NV-CTX-007 en otra página se puede seguir hablando con la voz general (desplazarse)
+- **NV-AI · Con IA solo cuando lo dicho no es un nombre del menú**
+  - NV-AI-001 «llevame donde veo quién nos debe plata» → Deudores
+  - NV-AI-002 desde la agenda: primero la IA de la agenda (no es suyo), después la general
+  - NV-AI-003 la IA no puede inventar un destino
+  - NV-AI-004 a la IA solo le llegan los destinos con permiso
+  - NV-AI-005 con lo que sigue: va y lo hace en la página nueva
+  - NV-AI-006 confianza media: pregunta antes
+  - NV-AI-007 una charla de la sala no se le manda a la IA
+  - NV-AI-008 en «take me where I see today’s income»
 
 ## 10-atomic-es.spec.ts (28)
 
