@@ -1,11 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3000';
+
+// La sesión guardada del e2e se reusa si es reciente (6 h): no se inicia sesión en cada corrida.
+// VOICE_LIVE_LOGIN=1 fuerza el inicio de sesión.
+const AUTH = path.resolve(__dirname, 'e2e/.auth/user.json');
+const freshAuth = !process.env.VOICE_LIVE_LOGIN && fs.existsSync(AUTH) && Date.now() - fs.statSync(AUTH).mtimeMs < 6 * 3600 * 1000;
 
 /**
  * La voz en la app real (pnpm test:voice:live): Chrome con la app corriendo (pnpm dev) y la
@@ -31,7 +37,7 @@ export default defineConfig({
     {
       name: 'voice-live',
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
-      dependencies: ['setup'],
+      dependencies: freshAuth ? [] : ['setup'],
       testMatch: /tests\/voice-live\/.*\.live\.ts/,
     },
   ],

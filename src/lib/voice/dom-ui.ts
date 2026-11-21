@@ -90,6 +90,12 @@ function ownLabel(el: El, all: Element[]): string {
 
 function buttonLabel(el: El): string {
   const own = text(el);
+  // Botón tipo tarjeta (título + descripción): el nombre es el título.
+  if (own.length > 40 && typeof (el as unknown as Element).querySelectorAll === 'function') {
+    const parts = Array.from((el as unknown as Element).querySelectorAll('h1, h2, h3, h4, strong, b, [class*="font-semibold"], [class*="font-medium"], span, p'))
+      .map((n) => text(n)).filter((x) => x.length >= 2 && x.length <= 40);
+    if (parts.length) return parts[0];
+  }
   if (own) return own;
   const aria = attr(el, 'aria-label') ?? attr(el, 'title');
   if (aria) return aria.trim();
@@ -173,6 +179,14 @@ export function readSurface(): UiSurface | null {
     }
   }
   return { root, title, isOverlay: overlays.length > 0, controls };
+}
+
+const CREATE_LABEL_RE = /^(?:\+\s*)?(?:crear|nuev[oa]|agregar|anadir|dar de alta|alta|create|new|add)\b/;
+
+/** Los botones de alta que se ven («Crear», «Nueva sede», «Agregar etapa», «+ Nuevo»), los de arriba primero. */
+export function createButtons(surface: UiSurface | null = readSurface()): UiControl[] {
+  if (!surface) return [];
+  return surface.controls.filter((c) => c.kind === 'button' && CREATE_LABEL_RE.test(normalizeSpeech(c.label)));
 }
 
 /** Los controles de esos tipos. */
@@ -291,6 +305,20 @@ export function openOptions(): UiControl[] {
     .filter((el) => !isDisabled(el as El) && !isHidden(el))
     .map((el) => ({ kind: 'button' as const, label: text(el), key: uiKey(text(el)), element: el }))
     .filter((o) => o.label);
+}
+
+/**
+ * La caja de búsqueda de una lista abierta (selector de paciente, sede, doctor, servicio…: cmdk o un
+ * buscador dentro del popover). null si la lista no tiene buscador.
+ */
+export function openListSearchBox(): HTMLInputElement | null {
+  if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return null;
+  try {
+    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>('[cmdk-input], [data-radix-popper-content-wrapper] input[type="text"], [data-radix-popper-content-wrapper] input:not([type])'));
+    return boxes.reverse().find((el) => !isHidden(el)) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Espera a que aparezcan las opciones después de abrir la lista. */

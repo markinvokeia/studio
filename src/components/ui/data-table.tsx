@@ -314,7 +314,7 @@ export function DataTable<TData, TValue>({
     columns: () => {
       const root = voiceRootRef.current;
       return table.getAllLeafColumns()
-        .filter((c) => c.id !== 'select' && c.id !== 'actions')
+        .filter((c) => !['select', 'actions', 'id', '_id', 'uuid'].includes(c.id))
         .map((c) => {
           const th = root?.querySelector<HTMLElement>(`th[data-column-id="${CSS.escape(c.id)}"]`);
           const headerStr = typeof c.columnDef.header === 'string' ? c.columnDef.header : '';

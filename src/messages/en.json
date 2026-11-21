@@ -14567,7 +14567,9 @@
       "whichRow": "Which one?",
       "helpQuestion": "Here you can: {options}. What do you want to do?",
       "helpEmpty": "I don’t see any buttons on this screen.",
-      "askValue": "What should I enter in {field}?"
+      "askValue": "What should I enter in {field}?",
+      "whatToSearch": "Which {field} should I look for?",
+      "helpTable": "In the table too: “search…”, “sort by…”, “next page”, “50 per page”, “hide the … column”, “select row 3”, “export to Excel”."
     },
     "rail": {
       "title": "Right panel",
@@ -14932,7 +14934,8 @@
       "createFilled": "Opened the new form and entered “{name}” in {field}. Fill in the rest and say “save”.",
       "which": "Which one?",
       "opened": "Opened {label}.",
-      "notFound": "I couldn’t find that in the list."
+      "notFound": "I couldn’t find that in the list.",
+      "noCreate": "Records can't be created in this list: it's read-only."
     },
     "clinical": {
       "title": "Clinical case",

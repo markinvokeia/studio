@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 import { createVoiceSim, type VoiceSim } from './sim/harness';
-import { uiLog } from './sim/page';
+import { clearSimCrud, publishSimCrud } from './sim/crud';
+import { screen, uiLog } from './sim/page';
 
 /**
  * LI · Listas con la tabla común (src/lib/voice/commands/crud.ts): Catálogo de la clínica,
@@ -64,5 +65,29 @@ test.describe('LI-NAV · Llegar y crear', () => {
     await sim.say('andá a medicamentos y agregá uno llamado Diclofenac');
     expect(sim.navigations).toEqual(['/clinic-catalog/medications']);
     expect(uiLog).toEqual(['fill:Nombre=Diclofenac']);
+  });
+});
+
+test.describe('LI-BARE · Alta sin decir qué', () => {
+  for (const [locale, said] of [['es', 'nuevo'], ['es', 'crear uno'], ['es', 'agregá uno'], ['es-ES', 'añade uno'], ['en', 'new'], ['en', 'add one']] as const) {
+    test(`${locale} «${said}» abre el alta`, async () => { await start('/clinic-catalog/medications', locale); await sim.say(said); expect(log()).toEqual(['create']); });
+  }
+});
+
+test.describe('LI-PAGEBTN · El alta es un botón de la pantalla (no de la tabla)', () => {
+  test('«nuevo» aprieta «Crear» de la pantalla', async () => {
+    await start('/config/holidays');
+    clearSimCrud();
+    publishSimCrud({ createLabel: '' }).bridge.create = null;
+    screen.page(screen.button('Crear'));
+    await sim.say('nuevo');
+    expect(uiLog).toEqual(['press:Crear']);
+  });
+  test('una lista de consulta (sin alta) lo dice', async () => {
+    await start('/config/holidays');
+    clearSimCrud();
+    publishSimCrud({ createLabel: '' }).bridge.create = null;
+    await sim.say('nuevo');
+    expect(sim.card().message).toBe('En esta lista no se pueden crear registros: es de consulta.');
   });
 });

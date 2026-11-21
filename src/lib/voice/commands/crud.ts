@@ -1,4 +1,4 @@
-import { controlsOf, fillField, readSurface } from '@/lib/voice/dom-ui';
+import { controlsOf, createButtons, fillField, readSurface } from '@/lib/voice/dom-ui';
 import { currentRoute, isOnRoute, listNavTargets } from '@/lib/voice/nav-targets';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
@@ -69,6 +69,8 @@ export function parseCrud(normalized: string, raw: string, createLabels: string[
   const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
   if (/^(?:cuant[oa]s (?:hay|son|tenemos|tengo|registros hay)|cuant[oa]s \w+ (?:hay|tenemos)|how many (?:are there|do we have|\w+ are there))$/.test(t)) return { op: 'count' };
   if (/^(?:actualiza\w*|recarga\w*|refresca\w*|refresh|reload)(?: (?:la )?(?:lista|tabla|the list|the table))?$/.test(t)) return { op: 'refresh' };
+  // «nuevo», «crear», «agregar uno», «new», «add one»: abre el alta.
+  if (/^(?:nuev[oa]|crea\w*|crear|agrega\w*|agregar|anad\w*|da\w* de alta|alta|new|create|add)(?:\s+(?:uno|una|otro|otra|registro|one|another|a new one|record))?$/.test(t)) return { op: 'create', name: null, rawName: null };
   const create = t.match(CREATE_RE);
   if (create) {
     let rest = create[1].trim();
@@ -126,7 +128,8 @@ registerVoiceCommand<Parsed>({
     if (!all.length) return null;
     const parsed = parseCrud(normalized, raw, all.filter((b) => b.create).map((b) => b.createLabel), routeNouns());
     if (!parsed) return null;
-    if (parsed.op === 'create' && !tablesWith('create').length) return null;
+    // «nuevo» suelto en una lista de solo consulta (historiales, auditoría): se dice que acá no se crea.
+    if (parsed.op === 'create' && !tablesWith('create').length) return parsed.name === null && !parsed.rawName ? parsed : null;
     if (parsed.op === 'refresh' && !tablesWith('refresh').length) return null;
     if (parsed.op === 'open') {
       const positional = /^(?:primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|ultim[oa]|penultim[oa]|first|second|third|fourth|fifth|last)$/.test(parsed.text);
@@ -146,6 +149,13 @@ registerVoiceCommand<Parsed>({
     }
     if (parsed.op === 'refresh') { tablesWith('refresh')[0].refresh!(); await say(ctx, T(ctx, 'refreshed')); return; }
     if (parsed.op === 'create') {
+      if (!tablesWith('create').length) {
+        // El alta de la pantalla puede ser un botón propio («Crear», «Nuevo feriado»), fuera de la tabla.
+        const buttons = createButtons();
+        if (buttons.length) { buttons[0].element.click(); await say(ctx, T(ctx, 'createOpened')); return; }
+        await say(ctx, T(ctx, 'noCreate'), 'info');
+        return;
+      }
       tablesWith('create')[0].create!();
       if (!parsed.rawName) { await say(ctx, T(ctx, 'createOpened')); return; }
       const opened = await waitForForm(ctx);

@@ -577,6 +577,11 @@ async function routeToPending(top: PendingAsk, heard: string, normalized: string
     const tool = matchVoiceCommand(deps.domains, normalized, heard);
     if (tool?.command.aux) { await runAux([tool], heard); return; }
   }
+  // Pregunta liviana (el menú de ayuda): si un comando entiende lo dicho, es un pedido nuevo.
+  if (top.card.soft && deps) {
+    const soft = matchVoiceCommand(deps.domains, normalized, heard);
+    if (soft) { await switchTask(heard, () => runFound([soft], heard, opts)); return; }
+  }
   const short = wordCount(normalized) <= ANSWER_MAX_WORDS && !looksLikeCommand(normalized);
   if (short) { resolveTop(heard); return; }
 
@@ -648,7 +653,8 @@ async function switchTask(heard: string, start: () => Promise<void>): Promise<bo
   if (!deps) return false;
   const top = topPending();
   const current = store().task;
-  const yes = await askOnTop(
+  // Una pregunta liviana (el menú de ayuda) se deja sin preguntar: lo nuevo es lo que se quiere.
+  const yes = top?.card.soft ? true : await askOnTop(
     {
       title: deps.t('VoiceCommands.switchTitle'),
       message: deps.t('VoiceCommands.switchQuestion', { current: current ?? '', next: heard }),

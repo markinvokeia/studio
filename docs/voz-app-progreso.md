@@ -48,11 +48,13 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 19 | **Contexto por capas** | `core` | ✅ Ventana > pestaña activa del detalle > detalle > lista (`data-voice-panel` en TwoPanelLayout): la voz genérica y las tablas van primero a lo de arriba; si lo nombrado está más abajo, se cierra lo de arriba. Las notificaciones con botones (`ToastAction`) se leen y ofrecen sus botones. El Escape que manda la voz ya no la cancela | `03`, `9c` |
 | 20 | **Filtros de los reportes** | `reports` | ✅ Cualquier selector de la barra (caja, método de pago, moneda, sede, doctor, tipo…): la voz abre cada uno, busca la opción nombrada («la caja Sede Carrasco», «solo egresos», «en dólares»), la elige y regenera; «¿qué cajas hay?» lee las opciones; «sacá los filtros» | `99` + vivo |
 
+| 21 | **Selectores con búsqueda** (paciente, sede, doctor, servicio…: los 36 con caja de búsqueda) | `core.screen` | ✅ «paciente Carolina Píriz», «elegí Leonardo en paciente», «doctor Martínez»: abre, escribe lo dicho en la caja, espera lo que sale y elige; varios iguales, pregunta entre esos; «elegí el paciente» sin decir cuál pregunta qué buscar | `07` |
+| 22 | **Configuración del negocio y Sistema** (las 37 pantallas) | `crud` + `core.screen` | ✅ Recorrido en vivo por todas (`e2e/tests/voice-live/config-sweep.live.ts`): «¿qué puedo hacer acá?» (sin la paginación, el mapa ni textos largos; con lo que se le puede pedir a la tabla), tabla (columnas, elegir, cerrar el detalle), «nuevo» abre el alta (en las listas de consulta dice que no se crea). El menú de ayuda es una pregunta liviana: lo que se pide después se hace sin «¿cambiamos de tarea?» | vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).
-3. **Selectores con búsqueda** (paciente, sede, doctor…): lo dicho se escribe en la caja de búsqueda y se elige de lo que sale.
-5. **Configuración del negocio** y **Sistema** a fondo, página por página.
+3. ~~Selectores con búsqueda~~ (fila 21). 5. ~~Configuración del negocio y Sistema~~ (fila 22).
 
 Cada página se cierra con su batería de pruebas en verde (es y en), el flujo de n8n publicado, este documento actualizado y un commit propio.
 

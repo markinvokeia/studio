@@ -4624,6 +4624,8 @@ export interface VoiceCard {
   rich?: boolean;
   /** No se esconde sola (una respuesta larga, como la del agente clínico): hasta cerrarla o hablar. */
   sticky?: boolean;
+  /** Pregunta liviana (el menú de «¿qué puedo hacer acá?»): un pedido nuevo la reemplaza sin preguntar. */
+  soft?: boolean;
 }
 
 /** Lo que un comando de voz puede hacer mientras corre. Todo se corta con `signal` (Escape, otro comando). */

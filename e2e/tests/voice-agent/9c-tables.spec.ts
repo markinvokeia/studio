@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { clearSimCrud, openSimExportDialog, publishSimCrud, type SimCrud } from './sim/crud';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
+import { screen } from './sim/page';
 
 /**
  * TB · Tablas (src/lib/voice/commands/table.ts): todo lo que se hace con la tabla común, en
@@ -155,5 +156,17 @@ test.describe('TB-LAYER · La tabla de arriba primero', () => {
     // La interna se publicó después: en el simulador (sin DOM) es la misma capa; gana la más reciente.
     await sim.say('seleccioná el 2');
     expect([...inner.log, ...log()]).toHaveLength(1);
+  });
+});
+
+test.describe('TB-HELP · Después de «¿qué puedo hacer acá?»', () => {
+  test('un pedido nuevo se hace sin preguntar si cambiamos de tarea', async () => {
+    await start();
+    screen.page(screen.button('Crear'), screen.button('Refrescar'));
+    await sim.say('qué puedo hacer acá');
+    expect(sim.card().message).toMatch(/En la tabla también/);
+    await sim.say('ordená por nombre');
+    expect(log()).toEqual(['sort:nombre:asc']);
+    expect(sim.card().message).not.toMatch(/Cambiamos de tarea/);
   });
 });

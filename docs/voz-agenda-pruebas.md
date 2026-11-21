@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2171 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2191 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -579,7 +579,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (64)
+## 07-screen.spec.ts (75)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -657,6 +657,19 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
 - **UI-ES-ES · Castellano (tú)**
   - «pulsa nuevo paciente» y «busca a Juan»
   - «qué puedo hacer aquí»
+- **UI-SEARCHSEL · Selectores con búsqueda (paciente, sede, doctor)**
+  - «paciente Carolina Píriz» escribe en la búsqueda y elige
+  - «elegí a Leonardo en paciente»
+  - varios con ese nombre: pregunta entre esos
+  - «elegí el paciente» sin decir cuál: pregunta qué buscar y lo escribe
+  - «la sede Pocitos» y «doctor Martínez»
+  - en «set the doctor to Benítez»
+- **UI-CREATE · «nuevo» aprieta el botón de alta de la pantalla**
+  - es «nuevo» → Nueva sede
+  - es «agregá uno» → Agregar etapa
+  - es-ES «añade uno» → Agregar etapa
+  - en «new» → New template
+  - con dos botones de alta no adivina
 
 ## 08-rail.spec.ts (60)
 
@@ -2406,7 +2419,7 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
   - «qué cajas hay» lee las opciones
   - el período sigue siendo el período
 
-## 9a-crud.spec.ts (29)
+## 9a-crud.spec.ts (37)
 
 LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
 
@@ -2442,6 +2455,16 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
   - en «open amoxicilina» y «how many are there»
 - **LI-NAV · Llegar y crear**
   - «andá a medicamentos y agregá uno llamado Diclofenac»
+- **LI-BARE · Alta sin decir qué**
+  - es «nuevo» abre el alta
+  - es «crear uno» abre el alta
+  - es «agregá uno» abre el alta
+  - es-ES «añade uno» abre el alta
+  - en «new» abre el alta
+  - en «add one» abre el alta
+- **LI-PAGEBTN · El alta es un botón de la pantalla (no de la tabla)**
+  - «nuevo» aprieta «Crear» de la pantalla
+  - una lista de consulta (sin alta) lo dice
 
 ## 9b-clinical-agent.spec.ts (49)
 
@@ -2504,7 +2527,7 @@ CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agen
   - markdown: negritas, listas y títulos sin los símbolos
   - para leer en voz alta, sin asteriscos ni numerales
 
-## 9c-tables.spec.ts (89)
+## 9c-tables.spec.ts (90)
 
 TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.
 
@@ -2604,3 +2627,5 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
   - sin nada para exportar lo dice
 - **TB-LAYER · La tabla de arriba primero**
   - con dos tablas (lista y la de una pestaña del detalle), «siguiente página» va a la de arriba
+- **TB-HELP · Después de «¿qué puedo hacer acá?»**
+  - un pedido nuevo se hace sin preguntar si cambiamos de tarea

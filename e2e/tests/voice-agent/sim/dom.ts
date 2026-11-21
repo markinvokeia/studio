@@ -157,6 +157,7 @@ g.document = {
     if (selector === '*') return [page];
     if (selector === '[role="option"]') return portal.querySelectorAll('[role="option"]');
     if (selector === '[data-voice-toast-action]') return toasts.flatMap((t) => t.buttons.filter((b) => b.textContent));
+    if (selector.includes('[cmdk-input]')) return portal.querySelectorAll('[cmdk-input]');
     return dialogs.filter((d) => selector.split(',').some((part) => matches(d, part.trim())));
   },
   querySelector: (selector: string) => {

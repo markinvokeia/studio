@@ -14567,7 +14567,9 @@
       "whichRow": "¿Cuál?",
       "helpQuestion": "Acá podés: {options}. ¿Qué querés hacer?",
       "helpEmpty": "No veo botones en esta pantalla.",
-      "askValue": "¿Qué pongo en {field}?"
+      "askValue": "¿Qué pongo en {field}?",
+      "whatToSearch": "¿Qué {field} busco?",
+      "helpTable": "En la tabla también: «buscá…», «ordená por…», «siguiente página», «50 por página», «ocultá la columna…», «seleccioná el 3», «exportá a Excel»."
     },
     "rail": {
       "title": "Panel derecho",
@@ -14932,7 +14934,8 @@
       "createFilled": "Abrí el alta y puse «{name}» en {field}. Completá lo que falta y decí «guardar».",
       "which": "¿Cuál?",
       "opened": "Abrí {label}.",
-      "notFound": "No encontré eso en la lista."
+      "notFound": "No encontré eso en la lista.",
+      "noCreate": "En esta lista no se pueden crear registros: es de consulta."
     },
     "clinical": {
       "title": "Caso clínico",

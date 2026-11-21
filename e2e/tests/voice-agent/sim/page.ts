@@ -124,6 +124,29 @@ export const screen = {
     };
     return el;
   },
+  /** Selector con búsqueda (cmdk): al abrirlo hay una caja; lo escrito filtra las opciones (como el de paciente). */
+  searchSelect(label: string, options: string[], value = '') {
+    const el = new FakeEl('BUTTON', { role: 'combobox', 'aria-label': label }, value);
+    const show = (query: string) => {
+      for (let i = portal.children.length - 1; i >= 0; i--) if (portal.children[i].getAttribute('role') === 'option') portal.children.splice(i, 1);
+      const words = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(' ').filter(Boolean);
+      for (const option of options) {
+        const plain = option.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (!words.every((w) => plain.includes(w))) continue;
+        const o = new FakeEl('DIV', { role: 'option' }, option);
+        o.onClick = () => { el.own = option; uiLog.push(`select:${label}=${option}`); portal.children.length = 0; };
+        portal.append(o);
+      }
+    };
+    el.onClick = () => {
+      portal.children.length = 0;
+      const box = new FakeEl('INPUT', { 'cmdk-input': '' });
+      box.onInput = (v) => { uiLog.push(`type:${label}=${v}`); show(v); };
+      portal.append(box);
+      show('');
+    };
+    return el;
+  },
   table(rows: string[], onOpen?: (index: number) => void) {
     const body = new FakeEl('TBODY');
     rows.forEach((text, i) => {

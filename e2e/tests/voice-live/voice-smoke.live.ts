@@ -193,6 +193,13 @@ const ES: Scenario[] = [
     { say: 'vista de lista', shows: /Vista de lista/ },
     { say: 'vista de tabla', shows: /Vista de tabla/ },
   ] },
+  { name: 'configuración: «nuevo» con el botón de la pantalla', path: '/es/config/holidays', steps: [
+    { say: 'nuevo', dialog: true },
+    { say: 'qué columnas hay', shows: /Columnas: Fecha/ },
+  ] },
+  { name: 'configuración: datos de la clínica', path: '/es/config/clinics', steps: [
+    { say: 'nuevo', dialog: true },
+  ] },
   { name: 'alertas: leer', path: '/es/alerts', steps: [
     { say: 'cuántas alertas hay', shows: /alerta/i },
     { say: 'qué alertas críticas hay' },

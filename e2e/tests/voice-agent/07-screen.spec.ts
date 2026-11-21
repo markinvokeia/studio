@@ -223,3 +223,59 @@ test.describe('UI-ES-ES · Castellano (tú)', () => {
     expect(sim.card().message).toMatch(/^Aquí puedes:/);
   });
 });
+
+test.describe('UI-SEARCHSEL · Selectores con búsqueda (paciente, sede, doctor)', () => {
+  const PATIENTS = ['Juan Pérez', 'Juan Bengoa', 'Carolina Píriz Fernández', 'Leonardo Acosta Ramos', 'Martín Machado'];
+  test.beforeEach(async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.searchSelect('Paciente', PATIENTS), screen.searchSelect('Sede', ['Centro', 'Pocitos', 'Carrasco']), screen.searchSelect('Doctor', ['Raidel Martínez', 'Sofía Benítez']));
+  });
+  test('«paciente Carolina Píriz» escribe en la búsqueda y elige', async () => {
+    await sim.say('paciente Carolina Píriz');
+    expect(uiLog).toEqual(['type:Paciente=Carolina Píriz', 'select:Paciente=Carolina Píriz Fernández']);
+  });
+  test('«elegí a Leonardo en paciente»', async () => {
+    await sim.say('elegí Leonardo en paciente');
+    expect(uiLog).toEqual(['type:Paciente=Leonardo', 'select:Paciente=Leonardo Acosta Ramos']);
+  });
+  test('varios con ese nombre: pregunta entre esos', async () => {
+    await sim.say('paciente Juan');
+    expect(sim.card().choices).toEqual(['Juan Pérez', 'Juan Bengoa']);
+    await sim.say('Bengoa');
+    expect(uiLog).toEqual(['type:Paciente=Juan', 'select:Paciente=Juan Bengoa']);
+  });
+  test('«elegí el paciente» sin decir cuál: pregunta qué buscar y lo escribe', async () => {
+    await sim.say('elegí el paciente');
+    expect(sim.card().message).toBe('¿Qué Paciente busco?');
+    await sim.say('Martín Machado');
+    expect(uiLog).toEqual(['type:Paciente=Martín Machado', 'select:Paciente=Martín Machado']);
+  });
+  test('«la sede Pocitos» y «doctor Martínez»', async () => {
+    await sim.sayAll('sede Pocitos', 'doctor Martínez');
+    expect(uiLog).toEqual(['type:Sede=Pocitos', 'select:Sede=Pocitos', 'type:Doctor=Martínez', 'select:Doctor=Raidel Martínez']);
+  });
+  test('en «set the doctor to Benítez»', async () => {
+    sim.dispose();
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
+    screen.page(screen.searchSelect('Doctor', ['Raidel Martínez', 'Sofía Benítez']));
+    await sim.say('set the doctor to Benítez');
+    expect(uiLog).toEqual(['type:Doctor=Benítez', 'select:Doctor=Sofía Benítez']);
+  });
+});
+
+test.describe('UI-CREATE · «nuevo» aprieta el botón de alta de la pantalla', () => {
+  for (const [locale, said, label] of [['es', 'nuevo', 'Nueva sede'], ['es', 'agregá uno', 'Agregar etapa'], ['es-ES', 'añade uno', 'Agregar etapa'], ['en', 'new', 'New template']] as const) {
+    test(`${locale} «${said}» → ${label}`, async () => {
+      sim = await createVoiceSim({ locale, route: '/purchases/providers' });
+      screen.page(screen.button('Guardar'), screen.button(label), screen.button('Eliminar'));
+      await sim.say(said);
+      expect(uiLog).toEqual([`press:${label}`]);
+    });
+  }
+  test('con dos botones de alta no adivina', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.button('Nueva sede'), screen.button('Nuevo consultorio'));
+    await sim.say('nuevo');
+    expect(uiLog).toEqual([]);
+  });
+});

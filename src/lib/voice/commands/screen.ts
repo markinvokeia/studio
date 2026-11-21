@@ -1,7 +1,8 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
-import { controlsOf, fillField, findControl, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
+import { controlsOf, createButtons, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed } from '@/lib/voice/parse';
 import { registerVoiceCommand } from '@/lib/voice/registry';
+import { listVoiceBridges } from '@/lib/voice/screen-bridge';
 
 import type { VoiceCommandContext } from '@/lib/types';
 
@@ -150,7 +151,8 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
     if (control) return { op: 'toggle', control, on: !!on };
   }
   const select = parseSelect(normalized, controlsOf(surface, 'select'));
-  if (select) return select;
+  // Lo elegido como se dijo (mayúsculas y tildes): en un selector con búsqueda se escribe tal cual.
+  if (select) return select.op === 'select' && select.option ? { ...select, option: rawMiddle(raw, select.option) } : select;
   const fill = parseFill(normalized, raw, controlsOf(surface, 'field', 'search'));
   if (fill) return fill;
   const search = normalized.match(SEARCH_RE);
@@ -163,6 +165,11 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   // El texto de un botón o pestaña dicho tal cual («guardar», «nuevo paciente», «siguiente»).
   const exact = findControl(normalized, pressables);
   if (exact) return { op: 'press', control: exact };
+  // «nuevo», «crear», «agregar» sueltos: el botón de alta de la pantalla («Nueva sede», «Agregar etapa»).
+  if (/^(?:nuev[oa]|crea\w*|crear|agrega\w*|agregar|anad\w*|new|create|add)(?:\s+(?:uno|una|otro|otra|one|another))?$/.test(normalized)) {
+    const create = createButtons(surface);
+    if (create.length === 1) return { op: 'press', control: create[0] };
+  }
   return null;
 }
 
@@ -212,15 +219,47 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
     case 'select': {
       const { control } = parsed;
       control.element.click();
-      const options = await waitForOptions(ctx.signal);
+      let options = await waitForOptions(ctx.signal);
+      // Selector con búsqueda (paciente, sede, doctor…): lo dicho se escribe en su caja y se elige de lo que sale.
+      const box = openListSearchBox();
+      let wanted = parsed.option;
+      if (box && !wanted) {
+        const question = t('VoiceCommands.ui.whatToSearch', { field: control.label });
+        wanted = (await ctx.ask({ title: title(ctx), message: question, tone: 'info' }, question)).trim() || null;
+        if (!wanted) return;
+      }
+      if (box && wanted) {
+        const before = options.map((o) => o.label).join('|');
+        typeInto(box, wanted);
+        const start = Date.now();
+        while (Date.now() - start < 2500 && !ctx.signal.aborted) {
+          await new Promise((r) => setTimeout(r, 120));
+          const now = openOptions();
+          if (now.map((o) => o.label).join('|') !== before || (Date.now() - start > 600 && now.length)) { options = now; if (!isScreenLoading()) break; }
+        }
+        options = openOptions();
+      }
       if (!options.length) {
         const message = t('VoiceCommands.ui.noOptions', { field: control.label });
         await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
         return;
       }
-      let option = parsed.option ? findControl(parsed.option, options, true) : null;
-      if (parsed.option && !option) {
-        const message = t('VoiceCommands.ui.noOption', { option: parsed.option, field: control.label });
+      let option: UiControl | null = null;
+      if (wanted) {
+        // Los que tienen todas las palabras dichas: uno solo es ese; varios (y ninguno exacto), se pregunta entre esos.
+        const said = normalizeSpeech(wanted).split(' ').filter(Boolean);
+        const exact = options.find((o) => normalizeSpeech(o.label) === normalizeSpeech(wanted!));
+        const hits = options.filter((o) => { const l = normalizeSpeech(o.label); return said.every((w) => l.includes(w)); });
+        if (exact) option = exact;
+        else if (hits.length === 1) option = hits[0];
+        else if (hits.length > 1) {
+          const question = t('VoiceCommands.ui.whichOption', { field: control.label });
+          const index = await ctx.choose({ title: title(ctx), message: question, tone: 'info', choices: hits.slice(0, 8).map((o) => ({ label: o.label })) }, `${question} ${hits.slice(0, 5).map((o, i) => `${i + 1}: ${o.label}`).join('. ')}.`);
+          option = hits[index];
+        } else option = findControl(wanted, options, true);
+      }
+      if (wanted && !option) {
+        const message = t('VoiceCommands.ui.noOption', { option: wanted, field: control.label });
         // Se deja la lista abierta para elegir con la voz o con el mouse.
         const question = `${message} ${t('VoiceCommands.ui.whichOption', { field: control.label })}`;
         const index = await ctx.choose({ title: title(ctx), message: question, tone: 'info', choices: options.map((o) => ({ label: o.label })) }, `${question} ${options.slice(0, 8).map((o, i) => `${i + 1}: ${o.label}`).join('. ')}.`);
@@ -253,15 +292,18 @@ async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
     }
     case 'help': {
       const surface = readSurface();
-      const options = surface ? [...controlsOf(surface, 'tab'), ...controlsOf(surface, 'button', 'link')].filter((c, i, all) => all.findIndex((o) => o.key === c.key) === i).slice(0, 12) : [];
+      // Lo que sirve decir: sin la paginación («1–5/5»), los créditos del mapa ni textos largos.
+      const useful = (c: UiControl) => c.label.length <= 40 && !/^\d+\s*[–-]\s*\d+\s*\/\s*\d+$/.test(c.label) && !/^(?:leaflet|openstreetmap|open calendar)$/i.test(c.label);
+      const options = surface ? [...controlsOf(surface, 'tab'), ...controlsOf(surface, 'button', 'link')].filter(useful).filter((c, i, all) => all.findIndex((o) => o.key === c.key) === i).slice(0, 12) : [];
+      const tableHint = listVoiceBridges('crud').some(Boolean) ? ` ${t('VoiceCommands.ui.helpTable')}` : '';
       if (!options.length) {
         const message = t('VoiceCommands.ui.helpEmpty');
         await ctx.finish({ title: title(ctx), message, tone: 'info' }, message);
         return;
       }
       const list = options.slice(0, 6).map((o) => o.label).join(', ');
-      const question = t('VoiceCommands.ui.helpQuestion', { options: list });
-      const index = await ctx.choose({ title: title(ctx), message: question, tone: 'info', choices: options.map((o) => ({ label: o.label })) }, question);
+      const question = `${t('VoiceCommands.ui.helpQuestion', { options: list })}${tableHint}`;
+      const index = await ctx.choose({ title: title(ctx), message: question, tone: 'info', choices: options.map((o) => ({ label: o.label })), soft: true }, question);
       options[index].element.click();
       await done(ctx, t('VoiceCommands.dialogPressed', { label: options[index].label }));
     }
