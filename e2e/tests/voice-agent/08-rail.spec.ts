@@ -53,7 +53,7 @@ test.describe('RL-BILL · Cobro rápido', () => {
     ['en', 'open quick billing for Roberto Díaz', 'bill:p8:Roberto Díaz'],
   ] as const) {
     test(`${locale} «${said}»`, async () => {
-      sim = await createVoiceSim({ locale, route: '/patients' });
+      sim = await createVoiceSim({ locale, route: '/purchases/providers' });
       await sim.say(said);
       expect(sim.rail.log).toEqual([want]);
     });

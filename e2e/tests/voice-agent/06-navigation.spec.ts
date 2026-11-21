@@ -157,7 +157,7 @@ test.describe('NV · Ir a otra página', () => {
     await sim.say('andá a pacientes');
     expect(sim.navigations).toEqual(['/patients']);
     expect(sim.route()).toBe('/patients');
-    expect(sim.domains()).toEqual(['core']);
+    expect(sim.domains()).toEqual(['patients', 'core']);
     expect(sim.card().message).toBe('Abro Pacientes.');
   });
   test('NV-002 «llevame a reportes de deudores»', async () => {
@@ -167,7 +167,7 @@ test.describe('NV · Ir a otra página', () => {
   });
   test('NV-003 desde otra página «andá a la agenda»: llega con la voz de la agenda', async () => {
     sim = await createVoiceSim({ locale: 'es', route: '/patients' });
-    expect(sim.domains()).toEqual(['core']);
+    expect(sim.domains()).toEqual(['patients', 'core']);
     await sim.say('andá a la agenda');
     expect(sim.navigations).toEqual(['/appointments']);
     expect(sim.domains()).toEqual(['calendar', 'core']);

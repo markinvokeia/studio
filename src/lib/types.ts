@@ -5272,3 +5272,44 @@ export interface CashCountVoiceBridge {
   setAll: (quantity: number) => void;
   loadLast: (() => void) | null;
 }
+
+/** Pacientes por voz (src/lib/voice/commands/patients.ts): la lista y la ficha elegida. */
+export interface PatientsVoiceBridge {
+  loading: boolean;
+  rows: Array<{ id: string; name: string; document: string; phone: string; email: string }>;
+  total: number;
+  search: (text: string) => void;
+  select: (id: string) => void;
+  filters: { debtors: boolean; active: boolean; date: string | null };
+  setDebtors: ((on: boolean) => void) | null;
+  setActive: (on: boolean) => void;
+  setDatePreset: (preset: 'today' | 'week' | 'month' | 'allTime') => void;
+  clearFilters: () => void;
+  refresh: () => void;
+  create: (() => void) | null;
+  /** La ficha abierta (null: ninguna). */
+  selected: { id: string; name: string } | null;
+  /** Lo que se sabe del paciente (citas, deuda, pagos…) para contestar preguntas. */
+  getFacts: (patient: { id: string; name: string }, needs: Array<'appointments' | 'financial' | 'ledger' | 'treatments'>) => Promise<import('@/services/patient-facts').PatientFacts>;
+  tab: 'info' | 'clinical' | 'financial';
+  setTab: (tab: 'info' | 'clinical' | 'financial') => void;
+  closeDetail: () => void;
+  /** Acciones de la ficha; null = no se puede (permiso o sin paciente). */
+  actions: {
+    edit: (() => void) | null;
+    appointment: (() => void) | null;
+    quote: (() => void) | null;
+    invoice: (() => void) | null;
+    prepaid: (() => void) | null;
+    bill: (() => void) | null;
+    session: (() => void) | null;
+    aesthetic: (() => void) | null;
+    perio: (() => void) | null;
+    odontogram: (() => void) | null;
+    document: (() => void) | null;
+    instruction: (() => void) | null;
+    prescription: (() => void) | null;
+    printSummary: (() => void) | null;
+    discharge: (() => void) | null;
+  };
+}

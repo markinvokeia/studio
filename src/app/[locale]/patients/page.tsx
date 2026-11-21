@@ -118,6 +118,10 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import { loadPatientFacts } from '@/services/patient-facts';
+import type { PatientsVoiceBridge } from '@/lib/types';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
@@ -449,6 +453,13 @@ function UsersTableWithCards({
       }}
     />
   );
+}
+
+/** Publica Pacientes para la voz (aparte, para no tocar la memoización de la página). */
+function PatientsVoice({ value }: { value: PatientsVoiceBridge }) {
+  useVoiceScreen(['patients']);
+  useVoiceBridge('patients', value);
+  return null;
 }
 
 export default function UsersPage() {
@@ -1403,8 +1414,49 @@ export default function UsersPage() {
     }
   ];
 
+  // Voz: «buscá a Juan», «abrí el segundo», «solo los deudores», «la historia clínica», «nueva
+  // sesión», «hacele un presupuesto», «cobrale», «¿cuánto debe?». Ver src/lib/voice/commands/patients.ts.
+  const clinical = (bump: () => void) => () => { setActiveTab('clinical'); setTimeout(bump, 0); };
+  const voiceBridge: PatientsVoiceBridge = {
+    loading: isRefreshing,
+    rows: users.map((u: User) => ({ id: String(u.id), name: u.name ?? '', document: String(u.identity_document ?? ''), phone: String(u.phone_number ?? ''), email: String(u.email ?? '') })),
+    total: userCount,
+    search: (text) => { setPagination((prev) => ({ ...prev, pageIndex: 0 })); setColumnFilters([{ id: 'email', value: text }]); },
+    select: (id) => { const u = users.find((x: User) => String(x.id) === id); if (u) handleRowSelectionChange([u]); },
+    filters: { debtors: showDebtors, active: showOnlyActive, date: datePreset },
+    setDebtors: canSearchDebtors ? (on) => setShowDebtors(on) : null,
+    setActive: (on) => setShowOnlyActive(on),
+    setDatePreset: (preset) => handleDatePreset(preset),
+    clearFilters: handleClearFilters,
+    refresh: () => { void loadUsers(); },
+    create: canCreate ? () => { void handleCreate(); } : null,
+    selected: selectedUser ? { id: String(selectedUser.id), name: selectedUser.name ?? '' } : null,
+    getFacts: (patient, needs) => loadPatientFacts(patient, needs),
+    tab: activeTab,
+    setTab: (tab) => setActiveTab(tab),
+    closeDetail: handleCloseDetails,
+    actions: selectedUser ? {
+      edit: canUpdate ? () => handleEdit(selectedUser) : null,
+      appointment: canCreateAppointment ? () => { loadApptData(); setIsAppointmentDialogOpen(true); } : null,
+      quote: () => setIsQuoteDialogOpen(true),
+      invoice: () => setIsInvoiceDialogOpen(true),
+      prepaid: () => setIsPrepaidDialogOpen(true),
+      bill: canQuickBill ? () => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name }) : null,
+      session: clinical(() => setCreateSessionTrigger((n) => n + 1)),
+      aesthetic: clinical(() => setCreateAestheticTrigger((n) => n + 1)),
+      perio: clinical(() => setCreatePerioTrigger((n) => n + 1)),
+      odontogram: clinical(() => setCreateOdontogramTrigger((n) => n + 1)),
+      document: clinical(() => setCreateDocumentTrigger((n) => n + 1)),
+      instruction: clinical(() => setCreateMedicalInstructionTrigger((n) => n + 1)),
+      prescription: clinical(() => setCreatePrescriptionTrigger((n) => n + 1)),
+      printSummary: () => { void handlePrintFinancialSummary(); },
+      discharge: canUpdate && !currentDischarge ? () => setIsDischargeDialogOpen(true) : null,
+    } : { edit: null, appointment: null, quote: null, invoice: null, prepaid: null, bill: null, session: null, aesthetic: null, perio: null, odontogram: null, document: null, instruction: null, prescription: null, printSummary: null, discharge: null },
+  };
+
   return (
     <>
+      <PatientsVoice value={voiceBridge} />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
           minLeftSize={15}

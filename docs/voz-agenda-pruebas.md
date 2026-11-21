@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1785 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1835 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2137,3 +2137,63 @@ CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salid
   - en «five notes of 1000 and two of 500»
 - **CJ-NAV · Desde otra página**
   - «andá a la caja y decime qué cajas hay»
+
+## 95-patients.spec.ts (50)
+
+PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).
+
+- **PA-LIST · Buscar, abrir, filtrar**
+  - «buscá a Roberto Díaz» con uno solo: lo abre
+  - «buscá a Ana» con varios: los lee
+  - «abrí el segundo»
+  - «abrí la ficha de Carlos López» (está en la lista)
+  - «abrí la ficha de Sofía Castro» (no está a la vista): la busca
+  - «abrí a Ana» con dos: pregunta
+  - «solo los deudores»
+  - «mostrame los que deben»
+  - «sacá el filtro de deudores»
+  - «incluí los inactivos»
+  - «solo los activos»
+  - «los registrados esta semana»
+  - «todos los pacientes»
+  - «actualizá la lista»
+  - «nuevo paciente»
+  - «agregá un paciente»
+  - «cuántos pacientes hay»
+  - en «search for Roberto», «only debtors», «new patient»
+  - es-ES «busca a Roberto»
+- **PA-DETAIL · La ficha: pestañas y acciones**
+  - «la historia clínica»
+  - «mostrame las finanzas»
+  - «andá a los datos»
+  - «la pestaña de facturas»
+  - «nueva sesión»
+  - «hacele un presupuesto»
+  - «nueva factura»
+  - «un prepago»
+  - «cobrale»
+  - «dale una cita»
+  - «abrí el odontograma»
+  - «nuevo periodontograma»
+  - «una sesión estética»
+  - «nuevo documento»
+  - «hacé una receta»
+  - «nuevas indicaciones»
+  - «imprimí el estado de cuenta»
+  - «editá los datos»
+  - «dale el alta»
+  - «cerrá la ficha»
+  - «andá a facturas» con la ficha abierta es la pestaña, no el menú
+- **PA-ACT · Acciones con el nombre en la frase**
+  - «nueva sesión para Carlos López» abre y hace
+  - «hacele un presupuesto a Sofía Castro»
+  - sin ficha ni nombre: la pide
+  - en «new session for Carlos López» y «make a quote»
+- **PA-INFO · Preguntas sobre el paciente**
+  - con la ficha abierta «¿cuánto debe?»
+  - «¿cuántas veces vino Juan Pérez?»
+  - «resumen de Juan Pérez»
+  - sin paciente pregunta de quién
+  - en «how much does he owe» con la ficha
+- **PA-NAV · Llegar y buscar**
+  - «andá a pacientes y buscá a Roberto Díaz»

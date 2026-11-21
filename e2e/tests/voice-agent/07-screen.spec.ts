@@ -29,7 +29,7 @@ function patientsPage() {
 }
 
 test.describe('UI-PRESS · Botones y pestañas', () => {
-  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/patients' }); patientsPage(); });
+  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' }); patientsPage(); });
   for (const [said, want] of [
     ['tocá nuevo paciente', 'press:Nuevo paciente'], ['apretá exportar', 'press:Exportar'], ['nuevo paciente', 'press:Nuevo paciente'],
     ['exportar', 'press:Exportar'], ['dale a actualizar', 'press:Actualizar'], ['hacé clic en exportar', 'press:Exportar'],
@@ -50,7 +50,7 @@ test.describe('UI-PRESS · Botones y pestañas', () => {
 
 test.describe('UI-FILL · Campos y buscador', () => {
   test.beforeEach(async () => {
-    sim = await createVoiceSim({ locale: 'es', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     screen.page(screen.field('Nombre'), screen.field('Teléfono'), screen.field('Email'), screen.field('Notas', { type: 'textarea' }), screen.field('', { placeholder: 'Buscar...' }));
   });
   for (const [said, want] of [
@@ -74,7 +74,7 @@ test.describe('UI-FILL · Campos y buscador', () => {
 });
 
 test.describe('UI-TOGGLE · Interruptores', () => {
-  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/patients' }); screen.page(screen.toggle('Enviar por email'), screen.toggle('Recordatorio', true)); });
+  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' }); screen.page(screen.toggle('Enviar por email'), screen.toggle('Recordatorio', true)); });
   test('«activá enviar por email»', async () => { await sim.say('activá enviar por email'); expect(uiLog).toEqual(['toggle:Enviar por email=on']); });
   test('«desactivá el recordatorio»', async () => { await sim.say('desactivá el recordatorio'); expect(uiLog).toEqual(['toggle:Recordatorio=off']); });
   test('«prendé recordatorio» ya prendido: lo dice y no lo toca', async () => {
@@ -115,7 +115,7 @@ test.describe('UI-SELECT · Listas desplegables', () => {
 });
 
 test.describe('UI-ROW · Filas de una lista', () => {
-  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/patients' }); patientsPage(); });
+  test.beforeEach(async () => { sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' }); patientsPage(); });
   for (const [said, want] of [
     ['abrí el primero', 'row:Ana García 4.567.890-1 099 111 222'], ['abrí el segundo', 'row:Juan Pérez 3.111.222-3 098 333 444'],
     ['abrí el último', 'row:Carla Gómez 2.222.333-4 091 555 666'], ['seleccioná la fila 2', 'row:Juan Pérez 3.111.222-3 098 333 444'],
@@ -135,7 +135,7 @@ test.describe('UI-ROW · Filas de una lista', () => {
 
 test.describe('UI-HELP · ¿Qué puedo hacer acá?', () => {
   test('lista lo que hay y aprieta lo elegido', async () => {
-    sim = await createVoiceSim({ locale: 'es', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     patientsPage();
     await sim.say('qué puedo hacer acá');
     expect(sim.card().choices).toContain('Nuevo paciente');
@@ -144,7 +144,7 @@ test.describe('UI-HELP · ¿Qué puedo hacer acá?', () => {
     expect(uiLog).toEqual(['press:Nuevo paciente']);
   });
   test('sin botones lo dice', async () => {
-    sim = await createVoiceSim({ locale: 'es', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     screen.page(screen.heading('Vacío'));
     await sim.say('qué puedo hacer acá');
     expect(sim.card().message).toBe('No veo botones en esta pantalla.');
@@ -153,7 +153,7 @@ test.describe('UI-HELP · ¿Qué puedo hacer acá?', () => {
 
 test.describe('UI-OVERLAY · Con una ventana abierta, se trabaja sobre ella', () => {
   test('lo de la ventana y no lo de la página', async () => {
-    sim = await createVoiceSim({ locale: 'es', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     patientsPage();
     openWindow('Nuevo paciente', { tree: screen.group(screen.toggle('Enviar bienvenida'), screen.select('Sexo', ['Femenino', 'Masculino'])) });
     await sim.say('activá enviar bienvenida');
@@ -186,7 +186,7 @@ test.describe('UI-PRIORITY · Lo propio de la pantalla gana', () => {
 
 test.describe('UI-EN · English', () => {
   test.beforeEach(async () => {
-    sim = await createVoiceSim({ locale: 'en', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
     screen.page(
       screen.button('New patient'), screen.button('Save changes'), screen.tab('Invoices'), screen.tab('Payments'),
       screen.field('Name'), screen.field('', { placeholder: 'Search patients...' }), screen.toggle('Send by email'),
@@ -210,14 +210,14 @@ test.describe('UI-EN · English', () => {
 
 test.describe('UI-ES-ES · Castellano (tú)', () => {
   test('«pulsa nuevo paciente» y «busca a Juan»', async () => {
-    sim = await createVoiceSim({ locale: 'es-ES', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es-ES', route: '/purchases/providers' });
     patientsPage();
     await sim.say('pulsa nuevo paciente');
     await sim.say('busca a Juan');
     expect(uiLog).toEqual(['press:Nuevo paciente', 'fill:Buscar pacientes...=Juan']);
   });
   test('«qué puedo hacer aquí»', async () => {
-    sim = await createVoiceSim({ locale: 'es-ES', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es-ES', route: '/purchases/providers' });
     patientsPage();
     await sim.say('qué puedo hacer aquí');
     expect(sim.card().message).toMatch(/^Aquí puedes:/);

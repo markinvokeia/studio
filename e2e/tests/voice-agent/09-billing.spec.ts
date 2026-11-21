@@ -16,7 +16,7 @@ let sim: VoiceSim;
 let bill: SimBilling;
 test.afterEach(() => sim.dispose());
 
-async function start(locale: 'es' | 'es-ES' | 'en' = 'es', options: Parameters<typeof openSimBilling>[0] = { patient: { id: 'p2', name: 'Juan Pérez' } }, route = '/patients') {
+async function start(locale: 'es' | 'es-ES' | 'en' = 'es', options: Parameters<typeof openSimBilling>[0] = { patient: { id: 'p2', name: 'Juan Pérez' } }, route = '/purchases/providers') {
   sim = await createVoiceSim({ locale, route });
   // La ventana del cobro abierta (con su pie), encima de la página.
   openWindow(locale === 'en' ? 'Quick billing' : 'Cobro rápido', {
@@ -244,7 +244,7 @@ test.describe('CR-PAY · Pago', () => {
 
 test.describe('CR-FLOW · De punta a punta, como en la recepción', () => {
   test('desde el panel derecho: «cobrale a Juan Pérez» → servicios → descuento → pago mixto → cobrar', async () => {
-    sim = await createVoiceSim({ locale: 'es', route: '/patients' });
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     await sim.say('cobrale a Juan Pérez');
     expect(sim.rail.log).toEqual(['bill:p2:Juan Pérez']);
     bill = openSimBilling({ patient: { id: 'p2', name: 'Juan Pérez' } });
