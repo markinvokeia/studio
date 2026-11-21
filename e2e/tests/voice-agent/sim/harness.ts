@@ -12,6 +12,7 @@ import { useVoiceCommand } from '@/stores/voice-command-store';
 
 import { createSimCalendar, PATIENTS, type SimCalendar } from './calendar';
 import { createSimRail, disposeSimRail, type SimRail } from './rail';
+import { clearSimDashboard, publishSimDashboard, type SimDashboard } from './dashboard';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -37,6 +38,8 @@ export interface VoiceSim {
   cal: SimCalendar;
   /** El riel derecho (paciente, sede, caja, TV, cobrar, alertas, notas…). */
   rail: SimRail;
+  /** El panel de control (se publica al estar en «/»). */
+  dashboard: () => SimDashboard | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -121,6 +124,13 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   setRoute(locale, route);
   const cal = createSimCalendar({ customMode });
   const rail = createSimRail();
+  // Cada página simulada publica lo suyo al montarse (como en la app).
+  let dashboard: SimDashboard | null = null;
+  const mountPage = (to: string) => {
+    clearSimDashboard();
+    dashboard = to === '/' ? publishSimDashboard() : null;
+  };
+  mountPage(route);
   configureVoiceTiming({ auxReturnMs: 10, awakeIdleMs: 60_000, awakePendingMs: 60_000, phraseGapMs: 0, echoGraceMs: 0 });
   configureVoiceSession({
     locale,
@@ -130,7 +140,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       navigations.push(to);
       // Como el router: la ruta cambia enseguida y la página nueva registra su voz al montarse.
       setRoute(locale, to);
-      setTimeout(() => updateVoiceDomains(domainsFor(to.split('?')[0])), 15);
+      setTimeout(() => { mountPage(to.split('?')[0]); updateVoiceDomains(domainsFor(to.split('?')[0])); }, 15);
     },
     domains: domainsFor(route),
   });
@@ -147,6 +157,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   return {
     cal,
     rail,
+    dashboard: () => dashboard,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -178,6 +189,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       resetUiSelection();
       publishCalendarVoice(null);
       disposeSimRail();
+      clearSimDashboard();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

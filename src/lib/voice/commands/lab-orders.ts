@@ -335,6 +335,7 @@ export async function interpretLabOrders(text: string, ctx: VoiceCommandContext,
 
 registerVoiceDomain<VoiceAiResult>({
   id: LAB_ORDERS_VOICE_DOMAIN,
+  notUnderstoodKey: 'VoiceCommands.labOrders.notUnderstood',
   ai: {
     context: labOrdersAiContext,
     sanitize: (raw, context) => sanitizeLabOrdersAiResult(raw, context as Partial<VoiceAiContext>),

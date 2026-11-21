@@ -13901,7 +13901,7 @@
       "asleep": "Asleep: say “Invoke…”"
     },
     "notUnderstoodTitle": "I didn't understand the request",
-    "notUnderstood": "I didn't understand what to do. Try, for example: “order 45 was sent yesterday” or “create an order for Ann Smith, crown on 36”.",
+    "notUnderstood": "I didn’t understand what to do. Try, for example: “go to patients”, “what can I do here?” or “open Ann Smith’s record”.",
     "errorTitle": "Couldn't complete it",
     "genericError": "Oops, something failed and I couldn't go on with that. Nothing else was changed. Shall we try another way? Tell me something else or do it by hand.",
     "noPermission": "You don't have permission to do that.",
@@ -14013,7 +14013,8 @@
       "listAll": "{count, plural, other {pending}}",
       "listView": "{view, select, board {Here is the board.} other {Here is the list.}}",
       "listShown": "{count, plural, =0 {There are no {what} orders.} one {There is 1 {what} order: here it is.} other {There are # {what} orders: here they are.}}",
-      "listShownNoCount": "Here are the {what} orders."
+      "listShownNoCount": "Here are the {what} orders.",
+      "notUnderstood": "I didn't understand what to do. Try, for example: “order 45 was sent yesterday” or “create an order for Ann Smith, crown on 36”."
     },
     "interpreting": "Working out what you said…",
     "aiFailed": "I couldn't interpret that right now. Try again in a moment.",
@@ -14498,7 +14499,9 @@
       "billing_line": "change a billing line",
       "billing_info": "read the billing, currency or location",
       "billing_payment": "enter the payment",
-      "billing_go": "continue the billing"
+      "billing_go": "continue the billing",
+      "dashboard_query": "read the dashboard",
+      "dashboard_filter": "filter the dashboard"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14647,6 +14650,34 @@
       "sedeMissing": "The location is missing.",
       "cantContinue": "It can’t continue yet.",
       "toPayment": "Invoicing and going to payment."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "noData": "There is no data for that on the dashboard yet.",
+      "branchesTop": "The top location is {name}: {amount} ({pct}% of the total).",
+      "servicesTop": "The best-selling service is {name}: {amount} ({pct}%).",
+      "summary": "Today: production {production}, collected {collected}, {seen} visits and {scheduled} scheduled. This month: production {monthProduction}, collected {monthCollected}.",
+      "compare": "This month’s production is {change} versus last month: {now} against {before}.",
+      "compareNone": "There is nothing to compare with yet.",
+      "metric_produccion": "Production",
+      "metric_cobranza": "Collected",
+      "metric_gastos": "Expenses",
+      "metric_resultado": "Result",
+      "metric_atenciones": "Visits",
+      "metric_pacientes": "Patients seen",
+      "metric_agendados": "Scheduled for today",
+      "metric_nuevos": "New patients",
+      "noExpenses": "There are no expenses recorded to calculate it.",
+      "today": "today {value}",
+      "month": "this month {value}",
+      "reloaded": "Refreshing the dashboard.",
+      "currencySet": "Dashboard in {code}.",
+      "allSedes": "Showing all locations.",
+      "sedeNotFound": "I couldn’t find the location “{name}”.",
+      "whichSede": "Which location?",
+      "sedeSet": "Showing the {name} location.",
+      "periodSet": "Period: {from} to {to}.",
+      "notUnderstood": "I didn’t understand what to do. Try, for example: “how much did we produce today?”, “give me a summary” or “show me last month”."
     }
   }
 }

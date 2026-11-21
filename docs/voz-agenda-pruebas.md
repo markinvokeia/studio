@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1618 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1669 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -1934,3 +1934,63 @@ AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta co
   - AI-007 la IA no puede confirmar ni guardar por su cuenta: un «form_save» sin formulario no hace nada
 - **AI-EN · Ambiguity**
   - AI-EN-001 medium confidence asks first
+
+## 91-dashboard.spec.ts (51)
+
+PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.
+
+- **PC-PERIOD · Períodos dichos**
+  - «hoy»
+  - «ayer»
+  - «esta semana»
+  - «la semana pasada»
+  - «este mes»
+  - «el mes pasado»
+  - «este año»
+  - «el año pasado»
+  - «los últimos 30 días»
+  - «marzo»
+  - «diciembre»
+  - «marzo del año pasado»
+  - «del 1 al 15»
+  - «del 3 al 10 de octubre»
+  - «last month»
+  - «this week»
+  - «last 7 days»
+  - «march 2025»
+- **PC-READ · Leer los números**
+  - es «cuánto producimos hoy»
+  - es «cuánto facturamos este mes»
+  - es «cuánto cobramos»
+  - es «cuánto gastamos este mes»
+  - es «cuál es el resultado del mes»
+  - es «cuántos pacientes atendimos hoy»
+  - es «cuántas atenciones hubo este mes»
+  - es «cuántos agendados hay para hoy»
+  - es «cuántos pacientes nuevos tuvimos»
+  - es «dame un resumen del día»
+  - es «cómo va el día»
+  - es «qué sede produjo más»
+  - es «qué servicio se vendió más»
+  - es «cómo venimos contra el mes pasado»
+  - es-ES «cuánto hemos cobrado hoy»
+  - en «how much did we produce today»
+  - en «how much did we collect this month»
+  - en «how many patients did we see today»
+  - en «give me a summary»
+  - en «which branch sold the most»
+  - en «what are the best selling services»
+  - el ranking de sedes va en filas
+- **PC-FILTER · Período, sede, moneda, actualizar**
+  - «mostrame el mes pasado»
+  - «este mes» solo
+  - «solo la sede Pocitos» y «todas las sedes»
+  - «filtrá por la sede centro»
+  - «en dólares»
+  - «actualizá el panel»
+  - sin permiso de filtrar: lo dice
+  - en «show me last month», «only the Pocitos location», «refresh»
+  - «cambiá a la sede Pocitos» es la sede de trabajo (panel derecho), no el filtro
+- **PC-NAV · Llegar al panel y preguntar**
+  - desde la agenda: «volvé al inicio y decime cuánto producimos hoy»
+  - en otra página no se lee el panel

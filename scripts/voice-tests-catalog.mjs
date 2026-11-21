@@ -37,6 +37,7 @@ const FILE_INTRO = {
   '71-variants-en.spec.ts': 'V · Variantes en inglés.',
   '72-variants-more.spec.ts': 'V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y cada corrección del editor.',
   '80-routines.spec.ts': 'R · Rutinas reales de recepción y doctores: conversaciones largas que combinan todo, es y en.',
+  '91-dashboard.spec.ts': 'PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.',
   '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
 };
 

@@ -16,11 +16,16 @@ import { TodayHero } from '@/components/dashboard/today-hero';
 
 import { DashboardFiltersProvider, useDashboardFilters } from '@/context/DashboardFiltersContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { useAuth } from '@/context/AuthContext';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import { api } from '@/services/api';
 
 import { API_ROUTES } from '@/constants/routes';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
 import type {
+  DashboardVoiceBridge,
   DashboardExecutiveSummary,
   EvolucionMensualResponse,
   PacientesPorDiaResponse,
@@ -67,7 +72,7 @@ export default function DashboardPage() {
 function ManagerialDashboard() {
   const t = useTranslations('DashboardGerencial');
   const { hasPermission } = usePermissions();
-  const { sedeId, dateRange, currency, isReady } = useDashboardFilters();
+  const { sedeId, dateRange, currency, isReady, setSedeId, setDateRange, setCurrency } = useDashboardFilters();
 
   const canViewByBranch = hasPermission(DASHBOARD_PERMISSIONS.VIEW_BY_BRANCH);
 
@@ -172,6 +177,28 @@ function ManagerialDashboard() {
       setHasError(failures === (canViewByBranch ? requests.length : requests.length - 1));
     });
   }, [isReady, dateRange, sedeId, currency, canViewByBranch, reloadToken]);
+
+  // Voz: «¿cuánto producimos hoy?», «¿qué sede produjo más?», «el mes pasado», «solo la sede Centro».
+  const { sedes } = useAuth();
+  const { options: currencyOptions } = useCurrencySettings();
+  useVoiceScreen(['dashboard']);
+  useVoiceBridge<DashboardVoiceBridge>('dashboard', {
+    loading: Object.values(loading).some(Boolean),
+    canFilter: hasPermission(DASHBOARD_PERMISSIONS.APPLY_FILTERS),
+    currency,
+    currencies: currencyOptions,
+    sedes: (sedes ?? []).map((s) => ({ id: String(s.id), name: String(s.name ?? '') })),
+    sedeId: sedeId ?? null,
+    range: dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : null,
+    summary,
+    branches: branches?.rows ?? [],
+    services: (salesByService?.rows ?? []).map((r) => ({ name: r.name, sales: r.sales, percentage: r.percentage })),
+    evolution,
+    setSede: (id) => setSedeId(id),
+    setRange: (from, to) => setDateRange({ from, to }),
+    setCurrency: (c) => setCurrency(c as typeof currency),
+    reload: () => setReloadToken((n) => n + 1),
+  });
 
   // Sin permiso de sucursal, esa tarjeta desaparece y la fila queda con una sola:
   // dejarla en dos columnas abriría un hueco vacío.

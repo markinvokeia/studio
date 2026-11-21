@@ -5160,3 +5160,22 @@ export interface BillingPaymentVoiceBridge {
   setNotes: (text: string) => void;
   submit: () => void;
 }
+
+/** Lo que el panel de control le ofrece a la voz (src/lib/voice/commands/dashboard.ts). */
+export interface DashboardVoiceBridge {
+  loading: boolean;
+  canFilter: boolean;
+  currency: string;
+  currencies: string[];
+  sedes: Array<{ id: string; name: string }>;
+  sedeId: string | null;
+  range: { from: Date; to: Date } | null;
+  summary: DashboardExecutiveSummary | null;
+  branches: ProduccionSucursalRow[];
+  services: Array<{ name: string; sales: number; percentage: number }>;
+  evolution: EvolucionMensualResponse | null;
+  setSede: (sedeId: string | null) => void;
+  setRange: (from: Date, to: Date) => void;
+  setCurrency: (currency: string) => void;
+  reload: () => void;
+}

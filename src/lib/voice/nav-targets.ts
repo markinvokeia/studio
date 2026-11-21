@@ -252,6 +252,7 @@ export function isOnRoute(href: string, route = currentRoute()): boolean {
  * a que la página nueva esté lista para la voz. Se agrega una línea por cada página que se suma.
  */
 export const ROUTE_VOICE_DOMAINS: Record<string, string[]> = {
+  '/': ['dashboard'],
   '/appointments': ['calendar'],
   '/lab-orders': ['lab_orders'],
 };

@@ -13901,7 +13901,7 @@
       "asleep": "En reposo: di «Invoke…»"
     },
     "notUnderstoodTitle": "No he entendido la petición",
-    "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «la orden 45 se envió ayer» o «crea una orden para Ana Pérez, corona en la 36».",
+    "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «ve a pacientes», «¿qué puedo hacer aquí?» o «abre la ficha de Ana Pérez».",
     "errorTitle": "No se ha podido completar",
     "genericError": "Vaya, algo ha fallado y no he podido seguir con eso. No se ha cambiado nada más. ¿Lo intentamos de otra forma? Dime otra cosa o hazlo a mano.",
     "noPermission": "No tienes permiso para hacer eso.",
@@ -14013,7 +14013,8 @@
       "listAll": "{count, plural, one {pendiente} other {pendientes}}",
       "listView": "{view, select, board {Te muestro el tablero.} other {Te muestro la lista.}}",
       "listShown": "{count, plural, =0 {No hay órdenes {what}.} one {Hay 1 orden {what}: te la muestro.} other {Hay # órdenes {what}: te las muestro.}}",
-      "listShownNoCount": "Te muestro las órdenes {what}."
+      "listShownNoCount": "Te muestro las órdenes {what}.",
+      "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «la orden 45 se envió ayer» o «crea una orden para Ana Pérez, corona en la 36»."
     },
     "interpreting": "Interpretando lo que has dicho…",
     "aiFailed": "No he podido interpretar la petición ahora. Inténtalo de nuevo en un momento.",
@@ -14498,7 +14499,9 @@
       "billing_line": "cambiar un servicio del cobro",
       "billing_info": "leer el cobro, moneda o sede",
       "billing_payment": "cargar el pago",
-      "billing_go": "seguir con el cobro"
+      "billing_go": "seguir con el cobro",
+      "dashboard_query": "leer el panel de control",
+      "dashboard_filter": "filtrar el panel de control"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿quieres {action}?",
     "and": " y ",
@@ -14647,6 +14650,34 @@
       "sedeMissing": "Falta elegir la sede.",
       "cantContinue": "Todavía no se puede seguir.",
       "toPayment": "Facturo y vamos al pago."
+    },
+    "dashboard": {
+      "title": "Panel de control",
+      "noData": "Todavía no hay datos para eso en el panel.",
+      "branchesTop": "La sede que más produjo es {name}: {amount} ({pct}% del total).",
+      "servicesTop": "El servicio más vendido es {name}: {amount} ({pct}%).",
+      "summary": "Hoy: producción {production}, cobrado {collected}, {seen} atenciones y {scheduled} agendados. En el mes: producción {monthProduction}, cobrado {monthCollected}.",
+      "compare": "La producción del mes va {change} contra el mes pasado: {now} contra {before}.",
+      "compareNone": "No hay con qué comparar todavía.",
+      "metric_produccion": "Producción",
+      "metric_cobranza": "Cobrado",
+      "metric_gastos": "Gastos",
+      "metric_resultado": "Resultado",
+      "metric_atenciones": "Atenciones",
+      "metric_pacientes": "Pacientes atendidos",
+      "metric_agendados": "Agendados para hoy",
+      "metric_nuevos": "Pacientes nuevos",
+      "noExpenses": "No hay gastos cargados para calcularlo.",
+      "today": "hoy {value}",
+      "month": "en el mes {value}",
+      "reloaded": "Actualizo el panel.",
+      "currencySet": "Panel en {code}.",
+      "allSedes": "Muestro todas las sedes.",
+      "sedeNotFound": "No he encontrado la sede «{name}».",
+      "whichSede": "¿Qué sede?",
+      "sedeSet": "Muestro la sede {name}.",
+      "periodSet": "Período: del {from} al {to}.",
+      "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «¿cuánto hemos producido hoy?», «resumen del día» o «muéstrame el mes pasado»."
     }
   }
 }
