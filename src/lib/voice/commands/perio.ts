@@ -136,7 +136,8 @@ export function sanitizePerioAiResult(raw: unknown): PerioAiResult {
 
 registerVoiceDomain<PerioAiResult>({
   id: PERIO_VOICE_DOMAIN,
-  ai: { sanitize: (raw) => sanitizePerioAiResult(raw) },
+  // La IA del periodontograma la llama su dictado con la posición de la sonda, nunca la sesión general.
+  ai: { sanitize: (raw) => sanitizePerioAiResult(raw), accepts: () => false },
 });
 
 /** La frase que el intérprete local no entendió, a la IA con la posición de la sonda. */

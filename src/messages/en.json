@@ -14520,7 +14520,8 @@
       "patients_list": "search or filter patients",
       "patients_detail": "something in the patient record",
       "patients_info": "patient information",
-      "lab-orders_pick": "pick a lab order"
+      "lab-orders_pick": "pick a lab order",
+      "perio_dictate": "dictate to the periodontal chart"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14858,6 +14859,10 @@
       "did_discharge": "Opened the discharge for {name}.",
       "whichPatient": "Which patient?",
       "looking": "Looking up {name}…"
+    },
+    "perio": {
+      "title": "Periodontal chart",
+      "sent": "To the periodontal chart: “{phrase}”."
     }
   }
 }

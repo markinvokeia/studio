@@ -34,8 +34,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 6 | Caja (`/cashier`) | `cashier` | ✅ Cajas (ver, abrir, una por persona), sesión (efectivo, entradas, salidas, tarjeta, movimientos), cierre, conteo de efectivo por billetes/monedas o total; los botones del asistente con la voz genérica. Subpáginas de Caja: voz genérica | `94` |
 | 7 | Pacientes (`/patients`) | `patients` | ✅ Buscar/abrir, filtros, nuevo paciente; pestañas (datos, historia, finanzas); acciones (editar, cita, presupuesto, factura, prepago, cobro, sesión, estética, perio, odontograma, documento, indicaciones, receta, estado de cuenta, alta); preguntas sobre el paciente | `95` |
 | 8 | Órdenes de laboratorio (`/lab-orders`) | `lab_orders` | ✅ Comandos por número (etapa, estado, edición, filtros, alta con IA) y ahora por lo que se ve: «la de Ana», «la primera», la orden abierta (`lab-orders-pick.ts`, puente `lab_orders.page`) | `96` + `e2e/tests/lab-orders/voice-commands.spec.ts` |
-| 9 | Periodontograma (sesión) | `perio` | 🟡 Siguiente: dictado propio existente; falta integrarlo al botón único | `e2e/tests/patients/perio-voice-*.spec.ts` |
-| 10 | Ventas, compras | `sales`, `purchases` | ⏳ | — |
+| 9 | Periodontograma (sesión) | `perio` | ✅ Con el examen abierto el botón Voz le dicta (`perio-dictate.ts`); un solo micrófono a la vez (`mic-handoff.ts`: el dictado propio pide prestado el micrófono y lo devuelve; prender Voz apaga el dictado propio) | `97` + `e2e/tests/patients/perio-voice-*.spec.ts` |
+| 10 | Ventas, compras | `sales`, `purchases` | ⏳ Siguiente | — |
 | 11 | Reportes | `reports` | ⏳ | — |
 | 12 | Catálogo de la clínica | `catalog` | ⏳ (al final) | — |
 | 13 | Configuración del negocio | `config` | ⏳ (al final) | — |

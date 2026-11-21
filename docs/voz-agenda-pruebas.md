@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1860 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1877 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2230,3 +2230,28 @@ LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la prime
   - en «open the one for Juan» y «it arrived»
 - **LB-NAV · Llegar y seguir**
   - «andá a laboratorio y abrí la de Juan Pérez»
+
+## 97-perio.spec.ts (17)
+
+PE · Periodontograma con el botón único: con el examen abierto lo dicho va a su dictado (sin cerrar la ventana); navegar, desplazarse y dejar de escuchar siguen generales; un solo micrófono a la vez.
+
+- **PE-ROUTE · Lo dicho va al dictado del periodontograma**
+  - «3 2 3»
+  - «sangrado en la 16»
+  - «siguiente diente»
+  - «vestibular del 26 4 3 5»
+  - «supuración»
+  - «terminé»
+  - «la 18 no está»
+  - «copiá el examen anterior»
+  - no cierra la ventana del examen ni aprieta sus botones
+  - en «three two three» y «bleeding on 16»
+- **PE-GENERAL · Lo general sigue siendo general**
+  - «andá a la agenda» navega
+  - «bajá» desplaza
+  - «dejá de escuchar» apaga el micrófono
+  - sin examen abierto no se dicta nada
+- **PE-MIC · Un solo micrófono a la vez**
+  - el dictado propio pide prestado el micrófono y lo devuelve
+  - si el botón Voz estaba apagado, no lo prende al devolver
+  - prender el botón Voz avisa (para apagar el dictado propio)

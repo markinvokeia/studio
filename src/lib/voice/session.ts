@@ -327,6 +327,11 @@ function schedulePhrase() {
   }, timing.phraseGapMs);
 }
 
+/** El botón Voz está escuchando ahora (el micrófono permanente prendido). */
+export function isVoiceListeningAlways(): boolean {
+  return continuous !== null;
+}
+
 export function stopAlwaysOn() {
   clearTimeout(phraseTimer);
   phraseTimer = undefined;

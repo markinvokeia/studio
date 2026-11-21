@@ -16,6 +16,10 @@ import { cn } from '@/lib/utils';
 import { interpretPerioPhrase, type PerioAiContext } from '@/lib/voice/commands/perio';
 import { normalizeSpeech, parseYesNo } from '@/lib/voice/parse';
 import { startHoldListening, type HoldListening } from '@/lib/voice/speech-recognition';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { borrowMicrophone, onGlobalVoiceOn } from '@/lib/voice/mic-handoff';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { PerioVoiceBridge } from '@/lib/voice/commands/perio-dictate';
 
 export interface VoiceFeedback {
   heard: string;
@@ -261,6 +265,23 @@ export function PerioVoiceBar({ inputRef, onPhrase, onAiCommands, aiContext, pen
   };
 
   const dictation = useLiveDictation(locale, enqueue);
+
+  // Un solo micrófono: el dictado propio le pide prestado el micrófono al botón Voz y se lo devuelve
+  // al parar; si se prende el botón Voz, el dictado propio se apaga y lo dicho llega por el botón
+  // único (perio.dictate). Mientras el examen está abierto, el botón Voz le habla a este dictado.
+  useVoiceScreen(['perio']);
+  useVoiceBridge<PerioVoiceBridge>('perio', { dictate: enqueue });
+  const restoreGlobalRef = React.useRef<(() => void) | null>(null);
+  const startOwn = React.useCallback(() => {
+    restoreGlobalRef.current = borrowMicrophone();
+    dictation.start();
+  }, [dictation]);
+  React.useEffect(() => {
+    if (dictation.isListening) return;
+    restoreGlobalRef.current?.();
+    restoreGlobalRef.current = null;
+  }, [dictation.isListening]);
+  React.useEffect(() => () => { restoreGlobalRef.current?.(); }, []);
   React.useEffect(() => {
     stopRef.current = dictation.stop;
     pauseRef.current = { pause: dictation.pause, resume: dictation.resume };
@@ -268,11 +289,15 @@ export function PerioVoiceBar({ inputRef, onPhrase, onAiCommands, aiContext, pen
 
   // Keyboard: Ctrl+Space held says one phrase with the microphone off; the chosen key toggles it
   const listeningRef = React.useRef(dictation.isListening);
-  const controls = React.useRef({ start: dictation.start, stop: dictation.stop, toggleKey, choosingKey });
+  const controls = React.useRef({ start: startOwn, stop: dictation.stop, toggleKey, choosingKey });
   React.useEffect(() => {
     listeningRef.current = dictation.isListening;
-    controls.current = { start: dictation.start, stop: dictation.stop, toggleKey, choosingKey };
+    controls.current = { start: startOwn, stop: dictation.stop, toggleKey, choosingKey };
   });
+  React.useEffect(() => onGlobalVoiceOn(() => {
+    restoreGlobalRef.current = null;
+    if (listeningRef.current) controls.current.stop();
+  }), []);
   React.useEffect(() => {
     let hold: HoldListening | null = null;
     const release = () => {
@@ -412,7 +437,7 @@ export function PerioVoiceBar({ inputRef, onPhrase, onAiCommands, aiContext, pen
           size="sm"
           variant={dictation.isListening ? 'destructive' : 'ghost'}
           className="h-7 shrink-0 gap-1.5 px-2"
-          onClick={dictation.isListening ? dictation.stop : dictation.start}
+          onClick={dictation.isListening ? dictation.stop : startOwn}
           data-help-id="perio-session.btn.dictate"
           disabled={!dictation.isSupported}
           title={!dictation.isSupported ? t('unsupported') : toggleKey ? t('toggleKey.hint', { key: toggleKey.label }) : t('pushToTalk')}

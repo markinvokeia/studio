@@ -43,6 +43,7 @@ const FILE_INTRO = {
   '94-cashier.spec.ts': 'CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.',
   '95-patients.spec.ts': 'PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).',
   '96-lab-orders.spec.ts': 'LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la primera», la orden abierta; abrir, mover de etapa (con confirmación), estado; con backend de laboratorio simulado.',
+  '97-perio.spec.ts': 'PE · Periodontograma con el botón único: con el examen abierto lo dicho va a su dictado (sin cerrar la ventana); navegar, desplazarse y dejar de escuchar siguen generales; un solo micrófono a la vez.',
   '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
 };
 

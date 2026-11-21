@@ -14520,7 +14520,8 @@
       "patients_list": "buscar o filtrar pacientes",
       "patients_detail": "algo en la ficha del paciente",
       "patients_info": "datos del paciente",
-      "lab-orders_pick": "elegir una orden de laboratorio"
+      "lab-orders_pick": "elegir una orden de laboratorio",
+      "perio_dictate": "dictar al periodontograma"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿querés {action}?",
     "and": " y ",
@@ -14858,6 +14859,10 @@
       "did_discharge": "Abrí el alta de {name}.",
       "whichPatient": "¿De qué paciente?",
       "looking": "Busco los datos de {name}…"
+    },
+    "perio": {
+      "title": "Periodontograma",
+      "sent": "Al periodontograma: «{phrase}»."
     }
   }
 }
