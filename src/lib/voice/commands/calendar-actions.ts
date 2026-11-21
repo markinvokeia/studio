@@ -93,7 +93,11 @@ const aiRef = (r: CalendarVoiceAiResult): CalendarAppointmentRef => ({
   time: parseTimeKey(r.from_time),
   date: r.from_date,
 });
-const hasAiRef = (r: CalendarVoiceAiResult) => !!(r.patient || r.from_time);
+/**
+ * La IA ya validó que el paso dice de qué cita habla, o que es la del foco (la elegida antes o
+ * la del paso anterior del plan): sin nombrarla, resolveAppointment usa el foco.
+ */
+const hasAiRef = (_r: CalendarVoiceAiResult) => true;
 
 // ── Color ─────────────────────────────────────────────────────────────────────
 
@@ -121,6 +125,7 @@ async function runColor(parsed: ColorParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<ColorParsed, CalendarVoiceAiResult>({
   id: 'calendar.color',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 32,
   match: (normalized) => parseCalendarColor(normalized),
   run: runColor,
@@ -174,6 +179,7 @@ async function runMove(parsed: MoveParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<MoveParsed, CalendarVoiceAiResult>({
   id: 'calendar.move_calendar',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 33,
   match: (normalized) => {
     const parsed = parseCalendarMove(normalized);
@@ -223,6 +229,7 @@ async function runAssignDoctor(parsed: AssignDoctorParsed, ctx: VoiceCommandCont
 registerVoiceCommand<AssignDoctorParsed, CalendarVoiceAiResult>({
   id: 'calendar.assign_doctor',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 31,
   match: (normalized) => {
     const state = getCalendarVoice()?.state;
@@ -272,6 +279,7 @@ async function runDuration(parsed: DurationParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<DurationParsed, CalendarVoiceAiResult>({
   id: 'calendar.duration',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 32,
   match: (normalized) => parseCalendarDuration(normalized),
   run: runDuration,
@@ -297,6 +305,7 @@ async function runDelete(parsed: CalendarAppointmentRef, ctx: VoiceCommandContex
 registerVoiceCommand<CalendarAppointmentRef, CalendarVoiceAiResult>({
   id: 'calendar.delete',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 32,
   match: (normalized) => parseCalendarDelete(normalized),
   run: runDelete,
@@ -323,6 +332,7 @@ async function runOpen(parsed: OpenParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<OpenParsed, CalendarVoiceAiResult>({
   id: 'calendar.open',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 27,
   match: (normalized) => parseCalendarOpen(normalized),
   run: runOpen,
@@ -676,6 +686,7 @@ async function runToolbar(parsed: CalendarToolbarParsed, ctx: VoiceCommandContex
 registerVoiceCommand<CalendarToolbarParsed, CalendarVoiceAiResult>({
   id: 'calendar.toolbar',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 6,
   match: (normalized) => parseCalendarToolbar(normalized),
   run: runToolbar,

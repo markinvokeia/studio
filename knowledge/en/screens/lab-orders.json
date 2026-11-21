@@ -21,10 +21,6 @@
       "label": "New order",
       "description": "Opens the new order form. The order starts in the initial stage, without a delivery date: the date is asked for when it is sent to the lab."
     },
-    "lab-orders.btn.voice": {
-      "label": "Voice",
-      "description": "Voice commands for this screen: click the microphone and speak, or hold Ctrl+Space. Examples: “order 45 was sent yesterday”, “order 45 arrived”, “create an order for Ann Smith, crown on 36”, “where is order 45?”, “order 45 is due on Friday”, “show overdue orders”. Anything that changes data is always confirmed by saying “yes”. Chrome and Edge only."
-    },
     "lab-orders.btn.refresh": {
       "description": "Reloads the list."
     },

@@ -49,7 +49,7 @@ export function ReminderScopeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="sm">
+      <DialogContent maxWidth="sm" data-voice-popup>
         <DialogHeader>
           <DialogTitle>{t(action === 'edit' ? 'scope.editTitle' : 'scope.deleteTitle')}</DialogTitle>
           <DialogDescription>

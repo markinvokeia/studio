@@ -35,10 +35,6 @@
       "label": "Nueva orden",
       "description": "Abre el formulario de alta. La orden entra en la etapa inicial, sin fecha de entrega: la fecha se pide al enviarla al laboratorio."
     },
-    "lab-orders.btn.voice": {
-      "label": "Voz",
-      "description": "Comandos de voz de esta pantalla: clic en el micrófono y hablar, o mantener Ctrl+Espacio. Ejemplos: «la orden 45 se envió ayer», «llegó la orden 45», «creá una orden para Ana Pérez, corona en la 36», «¿dónde está la orden 45?», «la 45 la entregan el viernes», «mostrame las atrasadas». Lo que cambia algo siempre se confirma diciendo «sí». Solo en Chrome y Edge."
-    },
     "lab-orders.btn.refresh": {
       "description": "Vuelve a cargar la lista."
     },

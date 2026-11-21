@@ -35,6 +35,7 @@ import { ExchangeRate } from './exchange-rate';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { MascotPeekZone } from '@/components/invoke-mascot';
 import { MascotWakeButton } from '@/components/help/mascot-wake-button';
+import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
 
 // ── Deep-link helper ──────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ const PEEK_ICON: Record<PeekItem, React.ReactNode> = {
 export function Header() {
     const pathname = usePathname();
     const tFloating = useTranslations('FloatingActions');
+    const tVoiceRail = useTranslations('VoiceCommands');
     const tBilling = useTranslations('BillingWizard');
     const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
@@ -245,6 +247,8 @@ export function Header() {
 
     return (
         <>
+            {/* Voz: un solo host para toda la app (tarjeta, atajo Ctrl+Espacio, avisos). */}
+            <VoiceCommandHost />
             {/* ── Desktop widget: Google-style vertical right panel ─────── */}
             <div className="hidden sm:block">
                 {!isExpanded ? (
@@ -382,6 +386,10 @@ export function Header() {
 
                             {/* Asistente escondido: la mascota dormida, un clic y se levanta. */}
                             <MascotWakeButton withDivider />
+                            {/* Voz: un solo botón para toda la app; el contexto lo da la pantalla abierta. */}
+                            <PanelItem label={tVoiceRail('button')} helpId="rail.section.voice">
+                                <VoiceCommandButton compact helpId="rail.btn.voice" className="h-9 w-9 px-0" />
+                            </PanelItem>
 
                         </div>
                     </MascotPeekZone>
@@ -473,6 +481,7 @@ export function Header() {
                         )}
 
                         <MascotWakeButton compact />
+                        <VoiceCommandButton compact helpId="rail.btn.voice" className="h-8 w-8 shrink-0 px-0" />
 
                         <Button
                             data-help-id="rail.btn.collapse"

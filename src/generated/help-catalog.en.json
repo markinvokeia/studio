@@ -1,5 +1,5 @@
 {
- "version": "693f761947412cc9",
+ "version": "8ae5c6e375c8d63d",
  "locale": "en",
  "journey": [
   {
@@ -2751,6 +2751,12 @@
      "source": "knowledge/screens/dashboard.json"
     },
     {
+     "id": "rail.btn.voice",
+     "kind": "btn",
+     "label": "Voice",
+     "source": "knowledge/screens/dashboard.json"
+    },
+    {
      "id": "rail.section.alerts",
      "kind": "section",
      "label": "Alerts",
@@ -2858,6 +2864,13 @@
      "id": "rail.section.tv-menu",
      "kind": "section",
      "label": "TV control",
+     "source": "knowledge/screens/dashboard.json"
+    },
+    {
+     "description": "One voice button for the whole app, under the mascot. Tap it and it listens (no wake word) until you turn it off or after a while without talking; it works with the screen you are on (calendar, lab orders…).",
+     "id": "rail.section.voice",
+     "kind": "section",
+     "label": "Voice",
      "source": "knowledge/screens/dashboard.json"
     }
    ],
@@ -3770,13 +3783,6 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
-     "description": "Calendar voice commands: click the microphone and speak, or hold Ctrl+Space. Examples: “go to Thursday”, “week view”, “only doctor Smith”, “what do I have tomorrow?”, “who is next?”, “when is Ann Smith coming?”, “any gaps on Thursday afternoon?”, “Ann Smith arrived”, “cancel the 3 o’clock without notice”, “new appointment for Ann Smith on Monday at 10”, “move Ann’s appointment to Friday at 11”, “edit Ann’s appointment and set doctor Smith”, “make Ann’s appointment red”, “move the 10 o’clock to room 2”, “move Ann’s appointment to doctor Smith”, “make Ann’s appointment 45 minutes long”, “delete the 3 o’clock appointment”, “open Ann’s clinical history”, “bill John Smith”, “block Monday from 2 to 4 for a meeting”, “open Saturday from 9 to 1”, “remind me tomorrow at 9 to call the lab”, “mark the 10 o’clock reminder as done”, “print the schedule”. Changing a status, color, calendar, doctor or length, or deleting, is confirmed by saying “yes”; blocking and opening time show the usual window with the slot and you can correct the hours (“from 3 to 5”) before “yes”; booking, moving or editing an appointment opens the usual form already filled in; while confirming you can correct it (“with doctor Smith”, “add cleaning”, “at 11”) and “yes” saves it. Chrome and Edge only.",
-     "id": "appointments.btn.voice",
-     "kind": "btn",
-     "label": "Voice",
-     "source": "knowledge/screens/appointments.json"
-    },
-    {
      "description": "Height of the time slots.",
      "id": "appointments.btn.zoom",
      "kind": "btn",
@@ -3867,7 +3873,7 @@
      "id": "appointments.field.created_at",
      "kind": "field",
      "label": "Date",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.currency",
@@ -3896,6 +3902,11 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "id": "appointments.field.description",
+     "kind": "field",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.doctor",
      "kind": "field",
      "label": "Doctor",
@@ -3905,7 +3916,7 @@
      "id": "appointments.field.doctor_id",
      "kind": "field",
      "label": "Doctor",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.due_date",
@@ -4012,6 +4023,11 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "id": "appointments.field.keep_open",
+     "kind": "field",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.notes",
      "kind": "field",
      "label": "Notes",
@@ -4074,7 +4090,13 @@
      "id": "appointments.field.sede_id",
      "kind": "field",
      "label": "Location",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
+     "id": "appointments.field.service_id",
+     "kind": "field",
+     "label": "Treatment",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "description": "Sets the duration and what is billed.",
@@ -4097,10 +4119,22 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "id": "appointments.field.tooth_number",
+     "kind": "field",
+     "label": "Tooth",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.type",
      "kind": "field",
      "label": "Type",
      "source": "src/components/tables/invoices-table.tsx"
+    },
+    {
+     "id": "appointments.field.unit_price",
+     "kind": "field",
+     "label": "Price",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.user_id",
@@ -4266,7 +4300,7 @@
     "Bulk operations reassign many appointments to another doctor at once (vacations, leave).",
     "When you create a patient from the appointment you can add their dependents in the same form: Save stores them all. When you edit the patient, each change to their dependents is saved right away.",
     "The default view, grouping, hour size and booking rules are set in Calendar settings (gear); they are per user and save automatically.",
-    "With the Voice button (or holding Ctrl+Space) you can run the calendar by talking: change day, filter, ask what is booked, change statuses, book, move or edit appointments, change their color, calendar, doctor or length, delete them, open the patient’s history or account, block or open time and write reminders. Anything that changes data is confirmed first."
+    "With the Voice button you run the calendar by talking: tap it and it keeps listening (no wake word) until you turn it off or after a while without talking. You can move between days, change the view, the zoom, the calendars panel and every setting; find and pick appointments (they stay in focus); change statuses, book, move or edit appointments field by field; ask about a patient (visits, no-shows, balance, last payment, quotes, treatments); open a quote, invoice, treatment, clinical session or quick charge; export the schedule. Anything that changes something is confirmed first. You can also hold Ctrl+Space."
    ],
    "title": "Appointments",
    "useCases": [
@@ -8432,13 +8466,6 @@
      "id": "lab-orders.btn.view-list",
      "kind": "btn",
      "label": "List",
-     "source": "knowledge/screens/lab-orders.json"
-    },
-    {
-     "description": "Voice commands for this screen: click the microphone and speak, or hold Ctrl+Space. Examples: “order 45 was sent yesterday”, “order 45 arrived”, “create an order for Ann Smith, crown on 36”, “where is order 45?”, “order 45 is due on Friday”, “show overdue orders”. Anything that changes data is always confirmed by saying “yes”. Chrome and Edge only.",
-     "id": "lab-orders.btn.voice",
-     "kind": "btn",
-     "label": "Voice",
      "source": "knowledge/screens/lab-orders.json"
     },
     {

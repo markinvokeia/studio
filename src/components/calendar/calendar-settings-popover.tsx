@@ -11,13 +11,16 @@ interface CalendarSettingsPopoverProps {
   sedes?: Sede[];
   /** Authoritative settings from the parent; when set the form won't re-fetch. */
   value?: CalendarSettings;
+  /** Abierto desde afuera (la voz: «abrí la configuración»); sin esto se maneja solo. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CalendarSettingsPopover({ onSettingsChange, sedes, value }: CalendarSettingsPopoverProps) {
+export function CalendarSettingsPopover({ onSettingsChange, sedes, value, open, onOpenChange }: CalendarSettingsPopoverProps) {
   const t = useTranslations('AppointmentsPage.settings');
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button data-help-id="appointments.btn.settings" variant="outline" size="icon" className="h-10 w-10 shrink-0">
           <Settings2 className="h-4 w-4 text-muted-foreground" />

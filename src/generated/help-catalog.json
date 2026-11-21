@@ -1,5 +1,5 @@
 {
- "version": "21af38c2121d9eb3",
+ "version": "3465740bdbfbc84a",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -2840,6 +2840,12 @@
      "source": "knowledge/screens/dashboard.json"
     },
     {
+     "id": "rail.btn.voice",
+     "kind": "btn",
+     "label": "Voz",
+     "source": "knowledge/screens/dashboard.json"
+    },
+    {
      "id": "rail.section.alerts",
      "kind": "section",
      "label": "Alertas",
@@ -2947,6 +2953,13 @@
      "id": "rail.section.tv-menu",
      "kind": "section",
      "label": "Control de la TV",
+     "source": "knowledge/screens/dashboard.json"
+    },
+    {
+     "description": "Un solo botón de voz para toda la app, debajo de la mascota. Tocalo y escucha (sin palabra de activación) hasta apagarlo o un rato sin hablarle; trabaja con la pantalla abierta (agenda, órdenes de laboratorio…).",
+     "id": "rail.section.voice",
+     "kind": "section",
+     "label": "Voz",
      "source": "knowledge/screens/dashboard.json"
     }
    ],
@@ -3859,13 +3872,6 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
-     "description": "Comandos de voz del calendario: clic en el micrófono y hablar, o mantener Ctrl+Espacio. Ejemplos: «andá al jueves», «vista semanal», «solo el doctor Pérez», «¿qué tengo mañana?», «¿quién sigue?», «¿cuándo viene Ana Gómez?», «¿hay huecos el jueves a la tarde?», «Ana Gómez llegó», «cancelá la de las 3 sin aviso», «nueva cita para Ana Gómez el lunes a las 10», «pasá la cita de Ana al viernes a las 11», «editá la cita de Ana y ponele el doctor Pérez», «poné la cita de Ana en rojo», «pasá la de las 10 al consultorio 2», «pasá la cita de Ana al doctor Pérez», «que la cita de Ana dure 45 minutos», «borrá la cita de las 3», «abrí la historia clínica de Ana», «cobrale a Juan Pérez», «bloqueá el lunes de 14 a 16 por reunión», «habilitá el sábado de 9 a 13», «recordame mañana a las 9 llamar al laboratorio», «marcá como hecho el recordatorio de las 10», «imprimí la agenda». Cambiar un estado, el color, la agenda, el doctor o la duración, o borrar, se confirma diciendo «sí»; bloquear y habilitar abren la ventana de siempre con la franja y se pueden corregir las horas («de 15 a 17») antes del «sí»; dar, mover o editar una cita abre el formulario de siempre ya completo; mientras confirma se puede corregir («con el doctor Pérez», «agregá limpieza», «a las 11») y «sí» lo guarda. Solo en Chrome y Edge.",
-     "id": "appointments.btn.voice",
-     "kind": "btn",
-     "label": "Voz",
-     "source": "knowledge/screens/appointments.json"
-    },
-    {
      "description": "Alto de las franjas horarias.",
      "id": "appointments.btn.zoom",
      "kind": "btn",
@@ -3956,7 +3962,7 @@
      "id": "appointments.field.created_at",
      "kind": "field",
      "label": "Fecha",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.currency",
@@ -3985,6 +3991,11 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "id": "appointments.field.description",
+     "kind": "field",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.doctor",
      "kind": "field",
      "label": "Profesional",
@@ -3994,7 +4005,7 @@
      "id": "appointments.field.doctor_id",
      "kind": "field",
      "label": "Doctor",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.due_date",
@@ -4101,6 +4112,11 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "id": "appointments.field.keep_open",
+     "kind": "field",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.notes",
      "kind": "field",
      "label": "Notas",
@@ -4163,7 +4179,13 @@
      "id": "appointments.field.sede_id",
      "kind": "field",
      "label": "Sede",
-     "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
+     "id": "appointments.field.service_id",
+     "kind": "field",
+     "label": "Tratamiento",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "description": "Define duración y lo que se factura.",
@@ -4186,10 +4208,22 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "id": "appointments.field.tooth_number",
+     "kind": "field",
+     "label": "Pieza",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
      "id": "appointments.field.type",
      "kind": "field",
      "label": "Tipo",
      "source": "src/components/tables/invoices-table.tsx"
+    },
+    {
+     "id": "appointments.field.unit_price",
+     "kind": "field",
+     "label": "Precio",
+     "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
      "id": "appointments.field.user_id",
@@ -4355,7 +4389,7 @@
     "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
     "Al crear un paciente desde la cita podés cargar sus dependientes en el mismo formulario: se guardan todos con Guardar. Al editarlo, cada cambio en los dependientes se guarda en el momento.",
     "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas.",
-    "Con el botón Voz (o manteniendo Ctrl+Espacio) se maneja el calendario hablando: moverse de día, filtrar, preguntar qué hay, cambiar estados, dar, mover o editar citas, cambiarles color, agenda, doctor o duración, borrarlas, abrir la historia o la cuenta del paciente, bloquear o habilitar horarios y anotar recordatorios. Todo lo que cambia algo se confirma antes."
+    "Con el botón Voz la agenda se maneja hablando: tocalo y queda escuchando (sin palabra de activación) hasta apagarlo o un rato sin hablarle. Se puede moverse de día, cambiar la vista, el zoom, el panel de agendas y toda la configuración; buscar y elegir citas (queda en foco); cambiar estados, dar, mover o editar citas campo por campo; preguntar por un paciente (veces que vino, faltas, deuda, último pago, presupuestos, tratamientos); abrir presupuesto, factura, tratamiento, sesión clínica o cobro rápido; exportar la agenda. Lo que cambia algo se confirma antes. También se puede mantener Ctrl+Espacio."
    ],
    "title": "Citas",
    "useCases": [
@@ -8521,13 +8555,6 @@
      "id": "lab-orders.btn.view-list",
      "kind": "btn",
      "label": "Lista",
-     "source": "knowledge/screens/lab-orders.json"
-    },
-    {
-     "description": "Comandos de voz de esta pantalla: clic en el micrófono y hablar, o mantener Ctrl+Espacio. Ejemplos: «la orden 45 se envió ayer», «llegó la orden 45», «creá una orden para Ana Pérez, corona en la 36», «¿dónde está la orden 45?», «la 45 la entregan el viernes», «mostrame las atrasadas». Lo que cambia algo siempre se confirma diciendo «sí». Solo en Chrome y Edge.",
-     "id": "lab-orders.btn.voice",
-     "kind": "btn",
-     "label": "Voz",
      "source": "knowledge/screens/lab-orders.json"
     },
     {

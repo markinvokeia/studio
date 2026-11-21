@@ -10,7 +10,7 @@
     "Bulk operations reassign many appointments to another doctor at once (vacations, leave).",
     "When you create a patient from the appointment you can add their dependents in the same form: Save stores them all. When you edit the patient, each change to their dependents is saved right away.",
     "The default view, grouping, hour size and booking rules are set in Calendar settings (gear); they are per user and save automatically.",
-    "With the Voice button (or holding Ctrl+Space) you can run the calendar by talking: change day, filter, ask what is booked, change statuses, book, move or edit appointments, change their color, calendar, doctor or length, delete them, open the patient’s history or account, block or open time and write reminders. Anything that changes data is confirmed first."
+    "With the Voice button you run the calendar by talking: tap it and it keeps listening (no wake word) until you turn it off or after a while without talking. You can move between days, change the view, the zoom, the calendars panel and every setting; find and pick appointments (they stay in focus); change statuses, book, move or edit appointments field by field; ask about a patient (visits, no-shows, balance, last payment, quotes, treatments); open a quote, invoice, treatment, clinical session or quick charge; export the schedule. Anything that changes something is confirmed first. You can also hold Ctrl+Space."
   ],
   "elements": {
     "appointments.btn.create-menu": {
@@ -478,10 +478,6 @@
     "appointments.field.identity_document": {
       "label": "ID document",
       "description": "In the patient's details opened from the appointment."
-    },
-    "appointments.btn.voice": {
-      "label": "Voice",
-      "description": "Calendar voice commands: click the microphone and speak, or hold Ctrl+Space. Examples: “go to Thursday”, “week view”, “only doctor Smith”, “what do I have tomorrow?”, “who is next?”, “when is Ann Smith coming?”, “any gaps on Thursday afternoon?”, “Ann Smith arrived”, “cancel the 3 o’clock without notice”, “new appointment for Ann Smith on Monday at 10”, “move Ann’s appointment to Friday at 11”, “edit Ann’s appointment and set doctor Smith”, “make Ann’s appointment red”, “move the 10 o’clock to room 2”, “move Ann’s appointment to doctor Smith”, “make Ann’s appointment 45 minutes long”, “delete the 3 o’clock appointment”, “open Ann’s clinical history”, “bill John Smith”, “block Monday from 2 to 4 for a meeting”, “open Saturday from 9 to 1”, “remind me tomorrow at 9 to call the lab”, “mark the 10 o’clock reminder as done”, “print the schedule”. Changing a status, color, calendar, doctor or length, or deleting, is confirmed by saying “yes”; blocking and opening time show the usual window with the slot and you can correct the hours (“from 3 to 5”) before “yes”; booking, moving or editing an appointment opens the usual form already filled in; while confirming you can correct it (“with doctor Smith”, “add cleaning”, “at 11”) and “yes” saves it. Chrome and Edge only."
     }
   },
   "useCases": [

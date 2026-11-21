@@ -1,8 +1,10 @@
 import type { Gap } from '@/components/calendar/calendar-gaps';
 import type { CalendarGroupBy, CalendarView } from '@/components/calendar/calendar-types';
-import type { Appointment, AppointmentStatus, Calendar, CalendarItemScope, CalendarReminder, CancellationReason, Sede, Service, User } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar, CalendarItemScope, CalendarReminder, CalendarSettings, CancellationReason, Sede, Service, User } from '@/lib/types';
 import type { CalendarOpenTarget } from '@/lib/voice/commands/calendar-parse';
 import type { SlotDialogVoiceControl, SlotDialogVoiceStatus } from '@/lib/voice/dialog-voice';
+import type { PatientActionKind } from '@/lib/voice/patient-info';
+import type { PatientFacts, PatientFactsNeed } from '@/services/patient-facts';
 
 /**
  * Puente entre los comandos de voz del calendario y la pantalla de citas. La página (muy grande y
@@ -52,6 +54,54 @@ export interface CalendarVoiceState {
   slotDialog: { kind: 'block' | 'enable'; status: SlotDialogVoiceStatus | null } | null;
   /** Formulario de recordatorio/nota abierto. */
   reminderForm: { saving: boolean; error: string | null } | null;
+  /** Zoom de la grilla (0.3–2.5; 1 = 100 %). */
+  zoom: number;
+  /** Panel de agendas (izquierda, modo personalizado). */
+  agendasPanel: { open: boolean; pinned: boolean };
+  /** Preferencias del usuario (engranaje), null mientras cargan. */
+  settings: CalendarSettings | null;
+  /** El engranaje está abierto. */
+  settingsOpen: boolean;
+  /** Diálogo Exportar agenda abierto y lo que avisa. */
+  exportDialog: CalendarVoiceExportStatus | null;
+  /** Puede ver la cuenta del paciente (lo financiero). */
+  canViewAccounts: boolean;
+  /** Operaciones en lotes abierto. */
+  bulkMode: boolean;
+}
+
+/** Lo que muestra el diálogo Exportar agenda (para leerlo y saber si terminó). */
+export interface CalendarVoiceExportStatus {
+  /** Formato extendido: varias agendas; básico: una. */
+  extended: boolean;
+  preset: 'day' | 'week' | 'month' | 'custom';
+  from: string | null;
+  to: string | null;
+  calendarIds: string[];
+  exporting: boolean;
+  /** Se descargó (o no había citas): el diálogo se cerró. */
+  done: 'exported' | 'empty' | 'error' | null;
+}
+
+/** Pedido al diálogo Exportar agenda (lo que no viene, no se toca). */
+export interface CalendarVoiceExportControl {
+  preset?: 'day' | 'week' | 'month' | 'custom';
+  /** Día de referencia (día/semana/mes). */
+  anchor?: string;
+  from?: string;
+  to?: string;
+  calendarIds?: string[];
+  /** Aprieta Exportar. */
+  submit?: boolean;
+}
+
+/** Un paciente del buscador (el widget de la derecha). */
+export interface CalendarVoicePatient {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  document?: string;
 }
 
 export interface CalendarVoiceSlotRequest {
@@ -85,6 +135,23 @@ export interface CalendarVoiceFormPatch {
   doctor?: User | null;
   services?: Service[];
   start?: Date;
+  /** Hora de fin (HH:mm) del mismo día. */
+  endTime?: string;
+  calendar?: Calendar | null;
+  patient?: User | null;
+  /** Notas completas (ya combinadas con las que había si se agregó). */
+  notes?: string;
+}
+
+/** Lo que tiene ahora el formulario abierto (para agregar notas o servicios sin pisar). */
+export interface CalendarVoiceFormSnapshot {
+  notes: string;
+  services: Service[];
+  doctor: User | null;
+  calendar: Calendar | null;
+  patient: User | null;
+  start: Date | null;
+  endTime: string | null;
 }
 
 export interface CalendarVoiceActions {
@@ -110,6 +177,10 @@ export interface CalendarVoiceActions {
   patchAppointmentForm: (patch: CalendarVoiceFormPatch) => void;
   /** "Guardar" del formulario abierto (con todas sus validaciones). */
   submitAppointmentForm: () => void;
+  /** Cierra el formulario abierto sin guardar. */
+  closeAppointmentForm: () => void;
+  /** Lo que tiene el formulario abierto, o null. */
+  readAppointmentForm: () => CalendarVoiceFormSnapshot | null;
   // ── Menú de la cita (mismas funciones y avisos que el clic derecho; true si se aplicó) ──
   changeColor: (appointment: Appointment, colorId: string) => Promise<boolean>;
   reassign: (appointment: Appointment, change: { doctor?: User; calendar?: Calendar }) => Promise<boolean>;
@@ -131,6 +202,32 @@ export interface CalendarVoiceActions {
   // ── Barra ──
   print: () => void;
   refresh: () => void;
+  /** Hoy / flechas: lo mismo que los botones (avanzan según la vista). */
+  today: () => void;
+  setZoom: (zoom: number) => void;
+  setAgendasPanel: (change: { open?: boolean; pinned?: boolean }) => void;
+  /** Sale de Operaciones en lotes. */
+  exitBulk: () => void;
+  // ── Engranaje (preferencias del usuario: se guardan como al tocarlas) ──
+  updateSettings: (patch: Partial<CalendarSettings>) => Promise<boolean>;
+  setSettingsOpen: (open: boolean) => void;
+  // ── Exportar agenda ──
+  controlExport: (control: CalendarVoiceExportControl) => void;
+  closeExport: () => void;
+  // ── Pacientes ──
+  /** Buscador de pacientes (nombre, documento, email o teléfono). */
+  searchPatients: (query: string) => Promise<CalendarVoicePatient[]>;
+  /** Abre la ficha del paciente (lo mismo que elegirlo en el widget). */
+  openPatient: (patient: CalendarVoicePatient) => void;
+  /** Pregunta al agente clínico (Mi consultorio) sobre el paciente de la cita. */
+  askPatientAi: (appointment: Appointment, question: string) => Promise<{ answer: string; speech: string } | null>;
+  /** Lo que se sabe del paciente (historial de citas, finanzas, presupuestos, facturas, pagos, tratamientos). */
+  getPatientFacts: (patient: { id: string; name: string }, needs: PatientFactsNeed[]) => Promise<PatientFacts>;
+  /**
+   * Nuevo presupuesto, factura o tratamiento, sesión clínica o cobro rápido del paciente (los mismos
+   * diálogos que el menú). La sesión clínica necesita una cita; el cobro la usa si hay.
+   */
+  openPatientAction: (patient: { id: string; name: string }, action: PatientActionKind, appointment?: Appointment | null) => 'ok' | 'needsAppointment' | 'denied';
 }
 
 export interface CalendarVoiceBridge {
@@ -139,6 +236,8 @@ export interface CalendarVoiceBridge {
 }
 
 let current: CalendarVoiceBridge | null = null;
+/** Quién publicó el puente actual (cada montaje de la pantalla tiene el suyo). */
+let currentOwner: object | null = null;
 const listeners = new Set<() => void>();
 
 export function getCalendarVoice(): CalendarVoiceBridge | null {
@@ -149,8 +248,21 @@ export function getCalendarVoice(): CalendarVoiceBridge | null {
  * La pantalla del calendario publica su estado y sus acciones después de cada render
  * (useLayoutEffect sin dependencias) y null al desmontarse.
  */
-export function publishCalendarVoice(next: CalendarVoiceBridge | null) {
+export function publishCalendarVoice(next: CalendarVoiceBridge | null, owner: object | null = null) {
   current = next;
+  currentOwner = next ? owner : null;
+  listeners.forEach((listener) => listener());
+}
+
+/**
+ * La pantalla se desmonta: borra el puente solo si sigue siendo el suyo. Al cambiar de idioma o
+ * recargar en caliente, la pantalla vieja se desmonta DESPUÉS de que la nueva publicó el suyo: sin
+ * esto lo borraría y la voz creería que no hay agenda abierta.
+ */
+export function clearCalendarVoice(owner: object) {
+  if (currentOwner !== owner) return;
+  current = null;
+  currentOwner = null;
   listeners.forEach((listener) => listener());
 }
 

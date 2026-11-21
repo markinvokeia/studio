@@ -1,6 +1,9 @@
 import { format, set, startOfToday } from 'date-fns';
 
 import { getCalendarVoice, waitForCalendar, type CalendarVoiceFormPatch, type CalendarVoiceFormRequest } from '@/lib/voice/calendar-bridge';
+import { getAppointmentFocus, hasAppointmentFocus, setAppointmentFocus } from '@/lib/voice/focus';
+import { interpretWithAi } from '@/lib/voice/ai';
+import { extractFormCalendar, extractFormEndTime, isFormCancel, isFormSave, parseFormNotes, parseFormPatient, type FormNotesParsed } from '@/lib/voice/commands/calendar-form-parse';
 import {
   appointmentStart,
   bestByName,
@@ -51,7 +54,7 @@ import { searchPatients } from '@/services/users';
 
 import { canReschedule } from '@/constants/appointment-status';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
-import type { Appointment, AppointmentStatus, Calendar, CalendarVoiceAiResult, Service, User, VoiceCard, VoiceCardRow, VoiceCommandContext } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar, CalendarVoiceAiPlanResult, CalendarVoiceAiResult, Service, User, VoiceCard, VoiceCardRow, VoiceCommandContext } from '@/lib/types';
 
 /**
  * Calendario por voz — lo que cambia citas. Siempre se confirma antes, leyendo paciente, día y
@@ -124,6 +127,14 @@ export async function resolveAppointment(
 ): Promise<Appointment | null> {
   const bridge = getCalendarVoice();
   if (!bridge) return null;
+  // Sin nombrar ninguna: la que está en foco (la última elegida por voz).
+  if (!ref.patient && !ref.time && !ref.date) {
+    const focused = getAppointmentFocus();
+    if (focused && (focused.status as string) !== 'deleted' && accept(focused)) {
+      const fresh = bridge.state.appointments.find((a) => String(a.id) === String(focused.id)) ?? focused;
+      return fresh;
+    }
+  }
   const dayKey = ref.date ?? dayKeyOf(startOfToday());
   ctx.show({ title, message: tc(ctx, 'lookingAppointment'), tone: 'info' });
   const state = await showDay(ctx, parseDayKey(dayKey));
@@ -143,6 +154,7 @@ export async function resolveAppointment(
     const upcoming = narrowed.filter((a) => (appointmentStart(a)?.getTime() ?? 0) >= now - 60 * 60000).sort(byStart);
     candidates = upcoming.length ? upcoming : narrowed.sort(byStart).reverse();
   }
+  if (!candidates.length && ref.patient && await ctx.tryAi()) return null;
   if (!candidates.length) {
     const who = ref.patient ?? (ref.time ? tc(ctx, 'atTime', { time: timeKey(ref.time) }) : '');
     const message = tc(ctx, 'appointmentNotFound', { who, date: dayText(ctx, dayKey).speech });
@@ -150,7 +162,10 @@ export async function resolveAppointment(
     return null;
   }
   candidates = [...candidates].sort(byStart);
-  if (candidates.length === 1) return candidates[0];
+  if (candidates.length === 1) {
+    setAppointmentFocus(candidates[0]);
+    return candidates[0];
+  }
   const choices = candidates.slice(0, MAX_CHOICES);
   const index = await ctx.choose(
     {
@@ -161,6 +176,7 @@ export async function resolveAppointment(
     },
     tc(ctx, 'whichAppointmentSpeech', { count: choices.length }),
   );
+  setAppointmentFocus(choices[index]);
   return choices[index];
 }
 
@@ -218,12 +234,13 @@ async function runStatus(parsed: CalendarStatusParsed, ctx: VoiceCommandContext)
 registerVoiceCommand<CalendarStatusParsed, CalendarVoiceAiResult>({
   id: 'calendar.status',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 20,
   match: (normalized) => parseCalendarStatus(normalized),
   run: runStatus,
   ai: {
-    from: (r) => (r.intent === 'calendar.status' && r.status && (r.patient || r.time)
-      ? { status: r.status, reason: r.cancellation_reason, patient: r.patient ? normalizeSpeech(r.patient) : null, time: parseTimeKey(r.time), date: r.date }
+    from: (r) => (r.intent === 'calendar.status' && r.status
+      ? { status: r.status, reason: r.cancellation_reason, patient: r.patient ? normalizeSpeech(r.patient) : null, time: parseTimeKey(r.time ?? r.from_time), date: r.date ?? r.from_date }
       : null),
   },
 });
@@ -297,35 +314,104 @@ interface FormDraft {
   start: Date;
   doctor?: User | null;
   services?: Service[];
+  endTime?: string;
+  calendar?: Calendar | null;
+  patient?: User | null;
+  notes?: string;
+}
+
+type FormEdit = { draft: FormDraft; patch: CalendarVoiceFormPatch; changes: string[] } | { notFound: string } | null;
+
+/** Notas nuevas: agregadas a las que tenía el formulario, reemplazadas o borradas. */
+function mergeNotes(current: string, notes: FormNotesParsed): string {
+  if (notes.op === 'clear') return '';
+  if (notes.op === 'replace' || !current.trim()) return notes.text;
+  return `${current.trim()}\n${notes.text}`;
 }
 
 /**
- * Una corrección dicha mientras se confirma: "con el doctor Pérez", "agregá limpieza",
- * "sacale el blanqueamiento", "mejor a las 11", "el viernes". null si no dice nada de eso.
+ * Una corrección dicha con el formulario abierto: "con el doctor Pérez", "agregá limpieza",
+ * "sacale el blanqueamiento", "mejor a las 11", "el viernes", "que termine a las 12",
+ * "en el sillón 2", "nota: viene con la madre", "el paciente es Juan Pérez". null si no dice nada
+ * de eso.
  */
 async function readFormEdit(
   ctx: VoiceCommandContext,
   title: string,
-  answer: string,
+  rawAnswer: string,
   draft: FormDraft,
-): Promise<{ draft: FormDraft; patch: CalendarVoiceFormPatch; changes: string[] } | { notFound: string } | null> {
-  const state = getCalendarVoice()?.state;
+): Promise<FormEdit> {
+  const bridge = getCalendarVoice();
+  const state = bridge?.state;
   if (!state) return null;
-  const serviceMatches = findServiceMentions(answer, asOptions(state.services));
-  const skip = new Set(serviceMatches.flatMap((m) => Array.from({ length: m.end - m.start }, (_, i) => m.start + i)));
-  const doctorMention = findDoctorMention(answer, asOptions(state.doctors), { skip });
-  const dropDoctor = !doctorMention?.ids.length && /\b(?:sin|saca\w*|quita\w*|borra\w*|remove|without)\b.*\b(?:doctor|doctora|profesional)\b/.test(answer);
-  const time = extractSpokenTime(` ${answer} `);
-  const date = extractSpokenDate(time ? time.rest : ` ${answer} `, 'future');
+  const answer = normalizeSpeech(rawAnswer);
 
-  if (doctorMention && !doctorMention.ids.length && doctorMention.said && !serviceMatches.length && !time && !date) {
-    return { notFound: tc(ctx, 'doctorNotFound', { name: doctorMention.said }) };
+  // Notas: todo lo que sigue es el texto (puede tener horas o nombres que no son cambios).
+  const notes = parseFormNotes(answer, rawAnswer);
+  if (notes) {
+    const current = bridge.actions.readAppointmentForm()?.notes ?? draft.notes ?? '';
+    const merged = mergeNotes(current, notes);
+    return {
+      draft: { ...draft, notes: merged },
+      patch: { notes: merged },
+      changes: [notes.op === 'clear' ? tc(ctx, 'changeNotesCleared') : tc(ctx, 'changeNotes', { text: notes.text })],
+    };
   }
-  if (!doctorMention?.ids.length && !dropDoctor && !serviceMatches.length && !time && !date) return null;
 
+  // Paciente: «el paciente es …».
+  const patientSaid = parseFormPatient(answer);
+  if (patientSaid) {
+    const patient = await askPatient(ctx, title, patientSaid);
+    if (!patient) return { notFound: tc(ctx, 'patientNotFound', { name: patientSaid }) };
+    return { draft: { ...draft, patient }, patch: { patient }, changes: [tc(ctx, 'changePatient', { name: patient.name })] };
+  }
+
+  let text = answer;
   const next: FormDraft = { ...draft };
   const patch: CalendarVoiceFormPatch = {};
   const changes: string[] = [];
+
+  // Hora de fin antes que la de inicio («hasta las 12» no es la hora de la cita).
+  const end = extractFormEndTime(text);
+  if (end) {
+    const endTime = timeKey(end.time);
+    next.endTime = endTime;
+    patch.endTime = endTime;
+    changes.push(tc(ctx, 'changeEndTime', { time: endTime }));
+    text = end.rest;
+  }
+
+  // Consultorio / agenda.
+  const calendarMention = extractFormCalendar(text);
+  if (calendarMention) {
+    let found = bestByName(calendarMention.said, state.calendars, (c) => c.name);
+    // «chair 1» / «consultorio 2» con agendas que se llaman distinto: por el número, si hay una sola.
+    const number = calendarMention.said.match(/\b(\d{1,3})\b/)?.[1];
+    if ((!found || found.score < 0.5) && number) {
+      const byNumber = state.calendars.filter((c) => new RegExp(`\\b${number}\\b`).test(c.name));
+      if (byNumber.length === 1) found = { item: byNumber[0], score: 1 };
+    }
+    if (!found || found.score < 0.5) {
+      if (!changes.length) return { notFound: tc(ctx, 'calendarNotFound', { name: calendarMention.said }) };
+    } else {
+      next.calendar = found.item;
+      patch.calendar = found.item;
+      changes.push(tc(ctx, 'changeCalendar', { name: found.item.name }));
+      text = calendarMention.rest;
+    }
+  }
+
+  const serviceMatches = findServiceMentions(text, asOptions(state.services));
+  const skip = new Set(serviceMatches.flatMap((m) => Array.from({ length: m.end - m.start }, (_, i) => m.start + i)));
+  const doctorMention = findDoctorMention(text, asOptions(state.doctors), { skip });
+  const dropDoctor = !doctorMention?.ids.length && /\b(?:sin|saca\w*|quita\w*|borra\w*|remove|without)\b.*\b(?:doctor|doctora|profesional)\b/.test(text);
+  const time = extractSpokenTime(` ${text} `);
+  const date = extractSpokenDate(time ? time.rest : ` ${text} `, 'future');
+
+  if (doctorMention && !doctorMention.ids.length && doctorMention.said && !serviceMatches.length && !time && !date && !changes.length) {
+    return { notFound: tc(ctx, 'doctorNotFound', { name: doctorMention.said }) };
+  }
+
   if (doctorMention?.ids.length) {
     const doctor = await pickOne(ctx, title, doctorMention.ids, state.doctors, tc(ctx, 'whichDoctorOf'));
     if (doctor) {
@@ -340,8 +426,8 @@ async function readFormEdit(
   }
   if (serviceMatches.length) {
     const named = await pickServices(ctx, title, serviceMatches.map((m) => m.ids), state.services);
-    const current = draft.services ?? [];
-    const mode = serviceEditMode(answer);
+    const current = bridge.actions.readAppointmentForm()?.services ?? draft.services ?? [];
+    const mode = serviceEditMode(text);
     const services = mode === 'replace'
       ? named
       : mode === 'remove'
@@ -366,19 +452,90 @@ async function readFormEdit(
   return changes.length ? { draft: next, patch, changes } : null;
 }
 
+/** Lo que la IA entendió como cambio al formulario (intent calendar.form_set). */
+async function readFormEditWithAi(ctx: VoiceCommandContext, rawAnswer: string, draft: FormDraft): Promise<FormEdit | 'save' | 'cancel' | 'other'> {
+  const bridge = getCalendarVoice();
+  if (!bridge) return null;
+  const snapshot = bridge.actions.readAppointmentForm();
+  const answer = await interpretWithAi<CalendarVoiceAiPlanResult>(CALENDAR_VOICE_DOMAIN, rawAnswer, ctx, {
+    form: {
+      open: true,
+      start: format(draft.start, "yyyy-MM-dd'T'HH:mm"),
+      end_time: snapshot?.endTime ?? null,
+      doctor_id: snapshot?.doctor?.id ? String(snapshot.doctor.id) : null,
+      calendar_id: snapshot?.calendar?.id ? String(snapshot.calendar.id) : null,
+      service_ids: (snapshot?.services ?? []).map((s) => String(s.id)),
+      has_notes: !!snapshot?.notes?.trim(),
+    },
+  }).catch(() => null);
+  if (!answer || answer.confidence < 0.5) return null;
+  const step = answer.result.steps?.[0] ?? answer.result;
+  if (step.intent === 'calendar.form_save') return 'save';
+  if (step.intent === 'calendar.form_cancel') return 'cancel';
+  if (step.intent !== 'calendar.form_set') return step.intent === 'unknown' ? null : 'other';
+  const state = bridge.state;
+  const next: FormDraft = { ...draft };
+  const patch: CalendarVoiceFormPatch = {};
+  const changes: string[] = [];
+  if (step.doctor_id) {
+    const doctor = state.doctors.find((d) => String(d.id) === step.doctor_id);
+    if (doctor) { next.doctor = doctor; patch.doctor = doctor; changes.push(tc(ctx, 'changeDoctor', { name: doctor.name })); }
+  }
+  if (step.calendar_id) {
+    const calendar = state.calendars.find((c) => String(c.id) === step.calendar_id);
+    if (calendar) { next.calendar = calendar; patch.calendar = calendar; changes.push(tc(ctx, 'changeCalendar', { name: calendar.name })); }
+  }
+  if (step.service_ids.length || step.remove_service_ids.length) {
+    const current = snapshot?.services ?? draft.services ?? [];
+    const added = state.services.filter((s) => step.service_ids.includes(String(s.id)));
+    const services = [...current.filter((s) => !step.remove_service_ids.includes(String(s.id))), ...added.filter((a) => !current.some((s) => String(s.id) === String(a.id)))];
+    next.services = services;
+    patch.services = services;
+    changes.push(services.length ? tc(ctx, 'changeServices', { names: services.map((s) => s.name).join(', ') }) : tc(ctx, 'changeNoServices'));
+  }
+  if (step.date || step.time) {
+    const day = step.date ? parseDayKey(step.date) : draft.start;
+    const t = parseTimeKey(step.time);
+    const start = set(day, { hours: t ? t.hour : draft.start.getHours(), minutes: t ? t.minute : draft.start.getMinutes(), seconds: 0, milliseconds: 0 });
+    next.start = start;
+    patch.start = start;
+    changes.push(tc(ctx, 'dayAtTime', { date: dayText(ctx, dayKeyOf(start)).speech, time: format(start, 'HH:mm') }));
+  }
+  if (step.end_time) {
+    next.endTime = step.end_time;
+    patch.endTime = step.end_time;
+    changes.push(tc(ctx, 'changeEndTime', { time: step.end_time }));
+  }
+  if (step.notes_op) {
+    const merged = mergeNotes(snapshot?.notes ?? '', { op: step.notes_op, text: step.title ?? '' });
+    next.notes = merged;
+    patch.notes = merged;
+    changes.push(step.notes_op === 'clear' ? tc(ctx, 'changeNotesCleared') : tc(ctx, 'changeNotes', { text: step.title ?? '' }));
+  }
+  if (step.patient) {
+    const patient = await askPatient(ctx, tc(ctx, 'title'), normalizeSpeech(step.patient));
+    if (patient) { next.patient = patient; patch.patient = patient; changes.push(tc(ctx, 'changePatient', { name: patient.name })); }
+  }
+  return changes.length ? { draft: next, patch, changes } : null;
+}
+
 /**
- * Confirma por voz lo que quedó en el formulario. «Sí» lo guarda (el mismo botón Guardar, con sus
- * validaciones); «no» lo deja abierto; una corrección ("con el doctor Pérez", "agregá limpieza",
- * "a las 11") se aplica en el formulario y se vuelve a preguntar.
+ * El formulario abierto queda «en manos de la voz»: cada frase cambia campos y vuelve a preguntar.
+ * «Guardar / actualizar / sí» lo guarda (el mismo botón Guardar, con sus validaciones);
+ * «cancelar» lo cierra sin guardar; «no» lo deja abierto (para seguir con el mouse). Lo que no es
+ * del formulario pasa a ser un pedido nuevo (se pregunta si se deja este).
  */
 async function confirmAndSave(
   ctx: VoiceCommandContext,
   card: (draft: FormDraft) => VoiceCard,
   speech: string,
-  kind: 'create' | 'reschedule' | 'edit',
+  kind: 'create' | 'reschedule' | 'edit' | 'form',
   initial: FormDraft,
+  /** Lo primero ya se dijo (el formulario se abrió a mano y se le habló): se aplica sin preguntar. */
+  firstAnswer?: string,
 ) {
   let draft = initial;
+  let pendingFirst = firstAnswer;
   const opened = await waitForCalendar((s) => s.form.kind !== null, { signal: ctx.signal, timeoutMs: 3000 });
   if (!opened) {
     const message = tc(ctx, 'formNotOpened');
@@ -389,28 +546,61 @@ async function confirmAndSave(
   for (let unclear = 0; ;) {
     // La primera vez, cómo responder; después, lo que cambió o qué se espera (lo mismo que dice).
     const message = prompt === speech ? tc(ctx, 'formConfirmHint') : prompt;
-    const answer = normalizeSpeech(await ctx.ask({ ...card(draft), message, tone: 'confirm' }, prompt, 'confirm'));
+    const raw = pendingFirst ?? await ctx.ask({ ...card(draft), message, tone: 'confirm' }, prompt, 'confirm', { corrections: true });
+    pendingFirst = undefined;
+    const answer = normalizeSpeech(raw);
     const bridge = getCalendarVoice();
     if (!bridge || !bridge.state.form.kind) {
       const message = tc(ctx, 'formClosed');
       await ctx.finish({ ...card(draft), message, tone: 'info' }, message);
       return;
     }
-    const edit = await readFormEdit(ctx, card(draft).title, answer, draft);
-    if (edit && 'notFound' in edit) {
+    if (isFormCancel(answer)) {
+      bridge.actions.closeAppointmentForm();
+      const message = tc(ctx, 'formCancelled');
+      await ctx.finish({ ...card(draft), message, tone: 'info' }, message);
+      return;
+    }
+    if (isFormSave(answer)) break;
+    const yesNo = parseYesNo(answer);
+    if (yesNo === 'yes') break;
+    if (yesNo === 'no') {
+      const message = tc(ctx, 'formLeftOpen');
+      await ctx.finish({ ...card(draft), message, tone: 'info' }, message);
+      return;
+    }
+    // Un verbo que no es de edición («exportá…», «andá a…», «buscá…»): primero es otro pedido.
+    if (FOREIGN_TO_FORM.test(answer)) {
+      const outcome = await ctx.handOff(raw);
+      if (outcome === 'switched') return;
+      if (outcome === 'handled') { prompt = tc(ctx, 'sayYesNoOrChange'); continue; }
+    }
+    let edit: FormEdit | 'save' | 'cancel' | 'other' = await readFormEdit(ctx, card(draft).title, raw, draft);
+    // Lo local no lo entendió: la IA (con lo que tiene el formulario).
+    if (!edit) edit = await readFormEditWithAi(ctx, raw, draft);
+    if (edit === 'save') break;
+    if (edit === 'cancel') {
+      bridge.actions.closeAppointmentForm();
+      const message = tc(ctx, 'formCancelled');
+      await ctx.finish({ ...card(draft), message, tone: 'info' }, message);
+      return;
+    }
+    if (edit && edit !== 'other' && 'notFound' in edit) {
       prompt = `${edit.notFound} ${tc(ctx, 'sayYesNoOrChange')}`;
       continue;
     }
-    if (edit) {
+    if (edit && edit !== 'other') {
       bridge.actions.patchAppointmentForm(edit.patch);
       draft = edit.draft;
       unclear = 0;
       prompt = tc(ctx, 'formUpdated', { changes: edit.changes.join(', ') });
       continue;
     }
-    const yesNo = parseYesNo(answer);
-    if (yesNo === 'yes') break;
-    if (yesNo === 'no' || ++unclear >= 3) {
+    // No es del formulario: ¿un pedido nuevo? (la sesión pregunta si se deja este).
+    const outcome = await ctx.handOff(raw);
+    if (outcome === 'switched') return;
+    if (outcome === 'handled') { prompt = tc(ctx, 'sayYesNoOrChange'); continue; }
+    if (++unclear >= 3) {
       const message = tc(ctx, 'formLeftOpen');
       await ctx.finish({ ...card(draft), message, tone: 'info' }, message);
       return;
@@ -427,7 +617,7 @@ async function confirmAndSave(
   const done = await waitForCalendar((s) => !s.form.saving, { signal: ctx.signal, timeoutMs: REQUEST_TIMEOUT_MS.mutation + 5000, settleMs: 400 });
   if (ctx.signal.aborted) return;
   if (done && done.form.kind === null) {
-    const message = tc(ctx, kind === 'create' ? 'createDone' : kind === 'edit' ? 'editDone' : 'rescheduleDone');
+    const message = tc(ctx, kind === 'create' ? 'createDone' : kind === 'edit' ? 'editDone' : kind === 'form' ? 'formSaved' : 'rescheduleDone');
     await ctx.finish({ ...card(draft), message, tone: 'success' }, message);
     return;
   }
@@ -644,7 +834,8 @@ async function runEdit(parsed: EditResolved, ctx: VoiceCommandContext) {
   const bridge = await needCalendar(ctx, title);
   if (!bridge) return;
   let ref = parsed.ref;
-  if (!ref.patient && !ref.time) {
+  // Sin nombrarla y sin una cita en foco: ¿cuál?
+  if (!ref.patient && !ref.time && !hasAppointmentFocus()) {
     const answer = normalizeSpeech(await ctx.ask({ title, message: tc(ctx, 'whichAppointmentName'), tone: 'confirm' }, tc(ctx, 'whichAppointmentName')));
     ref = editAppointmentRef(` ${answer} `);
     if (!ref.patient && !ref.time) {
@@ -725,6 +916,7 @@ async function runEdit(parsed: EditResolved, ctx: VoiceCommandContext) {
 registerVoiceCommand<EditResolved, CalendarVoiceAiResult>({
   id: 'calendar.edit',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 29,
   match: (normalized) => {
     const parsed = parseCalendarEdit(normalized);
@@ -732,7 +924,7 @@ registerVoiceCommand<EditResolved, CalendarVoiceAiResult>({
   },
   run: runEdit,
   ai: {
-    from: (r) => (r.intent === 'calendar.edit' && (r.patient || r.from_time)
+    from: (r) => (r.intent === 'calendar.edit'
       ? {
         ref: { patient: r.patient ? normalizeSpeech(r.patient).trim() : null, time: parseTimeKey(r.from_time), date: r.from_date },
         doctorIds: r.doctor_id ? [r.doctor_id] : [],
@@ -792,6 +984,7 @@ async function runReschedule(parsed: CalendarRescheduleParsed, ctx: VoiceCommand
 registerVoiceCommand<CalendarRescheduleParsed, CalendarVoiceAiResult>({
   id: 'calendar.reschedule',
   domain: CALENDAR_VOICE_DOMAIN,
+  usesFocus: true,
   priority: 30,
   match: (normalized) => parseCalendarReschedule(normalized),
   run: runReschedule,
@@ -805,3 +998,46 @@ registerVoiceCommand<CalendarRescheduleParsed, CalendarVoiceAiResult>({
       : null),
   },
 });
+
+/**
+ * Verbos que no corrigen el formulario sino que piden otra cosa (moverse, exportar, buscar, abrir
+ * otra pantalla, zoom…). Los de edición (poné, cambiá, agregá, sacá, pasá) no están.
+ */
+const FOREIGN_TO_FORM = /^(?:(?:por favor|dale|bueno|che)\s)?(?:exporta\w*|descarga\w*|imprimi\w*|anda|andate|ve|vete|vamos|volve|vuelve|mostra\w*|muestra\w*|busca\w*|abri\w*|abre\w*|zoom|acerca\w*|aleja\w*|agranda\w*|achica\w*|actualiza (?:el calendario|la agenda|la pantalla)|refresca\w*|recarga\w*|bloquea\w*|habilita\w*|agrupa\w*|filtra\w*|oculta\w*|recorda\w*|recuerda\w*|dame|decime|dime|resumi\w*|go|show|open|find|search|export|download|print|zoom|refresh|reload|block|enable|group|filter|hide|remind|give|tell|summarize)(?=\s|$)/;
+
+// ── Formulario abierto a mano: la voz se para ahí ─────────────────────────────
+
+/**
+ * Con el formulario de una cita abierto (con el mouse o por voz) lo que se dice es para él:
+ * cambia campos, guarda o cancela. Lee lo que tiene y sigue el mismo ciclo que confirmAndSave.
+ */
+export async function runOpenFormSession(ctx: VoiceCommandContext, raw: string) {
+  const bridge = await needCalendar(ctx, tc(ctx, 'formTitle'));
+  if (!bridge) return;
+  const snapshot = bridge.actions.readAppointmentForm();
+  const initial: FormDraft = {
+    start: snapshot?.start ?? new Date(),
+    doctor: snapshot?.doctor,
+    services: snapshot?.services,
+    calendar: snapshot?.calendar,
+    patient: snapshot?.patient,
+    notes: snapshot?.notes,
+    endTime: snapshot?.endTime ?? undefined,
+  };
+  const card = (draft: FormDraft): VoiceCard => {
+    const current = getCalendarVoice()?.actions.readAppointmentForm();
+    const services = current?.services ?? draft.services ?? [];
+    return {
+      title: tc(ctx, 'formTitle'),
+      subtitle: current?.patient?.name ?? draft.patient?.name ?? undefined,
+      rows: [
+        { label: tc(ctx, 'when'), value: `${format(draft.start, 'dd/MM HH:mm')}${current?.endTime ? ` – ${current.endTime}` : ''}` },
+        ...(current?.doctor ?? draft.doctor ? [{ label: tc(ctx, 'doctor'), value: (current?.doctor ?? draft.doctor)!.name }] : []),
+        ...(current?.calendar ?? draft.calendar ? [{ label: tc(ctx, 'calendar'), value: (current?.calendar ?? draft.calendar)!.name }] : []),
+        ...(services.length ? [{ label: tc(ctx, 'services'), value: services.map((s) => s.name).join(', ') }] : []),
+      ],
+      tone: 'confirm',
+    };
+  };
+  await confirmAndSave(ctx, card, tc(ctx, 'formConfirmHint'), 'form', initial, raw);
+}

@@ -203,3 +203,31 @@ export async function getCalendarSettings(): Promise<CalendarSettings> {
     return DEFAULT_CALENDAR_SETTINGS;
   }
 }
+
+/**
+ * Guarda las preferencias del usuario (lo que hace el engranaje al tocar una opción). Sin `id` se
+ * busca primero la fila existente para actualizarla en vez de crear otra. Devuelve lo guardado,
+ * con `updates` por encima (si el backend todavía no conoce una clave, no la deshace).
+ */
+export async function saveCalendarSettings(
+  settings: CalendarSettings,
+  updates: Partial<CalendarSettings>,
+  { userId, timeoutMs }: { userId?: string; timeoutMs?: number } = {},
+): Promise<CalendarSettings> {
+  let payload = settings;
+  if (!payload.id) {
+    const existing = normalizeCalendarSettings(
+      await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH, userId ? { user_id: userId } : undefined),
+    );
+    if (existing?.id) payload = { ...existing, ...settings, id: existing.id };
+  }
+  const response = await api.post(
+    API_ROUTES.CALENDAR_SETTINGS_UPSERT,
+    userId ? { ...payload, user_id: userId } : payload,
+    undefined,
+    undefined,
+    timeoutMs ? { timeoutMs } : undefined,
+  );
+  const saved = normalizeCalendarSettings(response);
+  return saved ? { ...saved, ...updates } : payload;
+}

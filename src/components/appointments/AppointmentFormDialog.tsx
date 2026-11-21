@@ -115,9 +115,35 @@ interface AppointmentFormDialogProps {
     /** Cada cambio de este número presiona "Guardar" (lo usa la voz al decir «sí»). */
     submitSignal?: number;
     /** Cambios dictados por voz al formulario abierto; se aplican cada vez que cambia `seq`. */
-    voicePatch?: { seq: number; doctor?: UserType | null; services?: Service[]; date?: string; time?: string } | null;
+    voicePatch?: AppointmentFormVoicePatch | null;
+    /** Lo que tiene el formulario (la voz lo lee para agregar notas o servicios sin pisar). */
+    onVoiceSnapshot?: (snapshot: AppointmentFormVoiceSnapshot) => void;
     /** Avisa cuándo empieza y termina un guardado (la voz espera el resultado). */
     onSavingChange?: (saving: boolean) => void;
+}
+
+/** Cambios dictados por voz al formulario abierto (lo que no viene, no se toca). */
+export interface AppointmentFormVoicePatch {
+    seq: number;
+    doctor?: UserType | null;
+    services?: Service[];
+    date?: string;
+    time?: string;
+    endTime?: string;
+    calendar?: CalendarType | null;
+    user?: UserType | null;
+    notes?: string;
+}
+
+export interface AppointmentFormVoiceSnapshot {
+    user: UserType | null;
+    services: Service[];
+    doctor: UserType | null;
+    calendar: CalendarType | null;
+    date: string;
+    time: string;
+    endTime: string;
+    notes: string;
 }
 
 /** Firma de un conjunto de servicios (ids ordenados) para saber si cambió. */
@@ -145,6 +171,7 @@ export function AppointmentFormDialog({
     rescheduleTo,
     submitSignal,
     voicePatch,
+    onVoiceSnapshot,
     onSavingChange,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
@@ -1100,23 +1127,47 @@ export function AppointmentFormDialog({
         if (!voicePatch || voicePatch.seq === lastVoicePatchRef.current) return;
         lastVoicePatchRef.current = voicePatch.seq;
         if (!open) return;
-        const { doctor, services, date, time } = voicePatch;
-        const defaultCalendar = doctor?.calendar_source_id
-            ? calendars.find(c => String(c.id) === String(doctor.calendar_source_id)) ?? null
-            : null;
+        const { doctor, services, date, time, endTime, calendar, user, notes } = voicePatch;
+        // El consultorio dicho le gana al del doctor.
+        const defaultCalendar = calendar !== undefined
+            ? calendar
+            : doctor?.calendar_source_id
+                ? calendars.find(c => String(c.id) === String(doctor.calendar_source_id)) ?? null
+                : null;
+        if (user) applyPatient(user);
         setHasBeenEdited(true);
         setAppointment(prev => ({
             ...prev,
-            ...(doctor !== undefined ? { doctor, ...(defaultCalendar ? { calendar: defaultCalendar } : {}) } : {}),
+            ...(doctor !== undefined ? { doctor } : {}),
+            ...(defaultCalendar !== null || calendar !== undefined ? { calendar: defaultCalendar } : {}),
             ...(services ? { services } : {}),
             ...(date ? { date } : {}),
             ...(time ? { time } : {}),
+            ...(endTime ? { endTime } : {}),
+            ...(notes !== undefined ? { notes } : {}),
         }));
         setErrors(prev => prev.filter(err => !(
             (doctor && err === 'doctor') || (defaultCalendar && err === 'calendar') || (services?.length && err === 'services')
-            || (date && err === 'date') || (time && err === 'time')
+            || (date && err === 'date') || (time && err === 'time') || (endTime && err === 'endTime') || (user && err === 'user')
         )));
+        // applyPatient cambia en cada render; el parche se aplica una sola vez por seq.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [voicePatch, open, calendars]);
+
+    // La voz lee lo que tiene el formulario (agregar una nota sin borrar las que había).
+    React.useEffect(() => {
+        if (!open) return;
+        onVoiceSnapshot?.({
+            user: appointment.user,
+            services: appointment.services,
+            doctor: appointment.doctor,
+            calendar: appointment.calendar,
+            date: appointment.date,
+            time: appointment.time,
+            endTime: appointment.endTime,
+            notes: appointment.notes,
+        });
+    }, [open, appointment, onVoiceSnapshot]);
 
     // «Sí» por voz = el botón Guardar, con todas sus validaciones y avisos.
     const lastSubmitSignalRef = React.useRef(submitSignal);

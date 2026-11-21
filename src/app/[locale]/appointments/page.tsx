@@ -7,7 +7,7 @@ import type { CalendarDragMode, CalendarDragResult, CalendarDraftPreview, Calend
 import { DatePicker } from '@/components/ui/date-picker';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
-import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { DEFAULT_CALENDAR_SETTINGS, getCalendarSettings, saveCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
 import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResult } from '@/components/calendar/calendar-search-panel';
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
@@ -104,8 +104,14 @@ import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDial
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
-import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
-import { publishCalendarVoice, type CalendarVoiceActions, type CalendarVoiceFormPatch, type CalendarVoiceFormRequest } from '@/lib/voice/calendar-bridge';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { clearCalendarVoice, publishCalendarVoice, type CalendarVoiceActions, type CalendarVoiceExportControl, type CalendarVoiceExportStatus, type CalendarVoiceFormPatch, type CalendarVoiceFormRequest } from '@/lib/voice/calendar-bridge';
+import { refreshAppointmentFocus, syncUiSelection } from '@/lib/voice/focus';
+import { queryDoctorAi } from '@/services/doctor-ai';
+import { searchPatientsForVoice } from '@/services/voice';
+import { loadPatientFacts } from '@/services/patient-facts';
+import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
+import type { AppointmentFormVoicePatch, AppointmentFormVoiceSnapshot } from '@/components/appointments/AppointmentFormDialog';
 import type { FormVoiceControl, SlotDialogVoiceControl, SlotDialogVoiceStatus } from '@/lib/voice/dialog-voice';
 import { CALENDAR_VOICE_DOMAIN } from '@/lib/voice/commands/calendar';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
@@ -874,7 +880,6 @@ export default function AppointmentsPage() {
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
-    const tVoice = useTranslations('VoiceCommands');
     const tSearch = useTranslations('Calendar.search');
     const tDrag = useTranslations('Calendar.drag');
     const tConfirmClose = useTranslations('ConfirmCloseDialog');
@@ -937,7 +942,16 @@ export default function AppointmentsPage() {
     const [voiceRescheduleTo, setVoiceRescheduleTo] = React.useState<{ date: string; time: string } | null>(null);
     const [voiceSubmitSignal, setVoiceSubmitSignal] = React.useState(0);
     const [isDialogSaving, setIsDialogSaving] = React.useState(false);
-    const [voiceFormPatch, setVoiceFormPatch] = React.useState<{ seq: number; doctor?: UserType | null; services?: Service[]; date?: string; time?: string } | null>(null);
+    const [voiceFormPatch, setVoiceFormPatch] = React.useState<AppointmentFormVoicePatch | null>(null);
+    // Lo que tiene el formulario modal abierto (la voz lo lee para agregar sin pisar).
+    const voiceFormSnapshotRef = React.useRef<AppointmentFormVoiceSnapshot | null>(null);
+    const handleVoiceFormSnapshot = React.useCallback((snapshot: AppointmentFormVoiceSnapshot) => { voiceFormSnapshotRef.current = snapshot; }, []);
+    // Exportar agenda y engranaje manejados por voz.
+    const [exportVoiceControl, setExportVoiceControl] = React.useState<(CalendarVoiceExportControl & { seq: number }) | null>(null);
+    const [exportVoiceStatus, setExportVoiceStatus] = React.useState<CalendarVoiceExportStatus | null>(null);
+    const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = React.useState(false);
+    // «Nuevo tratamiento» por voz: el mismo diálogo rápido que el perfil del paciente.
+    const [voiceTreatmentPatient, setVoiceTreatmentPatient] = React.useState<UserType | null>(null);
     const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
     const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
@@ -5021,11 +5035,25 @@ export default function AppointmentsPage() {
                 setInlineDraft((d) => {
                     if (!d) return d;
                     const doctor = patch.doctor !== undefined ? patch.doctor : d.doctor;
-                    const next = { ...d, doctor, ...(patch.start ? { date: patch.start } : {}) };
+                    let next: InlineAppointmentDraftState = {
+                        ...d,
+                        doctor,
+                        ...(patch.start ? { date: patch.start } : {}),
+                        ...(patch.calendar !== undefined ? { calendar: patch.calendar } : {}),
+                        ...(patch.patient ? { patient: patch.patient } : {}),
+                        ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
+                    };
                     if (patch.services) {
                         const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
                         const total = sumServicesDuration(patch.services, doctorServices, services);
-                        return { ...next, services: patch.services, ...(total > 0 ? { durationMin: total } : {}) };
+                        next = { ...next, services: patch.services, ...(total > 0 ? { durationMin: total } : {}) };
+                    }
+                    if (patch.endTime) {
+                        const [h, m] = patch.endTime.split(':').map(Number);
+                        const end = new Date(next.date);
+                        end.setHours(h, m, 0, 0);
+                        const minutes = Math.round((end.getTime() - next.date.getTime()) / 60000);
+                        if (minutes >= 5) next = { ...next, durationMin: minutes };
                     }
                     return next;
                 });
@@ -5038,7 +5066,41 @@ export default function AppointmentsPage() {
                 services: patch.services,
                 date: patch.start ? format(patch.start, 'yyyy-MM-dd') : undefined,
                 time: patch.start ? format(patch.start, 'HH:mm') : undefined,
+                endTime: patch.endTime,
+                calendar: patch.calendar,
+                user: patch.patient ?? undefined,
+                notes: patch.notes,
             }));
+        },
+        readAppointmentForm: () => {
+            if (inlineDraft) {
+                const end = new Date(inlineDraft.date.getTime() + inlineDraft.durationMin * 60000);
+                return {
+                    notes: inlineDraft.notes ?? '',
+                    services: inlineDraft.services,
+                    doctor: inlineDraft.doctor,
+                    calendar: inlineDraft.calendar,
+                    patient: inlineDraft.patient,
+                    start: inlineDraft.date,
+                    endTime: format(end, 'HH:mm'),
+                };
+            }
+            const snap = isCreateOpen ? voiceFormSnapshotRef.current : null;
+            if (!snap) return null;
+            const start = snap.date && snap.time ? parseISO(`${snap.date}T${snap.time}`) : null;
+            return {
+                notes: snap.notes ?? '',
+                services: snap.services,
+                doctor: snap.doctor,
+                calendar: snap.calendar,
+                patient: snap.user,
+                start: start && isValid(start) ? start : null,
+                endTime: snap.endTime || null,
+            };
+        },
+        closeAppointmentForm: () => {
+            if (inlineDraft) { closeInlineDraft(); return; }
+            if (isCreateOpen) handleOpenChange(false);
         },
         submitAppointmentForm: () => {
             if (inlineDraft) void saveInlineDraft.run();
@@ -5137,9 +5199,88 @@ export default function AppointmentsPage() {
         deleteReminder: async (reminder, scope) => (await reminderDeleteAction.run(reminder.id, reminder, scope)) === true,
         print: () => setIsPrintScheduleOpen(true),
         refresh: forceRefresh,
+        today: () => setSearchFocusDate(new Date()),
+        setZoom: applyCalendarZoom,
+        exitBulk: () => { if (isBulkMode) handleToggleBulkMode(); },
+        setAgendasPanel: ({ open, pinned }) => {
+            if (pinned !== undefined && pinned !== agendasPanelPinned) handleToggleAgendasPinned();
+            if (open !== undefined) setAgendasPanelOpen(open);
+            else if (pinned) setAgendasPanelOpen(true);
+        },
+        updateSettings: async (patch) => {
+            const previous = calendarSettings ?? DEFAULT_CALENDAR_SETTINGS;
+            const next = { ...previous, ...patch };
+            handleSettingsEditorChange(next);
+            try {
+                const saved = await saveCalendarSettings(next, patch, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+                handleSettingsEditorChange(saved);
+                return true;
+            } catch (error) {
+                console.error('[voice] calendar settings save failed', error);
+                handleSettingsEditorChange(previous);
+                return false;
+            }
+        },
+        setSettingsOpen: setIsSettingsPopoverOpen,
+        controlExport: (control) => {
+            if (!isPrintScheduleOpen) setIsPrintScheduleOpen(true);
+            // Al abrir, el diálogo arranca en hoy: el pedido se aplica en el render siguiente.
+            const delay = isPrintScheduleOpen ? 0 : 60;
+            window.setTimeout(() => setExportVoiceControl((prev) => ({ ...control, seq: (prev?.seq ?? 0) + 1 })), delay);
+        },
+        closeExport: () => setIsPrintScheduleOpen(false),
+        searchPatients: (query) => searchPatientsForVoice(query),
+        openPatient: (patient) => openPatientView({ userId: patient.id, userName: patient.name, userEmail: patient.email || undefined, userPhone: patient.phone || undefined }),
+        askPatientAi: async (appointment, question) => {
+            const result = await queryDoctorAi({
+                appointment_id: String(appointment.id),
+                patient_id: appointment.patientId ? String(appointment.patientId) : undefined,
+                doctor_id: appointment.doctorId ? String(appointment.doctorId) : undefined,
+                query: question,
+                channel: 'voice',
+            });
+            const answer = (result?.answer ?? result?.output ?? '').trim();
+            if (!answer) return null;
+            return { answer, speech: (result?.speak_text ?? answer).trim() };
+        },
+        getPatientFacts: (patient, needs) => loadPatientFacts(patient, needs),
+        openPatientAction: (patient, action, appointment) => {
+            const user = { id: patient.id, name: patient.name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType;
+            switch (action) {
+                case 'quote':
+                    if (appointment) { handleCreateQuoteForAppointment(appointment); return 'ok'; }
+                    setQuoteLinkTarget(null);
+                    setQuickQuotePatient(user);
+                    setQuickQuoteInitialItems(undefined);
+                    setIsQuickQuoteOpen(true);
+                    return 'ok';
+                case 'invoice':
+                    if (appointment) { handleCreateInvoiceForAppointment(appointment); return 'ok'; }
+                    setInvoiceLinkTarget(null);
+                    setInvoicePatient(user);
+                    setInvoiceInitialItems(undefined);
+                    setIsInvoiceFormOpen(true);
+                    return 'ok';
+                case 'treatment':
+                    setVoiceTreatmentPatient(user);
+                    return 'ok';
+                case 'session':
+                    if (!appointment) return 'needsAppointment';
+                    void handleOpenClinicSession(appointment);
+                    return 'ok';
+                case 'bill':
+                    if (appointment) { handleQuickBillFromContext(appointment); return 'ok'; }
+                    openBillingWizard({ patientId: patient.id, patientName: patient.name, isSales: true }, () => refreshCalendarDataRef.current());
+                    return 'ok';
+            }
+            return 'ok';
+        },
     };
 
     // Se publica en cada render (sin deps): la voz siempre ve el último estado.
+    // La voz (botón del riel derecho) trabaja con el contexto de la agenda mientras esta pantalla esté abierta.
+    useVoiceScreen(CALENDAR_VOICE_DOMAINS);
+    const voiceOwnerRef = React.useRef({});
     React.useLayoutEffect(() => {
         publishCalendarVoice({
             actions: voiceActions,
@@ -5170,10 +5311,24 @@ export default function AppointmentsPage() {
                     ? { kind: 'block', status: slotVoiceStatus }
                     : enableSlotTarget ? { kind: 'enable', status: slotVoiceStatus } : null,
                 reminderForm: isReminderFormOpen ? (reminderVoiceStatus ?? { saving: false, error: null }) : null,
+                zoom: calendarZoom,
+                agendasPanel: { open: agendasPanelOpen, pinned: agendasPanelPinned },
+                settings: calendarSettings,
+                settingsOpen: isSettingsPopoverOpen,
+                exportDialog: isPrintScheduleOpen ? exportVoiceStatus : null,
+                canViewAccounts: canViewPatientStatement,
+                bulkMode: isBulkMode,
             },
-        });
+        }, voiceOwnerRef.current);
+        // La cita en foco de la voz se mantiene con los datos recargados.
+        refreshAppointmentFocus((id) => appointments.find((a) => String(a.id) === id));
+        // Lo seleccionado en la pantalla (la tarjeta o el detalle de una cita) es de lo que se habla.
+        syncUiSelection(quickView?.appointment ?? (isDetailViewOpen ? selectedAppointment : null));
     });
-    React.useEffect(() => () => publishCalendarVoice(null), []);
+    React.useEffect(() => {
+        const owner = voiceOwnerRef.current;
+        return () => clearCalendarVoice(owner);
+    }, []);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
@@ -6057,7 +6212,7 @@ export default function AppointmentsPage() {
                             hideTitle={isCustomMode}
                             arrowsBeforeToday={isCustomMode}
                             hideTimeGutter={isCustomMode}
-                            zoom={isCustomMode ? calendarZoom : undefined}
+                            zoom={calendarZoom}
                             onZoomChange={applyCalendarZoom}
                             showZoomSlider={!isCustomMode}
                             leadingActions={isCustomMode ? (
@@ -6311,12 +6466,6 @@ export default function AppointmentsPage() {
                             extraActions={
                                 <TooltipProvider>
                                     <div className="flex items-center gap-1.5">
-                                        <VoiceCommandButton
-                                            compact={secondaryIconOnly}
-                                            helpId="appointments.btn.voice"
-                                            hint={tVoice('calendar.buttonHint')}
-                                            className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0 px-0' : 'h-10 w-10 shrink-0 px-0') : 'h-10 shrink-0'}
-                                        />
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -6484,7 +6633,7 @@ export default function AppointmentsPage() {
                             }
                             trailingActions={
                                 !isMobile ? (
-                                    <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
+                                    <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} open={isSettingsPopoverOpen} onOpenChange={setIsSettingsPopoverOpen} />
                                 ) : null
                             }
                         >
@@ -6720,14 +6869,25 @@ export default function AppointmentsPage() {
                 rescheduleTo={isReschedulingMode ? voiceRescheduleTo : null}
                 submitSignal={voiceSubmitSignal}
                 voicePatch={voiceFormPatch}
+                onVoiceSnapshot={handleVoiceFormSnapshot}
                 onSavingChange={setIsDialogSaving}
             />
-            <VoiceCommandHost domains={CALENDAR_VOICE_DOMAINS} />
+            {voiceTreatmentPatient && (
+                <QuickTreatmentDialog
+                    open
+                    onOpenChange={(open) => { if (!open) setVoiceTreatmentPatient(null); }}
+                    mode="invoice"
+                    patient={voiceTreatmentPatient}
+                    onSaveSuccess={() => refreshCalendarDataRef.current()}
+                />
+            )}
             <PrintScheduleDialog
                 open={isPrintScheduleOpen}
                 onOpenChange={setIsPrintScheduleOpen}
                 calendars={exportableCalendars}
                 defaultCalendarId={activeCalendarId}
+                voiceControl={exportVoiceControl}
+                onVoiceStatus={setExportVoiceStatus}
             />
             <PatientCreateDialog
                 open={inlineCreatePatient.open}

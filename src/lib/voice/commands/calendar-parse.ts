@@ -1,5 +1,6 @@
 import { addDays, addMonths, addWeeks, getDay, startOfToday, subDays, subMonths, subWeeks } from 'date-fns';
 
+import { hasAppointmentFocus } from '@/lib/voice/focus';
 import { dateKey, normalizeSpeech } from '@/lib/voice/parse';
 
 import type { AppointmentStatus, CalendarVoiceView, CancellationReason } from '@/lib/types';
@@ -242,7 +243,7 @@ export function extractSpokenDate(text: string, prefer: DatePreference = 'neares
 
 const FILLER = new Set([
   'el', 'la', 'los', 'las', 'lo', 'le', 'les', 'un', 'una', 'de', 'del', 'a', 'al', 'y', 'e', 'que', 'en', 'para', 'por', 'con',
-  'ya', 'me', 'mi', 'su', 'se', 'te', 'favor', 'porfa', 'porfavor', 'please', 'the', 'of', 'to', 'for', 'and', 'is', 'on', 'at',
+  'ya', 'me', 'mi', 'su', 'se', 'te', 'favor', 'porfa', 'porfavor', 'please', 'the', 'of', 'to', 'for', 'and', 'is', 'on', 'at', 'with', 'by',
   'cita', 'citas', 'turno', 'turnos', 'consulta', 'paciente', 'pacientes', 'appointment', 'appointments', 'patient',
 ]);
 
@@ -263,17 +264,18 @@ export type CalendarNavParsed =
   | { kind: 'date'; date: string; unit?: 'week' | 'month' }
   | { kind: 'step'; dir: 1 | -1; unit?: 'day' | 'week' | 'month' };
 
-const NAV_VERB = /^(?:anda|andate|ve|vete|ir|vamos|volve|vuelve|volvamos|salta|saltar|llevame|lleva|mostrame|muestrame|mostra|muestra|abri|abre|pasa|pasate|go|jump|show me|show|open|take me|navigate)(?: (?:a|al|hasta|para|to|me))?(?=\s|$)/;
+const NAV_VERB = /^(?:anda|andate|ve|vete|ir|vamos|volve|vuelve|volvamos|salta|saltar|llevame|lleva|mostrame|muestrame|mostra|muestra|abri|abre|pasa|pasate|go back|back|go|jump|show me|show|open|take me|navigate|what about|how about|and)(?: (?:a|al|hasta|para|to|me))?(?=\s|$)/;
 const STEP_UNIT: Record<string, 'day' | 'week' | 'month'> = { dia: 'day', semana: 'week', mes: 'month', day: 'day', week: 'week', month: 'month' };
 
 export function parseCalendarNavigate(normalized: string, today: Date = startOfToday()): CalendarNavParsed | null {
-  const step = normalized.match(new RegExp(String.raw`^(?:(?:anda|ir|pasa|ve|go)(?: a la| al| a| to)? )?(?:(?:la |el )?(?<u1>dia|semana|mes|day|week|month|pagina|page) )?(?<w>siguiente|adelante|avanza|next|forward|anterior|atras|retrocede|previous|back)(?: (?<u2>dia|semana|mes|day|week|month|pagina|page))?$`));
+  const step = normalized.replace(/^(?:volve|vuelve|anda|segui|sigue|move|go)\s(?=(?:para|hacia) )/, '').replace(/^move (?=ahead|forward|back)/, '').replace(/ one$/, '').replace(/^(?:el |la )(?=proxim)/, '').match(new RegExp(String.raw`^(?:(?:anda|ir|pasa|ve|go)(?: a la| al| a| to)? )?(?:(?:la |el )?(?<u1>dia|semana|mes|day|week|month|pagina|page) )?(?:(?:para|hacia|mas) )?(?<w>siguiente|adelante|avanza|proximo|proxima|next|forward|ahead|anterior|atras|retrocede|previous|back|backward)(?: (?<u2>dia|semana|mes|day|week|month|pagina|page))?$`));
   if (step?.groups) {
-    const forward = /siguiente|adelante|avanza|next|forward/.test(step.groups.w);
+    const forward = /siguiente|adelante|avanza|proxim|next|forward|ahead/.test(step.groups.w);
     return { kind: 'step', dir: forward ? 1 : -1, unit: STEP_UNIT[step.groups.u1 ?? step.groups.u2 ?? ''] };
   }
   const verb = normalized.match(NAV_VERB);
-  const body = verb ? normalized.slice(verb[0].length).trim() : normalized;
+  // «el día de hoy», «el día de mañana»: es el día nombrado.
+  const body = (verb ? normalized.slice(verb[0].length).trim() : normalized).replace(/^(?:el )?dia de (?=hoy|manana|ayer)/, '');
   const found = extractSpokenDate(body, 'nearest', today);
   if (!found) return null;
   // Sin verbo, la frase tiene que ser solo la fecha ("mañana", "el jueves"): si no, es otra cosa.
@@ -296,8 +298,8 @@ export function parseCalendarView(normalized: string, today: Date = startOfToday
   const bare = normalized.match(/^(?:la |el )?(dia|diaria|semana|semanal|mes|mensual|ano|anual|agenda|lista|day|week|month|year|daily|weekly|monthly|agenda view)$/);
   if (!VIEW_TRIGGER.test(normalized) && !bare) return null;
   let view: CalendarVoiceView | null = null;
-  const days = normalized.match(/\b([2-6]) (?:dias|days)\b/);
-  if (days && /(?:vista|ver|view|modo|mode) (?:de |por |en )?[2-6] (?:dias|days)/.test(normalized)) view = `${days[1]}-day` as CalendarVoiceView;
+  const days = normalized.match(/\b([2-6]) (?:dias|days|day)\b/);
+  if (days && (/(?:vista|ver|view|modo|mode) (?:de |por |en )?[2-6] (?:dias|days)/.test(normalized) || /\b[2-6] days? (?:view|mode)\b/.test(normalized))) view = `${days[1]}-day` as CalendarVoiceView;
   else if (/\b(agenda|lista|listado|schedule|list)\b/.test(normalized)) view = 'schedule';
   else if (/\b(ano|anual|year|yearly)\b/.test(normalized)) view = 'year';
   else if (/\b(mes|mensual|month|monthly)\b/.test(normalized)) view = 'month';
@@ -334,6 +336,12 @@ function targetOf(text: string): CalendarFilterTarget {
 }
 
 export function parseCalendarFilter(normalized: string): CalendarFilterParsed | null {
+  // «pasá al sillón 2», «cambiá a la agenda ortodoncia», «ver el consultorio 3»: mostrar esa agenda.
+  const switchTo = normalized.match(/^(?:pasa(?:te|me)?|cambia(?:te|me)?|ve|ver|anda|mostra(?:me)?|muestra(?:me)?|abri(?:me)?|switch|go|show(?: me)?|open)\s(?:a |al |a la |para |to |de )?(?:la |el |the )?(?=(?:agenda|consultorio|sillon|box|gabinete|calendario|calendar|chair|room)\b)/);
+  if (switchTo) {
+    const name = normalized.slice(switchTo[0].length).replace(/^(?:agenda|calendario|calendar)\s(?:de |del |of )?/, '').trim();
+    if (name) return { op: 'only', target: 'calendar', name };
+  }
   const all = normalized.match(/^(?:mostra(?:me)? |muestra(?:me)? |show )?(?:todos los (?:doctores|profesionales|odontologos|medicos)|todas las (?:agendas|sedes|consultorios|sucursales)|todo|(?:saca|sacame|quita|quitame|borra|limpia) (?:los |el |todos los )?filtros?|sin filtros?|all (?:doctors|calendars|sites)|show all|everything|clear (?:the )?filters?)$/);
   if (all) return { op: 'all', target: targetOf(normalized), name: null };
   const ops: Array<[RegExp, CalendarFilterParsed['op']]> = [
@@ -346,8 +354,8 @@ export function parseCalendarFilter(normalized: string): CalendarFilterParsed | 
     const m = normalized.match(re);
     if (!m) continue;
     const body = normalized.slice(m[0].length).trim();
-    // "sacá los huecos", "ocultá la búsqueda": son de otros comandos.
-    if (/\b(huecos?|busqueda|buscador|filtros?)\b/.test(body)) return null;
+    // "sacá los huecos", "ocultá la búsqueda", «remove Carlos's appointment»: son de otros comandos.
+    if (/\b(huecos?|busqueda|buscador|filtros?|cita|citas|turno|turnos|appointment|appointments|color|colou?r)\b/.test(body)) return null;
     const target = targetOf(body);
     // "Sillón 2", "Consultorio 1": en las agendas el número y el tipo son parte del nombre.
     const name = stripFiller(body.replace(TARGET_STRIP, ' ')).trim();
@@ -383,7 +391,7 @@ export function parseCalendarPanel(normalized: string): CalendarPanelParsed | nu
   if (search) {
     const query = search[1].trim();
     // "buscá huecos" es la consulta de huecos.
-    if (/^(?:los |unos )?(?:huecos?|horarios? libres?|espacios? libres?|lugar|lugares)\b/.test(query)) return null;
+    if (/^(?:los |unos |un |una |el |la |algun |alguna |some |the |any |a |an |free |open |available |empty )*(?:huecos?|horarios? (?:libres?|disponibles?)|espacios? libres?|lugar|lugares|turnos? (?:libres?|disponibles?)|slots?|gaps?|openings?|free time|times?|availability|time slots?)\b/.test(query)) return null;
     return { kind: 'search', query };
   }
   return null;
@@ -397,8 +405,15 @@ export type CalendarQueryParsed =
   | { kind: 'patient_next'; patient: string }
   | { kind: 'gaps'; date: string; period: DayPeriod | null };
 
-const GAPS_RE = /\b(huecos?|horarios? (?:libres?|disponibles?)|horas? libres?|espacios? libres?|lugares? libres?|turnos? (?:libres?|disponibles?)|disponibilidad|hay (?:lugar|espacio|hueco)|free (?:slots?|time)|gaps?|openings?|availability)\b/;
+const GAPS_RE = /\b(huecos?|horarios? (?:libres?|disponibles?)|horas? libres?|espacios? libres?|lugares? libres?|turnos? (?:libres?|disponibles?)|disponibilidad|hay (?:lugar|espacio|hueco)|free (?:slots?|time)|(?:open|available|empty) (?:slots?|times?)|(?:find|search for|search|look for|show me|show|any|get me) (?:the |some |me |free |open |available |empty )*(?:slots?|times?)|time slots|gaps?|openings?|availability)\b/;
 const DOCTOR_REF = new RegExp(String.raw`\s(?:del|de la|con el|con la|para el|para la|de|con)? ?(?:el |la )?(?:doctor|doctora|dr|dra|odontolog[oa])\s(?<name>[a-z]+(?: [a-z]+)?)(?=\s)`);
+
+const AGENDA_WORDS = new Set([
+  'y', 'que', 'cuantas', 'cuantos', 'como', 'quien', 'quienes', 'tengo', 'tenemos', 'hay', 'tiene', 'viene', 'vienen', 'esta', 'estamos', 'agenda', 'cita', 'citas',
+  'turno', 'turnos', 'paciente', 'pacientes', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'a', 'al', 'en', 'mi', 'nuestra', 'hoy', 'dia', 'mostrame', 'muestrame', 'leeme',
+  'decime', 'dime', 'programadas', 'agendadas', 'what', 'how', 'many', 'who', 'whos', 'do', 'i', 'we', 'have', 'has', 'is', 'are', 'there', 'appointment', 'appointments',
+  'scheduled', 'coming', 'on', 'for', 'my', 'our', 'the', 'today', 's', 'me', 'it', 'looking', 'look', 'like', 'does', 'schedule',
+]);
 
 export function parseCalendarQuery(normalized: string, today: Date = startOfToday()): CalendarQueryParsed | null {
   if (GAPS_RE.test(normalized) && !/^(?:oculta|saca|cerra|cierra|quita|hide|close)\b/.test(normalized)) {
@@ -431,7 +446,11 @@ export function parseCalendarQuery(normalized: string, today: Date = startOfToda
   if (!isAgenda) return null;
   const found = extractSpokenDate(normalized, 'nearest', today);
   const rest = found ? found.rest : normalized;
-  const doctor = take(rest, DOCTOR_REF)?.m.groups?.name ?? null;
+  const doctorTake = take(rest, DOCTOR_REF);
+  const doctor = doctorTake?.m.groups?.name ?? null;
+  // «cómo viene Juan con la guita» no es la agenda: sobran palabras que no son de una consulta.
+  const leftover = (doctorTake ? doctorTake.rest : rest).split(' ').filter((w) => w && !AGENDA_WORDS.has(w));
+  if (leftover.length > 1) return null;
   return { kind: 'agenda', date: found?.date ?? dateKey(today), doctor };
 }
 
@@ -454,8 +473,8 @@ const STATUS_PATTERNS: Array<[string, AppointmentStatus]> = [
   ['llego tarde|vino tarde|arrived late|came late', 'arrived_late'],
   ['atendid[oa] tarde|se atendio tarde|attended late', 'attended_late'],
   ['no vino|no se presento|no llego|no asistio|no aparecio|falto|ausente|no show|didn t show(?: up)?|did not show(?: up)?|didn t come|did not come', 'no_show'],
-  ['ya llego|llego|llegaron|esta aca|esta aqui|esta en (?:la )?sala(?: de espera)?|en sala de espera|llegad[oa]|arrived|is here|checked in|check in', 'arrived'],
-  ['paso a consulta|pasa a consulta|entro a consulta|entro al consultorio|esta en atencion|en atencion|en consulta|empezo|empeza|empezamos|inicia|iniciamos|inicio|comenza|comenzamos|comenzo|en curso|in progress|started|start', 'in_progress'],
+  ['ya llego|llego|llegaron|esta aca|esta aqui|esta en (?:la )?sala(?: de espera)?|en sala de espera|llegad[oa]|arrived|is here|checked in|check in|(?:is )?in the waiting room|is waiting', 'arrived'],
+  ['paso a consulta|pasa a consulta|entro a consulta|entro al consultorio|entro|ya entro|esta adentro|esta en atencion|en atencion|en consulta|empezo|empeza|empezamos|inicia|iniciamos|inicio|comenza|comenzamos|comenzo|en curso|in progress|started|start', 'in_progress'],
   ['termino|terminamos|termina|terminala|finaliza|finalizala|finalizo|finalizamos|completa|completala|completada|completado|terminada|terminado|finalizada|finalizado|ya se atendio|se atendio|done|finished|completed|complete', 'completed'],
   ['cancela|cancelala|cancelalo|cancelar|cancelo|cancelamos|cancelada|cancelado|anula|anulala|anular|anulo|suspende|suspendela|suspendio|cancel|cancelled|canceled', 'cancelled'],
   ['confirma|confirmala|confirmalo|confirmar|confirmo|confirmada|confirmado|confirmamos|confirmed|confirm', 'confirmed'],
@@ -472,7 +491,7 @@ const REASON_PATTERNS: Array<[string, VoiceCancellationReason]> = [
 
 const between = (alternatives: string) => new RegExp(`\\s(?:${alternatives})(?=\\s)`);
 
-const STATUS_STRIP = /\b(marca(?:la|lo|r)?|pone(?:le|la|lo)?|pasa(?:la|lo)?|cambia(?:la|lo)?|deja(?:la|lo)?|como|estado|mark|set|as|status|ya|esta|is)\b/g;
+const STATUS_STRIP = /\b(marca(?:la|lo|r)?|pone(?:le|la|lo)?|pasa(?:la|lo)?|cambia(?:la|lo)?|deja(?:la|lo)?|como|estado|mark|set|as|status|ya|esta|is|it|him|her|them|he|she|they|this one|that one|this|that|just|has|have)\b/g;
 
 /** La cita de la que se habla: paciente (lo que sobra), hora y día. */
 export function extractAppointmentRef(text: string, prefer: DatePreference, today: Date): CalendarAppointmentRef {
@@ -483,7 +502,11 @@ export function extractAppointmentRef(text: string, prefer: DatePreference, toda
   return { patient: asName(afterDate.replace(STATUS_STRIP, ' ')), time: time?.time ?? null, date: date?.date ?? null };
 }
 
+/** Preguntas sobre la cuenta o el paciente («¿tiene algo pendiente de pagar?»): no son un estado. */
+const PATIENT_QUESTION = /\b(?:tiene|debe|deuda|deudas|saldo|pagar|pago|pagos|adeuda|cuanto|owe|owes|balance|pay|paid)\b/;
+
 export function parseCalendarStatus(normalized: string, today: Date = startOfToday()): CalendarStatusParsed | null {
+  if (PATIENT_QUESTION.test(normalized)) return null;
   for (const [re, status] of STATUS_PATTERNS) {
     const found = take(normalized, between(re));
     if (!found) continue;
@@ -496,8 +519,9 @@ export function parseCalendarStatus(normalized: string, today: Date = startOfTod
       }
     }
     const ref = extractAppointmentRef(text, 'nearest', today);
-    // Sin paciente ni hora no se sabe de qué cita se habla ("llegó" solo).
-    if (!ref.patient && !ref.time) return null;
+    // Sin paciente ni hora no se sabe de qué cita se habla ("llegó" solo), salvo que haya una
+    // cita en foco (la última elegida por voz): entonces es esa.
+    if (!ref.patient && !ref.time && !hasAppointmentFocus()) return null;
     return { status, reason, ...ref };
   }
   return null;
@@ -518,18 +542,26 @@ export function parseCalendarReschedule(normalized: string, today: Date = startO
   const verb = normalized.match(RESCHEDULE_VERB);
   if (!verb) return null;
   const body = normalized.slice(verb[0].length).trim();
+  // «pasala al jueves a las 10» (la cita en foco): todo lo que sigue es el destino.
+  const direct = body.match(/^(?:al|a la|a las|a|para el|para la|para|hasta el|to|to the|until)\s/);
+  if (direct && TARGET_START.test(body.slice(direct[0].length)) && hasAppointmentFocus()) {
+    const time = extractSpokenTime(` ${body} `);
+    const date = extractSpokenDate(time ? time.rest : ` ${body} `, 'future', today);
+    if (time || date) return { from: { patient: null, time: null, date: null }, date: date?.date ?? null, time: time?.time ?? null };
+  }
   const words = body.split(' ');
   // El primer "para / al / a / to" desde la izquierda cuyo lado derecho es un día u hora.
   for (let i = 1; i < words.length; i++) {
-    if (!['para', 'al', 'a', 'to', 'hasta'].includes(words[i])) continue;
+    if (!['para', 'al', 'a', 'to', 'hasta', 'for', 'on', 'until'].includes(words[i])) continue;
     const right = words.slice(i + 1).join(' ');
     if (!TARGET_START.test(right)) continue;
-    const time = extractSpokenTime(words[i] === 'a' || words[i] === 'para' ? `${words[i]} ${right}` : right);
+    const time = extractSpokenTime(words[i] === 'a' || words[i] === 'para' ? `${words[i]} ${right}` : right)
+      ?? (/^\d{1,2}(?:\s\d{2})?$/.test(right) ? extractSpokenTime(`a las ${right}`) : null);
     const afterTime = time ? time.rest.replace(/^(?:a|para)\s/, '') : right;
     const date = extractSpokenDate(afterTime, 'future', today);
     if (!time && !date) continue;
     const from = extractAppointmentRef(words.slice(0, i).join(' '), 'nearest', today);
-    if (!from.patient && !from.time) return null;
+    if (!from.patient && !from.time && !hasAppointmentFocus()) return null;
     return { from, date: date?.date ?? null, time: time?.time ?? null };
   }
   return null;
@@ -605,7 +637,7 @@ export interface SpanMatch {
 }
 
 const DOCTOR_TITLES = new Set(['doctor', 'doctora', 'dr', 'dra', 'doc', 'odontologo', 'odontologa', 'profesional', 'licenciado', 'licenciada', 'lic']);
-const MENTION_LEAD = new Set(['con', 'del', 'de', 'la', 'el', 'para', 'al', 'a', 'por']);
+const MENTION_LEAD = new Set(['con', 'del', 'de', 'la', 'el', 'para', 'al', 'a', 'por', 'with', 'for', 'the', 'to', 'by', 'and']);
 const SERVICE_WORDS = new Set(['servicio', 'servicios', 'tratamiento', 'tratamientos', 'service', 'services', 'treatment', 'treatments']);
 
 /** "limpieza" ≈ "limpiezas", "blanqueamiento" ≈ "blanqueamientos" (palabras largas). */
@@ -774,13 +806,16 @@ export interface CalendarEditParsed {
  * ("poné la cita de Ana como confirmada") lo toma el comando de estados.
  */
 export function parseCalendarEdit(normalized: string, today: Date = startOfToday()): CalendarEditParsed | null {
+  // «editala», «abrila para editar» con una cita en foco.
+  if ((/^(?:edita|modifica|corregi|corrige|abri|abre)(?:la|lo)(?: (?:para editar|para modificar|de nuevo))?$/.test(normalized)
+    || /^(?:edit|modify|change|open) (?:it|this|that|this one|that one|this appointment|that appointment)(?: please)?$/.test(normalized)) && hasAppointmentFocus()) return { body: ' ' };
   const text = normalized.replace(/^(?:a|en) (?=(?:la|el) (?:cita|turno))/, '');
   const verb = text.match(EDIT_VERB);
   const body = verb ? text.slice(verb[0].length) : APPOINTMENT_WORD.test(` ${text} `) && /\b(?:pone\w*|agrega\w*|saca\w*|quita\w*|cambia\w*)\b/.test(text) ? text : null;
   if (body === null) return null;
   // "agregá una cita para…" es una cita nueva.
   if (/^\s*(?:una|un|otra|otro|nueva|nuevo|an?|new) (?:cita|turno|consulta|appointment)\b/.test(body)) return null;
-  if (!APPOINTMENT_WORD.test(` ${body} `) && !extractSpokenTime(` ${body} `)) return null;
+  if (!APPOINTMENT_WORD.test(` ${body} `) && !extractSpokenTime(` ${body} `) && !(verb && /^(?:edita|modifica|abri|abre|corregi|corrige)(?:la|lo)\b/.test(text) && hasAppointmentFocus())) return null;
   if (parseCalendarStatus(normalized, today)) return null;
   return { body: ` ${body.trim()} ` };
 }
@@ -816,7 +851,7 @@ const ACTION_STRIP = new RegExp(String.raw`\b(?:(?:${ACTION_VERBS.join('|')})${V
  */
 function actionRef(text: string, today: Date): CalendarAppointmentRef | null {
   const ref = extractAppointmentRef(` ${text.replace(ACTION_STRIP, ' ').replace(/\s+/g, ' ').trim()} `, 'nearest', today);
-  return ref.patient || ref.time ? ref : null;
+  return ref.patient || ref.time || hasAppointmentFocus() ? ref : null;
 }
 
 // Color
@@ -847,7 +882,9 @@ export interface CalendarColorParsed extends CalendarAppointmentRef {
 /** "poné la cita de Ana en rojo", "pintá de verde la de las 10", "sacale el color a la cita de Juan". */
 export function parseCalendarColor(normalized: string, today: Date = startOfToday()): CalendarColorParsed | null {
   const padded = ` ${normalized} `;
-  if (!COLOR_WORD.test(padded) && !COLOR_VERB.test(normalized)) return null;
+  // «la cita de Juan en azul»: un color al final de una cita nombrada, sin verbo.
+  const trailingColor = APPOINTMENT_WORD.test(padded) && VOICE_COLORS.some(([, alts]) => new RegExp(String.raw`\s(?:en|de|in) (?:${alts})\s*$`).test(padded));
+  if (!COLOR_WORD.test(padded) && !COLOR_VERB.test(normalized) && !trailingColor) return null;
   // "poné la cita de Rosa como confirmada" es un estado (Rosa es la paciente).
   if (parseCalendarStatus(normalized, today)) return null;
   let colorId: string | null = null;
@@ -911,6 +948,8 @@ export function parseCalendarMove(normalized: string, today: Date = startOfToday
   }
   if (extractSpokenDate(said, 'future', today) || extractSpokenTime(` ${said} `)) return null;
   const ref = actionRef(refText, today);
+  // «pasá al sillón 2» sin cita nombrada ni en foco: es cambiar de agenda, no mover una cita.
+  if (ref && !ref.patient && !ref.time && !hasAppointmentFocus()) return null;
   return ref ? { calendarSaid: said.trim(), ...ref } : null;
 }
 
@@ -935,6 +974,9 @@ export function parseCalendarAssignDoctor(
   services: NamedOption[],
   today: Date = startOfToday(),
 ): CalendarAssignDoctorParsed | null {
+  // «que a Juan lo atienda el doctor Gómez»: mismo pedido con otro orden.
+  const attend = normalized.match(new RegExp(String.raw`^(?:que )?(?:a )?(.+?) (?:lo|la|le) (?:atienda|vea|tome) (?:el |la )?(${DOCTOR_WORD} .+)$`));
+  if (attend) normalized = `pasa la cita de ${attend[1]} al ${attend[2]}`;
   const verb = normalized.match(MOVE_VERB);
   if (!verb || !new RegExp(String.raw`\b${DOCTOR_WORD}\b`).test(normalized)) return null;
   const body = ` ${normalized.slice(verb[0].length).trim()} `;
@@ -984,6 +1026,10 @@ export function extractDuration(text: string): { minutes: number; rest: string }
 
 /** "que la cita de Ana dure 45 minutos", "alargá la de las 10 a una hora", "la cita de Juan, duración media hora". */
 export function parseCalendarDuration(normalized: string, today: Date = startOfToday()): CalendarDurationParsed | null {
+  // «make the appointment of Juan 45 minutes», «dejá la cita de Juan en 30 minutos».
+  if (/^(?:make|set|deja\w*|pone\w*|pon)\s/.test(normalized) && /\b\d+ (?:minutes|minutos|mins?|hours?|horas?)\b/.test(normalized) && APPOINTMENT_WORD.test(` ${normalized} `)) {
+    normalized = normalized.replace(/^(?:make|set|deja\w*|pone\w*|pon)\s/, 'que dure ');
+  }
   if (!new RegExp(DURATION_TRIGGER.source).test(` ${normalized} `)) return null;
   const duration = extractDuration(normalized);
   if (!duration) return null;
@@ -997,6 +1043,8 @@ const DELETE_APPOINTMENT = /^(?:borra|elimina|suprimi|delete|remove|erase)(?:la|
 
 /** "borrá la cita de Ana", "eliminá el turno de las 10", "borrá la de las 3". */
 export function parseCalendarDelete(normalized: string, today: Date = startOfToday()): CalendarAppointmentRef | null {
+  // «borrala», «eliminala» con una cita en foco.
+  if (/^(?:borra|elimina|suprimi|delete|remove|erase)(?:la|lo| it| esa| la cita| esa cita)$/.test(normalized) && hasAppointmentFocus()) return { patient: null, time: null, date: null };
   if (!DELETE_APPOINTMENT.test(normalized)) return null;
   if (/\b(?:recordatorio|nota|reminder|note|colou?r|doctor|doctora)\b/.test(normalized)) return null;
   return actionRef(normalized.replace(/^\S+/, ' '), today);
@@ -1152,7 +1200,7 @@ export interface CalendarReminderParsed {
 }
 
 const REMINDER_CREATE = new RegExp(String.raw`^(?:(?:crea|creame|crear|agrega|agregame|agregar|anade|anademe|pone|poneme|pon|ponme|anota|anotame|anotar|deja|dejame|add|create|make|set|new)\s(?:un |una |a |an )?(?:nuevo |nueva |new )?)?(?<kind>recordatorio|nota|reminder|note)(?=\s|$)|^(?<new>nuevo recordatorio|nueva nota|new reminder|new note)(?=\s|$)|^(?<rec>recordame|recuerdame|remind me)(?=\s|$)`);
-const TITLE_LEAD = /^(?:(?:para|que diga|que dice|diciendo|de|sobre|con|que|to|that|about|saying|el|la)\s)+/;
+const TITLE_LEAD = /^(?:(?:para|que diga|que dice|diciendo|de|sobre|con|que|to|that|about|saying|for|el|la)\s)+/;
 
 /** "recordame el lunes a las 9 pagar la luz", "nota para hoy a las 15 revisar stock", "nuevo recordatorio mañana". */
 export function parseCalendarReminder(normalized: string, today: Date = startOfToday()): CalendarReminderParsed | null {

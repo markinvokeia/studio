@@ -162,6 +162,13 @@
     "rail.section.bill": {
       "label": "Charge",
       "description": "Quick payment."
+    },
+    "rail.section.voice": {
+      "label": "Voice",
+      "description": "One voice button for the whole app, under the mascot. Tap it and it listens (no wake word) until you turn it off or after a while without talking; it works with the screen you are on (calendar, lab orders…)."
+    },
+    "rail.btn.voice": {
+      "label": "Voice"
     }
   }
 }

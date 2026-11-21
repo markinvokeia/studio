@@ -40,3 +40,36 @@ export async function interpretVoice(payload: VoiceInterpretPayload, signal?: Ab
     result,
   };
 }
+
+/** Un paciente del buscador rápido (el mismo que usa el widget de la derecha). */
+export interface VoicePatientResult {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  document?: string;
+}
+
+/**
+ * Busca pacientes por nombre, documento, email o teléfono (GET users, filter_type PACIENTE), igual
+ * que QuickPatientSearch. Devuelve hasta `limit`.
+ */
+export async function searchPatientsForVoice(query: string, { signal, limit = 8 }: { signal?: AbortSignal; limit?: number } = {}): Promise<VoicePatientResult[]> {
+  const search = query.trim();
+  if (!search) return [];
+  const data = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE', search }, undefined, { signal });
+  let rows: any[] = [];
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    rows = first?.json?.data || first?.data || (first?.id ? data : []);
+  } else if (data?.data) {
+    rows = data.data;
+  }
+  return rows.slice(0, limit).map((u: any) => ({
+    id: String(u.id),
+    name: u.name || '',
+    phone: u.phone_number || '',
+    email: u.email || '',
+    document: u.identity_document || u.document_number || u.document || undefined,
+  })).filter((p) => p.id && p.name);
+}

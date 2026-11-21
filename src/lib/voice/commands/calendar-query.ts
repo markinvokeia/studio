@@ -239,6 +239,7 @@ async function runQuery(parsed: CalendarQueryParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<CalendarQueryParsed, CalendarVoiceAiResult>({
   id: 'calendar.query',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 24,
   match: (normalized) => parseCalendarQuery(normalized),
   run: runQuery,

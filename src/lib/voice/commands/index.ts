@@ -2,6 +2,7 @@
  * Registra todos los comandos de voz. Lo importa el host (VoiceCommandHost); cada módulo nuevo
  * agrega su archivo acá.
  */
+import '@/lib/voice/commands/core';
 import '@/lib/voice/commands/lab-orders';
 import '@/lib/voice/commands/lab-orders-create';
 import '@/lib/voice/commands/lab-orders-manage';
@@ -11,3 +12,4 @@ import '@/lib/voice/commands/calendar';
 import '@/lib/voice/commands/calendar-query';
 import '@/lib/voice/commands/calendar-manage';
 import '@/lib/voice/commands/calendar-actions';
+import '@/lib/voice/commands/calendar-agent';

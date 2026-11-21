@@ -4643,13 +4643,53 @@ export interface VoiceCommandContext {
    * `awaiting: 'confirm'` la tarjeta muestra Sí/No pero devuelve el texto tal cual (para
    * aceptar también otra respuesta, como una corrección).
    */
-  ask: (card: VoiceCard, speech: string, awaiting?: 'answer' | 'confirm') => Promise<string>;
+  ask: (card: VoiceCard, speech: string, awaiting?: 'answer' | 'confirm', options?: VoiceAskOptions) => Promise<string>;
   /** Pregunta entre opciones; devuelve el índice elegido. */
   choose: (card: VoiceCard, speech: string) => Promise<number>;
   /** "¿Confirmo?": true con "sí", false con "no". */
   confirm: (card: VoiceCard, speech: string) => Promise<boolean>;
   /** Resultado final (éxito, aviso o error) en la tarjeta y en voz alta. */
   finish: (card: VoiceCard, speech: string) => Promise<void>;
+  /**
+   * Lo que se respondió puede no ser para esta pregunta sino otro pedido. 'switched': era un pedido
+   * nuevo y se aceptó dejar la tarea (que queda cancelada); 'handled': era una herramienta (se hizo)
+   * o no se quiso cambiar de tarea (el comando vuelve a preguntar); 'none': no es ningún pedido.
+   */
+  handOff: (text: string) => Promise<'switched' | 'handled' | 'none'>;
+  /** Dentro de un plan de varios pasos: no es el último (el resultado se muestra sin decirlo). */
+  midPlan: boolean;
+  /** Quién entendió la frase: el intérprete local o la IA. */
+  source: 'local' | 'ai';
+  /**
+   * Lo local entendió la forma pero lo nombrado no existe («solo cuando atendemos» no es un
+   * doctor): se le pregunta a la IA. true = la IA lo entendió y ya se está haciendo (el comando
+   * termina); false = tampoco, el comando sigue (dice que no lo encontró).
+   */
+  tryAi: () => Promise<boolean>;
+}
+
+export interface VoiceAskOptions {
+  /**
+   * La respuesta puede ser una corrección libre (el formulario abierto: «con el doctor Pérez»,
+   * «agregá limpieza»): todo va al comando, que decide (y si no es suyo usa ctx.handOff).
+   */
+  corrections?: boolean;
+}
+
+/**
+ * Qué tiene que ver lo dicho con lo que se venía haciendo (lo decide la IA cuando hay una tarea
+ * en curso): una respuesta, una herramienta en el medio (moverse, ver huecos…), algo nuevo, algo
+ * que no es para el asistente, cancelar o retomar.
+ */
+export type VoiceRelation = 'new' | 'answer' | 'aux' | 'ignore' | 'cancel' | 'resume';
+
+/** Lo que un módulo con planes devuelve de la IA, además de su resultado (ver VoiceDomain.ai). */
+export interface VoiceAiPlan<S = unknown> {
+  relation?: VoiceRelation;
+  /** relation 'answer': la respuesta normalizada a la pregunta abierta («2», «sí», un nombre). */
+  answer?: string | null;
+  /** Pasos en orden; cada uno es un resultado del módulo (lo convierte un comando con ai.from). */
+  steps?: S[];
 }
 
 /**
@@ -4696,6 +4736,16 @@ export interface VoiceCommand<P = unknown, R = any> {
   ai?: {
     from: (result: R, raw: string) => P | null;
   };
+  /**
+   * Herramienta: solo mira o mueve la pantalla (navegar, vista, zoom, filtros, huecos, buscar,
+   * avisos). Con una tarea a medias se hace en el medio sin cancelarla y se repite la pregunta.
+   */
+  aux?: boolean;
+  /**
+   * Actúa sobre la cita (o el paciente) en foco. Un pedido nuevo sin ningún comando así es un
+   * cambio de contexto: el foco se suelta.
+   */
+  usesFocus?: boolean;
 }
 
 /** Contexto del módulo lab_orders para la IA (POST voice/interpret). */
@@ -4859,7 +4909,47 @@ export type CalendarVoiceIntent =
   /** Barra: imprimir/exportar la agenda, actualizar. */
   | 'calendar.print'
   | 'calendar.refresh'
+  /** Hoy (botón Hoy). */
+  | 'calendar.today'
+  /** Zoom de la grilla: acercar, alejar, al máximo/mínimo, un valor, normal. */
+  | 'calendar.zoom'
+  /** Panel de agendas: abrir, cerrar, fijar, soltar. */
+  | 'calendar.panel'
+  /** «¿Qué vistas / agendas hay?»: listar opciones y elegir. */
+  | 'calendar.options'
+  /** Cerrar el buscador / ocultar los huecos. */
+  | 'calendar.close_search'
+  | 'calendar.hide_gaps'
+  /** Exportar agenda con período, fechas y agendas; export_now descarga. */
+  | 'calendar.export'
+  /** Engranaje: cambiar una preferencia (setting + valor) o abrir/cerrar el engranaje. */
+  | 'calendar.settings'
+  | 'calendar.settings_open'
+  /** Ir a / seleccionar una cita (queda en foco). */
+  | 'calendar.select'
+  /** Con el formulario abierto: cambiar campos, guardar, cancelar. */
+  | 'calendar.form_set'
+  | 'calendar.form_save'
+  | 'calendar.form_cancel'
+  /** Un aviso de la pantalla: continuar o cancelar. */
+  | 'calendar.dialog'
+  /** Cerrar lo que esté abierto (buscador, huecos, configuración, exportar, lotes, panel); filter_op 'all' = todo. */
+  | 'calendar.close_panels'
+  /** Buscar un paciente (citas, después el buscador de pacientes por nombre/documento/email/teléfono). */
+  | 'calendar.patient_find'
+  /** Información del paciente de sus registros (veces que vino, faltas, deuda, pagos, presupuestos…). */
+  | 'calendar.patient_info'
+  /** Nuevo presupuesto, factura, tratamiento, sesión clínica o cobro rápido del paciente. */
+  | 'calendar.patient_action'
+  /** Resumen o pregunta sobre el paciente de la cita (agente clínico). */
+  | 'calendar.patient_ask'
   | 'unknown';
+
+/** Preferencias de la agenda que se cambian por voz (claves de CalendarSettings). */
+export type CalendarVoiceSettingKey =
+  | 'mode' | 'default_view' | 'grouped_by' | 'hour_height' | 'slot_duration' | 'default_sede' | 'event_label_format'
+  | 'hidden_weekdays' | 'visible_hours' | 'color_by_status' | 'check_availability' | 'block_unavailable'
+  | 'filter_doctors_by_service' | 'inline_appointment_creation' | 'inline_draft_live_preview';
 
 /** `result` de voice/interpret para el módulo calendar, validado (lo que no cierra viene en null). */
 export interface CalendarVoiceAiResult {
@@ -4905,5 +4995,41 @@ export interface CalendarVoiceAiResult {
   reminder_type: 'reminder' | 'note' | null;
   /** open: qué abrir de la cita. */
   target: 'history' | 'documents' | 'accounts' | 'appointments' | 'patient' | 'session' | 'bill' | null;
+  /** zoom: qué hacer; zoom_level: porcentaje (30–250) con 'set'; amount: pasos de 10 % (in/out). */
+  zoom_op: 'in' | 'out' | 'max' | 'min' | 'reset' | 'set' | null;
+  zoom_level: number | null;
+  amount: number | null;
+  /** panel: abrir/cerrar/fijar/soltar el panel de agendas; settings_open: el engranaje. */
+  panel_op: 'open' | 'close' | 'pin' | 'unpin' | null;
+  /** options: de qué listar las opciones. */
+  options_of: 'views' | 'calendars' | 'doctors' | 'sedes' | null;
+  /** export: período (end_date con 'custom'); export_now: descargar ya. */
+  export_range: 'day' | 'week' | 'month' | 'custom' | null;
+  end_date: string | null;
+  export_now: boolean;
+  /** settings: la preferencia y su valor (texto, número o sí/no según la clave). */
+  setting: CalendarVoiceSettingKey | null;
+  setting_value: string | number | boolean | null;
+  /** settings hidden_weekdays: 0=domingo…6=sábado; weekday_op ocultar/mostrar/dejar solo esos ocultos. */
+  weekdays: number[];
+  weekday_op: 'hide' | 'show' | 'set' | null;
+  /** form_set: tratamientos a sacar; notas (el texto va en title). */
+  remove_service_ids: string[];
+  notes_op: 'append' | 'replace' | 'clear' | null;
+  /** dialog: qué botón del aviso. */
+  dialog_op: 'confirm' | 'cancel' | null;
+  /** patient_find: datos para buscar si no es el nombre. */
+  document: string | null;
+  email: string | null;
+  phone: string | null;
+  /** patient_ask: la pregunta tal como se dijo. */
+  question: string | null;
+  /** patient_info: qué se pregunta. */
+  info_topics: Array<'summary' | 'visits' | 'cancellations' | 'no_shows' | 'last_no_show' | 'last_visit' | 'debt' | 'last_payment' | 'payments' | 'quotes' | 'invoices' | 'treatments'>;
+  /** patient_action: qué abrir. */
+  patient_action: 'quote' | 'invoice' | 'treatment' | 'session' | 'bill' | null;
   confidence: number;
 }
+
+/** El resultado del calendario con el plan: el primer paso arriba (compatibilidad) y todos en steps. */
+export type CalendarVoiceAiPlanResult = CalendarVoiceAiResult & VoiceAiPlan<CalendarVoiceAiResult>;

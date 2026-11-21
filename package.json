@@ -21,7 +21,7 @@
     "knowledge:strict": "node scripts/knowledge/build-catalog.mjs --check --strict",
     "i18n:check": "node scripts/i18n/check-translations.mjs",
     "i18n:audit": "node scripts/i18n/check-translations.mjs --all",
-    "n8n:help":"node scripts/n8n/generate-help-workflows.mjs",
+    "n8n:help": "node scripts/n8n/generate-help-workflows.mjs",
     "knowledge:nightly": "node scripts/knowledge/nightly.mjs",
     "videos:record": "playwright test --project=help-videos",
     "videos:build": "node scripts/videos/build-videos.mjs",
@@ -36,7 +36,10 @@
     "db:snapshot": "./db-manager.sh snapshot",
     "db:migrate": "./db-manager.sh deploy",
     "db:rollback": "./db-manager.sh rollback",
-    "db:sync": "./db-manager.sh sync"
+    "db:sync": "./db-manager.sh sync",
+    "test:voice": "playwright test -c playwright.voice.config.ts",
+    "test:voice:catalog": "node scripts/voice-tests-catalog.mjs",
+    "n8n:deploy:voice": "node scripts/n8n/deploy-workflow.mjs help-voice-interpret.json 7yTmcJ03YYw3RL6J"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

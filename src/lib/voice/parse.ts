@@ -9,6 +9,8 @@ import { addDays, addMonths, format, getDay, startOfToday, subDays, subMonths } 
 /** Minúsculas, sin tildes ni puntuación ("¿Confirmá?" → "confirma"), números en dígitos. */
 export function normalizeSpeech(text: string): string {
   const plain = text
+    // Posesivo inglés: «Ana's appointment» → «ana appointment».
+    .replace(/(\p{L})['’]s\b/gu, '$1')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -91,15 +93,71 @@ export function parseYesNo(normalized: string): 'yes' | 'no' | null {
 
 const ORDINALS: Record<string, number> = {
   primero: 1, primera: 1, primer: 1, segundo: 2, segunda: 2, tercero: 3, tercera: 3, tercer: 3,
-  cuarto: 4, cuarta: 4, quinto: 5, quinta: 5, first: 1, second: 2, third: 3, fourth: 4, fifth: 5,
+  cuarto: 4, cuarta: 4, quinto: 5, quinta: 5, sexto: 6, sexta: 6, septimo: 7, septima: 7, octavo: 8, octava: 8,
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8,
   ultimo: -1, ultima: -1, last: -1,
 };
+
+/** Desde el final de la lista: «la penúltima», «la segunda de abajo», «second to last». */
+const FROM_END: Array<[RegExp, number]> = [
+  [/\b(?:antepenultim[oa]|third (?:to|from the) (?:last|bottom))\b/, 3],
+  [/\b(?:penultim[oa]|second (?:to|from the) (?:last|bottom)|next to (?:the )?last)\b/, 2],
+  [/\b(?:segund[oa] (?:de|desde) (?:abajo|el final)|la de abajo de todo menos una)\b/, 2],
+  [/\b(?:tercer[oa]? (?:de|desde) (?:abajo|el final))\b/, 3],
+  [/\b(?:(?:la |el )?de (?:mas )?abajo(?: de todo)?|(?:la |el )?ultim[oa] de (?:la lista|abajo)|bottom(?: one)?|(?:the )?last one|la del final|el del final)\b/, 1],
+];
+const FROM_TOP = /\b(?:(?:la |el )?de (?:mas )?arriba(?: de todo)?|(?:la |el )?primer[oa]? de (?:la lista|arriba)|top(?: one)?|(?:the )?first one)\b/;
+const MIDDLE = /\b(?:(?:la |el )?del medio|(?:the )?middle(?: one)?)\b/;
+
+/** «la de las 10», «la de las 3 y media», «the one at 10»: la opción con esa hora (una sola). */
+function choiceByTime(normalized: string, labels: string[]): number | null {
+  const m = normalized.match(/\b(?:a las|las|la de las|el de las|de las|at|the one at)\s(\d{1,2})(?:\s(\d{2})|\s(y media|y cuarto))?\b/);
+  if (!m) return null;
+  const hour = Number(m[1]);
+  const minute = m[2] ? Number(m[2]) : m[3] === 'y media' ? 30 : m[3] === 'y cuarto' ? 15 : null;
+  const hours = hour < 12 ? [hour, hour + 12] : [hour];
+  const hits = labels.flatMap((label, index) => {
+    const times = [...label.matchAll(/\b(\d{1,2}):(\d{2})\b/g)].map((t) => ({ h: Number(t[1]), m: Number(t[2]) }));
+    return times.some((t) => hours.includes(t.h) && (minute === null || t.m === minute)) ? [index] : [];
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
 
 /**
  * Índice (0..count-1) de la opción elegida por número u ordinal, o por nombre si se pasan
  * `labels`. null si no se reconoce.
  */
 export function parseChoice(normalized: string, count: number, labels: string[] = []): number | null {
+  const found = parseChoiceDetailed(normalized, count, labels);
+  return found && 'index' in found ? found.index : null;
+}
+
+/**
+ * Como parseChoice, pero si lo dicho calza igual de bien con varias opciones por nombre
+ * («Ana» con «Ana Gómez» y «Ana Pérez») devuelve cuáles empatan, para preguntar solo entre esas.
+ */
+export function parseChoiceDetailed(normalized: string, count: number, labels: string[] = []): { index: number } | { ambiguous: number[] } | null {
+  const index = parseChoicePosition(normalized, count);
+  if (index !== null) return { index };
+  if (!labels.length) return null;
+  const byTime = choiceByTime(normalized, labels);
+  if (byTime !== null) return { index: byTime };
+  const scored = labels
+    .map((label, i) => ({ i, score: bestNameMatchScored(normalized, [label])?.score ?? 0 }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+  if (!scored.length) return null;
+  // Solo se pregunta si las mejores están muy parejas; si una gana claro, es esa.
+  const tied = scored.filter((x) => x.score >= scored[0].score * 0.95);
+  return tied.length > 1 ? { ambiguous: tied.map((x) => x.i) } : { index: scored[0].i };
+}
+
+function parseChoicePosition(normalized: string, count: number): number | null {
+  for (const [re, back] of FROM_END) {
+    if (re.test(normalized)) return count - back >= 0 ? count - back : null;
+  }
+  if (FROM_TOP.test(normalized)) return count ? 0 : null;
+  if (MIDDLE.test(normalized) && count % 2 === 1) return (count - 1) / 2;
   const words = normalized.split(' ');
   for (const word of words) {
     const ordinal = ORDINALS[word];
@@ -112,7 +170,6 @@ export function parseChoice(normalized: string, count: number, labels: string[] 
     if (n >= 1 && n <= count) return n - 1;
   }
   if (normalized === 'uno' || normalized === 'una' || normalized === 'el uno' || normalized === 'la una') return count >= 1 ? 0 : null;
-  if (labels.length) return bestNameMatch(normalized, labels);
   return null;
 }
 

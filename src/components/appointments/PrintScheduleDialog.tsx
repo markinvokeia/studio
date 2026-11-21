@@ -42,6 +42,8 @@ import { fetchScheduleExportSettings, SCHEDULE_EXPORT_COLUMNS } from '@/services
 
 import type { AppointmentStatus, ScheduleExportColumn, ScheduleExportSettings } from '@/lib/types';
 
+import type { CalendarVoiceExportControl, CalendarVoiceExportStatus } from '@/lib/voice/calendar-bridge';
+
 type RangePreset = 'day' | 'week' | 'month' | 'custom';
 
 export interface PrintScheduleCalendar {
@@ -58,6 +60,10 @@ interface PrintScheduleDialogProps {
   calendars: PrintScheduleCalendar[];
   /** Calendario preseleccionado: el que la agenda está mostrando al abrir el diálogo. */
   defaultCalendarId?: string | null;
+  /** Pedidos por voz (numerados): período, fechas, agendas y «exportar». */
+  voiceControl?: (CalendarVoiceExportControl & { seq: number }) | null;
+  /** Lo que muestra el diálogo, para la voz (null al cerrarse). */
+  onVoiceStatus?: (status: CalendarVoiceExportStatus | null) => void;
 }
 
 interface CalendarGroup {
@@ -105,6 +111,8 @@ export function PrintScheduleDialog({
   onOpenChange,
   calendars,
   defaultCalendarId,
+  voiceControl,
+  onVoiceStatus,
 }: PrintScheduleDialogProps) {
   const t = useTranslations('PrintScheduleDialog');
   const tStatus = useTranslations('AppointmentStatus');
@@ -208,8 +216,10 @@ export function PrintScheduleDialog({
       });
       if (count === 0) {
         toast({ title: t('toast_empty') });
+        setVoiceDone('empty');
       } else {
         toast({ title: t('toast_success', { count }) });
+        setVoiceDone('exported');
         onOpenChange(false);
       }
     } catch (error) {
@@ -218,10 +228,62 @@ export function PrintScheduleDialog({
         title: t('toast_error'),
         description: error instanceof Error ? error.message : undefined,
       });
+      setVoiceDone('error');
     } finally {
       setIsExporting(false);
     }
   };
+
+  // ── Voz: los pedidos se aplican como si se tocaran los controles ──
+  const [voiceDone, setVoiceDone] = React.useState<CalendarVoiceExportStatus['done']>(null);
+  const [pendingVoiceSubmit, setPendingVoiceSubmit] = React.useState(false);
+  const lastVoiceSeq = React.useRef(voiceControl?.seq);
+  React.useEffect(() => {
+    if (!voiceControl || voiceControl.seq === lastVoiceSeq.current) return;
+    lastVoiceSeq.current = voiceControl.seq;
+    if (!open) return;
+    if (voiceControl.preset) setPreset(voiceControl.preset);
+    if (voiceControl.anchor) setAnchor(voiceControl.anchor);
+    if (voiceControl.from) setCustomFrom(voiceControl.from);
+    if (voiceControl.to) setCustomTo(voiceControl.to);
+    if (voiceControl.calendarIds?.length) {
+      const known = calendars.filter((c) => voiceControl.calendarIds!.includes(c.id)).map((c) => c.id);
+      if (known.length) {
+        setSelectedIds(known);
+        setCalendarId(known[0]);
+      }
+    }
+    // Exportar después de que se apliquen los cambios de arriba.
+    if (voiceControl.submit) setPendingVoiceSubmit(true);
+  }, [voiceControl, open, calendars]);
+  React.useEffect(() => {
+    if (!pendingVoiceSubmit || !canExport) {
+      if (pendingVoiceSubmit && mode !== null && !isExporting) {
+        // Falta algo (ninguna agenda): se avisa para que la voz lo diga.
+        setPendingVoiceSubmit(false);
+        setVoiceDone('error');
+      }
+      return;
+    }
+    setPendingVoiceSubmit(false);
+    setVoiceDone(null);
+    void handleExport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingVoiceSubmit, canExport]);
+  React.useEffect(() => { if (open) setVoiceDone(null); }, [open]);
+  React.useEffect(() => {
+    if (!onVoiceStatus) return;
+    if (!open) { onVoiceStatus(null); return; }
+    onVoiceStatus({
+      extended: isExtended,
+      preset,
+      from: resolved ? format(resolved.from, 'yyyy-MM-dd') : null,
+      to: resolved ? format(resolved.to, 'yyyy-MM-dd') : null,
+      calendarIds: exportCalendars.map((c) => c.id),
+      exporting: isExporting,
+      done: voiceDone,
+    });
+  }, [open, isExtended, preset, resolved, exportCalendars, isExporting, voiceDone, onVoiceStatus]);
 
   // Mientras se genera el archivo el diálogo no se cierra (Esc / clic afuera).
   const handleOpenChange = (next: boolean) => {

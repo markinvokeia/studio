@@ -1,0 +1,1571 @@
+# Agenda por voz · Catálogo de pruebas
+
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1309 casos.**
+Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
+
+## Cómo se prueba
+
+- `pnpm test:voice` corre todo en Node, sin navegador, sin servidor y sin tocar DEV (unos minutos).
+- **Se simula que se habla**: cada frase entra por el micrófono permanente falso (el botón Voz prendido) como la entregaría el
+  reconocedor del navegador. Pasa por la sesión (escucha sin palabra de activación, pila, foco, herramientas, cambio de tema), los
+  comandos y los textos reales del idioma de la prueba (`es` o `en`: para inglés la app se pone en inglés).
+- **La agenda es simulada** (`sim/calendar.ts`): el mismo estado y las mismas acciones que publica la pantalla de citas, con
+  datos fijos y un registro de cada acción que pidió la voz. Cada caso verifica lo que quedó (vista, zoom, preferencias,
+  estado de la cita, formulario guardado, diálogo abierto…).
+- **La IA**: el modelo se reemplaza por lo que contestaría; el prompt y la validación son los nodos reales del flujo de n8n
+  `n8n-workflows/help-voice-interpret.json`, y después la revalidación del navegador. Las pruebas sin IA verifican además que
+  no se llamó a la IA (lo local tiene que alcanzar).
+- Niveles: atómicos (N1) → encadenados (N2) → con IA (N3) → incompletos (N4) → información del paciente (N5) → variantes (V) →
+  rutinas reales (R) → comprensión con IA (AI). Español primero; el mismo recorrido en inglés.
+
+### Datos de prueba
+
+Hoy: 09:00 Ana Gómez (Dr. Martín Pérez, Sillón 1) · 10:00 Juan Pérez (Dra. Laura Ruiz, Sillón 2, confirmada) ·
+10:30 Ana Martínez (Dr. Pérez, Sillón 1) · 15:00 Carlos López (Dr. Pablo Gómez, Ortodoncia). Mañana: 11:00 María Rodríguez ·
+16:00 Lucía Fernández. En una semana: Pedro Sánchez. Hace dos años: Roberto Díaz (doc. 12345678). Sin citas: Sofía Castro
+(tel. 099123456, sofia@gmail.com). Sedes Centro (Sillón 1, Sillón 2) y Pocitos (Ortodoncia). Registros de Juan Pérez: vino 5
+veces, faltó 2 (última 10/9/2026), canceló 1 tarde, debe 1.200 UYU, último pago 500 UYU el 5/10/2026, 2 presupuestos (1 sin
+facturar), 2 facturas (1 sin pagar), ortodoncia 3 de 10 sesiones.
+
+## 01-wake.spec.ts (23)
+
+Escucha sin palabra de activación («Invoke» se tolera): cómo la transcribe el reconocedor, retomar y cancelar.
+
+- **VZ-WAKE · palabra de activación**
+  - despierta: «Invoke, andá al jueves»
+  - despierta: «invoke anda al jueves»
+  - despierta: «Inbox IA andá al jueves»
+  - despierta: «Inbox andá al jueves»
+  - despierta: «imbox zoom»
+  - despierta: «in voke vista semana»
+  - despierta: «in box vista semana»
+  - despierta: «Invoque, ¿qué tengo mañana?»
+  - despierta: «invoca hoy»
+  - despierta: «Envoke today»
+  - despierta: «hey invoke go to Thursday»
+  - despierta: «oye Invoke, actualizá»
+  - despierta: «ok inbook refresh»
+  - despierta: «Invoke»
+  - no despierta: «invoice Juan Pérez»
+  - no despierta: «pasá, sentate»
+  - no despierta: «importante llamar al laboratorio»
+  - no despierta: «y vos qué opinás»
+  - no despierta: «en la sala de espera»
+  - no despierta: «impresionante»
+  - no despierta: «bueno, invoke después lo vemos»
+  - restRaw conserva tildes: «Inbox IA, nota: Ana trae estudios»
+  - retomar y cancelar
+
+## 02-mic.spec.ts (6)
+
+Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar los pedazos de una frase.
+
+- **MIC · Reconocimiento continuo con pausa blanda**
+  - MIC-001 pausa blanda: mientras habla el asistente no toma nada y NO reinicia el reconocimiento
+  - MIC-002 si el navegador corta la sesión, se reinicia enseguida
+- **MIC · Juntar los pedazos hasta la pausa**
+  - MIC-010 una frase cortada en dos por el navegador es un solo pedido
+  - MIC-011 mientras se sigue hablando (resultados parciales) no se procesa
+  - MIC-012 dos pedidos con una pausa larga en el medio son dos pedidos
+  - MIC-013 lo que se está diciendo se ve en la tarjeta mientras se habla
+
+## 03-dialogs-close-stop.spec.ts (84)
+
+AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.
+
+- **AV-DLG · Elegir el botón de un aviso**
+  - «agendar igual» → Agendar igual
+  - «cancelar» → Cancelar
+  - «sí» → Agendar igual
+  - «no» → Cancelar
+  - «dale» → Agendar igual
+  - «continuar» → Agendar igual
+  - «volver» → Cancelar
+  - «el segundo» → Agendar igual
+  - «el primero» → Cancelar
+  - «sí, eliminar» → Sí, eliminar
+  - «eliminar» → Sí, eliminar
+  - «no volver» → No, volver
+  - «confirmar» → Sí, eliminar
+  - «solo esta» → Solo esta
+  - «esta y las siguientes» → Esta y las siguientes
+  - «todas» → Todas
+  - «la última» → Todas
+  - «la del medio» → Esta y las siguientes
+  - «yes» → Agendar igual
+  - «cancel» → Cancelar
+  - «go ahead» → Agendar igual
+  - «the second one» → Agendar igual
+  - algo que no es ningún botón: null (vuelve a preguntar)
+- **AV-STOP · Dejar de escuchar**
+  - apaga: «dejá de escuchar»
+  - apaga: «deja de escuchar»
+  - apaga: «pará de escuchar»
+  - apaga: «pausá el dictado»
+  - apaga: «pausar dictado»
+  - apaga: «dejá de dictar»
+  - apaga: «apagá el micrófono»
+  - apaga: «apagar micrófono»
+  - apaga: «desactivá la voz»
+  - apaga: «no me escuches más»
+  - apaga: «cortá el micrófono»
+  - apaga: «detené el dictado»
+  - apaga: «listo, dejá de escuchar»
+  - apaga: «eso es todo»
+  - apaga: «ya pará de escuchar por favor»
+  - apaga: «stop listening»
+  - apaga: «stop dictation»
+  - apaga: «pause listening»
+  - apaga: «turn off the mic»
+  - apaga: «mute the microphone»
+  - apaga: «mic off»
+  - apaga: «that's all»
+  - apaga: «you can stop listening»
+  - no apaga: «pará»
+  - no apaga: «cancelá la cita de Juan»
+  - no apaga: «dejá fijo el panel»
+  - no apaga: «pausá»
+  - no apaga: «stop»
+  - no apaga: «escuchá esto»
+  - AV-STOP-01 dicho con el micrófono prendido: se apaga y avisa
+  - AV-STOP-02 con una pregunta abierta: se apaga y la deja guardada
+  - AV-STOP-03 en inglés
+- **AV-CLOSE · Cerrar lo que esté abierto**
+  - «cerrá» cierra la búsqueda abierta
+  - «cerralo» cierra la búsqueda abierta
+  - «cerrá el panel» cierra la búsqueda abierta
+  - «escondé eso» cierra la búsqueda abierta
+  - «que no se vea» cierra la búsqueda abierta
+  - «no quiero ver eso» cierra la búsqueda abierta
+  - «sacalo de ahí» cierra la búsqueda abierta
+  - «close» cierra la búsqueda abierta
+  - «close the panel» cierra la búsqueda abierta
+  - «hide it» cierra la búsqueda abierta
+  - «hide the panel» cierra la búsqueda abierta
+  - «I don't want to see that» cierra la búsqueda abierta
+  - AV-CLOSE-01 cierra lo de arriba primero: configuración antes que el panel de agendas
+  - AV-CLOSE-02 «cerrá todo» cierra todo de una
+  - AV-CLOSE-03 «close everything» en inglés
+  - AV-CLOSE-04 cierra exportar y operaciones en lotes
+  - AV-CLOSE-05 sin nada abierto lo dice
+  - AV-CLOSE-06 «atrás» con algo abierto lo cierra; sin nada, va para atrás en la agenda
+- **AV-GAPS · Buscar huecos no es buscar citas**
+  - «buscar huecos» muestra los huecos
+  - «buscá huecos» muestra los huecos
+  - «buscame los huecos libres» muestra los huecos
+  - «buscá horarios disponibles» muestra los huecos
+  - «encontrá un turno libre» muestra los huecos
+  - «find slots» muestra los huecos
+  - «find free slots» muestra los huecos
+  - «search for open slots» muestra los huecos
+  - «find available times» muestra los huecos
+  - «look for openings» muestra los huecos
+  - «show me the gaps» muestra los huecos
+
+## 04-popups-selection.spec.ts (185)
+
+AV · Avisos y ventanas: elegir por número, posición («la última», «la de abajo»), hora o texto; apretar botones por nombre; sí/no.
+
+- **PU-ES · Avisos de la agenda**
+  - «citas futuras del paciente»: la voz lee el aviso y dice sus botones
+  - «citas futuras del paciente»: decir «No» aprieta ese botón
+  - «citas futuras del paciente»: decir «Sí» aprieta ese botón
+  - «citas futuras del paciente»: «sí» aprieta el principal
+  - «citas futuras del paciente»: «no» aprieta el de volver/cancelar
+  - «citas futuras del paciente»: «el segundo» por posición
+  - «eliminar cita»: la voz lee el aviso y dice sus botones
+  - «eliminar cita»: decir «Cancelar» aprieta ese botón
+  - «eliminar cita»: decir «Sí, eliminar» aprieta ese botón
+  - «eliminar cita»: «sí» aprieta el principal
+  - «eliminar cita»: «no» aprieta el de volver/cancelar
+  - «eliminar cita»: «el segundo» por posición
+  - «cancelar cita»: la voz lee el aviso y dice sus botones
+  - «cancelar cita»: decir «Cerrar» aprieta ese botón
+  - «cancelar cita»: decir «Cancelar» aprieta ese botón
+  - «cancelar cita»: «sí» aprieta el principal
+  - «cancelar cita»: «no» aprieta el de volver/cancelar
+  - «cancelar cita»: «el segundo» por posición
+  - «descartar cambios»: la voz lee el aviso y dice sus botones
+  - «descartar cambios»: decir «Seguir editando» aprieta ese botón
+  - «descartar cambios»: decir «Descartar cambios» aprieta ese botón
+  - «descartar cambios»: «sí» aprieta el principal
+  - «descartar cambios»: «no» aprieta el de volver/cancelar
+  - «descartar cambios»: «el segundo» por posición
+  - «falta el documento»: la voz lee el aviso y dice sus botones
+  - «falta el documento»: decir «Cerrar» aprieta ese botón
+  - «falta el documento»: decir «Entendido» aprieta ese botón
+  - «falta el documento»: «sí» aprieta el principal
+  - «falta el documento»: «no» aprieta el de volver/cancelar
+  - «falta el documento»: «el segundo» por posición
+  - «motivo de la cancelación»: la voz lee el aviso y dice sus botones
+  - «motivo de la cancelación»: decir «Volver» aprieta ese botón
+  - «motivo de la cancelación»: decir «Cancelar cita» aprieta ese botón
+  - «motivo de la cancelación»: «sí» aprieta el principal
+  - «motivo de la cancelación»: «no» aprieta el de volver/cancelar
+  - «motivo de la cancelación»: «el segundo» por posición
+  - si el aviso se cierra con el mouse, la pregunta se va y vuelve la que había
+  - una respuesta que no es ningún botón vuelve a preguntar
+  - aviso de elegir y confirmar (alcance de un recordatorio): pregunta dos veces
+  - con el micrófono apagado el aviso no pregunta nada
+- **PU-ES · Ventanas y paneles laterales**
+  - «Estado de cuenta» + «cerrá» la cierra
+  - «Estado de cuenta» + «cerrá eso» la cierra
+  - «Estado de cuenta» + «cerralo» la cierra
+  - «Estado de cuenta» + «escondé la ventana» la cierra
+  - «Estado de cuenta» + «que no se vea» la cierra
+  - «Estado de cuenta» + «no quiero ver eso» la cierra
+  - «Estado de cuenta» + «volvé atrás» la cierra
+  - «Estado de cuenta» + «sacalo de ahí» la cierra
+  - «Historia clínica» + «cerrá» la cierra
+  - «Historia clínica» + «cerrá eso» la cierra
+  - «Historia clínica» + «cerralo» la cierra
+  - «Historia clínica» + «escondé la ventana» la cierra
+  - «Historia clínica» + «que no se vea» la cierra
+  - «Historia clínica» + «no quiero ver eso» la cierra
+  - «Historia clínica» + «volvé atrás» la cierra
+  - «Historia clínica» + «sacalo de ahí» la cierra
+  - «Datos del paciente» + «cerrá» la cierra
+  - «Datos del paciente» + «cerrá eso» la cierra
+  - «Datos del paciente» + «cerralo» la cierra
+  - «Datos del paciente» + «escondé la ventana» la cierra
+  - «Datos del paciente» + «que no se vea» la cierra
+  - «Datos del paciente» + «no quiero ver eso» la cierra
+  - «Datos del paciente» + «volvé atrás» la cierra
+  - «Datos del paciente» + «sacalo de ahí» la cierra
+  - «Imágenes y archivos» + «cerrá» la cierra
+  - «Imágenes y archivos» + «cerrá eso» la cierra
+  - «Imágenes y archivos» + «cerralo» la cierra
+  - «Imágenes y archivos» + «escondé la ventana» la cierra
+  - «Imágenes y archivos» + «que no se vea» la cierra
+  - «Imágenes y archivos» + «no quiero ver eso» la cierra
+  - «Imágenes y archivos» + «volvé atrás» la cierra
+  - «Imágenes y archivos» + «sacalo de ahí» la cierra
+  - «Historial de citas» + «cerrá» la cierra
+  - «Historial de citas» + «cerrá eso» la cierra
+  - «Historial de citas» + «cerralo» la cierra
+  - «Historial de citas» + «escondé la ventana» la cierra
+  - «Historial de citas» + «que no se vea» la cierra
+  - «Historial de citas» + «no quiero ver eso» la cierra
+  - «Historial de citas» + «volvé atrás» la cierra
+  - «Historial de citas» + «sacalo de ahí» la cierra
+  - «cerrá todo» cierra las ventanas y los paneles de la agenda
+  - cierra la de arriba primero
+- **SEL-ES · Lo seleccionado en pantalla es de lo que se habla**
+  - cita abierta con el mouse: «llegó» es sobre ella, sin nombrarla
+  - cita abierta: «¿cuánto debe?» es su paciente
+  - cita abierta: «editala» abre esa
+  - nombrar otra cita la reemplaza («buscá otra»)
+  - cambio de contexto («vista semana») suelta la cita en foco
+  - cambio de contexto («más zoom») suelta la cita en foco
+  - cambio de contexto («andá a mañana») suelta la cita en foco
+  - cambio de contexto («slots de 15») suelta la cita en foco
+  - cambio de contexto («exportá la agenda») suelta la cita en foco
+  - cambio de contexto («cuántas veces faltó Carlos López») suelta la cita en foco
+  - seguir hablando de la cita no la suelta (estado, cuenta, color)
+  - una herramienta en medio de una pregunta sobre la cita no la suelta
+  - al cerrar la cita seleccionada se suelta el foco
+- **PU-EN · Avisos de la agenda**
+  - «patient future appointments»: la voz lee el aviso y dice sus botones
+  - «patient future appointments»: decir «No» aprieta ese botón
+  - «patient future appointments»: decir «Yes» aprieta ese botón
+  - «patient future appointments»: «yes» aprieta el principal
+  - «patient future appointments»: «no» aprieta el de volver/cancelar
+  - «patient future appointments»: «the second one» por posición
+  - «delete appointment»: la voz lee el aviso y dice sus botones
+  - «delete appointment»: decir «Cancel» aprieta ese botón
+  - «delete appointment»: decir «Yes, delete» aprieta ese botón
+  - «delete appointment»: «yes» aprieta el principal
+  - «delete appointment»: «no» aprieta el de volver/cancelar
+  - «delete appointment»: «the second one» por posición
+  - «cancel appointment»: la voz lee el aviso y dice sus botones
+  - «cancel appointment»: decir «Close» aprieta ese botón
+  - «cancel appointment»: decir «Cancel» aprieta ese botón
+  - «cancel appointment»: «yes» aprieta el principal
+  - «cancel appointment»: «no» aprieta el de volver/cancelar
+  - «cancel appointment»: «the second one» por posición
+  - «discard changes»: la voz lee el aviso y dice sus botones
+  - «discard changes»: decir «Keep editing» aprieta ese botón
+  - «discard changes»: decir «Discard changes» aprieta ese botón
+  - «discard changes»: «yes» aprieta el principal
+  - «discard changes»: «no» aprieta el de volver/cancelar
+  - «discard changes»: «the second one» por posición
+  - «identity document»: la voz lee el aviso y dice sus botones
+  - «identity document»: decir «Close» aprieta ese botón
+  - «identity document»: decir «Got it» aprieta ese botón
+  - «identity document»: «yes» aprieta el principal
+  - «identity document»: «no» aprieta el de volver/cancelar
+  - «identity document»: «the second one» por posición
+  - «cancellation reason»: la voz lee el aviso y dice sus botones
+  - «cancellation reason»: decir «Back» aprieta ese botón
+  - «cancellation reason»: decir «Cancel appointment» aprieta ese botón
+  - «cancellation reason»: «yes» aprieta el principal
+  - «cancellation reason»: «no» aprieta el de volver/cancelar
+  - «cancellation reason»: «the second one» por posición
+  - si el aviso se cierra con el mouse, la pregunta se va y vuelve la que había
+  - una respuesta que no es ningún botón vuelve a preguntar
+  - aviso de elegir y confirmar (alcance de un recordatorio): pregunta dos veces
+  - con el micrófono apagado el aviso no pregunta nada
+- **PU-EN · Ventanas y paneles laterales**
+  - «Account statement» + «close» la cierra
+  - «Account statement» + «close it» la cierra
+  - «Account statement» + «close that window» la cierra
+  - «Account statement» + «hide it» la cierra
+  - «Account statement» + «I don't want to see that» la cierra
+  - «Account statement» + «go back» la cierra
+  - «Account statement» + «get rid of that» la cierra
+  - «Medical history» + «close» la cierra
+  - «Medical history» + «close it» la cierra
+  - «Medical history» + «close that window» la cierra
+  - «Medical history» + «hide it» la cierra
+  - «Medical history» + «I don't want to see that» la cierra
+  - «Medical history» + «go back» la cierra
+  - «Medical history» + «get rid of that» la cierra
+  - «Patient details» + «close» la cierra
+  - «Patient details» + «close it» la cierra
+  - «Patient details» + «close that window» la cierra
+  - «Patient details» + «hide it» la cierra
+  - «Patient details» + «I don't want to see that» la cierra
+  - «Patient details» + «go back» la cierra
+  - «Patient details» + «get rid of that» la cierra
+  - «Images and files» + «close» la cierra
+  - «Images and files» + «close it» la cierra
+  - «Images and files» + «close that window» la cierra
+  - «Images and files» + «hide it» la cierra
+  - «Images and files» + «I don't want to see that» la cierra
+  - «Images and files» + «go back» la cierra
+  - «Images and files» + «get rid of that» la cierra
+  - «Appointment history» + «close» la cierra
+  - «Appointment history» + «close it» la cierra
+  - «Appointment history» + «close that window» la cierra
+  - «Appointment history» + «hide it» la cierra
+  - «Appointment history» + «I don't want to see that» la cierra
+  - «Appointment history» + «go back» la cierra
+  - «Appointment history» + «get rid of that» la cierra
+  - «cerrá todo» cierra las ventanas y los paneles de la agenda
+  - cierra la de arriba primero
+- **SEL-EN · Lo seleccionado en pantalla es de lo que se habla**
+  - cita abierta con el mouse: «llegó» es sobre ella, sin nombrarla
+  - cita abierta: «¿cuánto debe?» es su paciente
+  - cita abierta: «editala» abre esa
+  - nombrar otra cita la reemplaza («buscá otra»)
+  - cambio de contexto («week view») suelta la cita en foco
+  - cambio de contexto («zoom in») suelta la cita en foco
+  - cambio de contexto («go to tomorrow») suelta la cita en foco
+  - cambio de contexto («15 minute slots») suelta la cita en foco
+  - cambio de contexto («export the schedule») suelta la cita en foco
+  - cambio de contexto («how many no shows does Carlos López have») suelta la cita en foco
+  - seguir hablando de la cita no la suelta (estado, cuenta, color)
+  - una herramienta en medio de una pregunta sobre la cita no la suelta
+  - al cerrar la cita seleccionada se suelta el foco
+
+## 05-core-overlay.spec.ts (66)
+
+G · General (cualquier página): desplazarse, prioridad de la ventana o panel abierto (sus botones y campos), cambio de contexto que cierra lo abierto y suelta el foco.
+
+- **CO-SCROLL · Qué es desplazarse**
+  - «bajá» → down normal
+  - «subí» → up normal
+  - «más abajo» → down normal
+  - «más arriba» → up normal
+  - «para abajo» → down normal
+  - «hacia arriba» → up normal
+  - «bajá un poco» → down little
+  - «subí un poquito» → up little
+  - «bajá un poco más rápido» → down more
+  - «bajá mucho» → down more
+  - «subí bastante» → up more
+  - «bajá hasta abajo» → down edge
+  - «subí hasta arriba» → up edge
+  - «andá al final» → down edge
+  - «al principio» → up edge
+  - «hasta el fondo» → down edge
+  - «movete a la izquierda» → left normal
+  - «movete a la derecha» → right normal
+  - «desplazate a la derecha un poco» → right little
+  - «scrolleá para abajo» → down normal
+  - «scroll down» → down normal
+  - «scroll up» → up normal
+  - «scroll down a lot» → down more
+  - «scroll up a little» → up little
+  - «go to the bottom» → down edge
+  - «scroll to the top» → up edge
+  - «move left» → left normal
+  - «move right a bit» → right little
+  - «scroll all the way down» → down edge
+  - «down» → down normal
+  - no es desplazarse: «bajá el zoom»
+  - no es desplazarse: «subí el zoom»
+  - no es desplazarse: «subí la altura de las horas»
+  - no es desplazarse: «bajá la cita de Ana»
+  - no es desplazarse: «pasá al sillón 2»
+  - no es desplazarse: «andá a mañana»
+  - no es desplazarse: «bajame la agenda a excel»
+- **CO-SCROLL · Desplaza la pantalla**
+  - «bajá»
+  - «subí un poco»
+  - «hasta abajo»
+  - «a la derecha»
+  - «scroll down»
+  - «scroll to the top»
+  - desplazarse en medio de una pregunta no la cancela
+- **CO-OVERLAY · Con una ventana abierta, lo dicho es primero para ella**
+  - «editar» aprieta «Editar»
+  - «apretá guardar» aprieta «Guardar»
+  - «dale a más opciones» aprieta «Más opciones»
+  - «tocá editar» aprieta «Editar»
+  - «hacé clic en guardar» aprieta «Guardar»
+  - «edit» aprieta «Edit»
+  - «click save» aprieta «Save»
+  - «press more options» aprieta «More options»
+  - «tap edit» aprieta «Edit»
+  - «poné en teléfono 099 123 456» completa «Teléfono»
+  - «el email es ana@gmail.com» completa «Email»
+  - «escribí en notas Trae estudios» completa «Notas»
+  - «cambiá el teléfono a 098 765 432» completa «Teléfono»
+  - «notas: alérgico a la penicilina» completa «Notas»
+  - «set phone to 099 123 456» completa «Phone»
+  - «the email is ana@gmail.com» completa «Email»
+  - «write in notes Bring X-rays» completa «Notes»
+  - un pedido de otro contexto cierra la ventana y hace lo nuevo
+  - seguir con el paciente de la ventana no la cierra («cuánto debe» con su cita en foco)
+  - desplazarse dentro de la ventana no la cierra
+- **CO-SCREEN · El contexto lo da la página, sin apagar el micrófono**
+  - al pasar a otra página cambian los comandos y el micrófono sigue prendido
+  - lo general (desplazarse) funciona en cualquier página
+
+## 10-atomic-es.spec.ts (28)
+
+N1 · Atómicos en español: escucha, navegación, vistas, zoom.
+
+- **N1.1 · Escucha**
+  - VZ-ES-001 con Voz prendido escucha todo, sin palabra de activación
+  - VZ-ES-002 «Invoke» solo (opcional) dice que escucha
+  - VZ-ES-003 «Inbox IA …» (como lo transcribe el reconocedor) se saca y se hace el pedido
+  - VZ-ES-004 frases seguidas, cada una se hace
+  - VZ-ES-005 una charla de la sala no hace nada ni se dice en voz alta
+  - VZ-ES-006 tocar Voz lo apaga y no escucha más
+  - VZ-ES-007 un rato sin hablarle se duerme (apaga el micrófono)
+  - VZ-ES-008 se duerme con una pregunta abierta y al prenderlo la retoma
+- **N1.2 · Navegación**
+  - VZ-ES-010 hoy
+  - VZ-ES-011 mañana
+  - VZ-ES-012 siguiente en vista semana avanza una semana
+  - VZ-ES-013 anterior en vista día retrocede un día
+  - VZ-ES-014 la semana que viene
+  - VZ-ES-015 ir a una fecha con el mes
+- **N1.3 · Vista**
+  - VZ-ES-02x «vista día» → day
+  - VZ-ES-02x «ver semana» → week
+  - VZ-ES-02x «vista de 3 días» → 3-day
+  - VZ-ES-02x «vista mes» → month
+  - VZ-ES-02x «vista lista» → schedule
+  - VZ-ES-026 «¿cómo puedo ver?» lista las vistas y elige «la última»
+  - VZ-ES-027 «cambiá la vista» sin decir cuál pregunta, y se elige por nombre
+- **N1.4 · Zoom**
+  - VZ-ES-030 más zoom
+  - VZ-ES-031 alejá (menos zoom)
+  - VZ-ES-032 zoom al máximo
+  - VZ-ES-033 lo más chico posible
+  - VZ-ES-034 zoom al 150
+  - VZ-ES-035 zoom normal
+  - VZ-ES-036 agrandá mucho (3 pasos)
+
+## 11-toolbar-settings-es.spec.ts (67)
+
+N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.
+
+- **N1.5 · Agendas, doctores y sedes**
+  - VZ-ES-040 «qué agendas hay» lista y «la segunda» la muestra (modo personalizado)
+  - VZ-ES-041 «cambiá de agenda» y se elige por nombre
+  - VZ-ES-042 «mostrá la agenda ortodoncia» directo
+  - VZ-ES-043 «solo el doctor Pérez» filtra doctores
+  - VZ-ES-044 «todos los doctores» saca el filtro
+  - VZ-ES-045 «qué doctores hay» y «la de abajo»
+- **N1.6 · Agrupar (modo Invoke)**
+  - VZ-ES-050 agrupá por doctor
+  - VZ-ES-051 sin agrupar
+  - VZ-ES-052 «sacá la sede Pocitos» saca sus agendas
+- **N1.7 · Panel de agendas**
+  - VZ-ES-060 abrí el panel de agendas
+  - VZ-ES-061 cerrá el panel
+  - VZ-ES-062 «dejá fijo el panel» lo fija y lo abre
+  - VZ-ES-063 «que el panel se esconda solo» lo suelta
+  - VZ-ES-064 en modo Invoke ofrece pasar a personalizado; «sí» cambia el modo y abre el panel
+  - VZ-ES-065 en modo Invoke «no» no cambia nada
+- **N1.8 · Buscar, huecos, consultas y actualizar**
+  - VZ-ES-070 buscá a Ana Gómez abre el buscador
+  - VZ-ES-071 cerrá la búsqueda
+  - VZ-ES-072 ¿qué tengo hoy? lee la agenda del día
+  - VZ-ES-073 ¿cuándo viene Pedro Sánchez?
+  - VZ-ES-074 actualizá
+  - VZ-ES-075 ocultá los huecos
+- **N1.9 · Engranaje (preferencias)**
+  - VZ-ES-080 abrí la configuración
+  - VZ-ES-081 cerrá la configuración
+  - VZ-ES-082 modo Invoke
+  - VZ-ES-083 modo personalizado
+  - VZ-ES-084 «vista predeterminada día» → default_view day
+  - VZ-ES-084 «que arranque en semana» → default_view week
+  - VZ-ES-084 «por defecto 2 días» → default_view 2_days
+  - VZ-ES-084 «vista por defecto mes» → default_view month
+  - VZ-ES-084 «vista predeterminada agenda» → default_view agenda
+  - VZ-ES-085 altura de la hora 120
+  - VZ-ES-086 hora más alta (un paso)
+  - VZ-ES-087 la altura de la hora la más grande
+  - VZ-ES-088 la altura de la hora la más chica
+  - VZ-ES-089 «slots de 10 minutos» → 10
+  - VZ-ES-089 «slots de 15» → 15
+  - VZ-ES-089 «intervalos de 30 minutos» → 30
+  - VZ-ES-089 «slots de una hora» → 60
+  - VZ-ES-089 «slots de 5 minutos» → 5
+  - VZ-ES-090 sede por defecto Pocitos
+  - VZ-ES-091 sede por defecto todas
+  - VZ-ES-092 sede por defecto desconocida pregunta cuál
+  - VZ-ES-093 «título de la cita hora paciente y notas»
+  - VZ-ES-093 «formato del título paciente tratamiento y hora»
+  - VZ-ES-093 «título hora paciente notas y tratamiento»
+  - VZ-ES-093 «título hora tratamiento paciente y notas»
+  - VZ-ES-094 ocultá los sábados y domingos
+  - VZ-ES-095 ocultá el fin de semana y después mostrá los sábados
+  - VZ-ES-096 mostrá todos los días
+  - VZ-ES-097 franja horaria completa
+  - VZ-ES-098 horario de la clínica
+  - VZ-ES-099 rango personalizado de 8 a 6 (hasta las 18)
+  - VZ-ES-100 «activá colores por estado» → color_by_status true
+  - VZ-ES-100 «sin colores por estado» → color_by_status false
+  - VZ-ES-100 «activá verificar disponibilidad» → check_availability true
+  - VZ-ES-100 «desactivá verificar disponibilidad» → check_availability false
+  - VZ-ES-100 «bloqueá fuera de horario» → block_unavailable true
+  - VZ-ES-100 «permití agendar fuera de horario» → block_unavailable false
+  - VZ-ES-100 «filtrá los doctores por servicio» → filter_doctors_by_service true
+  - VZ-ES-100 «no filtres los doctores por servicio» → filter_doctors_by_service false
+  - VZ-ES-100 «crear citas en el calendario» → inline_appointment_creation true
+  - VZ-ES-100 «que abra el modal» → inline_appointment_creation false
+  - VZ-ES-100 «activá la vista previa en vivo» → inline_draft_live_preview true
+  - VZ-ES-100 «apagá la vista previa en vivo» → inline_draft_live_preview false
+  - VZ-ES-101 varias juntas: «slots de 15 y vista predeterminada semana»
+  - VZ-ES-102 si no se puede guardar lo dice
+  - VZ-ES-103 no deja ocultar todos los días
+
+## 12-appointments-es.spec.ts (31)
+
+N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.
+
+- **N1.10 · Encontrar y seleccionar**
+  - VZ-ES-110 «la cita de Juan Pérez» la selecciona y queda en foco
+  - VZ-ES-111 «mostrame la cita de las 15» por hora
+  - VZ-ES-112 «la cita de María de mañana» por día
+  - VZ-ES-113 dos «Ana» hoy: pregunta cuál y «la segunda» elige 10:30
+  - VZ-ES-114 dos «Ana»: «la de las 9» elige por hora
+  - VZ-ES-115 dos «Ana»: «Martínez» elige por nombre
+  - VZ-ES-116 dos «Ana»: «la última» elige la de abajo
+  - VZ-ES-117 una que no existe lo dice
+  - VZ-ES-118 «olvidá esa cita» limpia el foco
+- **N1.11 · Estados (menú de la cita)**
+  - VZ-ES-12x «Juan Pérez llegó» → arrived (confirma y «sí» lo aplica)
+  - VZ-ES-12x «Carlos López confirmó» → confirmed (confirma y «sí» lo aplica)
+  - VZ-ES-12x «Juan Pérez llegó tarde» → arrived_late (confirma y «sí» lo aplica)
+  - VZ-ES-12x «Juan Pérez pasó a consulta» → in_progress (confirma y «sí» lo aplica)
+  - VZ-ES-12x «marcá como completada la de Carlos López» → completed (confirma y «sí» lo aplica)
+  - VZ-ES-12x «Carlos López no vino» → no_show (confirma y «sí» lo aplica)
+  - VZ-ES-127 «no» deja el estado como estaba
+  - VZ-ES-128 cancelar con motivo dicho: «Carlos López canceló con tiempo»
+  - VZ-ES-129 cancelar sin motivo lo pregunta
+- **N1.12 · Menú: borrar, color, doctor, consultorio, duración, mover**
+  - VZ-ES-130 borrá la cita de Carlos López (confirmación de peligro)
+  - VZ-ES-131 «poné la cita de Juan en rojo»
+  - VZ-ES-132 «pasá la cita de Juan Pérez al doctor Gómez»
+  - VZ-ES-133 «pasá la cita de Carlos López al sillón 2»
+  - VZ-ES-134 «que la cita de Juan Pérez dure 45 minutos»
+  - VZ-ES-135 «pasá la cita de Juan Pérez al viernes a las 11» abre Reprogramar completo
+- **N1.13 · Abrir lo del paciente**
+  - VZ-ES-14x «abrí la cuenta de Juan Pérez» → accounts
+  - VZ-ES-14x «abrí la historia clínica de Juan Pérez» → history
+  - VZ-ES-14x «mostrame las imágenes de Juan Pérez» → documents
+  - VZ-ES-14x «abrí el historial de citas de Juan Pérez» → appointments
+  - VZ-ES-14x «mostrame los datos del paciente Juan Pérez» → patient
+  - VZ-ES-146 «cobrale a Juan Pérez» abre el cobro rápido con su cita
+  - VZ-ES-147 sin permiso de cuentas lo dice
+
+## 13-form-export-patients-es.spec.ts (34)
+
+N1 · Atómicos en español: editor de la cita campo por campo, nueva cita, exportar, pacientes y agente clínico.
+
+- **N1.14 · Editor de la cita: cada campo**
+  - VZ-ES-150 editar abre el formulario y queda parado ahí
+  - VZ-ES-151 cambiar el doctor
+  - VZ-ES-152 cambiar la hora de inicio
+  - VZ-ES-153 cambiar la hora de fin
+  - VZ-ES-154 cambiar la fecha
+  - VZ-ES-155 cambiar el consultorio
+  - VZ-ES-156 agregar y sacar servicios
+  - VZ-ES-157 agregar una nota (conserva tildes)
+  - VZ-ES-158 una segunda nota se agrega abajo; «borrá las notas» las limpia
+  - VZ-ES-159 cambiar el paciente
+  - VZ-ES-160 «guardar» guarda con todo lo cambiado
+  - VZ-ES-161 «actualizá» también guarda
+  - VZ-ES-162 «cancelar» cierra sin guardar
+  - VZ-ES-163 «no» deja el formulario abierto para seguir a mano
+  - VZ-ES-164 formulario abierto a mano: lo que se dice es para él
+- **N1.15 · Nueva cita**
+  - VZ-ES-170 nueva cita completa abre el formulario y «sí» la guarda
+- **N1.16 · Exportar agenda**
+  - VZ-ES-180 «exportá la agenda» abre y pregunta si descarga
+  - VZ-ES-181 «exportá la agenda de la semana que viene» pone Semana
+  - VZ-ES-182 «exportá la agenda del mes» pone Mes
+  - VZ-ES-183 rango «del 1 al 15 de diciembre»
+  - VZ-ES-184 de la sede Centro marca sus agendas
+  - VZ-ES-185 de todas las agendas
+  - VZ-ES-186 corregir con el diálogo abierto y «sí» descarga
+  - VZ-ES-187 «cancelar» cierra sin exportar
+- **N1.17 · Pacientes**
+  - VZ-ES-190 buscá el paciente Juan Pérez: por sus citas, queda en foco
+  - VZ-ES-191 citas muy viejas: va al buscador de pacientes y abre la ficha
+  - VZ-ES-192 sin citas: Sofía Castro por el buscador
+  - VZ-ES-193 no lo encuentra por nombre: pide cédula y busca por ella
+  - VZ-ES-194 por teléfono directo
+  - VZ-ES-195 por email dictado
+  - VZ-ES-196 resumen del paciente en foco: sale de sus registros (sin elegir cita ni IA)
+  - VZ-ES-197 «¿cuánto debe Juan Pérez?»
+  - VZ-ES-198 pregunta clínica sin acceso a Mi consultorio: no consulta al agente
+  - VZ-ES-199 pregunta clínica con acceso: va al agente clínico de Mi consultorio
+
+## 20-chained-es.spec.ts (24)
+
+N2 · Encadenados: foco, herramientas en el medio, cambio de tema, cancelar, elegir de muchas formas.
+
+- **N2.1 · Foco: elegida una cita, todo actúa sobre ella**
+  - VZ-ES-200 seleccionar → «marcala como llegó» → «sí»
+  - VZ-ES-201 seleccionar → «abrí su cuenta» → «ponela en verde» → «sí»
+  - VZ-ES-202 elegida entre dos «Ana», el foco sigue en la elegida
+  - VZ-ES-203 seleccionar → «editala» → cambiar doctor → «guardar»
+  - VZ-ES-204 seleccionar → «borrala» → «sí»
+  - VZ-ES-205 nombrar otra cita cambia el foco
+- **N2.2 · Herramientas en el medio de una pregunta (no cancelan)**
+  - VZ-ES-210 eligiendo entre dos «Ana», «más zoom» se hace y la pregunta sigue
+  - VZ-ES-211 confirmando un estado, «andá a mañana» no lo cancela
+  - VZ-ES-212 en el editor, «más zoom» no es una corrección del formulario… pero el formulario sigue abierto
+- **N2.3 · Cambio de tema y cancelar**
+  - VZ-ES-220 con una pregunta abierta, un pedido nuevo pregunta si se deja; «sí» hace lo nuevo
+  - VZ-ES-221 «no» vuelve a la pregunta que estaba
+  - VZ-ES-222 en el editor, un pedido de otra cosa pregunta si se deja el formulario
+  - VZ-ES-223 «cancelá» corta la tarea en curso
+  - VZ-ES-224 «olvidalo» en una confirmación no cambia nada
+  - VZ-ES-225 «sigamos» repite la pregunta abierta
+- **N2.4 · Elegir entre opciones de varias formas**
+  - VZ-ES-230 «la uno»
+  - VZ-ES-231 «la tercera»
+  - VZ-ES-232 «la última»
+  - VZ-ES-233 «la penúltima»
+  - VZ-ES-234 «la de arriba»
+  - VZ-ES-235 «la del medio»
+  - VZ-ES-236 por nombre «ortodoncia»
+  - VZ-ES-237 empate «sillón» pregunta solo entre los dos sillones
+  - VZ-ES-238 una respuesta que no es ninguna vuelve a preguntar y «no» deja todo igual
+
+## 30-ai-plans-es.spec.ts (27)
+
+N3 · Con IA: solo cuando hace falta, sinónimos, planes de varios pasos, relación con la tarea, formulario con IA.
+
+- **N3.0 · Solo se llama a la IA cuando hace falta**
+  - VZ-ES-300 lo que entiende el intérprete local no llama a la IA
+  - VZ-ES-301 la IA recibe la pantalla, el foco y la conversación (sin datos del paciente)
+- **N3.1 · Sinónimos y formas que lo local no conoce**
+  - VZ-ES-310 «agrandame un montón la grilla» → zoom
+  - VZ-ES-311 «que la columna de agendas no desaparezca» → fijar el panel
+  - VZ-ES-312 «quiero ver menos horas en la pantalla, de 9 a 5» → franja personalizada
+  - VZ-ES-313 «el sabadito y el domingo que no aparezcan» → ocultar días
+  - VZ-ES-314 «Carlitos López ya está en la sala» → estado llegó (confirma)
+  - VZ-ES-315 la IA no puede inventar ids: un doctor que no está se descarta
+  - VZ-ES-315b un doctor que no está, dicho como filtro: lo dice y no filtra
+  - VZ-ES-316 confianza baja: no adivina
+- **N3.2 · Planes de varios pasos**
+  - VZ-ES-320 «la cita de Juan, marcala como llegó y abrí su cuenta» → 3 pasos con el foco
+  - VZ-ES-321 «editá la cita de Carlos, ponele la doctora Ruiz y limpieza, y guardá»
+  - VZ-ES-322 configurar varias cosas de una: «vista semana por defecto, slots de 15, colores por estado y sin sábados»
+  - VZ-ES-323 «andá a mañana, vista día y mostrame los huecos de la tarde»
+  - VZ-ES-324 un paso que falla frena el plan y avisa dónde
+  - VZ-ES-325 exportar con todo dicho: «bajame en excel la semana que viene de Pocitos»
+- **N3.3 · Relación con la tarea en curso**
+  - VZ-ES-330 respuesta larga a «¿cuál?» la entiende la IA («la de la que viene más tarde»)
+  - VZ-ES-331 charla de la sala en medio de una pregunta se ignora y la pregunta sigue
+  - VZ-ES-332 herramienta dicha raro en medio: «dejame ver cómo viene el jueves» (aux)
+  - VZ-ES-333 «no, dejá, ya fue» (cancelar) lo dice la IA
+  - VZ-ES-334 un pedido nuevo largo con una pregunta abierta pregunta si se deja
+- **N3.4 · Formulario con IA**
+  - VZ-ES-340 «que dure lo mismo pero arranque media hora después» → form_set
+  - VZ-ES-341 «sacale lo que tenga y dejá solo control» → form_set con servicios
+  - VZ-ES-342 «dale mandale nomás» → guardar (form_save)
+- **N3.5 · Pacientes con IA**
+  - VZ-ES-350 «¿la de las 3 tiene algo pendiente de pagar?» → la deuda del paciente de esa cita
+  - VZ-ES-350b con IA: «¿cómo viene de plata el de las 3?» → patient_info debt
+  - VZ-ES-351 «traeme la ficha de la señora Castro» → buscar paciente
+
+## 40-incomplete-es.spec.ts (16)
+
+N4 · Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos, regla de oro (nunca se traba).
+
+- **N4.1 · Falta información: pregunta y sigue**
+  - VZ-ES-400 «dame una cita» sin nada: pregunta paciente, hora… y abre el formulario
+  - VZ-ES-401 «editá la cita» sin decir cuál (sin foco): pregunta cuál y sigue
+  - VZ-ES-402 «cancelá la de las 10» sin motivo: pregunta el motivo
+  - VZ-ES-403 «bloqueá el lunes» sin horas: pregunta la franja
+  - VZ-ES-404 «resumen del paciente» sin cita en foco: pregunta de qué paciente
+  - VZ-ES-405 buscar paciente sin datos: pide cédula, email o teléfono
+- **N4.2 · Mal dicho o mal transcripto**
+  - VZ-ES-410 «Juan Peres» (con s) encuentra a Juan Pérez
+  - VZ-ES-411 «carlos lopes llegó» sin tildes ni z
+  - VZ-ES-412 números en palabras: «zoom al ciento cincuenta»
+  - VZ-ES-413 «slots de quince minutos»
+  - VZ-ES-414 muletillas: «eh bueno dale andá a mañana»
+  - VZ-ES-415 respuestas que no se entienden: insiste y después lo deja sin cambiar nada
+  - VZ-ES-416 una frase que nadie entiende (ni la IA): muestra ejemplos sin romper nada
+  - VZ-ES-417 la IA no responde (error de red): «No entendí» y se sigue usando
+- **N4.3 · Regla de oro: un paso que falla nunca deja trabada la voz**
+  - VZ-ES-420 una acción de la pantalla que tira error: avisa y la voz sigue
+  - VZ-ES-421 sin la pantalla de citas cargada: lo dice y no se cuelga
+
+## 50-english.spec.ts (88)
+
+EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incompletos.
+
+- **EN-N1.1 · Listening**
+  - VZ-EN-001 with Voice on it hears everything, no wake word
+  - VZ-EN-002 «Invoke» alone says it is listening
+  - VZ-EN-003 tapping Voice turns it off
+  - VZ-EN-004 falls asleep with an open question and resumes it
+- **EN-N1.2 · Navigation and views**
+  - VZ-EN-010 today
+  - VZ-EN-011 next (week view → +1 week)
+  - VZ-EN-012 previous in day view
+  - VZ-EN-013 next week (lands on next week)
+  - VZ-EN-014 go to December 3rd
+  - VZ-EN-02x «day view» → day
+  - VZ-EN-02x «week view» → week
+  - VZ-EN-02x «3 day view» → 3-day
+  - VZ-EN-02x «month view» → month
+  - VZ-EN-02x «list view» → schedule
+  - VZ-EN-026 «which views are there» + «the last one»
+- **EN-N1.3 · Zoom**
+  - VZ-EN-03x «zoom in» → 1.1
+  - VZ-EN-03x «zoom out» → 0.9
+  - VZ-EN-03x «max zoom» → 2.5
+  - VZ-EN-03x «zoom all the way out» → 0.3
+  - VZ-EN-03x «zoom to 150 percent» → 1.5
+  - VZ-EN-03x «bigger» → 1.1
+  - VZ-EN-03x «smaller» → 0.9
+  - VZ-EN-037 reset zoom
+- **EN-N1.4 · Calendars, doctors, panel, search**
+  - VZ-EN-040 «which calendars are there» + «the second one»
+  - VZ-EN-041 «only Dr. Pérez»
+  - VZ-EN-042 open the calendars panel
+  - VZ-EN-043 pin the panel
+  - VZ-EN-044 unpin the sidebar
+  - VZ-EN-045 search Ana Gómez
+  - VZ-EN-046 refresh
+  - VZ-EN-047 what do I have today
+- **EN-N1.5 · Settings**
+  - VZ-EN-050 open the settings
+  - VZ-EN-051 Invoke mode
+  - VZ-EN-052 custom mode
+  - VZ-EN-053 default view week
+  - VZ-EN-054 hour height 120
+  - VZ-EN-055 taller hours
+  - VZ-EN-056 10 minute slots
+  - VZ-EN-057 default site Pocitos
+  - VZ-EN-058 label time, patient and notes
+  - VZ-EN-059 hide weekends
+  - VZ-EN-060 show Saturdays
+  - VZ-EN-061 clinic hours
+  - VZ-EN-062 visible hours from 8 to 6
+  - VZ-EN-063 full day
+  - VZ-EN-064 «turn off color by status» → color_by_status false
+  - VZ-EN-064 «turn on availability check» → check_availability true
+  - VZ-EN-064 «block out of hours» → block_unavailable true
+  - VZ-EN-064 «filter doctors by service» → filter_doctors_by_service true
+  - VZ-EN-064 «turn on inline creation» → inline_appointment_creation true
+  - VZ-EN-064 «turn on live preview» → inline_draft_live_preview true
+- **EN-N1.6 · Appointments**
+  - VZ-EN-070 «Juan Pérez's appointment» selects it
+  - VZ-EN-071 «the appointment at 3» by time
+  - VZ-EN-07x «Juan Pérez arrived» → arrived
+  - VZ-EN-07x «Carlos López confirmed» → confirmed
+  - VZ-EN-07x «Carlos López is a no show» → no_show
+  - VZ-EN-07x «mark Carlos López as completed» → completed
+  - VZ-EN-076 «no» keeps it
+  - VZ-EN-077 delete Carlos López's appointment
+  - VZ-EN-078 make Juan's appointment red
+  - VZ-EN-079 open Juan Pérez's account
+- **EN-N1.7 · Form, export, patients**
+  - VZ-EN-080 edit opens the form
+  - VZ-EN-081 with Dr. Gómez
+  - VZ-EN-082 at 11:30
+  - VZ-EN-083 ends at 11
+  - VZ-EN-084 in chair 1
+  - VZ-EN-085 note: bring X-rays
+  - VZ-EN-086 patient is Sofía Castro
+  - VZ-EN-087 save
+  - VZ-EN-088 cancel closes without saving
+  - VZ-EN-090 export next week schedule
+  - VZ-EN-091 export all calendars
+  - VZ-EN-092 find patient Juan Pérez
+  - VZ-EN-093 find patient with no appointments (widget)
+  - VZ-EN-094 not found by name → asks ID/email/phone
+  - VZ-EN-095 summarize this patient (focus) from their records
+- **EN-N2 · Chained**
+  - VZ-EN-100 select → «mark it as arrived» → yes
+  - VZ-EN-101 two «Ana»: «the one at 10 30»
+  - VZ-EN-102 a tool in the middle does not cancel the question
+  - VZ-EN-103 a new request asks whether to drop the task; «yes» does it
+  - VZ-EN-104 «never mind» cancels
+- **EN-N3 · AI plans**
+  - VZ-EN-110 «Juan's appointment, mark him arrived and open his account»
+  - VZ-EN-111 «make everything way bigger, I can barely see» → zoom ×3
+  - VZ-EN-112 the AI answers an open question («the later one»)
+  - VZ-EN-113 room small talk is ignored
+- **EN-N4 · Incomplete or misheard**
+  - VZ-EN-120 «edit the appointment» without saying which: asks
+  - VZ-EN-121 nonsense: shows examples and keeps working
+  - VZ-EN-122 «Juan Peres arrived» (misspelled) still finds him
+
+## 60-patient-info.spec.ts (37)
+
+N5 · Información del paciente (estadísticas, deuda, pagos, presupuestos, tratamientos) y acciones (presupuesto, factura, tratamiento, sesión, cobro), es y en.
+
+- **N5.ES · Información del paciente (español)**
+  - VZ-ES-500 ¿cuántas veces vino Juan Pérez? (no pregunta qué cita)
+  - VZ-ES-501 ¿cuántas citas canceló Juan Pérez?
+  - VZ-ES-502 ¿cuántas veces faltó Juan Pérez?
+  - VZ-ES-503 ¿cuándo fue la última vez que no vino? (paciente en foco)
+  - VZ-ES-504 ¿cuándo fue su última visita?
+  - VZ-ES-505 ¿tiene deudas?
+  - VZ-ES-506 ¿cuál fue el último pago que hizo Juan Pérez?
+  - VZ-ES-507 ¿cuánto pagó en total?
+  - VZ-ES-508 ¿en qué estado están sus presupuestos?
+  - VZ-ES-509 ¿tiene facturas sin pagar?
+  - VZ-ES-510 ¿qué tratamientos tiene en curso?
+  - VZ-ES-511 varias preguntas juntas: «cuántas veces faltó y si tiene deudas»
+  - VZ-ES-512 estadísticas del paciente (resumen completo)
+  - VZ-ES-513 paciente sin citas: lo busca en el buscador de pacientes y contesta
+  - VZ-ES-514 sin decir de quién ni foco: pregunta el paciente
+  - VZ-ES-515 sin permiso de cuentas: no dice lo financiero (y lo aclara)
+  - VZ-ES-516 la información no cancela una pregunta abierta (herramienta)
+- **N5.ES · Acciones del paciente (español)**
+  - VZ-ES-52x «creá un presupuesto para Juan Pérez» → quote
+  - VZ-ES-52x «hacé una factura para Juan Pérez» → invoice
+  - VZ-ES-52x «vamos a crear un tratamiento para Juan Pérez» → treatment
+  - VZ-ES-52x «abrí el cobro rápido de Juan Pérez» → bill
+  - VZ-ES-525 registrar la sesión clínica usa la cita del paciente
+  - VZ-ES-526 sesión clínica de un paciente sin cita: lo dice
+  - VZ-ES-527 presupuesto para el paciente en foco
+- **N5.EN · Patient information and actions (English)**
+  - VZ-EN-500 how many times has Juan Pérez come
+  - VZ-EN-501 how many no shows does Juan Pérez have
+  - VZ-EN-502 how many cancellations
+  - VZ-EN-503 does he owe anything
+  - VZ-EN-504 last payment
+  - VZ-EN-505 quotes status
+  - VZ-EN-506 treatments in progress
+  - VZ-EN-507 stats for Juan Pérez
+  - VZ-EN-51x «create a quote for Juan Pérez» → quote
+  - VZ-EN-51x «new invoice for Juan Pérez» → invoice
+  - VZ-EN-51x «new treatment for Juan Pérez» → treatment
+  - VZ-EN-51x «quick charge for Juan Pérez» → bill
+  - VZ-EN-515 record the clinical session (focus)
+
+## 70-variants-es.spec.ts (213)
+
+V · Variantes en español: la misma acción pedida de muchas formas.
+
+- **V-ES-NAV · hoy**
+  - «hoy»
+  - «volvé a hoy»
+  - «andá a hoy»
+  - «el día de hoy»
+  - «mostrame hoy»
+  - «llevame a hoy»
+  - «volvamos a hoy»
+- **V-ES-NAV · mañana y ayer**
+  - «mañana»
+  - «andá a mañana»
+  - «mostrame mañana»
+  - «pasá a mañana»
+  - «ayer»
+  - «andá a ayer»
+  - «mostrame ayer»
+- **V-ES-NAV · siguiente (vista semana)**
+  - «siguiente»
+  - «adelante»
+  - «avanzá»
+  - «para adelante»
+  - «el próximo»
+- **V-ES-NAV · anterior (vista semana)**
+  - «anterior»
+  - «atrás»
+  - «para atrás»
+  - «retrocedé»
+  - «volvé para atrás»
+- **V-ES-NAV · semanas**
+  - «la semana que viene»
+  - «la próxima semana»
+  - «semana siguiente»
+  - «mostrame la semana que viene»
+  - «la semana pasada»
+  - «semana anterior»
+- **V-ES-NAV · meses**
+  - «el mes que viene»
+  - «el próximo mes»
+  - «el mes pasado»
+  - «mes anterior»
+- **V-ES-NAV · día de la semana**
+  - «andá al jueves»
+  - «el lunes»
+  - «mostrame el viernes»
+  - «el martes»
+  - «el sábado»
+  - «el miércoles»
+- **V-ES-NAV · fechas**
+  - «el 15»
+  - «andá al 3 de diciembre»
+  - «el 20 de enero»
+  - «mostrame el 1 de marzo»
+- **V-ES-VIEW**
+  - «vista día»
+  - «vista diaria»
+  - «ver por día»
+  - «poné vista de día»
+  - «cambiá a vista día»
+  - «modo día»
+  - «vista semana»
+  - «vista semanal»
+  - «ver la semana»
+  - «cambiá a semana»
+  - «vista mes»
+  - «vista mensual»
+  - «ver el mes»
+  - «vista lista»
+  - «vista agenda»
+  - «ver como lista»
+  - «vista de 2 días»
+  - «vista de 4 días»
+  - «ver 5 días»
+  - «vista de 6 días»
+  - «vista de tres días»
+- **V-ES-ZOOM**
+  - «más zoom»
+  - «zoom»
+  - «hacé zoom»
+  - «acercá»
+  - «agrandá»
+  - «más grande»
+  - «aumentá el zoom»
+  - «subí el zoom»
+  - «ampliá»
+  - «menos zoom»
+  - «alejá»
+  - «achicá»
+  - «más chico»
+  - «bajá el zoom»
+  - «reducí el zoom»
+  - «disminuí el zoom»
+  - «zoom al máximo»
+  - «lo más grande posible»
+  - «zoom máximo»
+  - «agrandá al máximo»
+  - «zoom mínimo»
+  - «lo más chico posible»
+  - «alejá al mínimo»
+  - «achicá al mínimo»
+  - «zoom al 80»
+  - «zoom 120 por ciento»
+  - «zoom al 200»
+  - «zoom normal»
+  - «reiniciá el zoom»
+  - «zoom por defecto»
+  - «agrandá mucho»
+  - «achicá bastante»
+- **V-ES-PANEL**
+  - «abrí el panel de agendas»
+  - «mostrá el panel»
+  - «abrí el panel lateral»
+  - «fijá el panel»
+  - «dejá fijo el panel»
+  - «que el panel no se cierre»
+  - «anclá el panel»
+  - «que quede fijo el panel»
+- **V-ES-PANEL · cerrar y soltar**
+  - «cerrá el panel»
+  - «escondé el panel»
+  - «ocultá el panel de agendas»
+  - «soltá el panel»
+  - «desfijá el panel»
+  - «que el panel se esconda solo»
+  - «no dejes fijo el panel»
+- **V-ES-AGENDA**
+  - «solo la agenda ortodoncia»
+  - «mostrame la agenda ortodoncia»
+  - «cambiá a la agenda sillón 2»
+  - «pasá al sillón 2»
+  - «ver el sillón 2»
+  - «solo el sillón 1»
+- **V-ES-STATUS · llegó**
+  - «Juan Pérez llegó»
+  - «llegó Juan Pérez»
+  - «Juan Pérez ya llegó»
+  - «Juan Pérez está en la sala»
+  - «marcá a Juan Pérez como llegó»
+  - «Juan Pérez ya está acá»
+  - «la de las 10 llegó»
+- **V-ES-STATUS · confirmó**
+  - «Carlos López confirmó»
+  - «confirmá la cita de Carlos López»
+  - «Carlos López confirmó la cita»
+  - «marcá como confirmada la de Carlos López»
+- **V-ES-STATUS · no vino**
+  - «Carlos López no vino»
+  - «Carlos López faltó»
+  - «Carlos López no se presentó»
+  - «la de las 3 no vino»
+- **V-ES-STATUS · en consulta y terminó**
+  - «Juan Pérez pasó a consulta»
+  - «Juan Pérez está en consulta»
+  - «Juan Pérez entró»
+  - «terminó Juan Pérez»
+  - «Juan Pérez ya se atendió»
+  - «completá la cita de Juan Pérez»
+  - «Juan Pérez terminó»
+  - «Juan Pérez llegó tarde»
+- **V-ES-INFO · visitas**
+  - «cuántas veces vino Juan Pérez»
+  - «cuántas visitas tiene Juan Pérez»
+  - «cuántas consultas tuvo Juan Pérez»
+  - «Juan Pérez cuántas veces vino»
+  - «cuántas veces lo atendimos a Juan Pérez»
+- **V-ES-INFO · faltas**
+  - «cuántas veces faltó Juan Pérez»
+  - «cuántas faltas tiene Juan Pérez»
+  - «cuántas veces no vino Juan Pérez»
+  - «cuántas inasistencias tiene Juan Pérez»
+  - «cuándo fue la última vez que faltó Juan Pérez»
+  - «última falta de Juan Pérez»
+- **V-ES-INFO · cancelaciones**
+  - «cuántas citas canceló Juan Pérez»
+  - «cuántas cancelaciones tiene Juan Pérez»
+  - «cuántas veces canceló Juan Pérez»
+- **V-ES-INFO · deuda**
+  - «cuánto debe Juan Pérez»
+  - «Juan Pérez tiene deuda»
+  - «Juan Pérez debe algo»
+  - «cuál es el saldo de Juan Pérez»
+  - «Juan Pérez está al día»
+  - «tiene algo pendiente de pagar Juan Pérez»
+- **V-ES-INFO · pagos**
+  - «cuál fue el último pago de Juan Pérez»
+  - «cuándo pagó Juan Pérez por última vez»
+  - «último pago de Juan Pérez»
+  - «cuánto ha pagado Juan Pérez»
+- **V-ES-INFO · presupuestos, facturas y tratamientos**
+  - «qué presupuestos tiene Juan Pérez»
+  - «cómo están los presupuestos de Juan Pérez»
+  - «en qué estado están los presupuestos de Juan Pérez»
+  - «qué facturas tiene Juan Pérez»
+  - «cuántas facturas tiene Juan Pérez»
+  - «qué tratamientos tiene en curso Juan Pérez»
+  - «cómo va el tratamiento de Juan Pérez»
+  - «tratamientos activos de Juan Pérez»
+- **V-ES-INFO · resumen**
+  - «resumen de Juan Pérez»
+  - «dame un resumen de Juan Pérez»
+  - «estadísticas de Juan Pérez»
+  - «qué sabemos de Juan Pérez»
+  - «resumime a Juan Pérez»
+- **V-ES-ACTION**
+  - «creá un presupuesto para Juan Pérez»
+  - «hacé un presupuesto a Juan Pérez»
+  - «nuevo presupuesto para Juan Pérez»
+  - «armá un presupuesto para Juan Pérez»
+  - «creá una factura para Juan Pérez»
+  - «facturale a Juan Pérez»
+  - «nueva factura para Juan Pérez»
+  - «creá un tratamiento para Juan Pérez»
+  - «nuevo tratamiento para Juan Pérez»
+  - «cargá un tratamiento para Juan Pérez»
+  - «hacé un cobro rápido a Juan Pérez»
+  - «cobro rápido para Juan Pérez»
+  - «cobrale a Juan Pérez»
+  - «registrá la sesión clínica de Juan Pérez»
+  - «nueva sesión para Juan Pérez»
+  - «abrí la sesión clínica de Juan Pérez»
+- **V-ES-SETTINGS**
+  - «slots de 15 minutos»
+  - «franjas de 10 minutos»
+  - «intervalos de 20 minutos»
+  - «slots de media hora»
+  - «que arranque en vista día»
+  - «vista por defecto semana»
+  - «vista predeterminada mes»
+  - «ocultá los domingos»
+  - «no muestres los sábados»
+  - «escondé el fin de semana»
+  - «mostrá solo el horario de la clínica»
+  - «franja visible completa»
+  - «horario visible de 9 a 18»
+  - «altura de la hora 140»
+  - «horas más bajas»
+  - «modo personalizado»
+  - «vista invoke»
+  - «activá colores por estado»
+  - «desactivá colores por estado»
+
+## 71-variants-en.spec.ts (192)
+
+V · Variantes en inglés.
+
+- **V-EN-NAV · today / tomorrow / yesterday**
+  - «today»
+  - «go to today»
+  - «back to today»
+  - «show me today»
+  - «jump to today»
+  - «take me to today»
+  - «tomorrow»
+  - «go to tomorrow»
+  - «show me tomorrow»
+  - «what about tomorrow»
+  - «yesterday»
+  - «go to yesterday»
+  - «show me yesterday»
+- **V-EN-NAV · next / previous (week view)**
+  - «next»
+  - «forward»
+  - «go forward»
+  - «next one»
+  - «move ahead»
+  - «previous»
+  - «back»
+  - «go back»
+  - «backward»
+  - «previous one»
+- **V-EN-NAV · weeks and months**
+  - «next week»
+  - «go to next week»
+  - «show me next week»
+  - «last week»
+  - «previous week»
+- **V-EN-NAV · months**
+  - «next month»
+  - «go to next month»
+  - «last month»
+  - «previous month»
+- **V-EN-NAV · weekdays**
+  - «go to Thursday»
+  - «Monday»
+  - «show me Friday»
+  - «jump to Tuesday»
+  - «on Wednesday»
+  - «this Saturday»
+- **V-EN-NAV · dates**
+  - «go to December 3»
+  - «December 3rd»
+  - «the 15th»
+  - «jump to January 20»
+  - «show me March 1st»
+- **V-EN-VIEW**
+  - «day view»
+  - «daily view»
+  - «switch to day view»
+  - «show the day»
+  - «one day view»
+  - «week view»
+  - «weekly view»
+  - «switch to week view»
+  - «show the whole week»
+  - «month view»
+  - «monthly view»
+  - «switch to month»
+  - «list view»
+  - «agenda view»
+  - «show it as a list»
+  - «2 day view»
+  - «three day view»
+  - «4 day view»
+  - «5 days view»
+  - «six day view»
+- **V-EN-ZOOM**
+  - «zoom in»
+  - «zoom»
+  - «bigger»
+  - «make it bigger»
+  - «enlarge»
+  - «closer»
+  - «increase the zoom»
+  - «zoom out»
+  - «smaller»
+  - «make it smaller»
+  - «shrink it»
+  - «decrease the zoom»
+  - «max zoom»
+  - «zoom all the way in»
+  - «as big as possible»
+  - «maximum zoom»
+  - «min zoom»
+  - «zoom all the way out»
+  - «as small as possible»
+  - «minimum zoom»
+  - «zoom to 80»
+  - «zoom 120 percent»
+  - «zoom to 200 percent»
+  - «reset zoom»
+  - «normal zoom»
+  - «zoom back to normal»
+  - «zoom in a lot»
+  - «zoom out a lot»
+- **V-EN-PANEL**
+  - «open the calendars panel»
+  - «show the sidebar»
+  - «open the side panel»
+  - «pin the panel»
+  - «keep the panel open»
+  - «pin the sidebar»
+- **V-EN-PANEL · close and unpin**
+  - «close the panel»
+  - «hide the sidebar»
+  - «unpin the panel»
+  - «let the sidebar auto hide»
+- **V-EN-CALENDAR**
+  - «only calendar Ortodoncia»
+  - «show calendar Ortodoncia»
+  - «switch to Sillón 2»
+  - «go to chair 2»
+  - «open calendar Sillón 1»
+- **V-EN-STATUS · arrived**
+  - «Juan Pérez arrived»
+  - «Juan Pérez is here»
+  - «Juan Pérez just arrived»
+  - «check in Juan Pérez»
+  - «mark Juan Pérez as arrived»
+  - «Juan Pérez is in the waiting room»
+  - «the 10 o clock arrived»
+- **V-EN-STATUS · confirmed**
+  - «Carlos López confirmed»
+  - «confirm Carlos López»
+  - «confirm Carlos López's appointment»
+  - «mark Carlos López as confirmed»
+- **V-EN-STATUS · no show**
+  - «Carlos López is a no show»
+  - «Carlos López didn't show up»
+  - «Carlos López did not come»
+  - «mark Carlos López as no show»
+- **V-EN-STATUS · in progress / completed / late**
+  - «Juan Pérez is in progress»
+  - «start Juan Pérez»
+  - «start Juan Pérez's appointment»
+  - «Juan Pérez is done»
+  - «Juan Pérez finished»
+  - «complete Juan Pérez's appointment»
+  - «mark Juan Pérez as completed»
+  - «Juan Pérez arrived late»
+- **V-EN-INFO · visits**
+  - «how many times has Juan Pérez come»
+  - «how many visits does Juan Pérez have»
+  - «how many times did Juan Pérez visit»
+  - «how often has Juan Pérez come»
+- **V-EN-INFO · no-shows**
+  - «how many no shows does Juan Pérez have»
+  - «how many times has Juan Pérez missed»
+  - «how many times didn't Juan Pérez show up»
+  - «when was Juan Pérez's last no show»
+- **V-EN-INFO · cancellations**
+  - «how many cancellations does Juan Pérez have»
+  - «how many times has Juan Pérez cancelled»
+- **V-EN-INFO · money**
+  - «how much does Juan Pérez owe»
+  - «does Juan Pérez owe anything»
+  - «what's Juan Pérez's balance»
+  - «is Juan Pérez up to date with payments»
+  - «what was Juan Pérez's last payment»
+  - «when did Juan Pérez last pay»
+  - «how much has Juan Pérez paid»
+- **V-EN-INFO · quotes, invoices, treatments**
+  - «what quotes does Juan Pérez have»
+  - «what's the status of Juan Pérez's quotes»
+  - «what invoices does Juan Pérez have»
+  - «how many invoices does Juan Pérez have»
+  - «what treatments does Juan Pérez have in progress»
+  - «how is Juan Pérez's treatment going»
+- **V-EN-INFO · summary**
+  - «summarize Juan Pérez»
+  - «give me a summary of Juan Pérez»
+  - «stats for Juan Pérez»
+  - «what do we know about Juan Pérez»
+  - «tell me about Juan Pérez»
+- **V-EN-ACTION**
+  - «create a quote for Juan Pérez»
+  - «make a quote for Juan Pérez»
+  - «new quote for Juan Pérez»
+  - «new estimate for Juan Pérez»
+  - «create an invoice for Juan Pérez»
+  - «new invoice for Juan Pérez»
+  - «invoice Juan Pérez»
+  - «create a treatment for Juan Pérez»
+  - «new treatment for Juan Pérez»
+  - «add a treatment for Juan Pérez»
+  - «quick charge for Juan Pérez»
+  - «charge Juan Pérez»
+  - «quick bill Juan Pérez»
+  - «record Juan Pérez's clinical session»
+  - «new session for Juan Pérez»
+  - «start Juan Pérez's clinical session»
+- **V-EN-SETTINGS**
+  - «15 minute slots»
+  - «slots of 10 minutes»
+  - «half hour slots»
+  - «one hour slots»
+  - «default view day»
+  - «start in week view by default»
+  - «make month the default view»
+  - «hide sundays»
+  - «don't show saturdays»
+  - «hide the weekend»
+  - «only show clinic hours»
+  - «show the full day»
+  - «visible hours from 9 to 6»
+  - «hour height 140»
+  - «shorter hours»
+  - «custom mode»
+  - «invoke mode»
+  - «turn on color by status»
+  - «turn off color by status»
+
+## 72-variants-more.spec.ts (119)
+
+V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y cada corrección del editor.
+
+- **V-ES-MENU · borrar**
+  - «borrá la cita de Carlos López»
+  - «eliminá la cita de Carlos López»
+  - «borrá el turno de Carlos López»
+  - «eliminá la de las 3»
+- **V-EN-MENU · delete**
+  - «delete Carlos López's appointment»
+  - «delete the appointment at 3»
+  - «remove Carlos López's appointment»
+- **V-ES-MENU · color**
+  - «poné la cita de Juan Pérez en rojo»
+  - «pintá de verde la cita de Juan Pérez»
+  - «la cita de Juan Pérez en azul»
+  - «cambiá el color de la cita de Juan Pérez a amarillo»
+- **V-EN-MENU · color**
+  - «make Juan Pérez's appointment red»
+  - «paint Juan Pérez's appointment green»
+  - «change the color of Juan Pérez's appointment to yellow»
+- **V-ES-MENU · doctor**
+  - «pasá la cita de Juan Pérez al doctor Gómez»
+  - «asigná la cita de Juan Pérez al doctor Gómez»
+  - «cambiá el doctor de la cita de Juan Pérez al doctor Gómez»
+  - «que a Juan Pérez lo atienda el doctor Gómez»
+- **V-EN-MENU · doctor**
+  - «assign Juan Pérez's appointment to doctor Gómez»
+  - «move Juan Pérez's appointment to doctor Gómez»
+- **V-ES-MENU · duración**
+  - «que la cita de Juan Pérez dure 45 minutos»
+  - «alargá la cita de Juan Pérez a una hora»
+  - «acortá la cita de Juan Pérez a 15 minutos»
+  - «la cita de Juan Pérez que dure una hora y media»
+- **V-EN-MENU · duration**
+  - «make Juan Pérez's appointment 45 minutes»
+  - «extend Juan Pérez's appointment to one hour»
+- **V-ES-MENU · mover**
+  - «pasá la cita de Juan Pérez al viernes a las 11»
+  - «reprogramá la cita de Juan Pérez para el lunes»
+  - «mové la cita de Juan Pérez a las 4»
+  - «corré la cita de Juan Pérez para mañana»
+- **V-EN-MENU · move**
+  - «move Juan Pérez's appointment to Friday at 11»
+  - «reschedule Juan Pérez's appointment for Monday»
+  - «move Juan Pérez's appointment to 4»
+- **V-ES-MENU · abrir**
+  - «abrí la historia clínica de Juan Pérez»
+  - «mostrame la historia de Juan Pérez»
+  - «abrí los archivos de Juan Pérez»
+  - «mostrame las radiografías de Juan Pérez»
+  - «abrí el estado de cuenta de Juan Pérez»
+  - «mostrame la cuenta corriente de Juan Pérez»
+  - «abrí el historial de citas de Juan Pérez»
+  - «mostrame los datos de Juan Pérez»
+- **V-EN-MENU · open**
+  - «open Juan Pérez's medical history»
+  - «show Juan Pérez's files»
+  - «open Juan Pérez's account statement»
+  - «show Juan Pérez's appointment history»
+  - «open Juan Pérez's patient details»
+- **V-ES-REMINDER**
+  - «recordame mañana a las 9 llamar al laboratorio»
+  - «nuevo recordatorio para el viernes a las 10 pedir materiales»
+  - «anotá una nota para mañana que falta material»
+- **V-EN-REMINDER**
+  - «remind me tomorrow at 9 to call the lab»
+  - «new reminder for Friday at 10 order supplies»
+  - «new note for tomorrow missing material»
+- **V-ES-BLOCK**
+  - «bloqueá el lunes de 14 a 16»
+  - «cerrá el horario del viernes de 9 a 12»
+  - «habilitá el sábado de 9 a 13»
+- **V-EN-BLOCK**
+  - «block Monday from 2 to 4»
+  - «enable Saturday from 9 to 1»
+- **V-ES-EXPORT**
+  - «exportá la agenda de hoy»
+  - «bajame la agenda de mañana a excel»
+  - «descargá la agenda de esta semana»
+  - «exportá la agenda de la semana que viene»
+  - «imprimí la agenda del mes»
+  - «exportá la agenda de diciembre»
+  - «exportá la agenda del 1 al 10 de diciembre»
+- **V-EN-EXPORT**
+  - «export today's schedule»
+  - «download the schedule for tomorrow»
+  - «export the schedule for this week»
+  - «export the schedule for next week»
+  - «print the schedule for this month»
+  - «export the schedule for December»
+- **V-ES-FORM**
+  - «con el doctor Gómez»
+  - «ponele la doctora Ruiz»
+  - «sin doctor»
+  - «a las 11»
+  - «mejor a las 4 de la tarde»
+  - «cambiá la hora a las 9 y media»
+  - «el viernes»
+  - «pasala para el lunes»
+  - «que termine a las 11»
+  - «hasta las 12»
+  - «en el sillón 1»
+  - «en el consultorio ortodoncia»
+  - «agregá limpieza»
+  - «agregale blanqueamiento y control»
+  - «nota: alérgico a la penicilina»
+  - «agregá en notas que trae estudios»
+  - «el paciente es Sofía Castro»
+  - «cambiá el paciente a Sofía Castro»
+- **V-EN-FORM**
+  - «with doctor Gómez»
+  - «without doctor»
+  - «at 11»
+  - «at 4 pm»
+  - «on Friday»
+  - «ends at 11»
+  - «until 12»
+  - «in chair 1»
+  - «add limpieza»
+  - «note: allergic to penicillin»
+  - «add a note that he brings X-rays»
+  - «patient is Sofía Castro»
+  - «change the patient to Sofía Castro»
+- **V-ES-FORM · guardar / cancelar**
+  - «guardar»
+  - «guardá»
+  - «actualizá»
+  - «listo»
+  - «sí»
+  - «dale guardalo»
+  - «cancelar»
+  - «cerrá sin guardar»
+  - «descartá»
+  - «no guardes»
+- **V-EN-FORM · save / cancel**
+  - «save»
+  - «update»
+  - «done»
+  - «yes»
+  - «save it»
+  - «cancel»
+  - «discard»
+  - «close without saving»
+
+## 80-routines.spec.ts (27)
+
+R · Rutinas reales de recepción y doctores: conversaciones largas que combinan todo, es y en.
+
+- **R-ES · Rutinas en español**
+  - R-ES-01 arranque del día: qué tengo, quién sigue, llega el primero y pasa a consulta
+  - R-ES-02 un paciente llama para cambiar el turno: encontrarlo, moverlo y confirmar
+  - R-ES-03 el doctor arma su vista: día, solo él, más zoom, horario de la clínica
+  - R-ES-04 paciente nuevo: cita completa, agregar control, nota y guardar
+  - R-ES-05 antes de atender: ¿debe algo? → cobro rápido
+  - R-ES-06 ordenar la agenda a gusto: configuración en varias frases
+  - R-ES-07 exportar la semana que viene de Centro, corrigiendo en el camino
+  - R-ES-08 cancelación tardía y después cuántas veces canceló
+  - R-ES-09 ambigüedad + herramienta en el medio + respuesta + acción
+  - R-ES-10 empezar algo, cambiar de tema dos veces y terminar lo último
+  - R-ES-11 recorrer la semana buscando lugar: siguiente, huecos de la tarde, volver a hoy
+  - R-ES-12 consultorio: ver el sillón 2, mover la cita de Carlos ahí y volver
+  - R-ES-13 estadísticas antes de dar otra cita y presupuesto
+  - R-ES-14 editar todo de una cita en varias frases y guardar
+  - R-ES-15 dormirse a mitad de una pregunta y retomar al prender
+  - R-ES-16 paciente que no aparece por nombre: buscar por cédula y preguntar su deuda
+  - R-ES-17 con IA: frase larga con todo junto
+- **R-EN · Routines in English**
+  - R-EN-01 start of the day: agenda, who is next, check in and start
+  - R-EN-02 reschedule over the phone
+  - R-EN-03 doctor sets up the view
+  - R-EN-04 new patient booking with corrections
+  - R-EN-05 before seeing the patient: balance, then quick charge
+  - R-EN-06 settings session
+  - R-EN-07 export next week, all calendars
+  - R-EN-08 ambiguity, a tool in the middle, answer, action
+  - R-EN-09 stats then a quote
+  - R-EN-10 edit everything in several phrases
+
+## 90-ai-understanding.spec.ts (42)
+
+AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.
+
+- **AI-ES · tamaño, panel y configuración dicho con adjetivos**
+  - «está todo apretadito, no veo nada»
+  - «ponelo enorme»
+  - «quedó gigante, bajale un poquito»
+  - «quiero más espacio entre las horas»
+  - «la listita de la izquierda que se quede ahí»
+  - «sacame de encima la columna de agendas»
+  - «mostrame solo cuando atendemos»
+  - «hacelo más finito, de a diez»
+  - «el finde no lo quiero ver»
+  - «que siempre me abra mirando la semana entera»
+- **AI-ES · citas dichas de otra forma**
+  - «Carlitos ya está sentado afuera»
+  - «a Juan ya lo hicimos pasar al sillón»
+  - «el de las tres nos dejó plantados»
+  - «la de Juan ponela coloradita»
+  - «al de las tres dale una hora y media larga»
+  - «el de las tres ya dura una hora, dejalo así»
+  - «que a Carlos lo vea la Ruiz»
+  - «sacá del medio lo de Carlos de hoy»
+- **AI-ES · información y acciones dichas de otra forma**
+  - «cómo viene Juan con la guita»
+  - «Juan es de faltar mucho?»
+  - «contame todo de Juan»
+  - «armale los números a Juan para lo que le falta»
+  - «cobrale lo de hoy a Juan»
+- **AI-EN · adjectives and indirect phrasing**
+  - «everything is tiny I can barely see»
+  - «make it huge»
+  - «keep that left list from disappearing»
+  - «only when we are open»
+  - «I don't want to see the weekend»
+  - «Carlos is sitting outside»
+  - «the three o clock stood us up»
+  - «paint Juan's slot a reddish color»
+  - «how's Juan doing money wise»
+  - «tell me everything you have on Juan»
+  - «put together an estimate for Juan»
+- **AI · Ambigüedad y confianza**
+  - AI-001 confianza media: pregunta «¿querés cambiar el zoom?» y «sí» lo hace
+  - AI-002 confianza media: «no» no hace nada
+  - AI-003 confianza alta: lo hace sin preguntar
+  - AI-004 confianza baja: no adivina y lo dice
+  - AI-005 un plan de varios pasos dudoso nombra lo que va a hacer
+  - AI-006 ids inventados por el modelo se descartan en n8n y en el navegador
+  - AI-007 la IA no puede confirmar ni guardar por su cuenta: un «form_save» sin formulario no hace nada
+- **AI-EN · Ambiguity**
+  - AI-EN-001 medium confidence asks first

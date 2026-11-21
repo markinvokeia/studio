@@ -119,6 +119,8 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
+    // La voz aprieta este botón con «continuar / aceptar» (src/lib/voice/dom-dialog.ts).
+    data-voice-dialog="confirm"
     className={cn(buttonVariants(), className)}
     {...props}
   />
@@ -131,6 +133,8 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
+    // La voz aprieta este botón con «cancelar / volver» (src/lib/voice/dom-dialog.ts).
+    data-voice-dialog="cancel"
     className={cn(
       buttonVariants({ variant: "outline" }),
       "mt-2 sm:mt-0",

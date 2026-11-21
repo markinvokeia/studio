@@ -191,6 +191,13 @@
     "rail.section.bill": {
       "label": "Cobrar",
       "description": "Cobro rápido."
+    },
+    "rail.section.voice": {
+      "label": "Voz",
+      "description": "Un solo botón de voz para toda la app, debajo de la mascota. Tocalo y escucha (sin palabra de activación) hasta apagarlo o un rato sin hablarle; trabaja con la pantalla abierta (agenda, órdenes de laboratorio…)."
+    },
+    "rail.btn.voice": {
+      "label": "Voz"
     }
   }
 }

@@ -15,6 +15,8 @@ import {
   type CalendarPanelParsed,
   type CalendarViewParsed,
 } from '@/lib/voice/commands/calendar-parse';
+import { isDialogOpen } from '@/lib/voice/dom-dialog';
+import { getAppointmentFocus, hasAppointmentFocus } from '@/lib/voice/focus';
 import { bestNameMatchScored, normalizeSpeech } from '@/lib/voice/parse';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
 
@@ -39,8 +41,14 @@ export const tc = (ctx: VoiceCommandContext, key: string, values?: Record<string
 
 /** El puente con la pantalla; sin él (no estamos en el calendario) lo dice y devuelve null. */
 export async function needCalendar(ctx: VoiceCommandContext, title: string) {
-  const bridge = getCalendarVoice();
+  let bridge = getCalendarVoice();
   if (bridge?.state.ready) return bridge;
+  if (!bridge) {
+    // Recién montada (cambio de idioma, navegación): se espera un momento a que publique.
+    await waitForCalendar(() => true, { signal: ctx.signal, timeoutMs: 3000 });
+    bridge = getCalendarVoice();
+    if (bridge?.state.ready) return bridge;
+  }
   if (bridge) {
     ctx.show({ title, message: tc(ctx, 'loading'), tone: 'info' });
     const ready = await waitForCalendar((s) => s.ready, { signal: ctx.signal, timeoutMs: 10000 });
@@ -125,6 +133,29 @@ async function calendarAiContext(): Promise<Record<string, unknown>> {
     visible_from: state.range ? dayKeyOf(state.range.start) : null,
     visible_to: state.range ? dayKeyOf(state.range.end) : null,
     custom_mode: state.customMode,
+    // Sin datos del paciente: solo que hay una cita en foco y cuándo es.
+    has_focus: hasAppointmentFocus(),
+    focus_when: (() => {
+      const focused = hasAppointmentFocus() ? getAppointmentFocus() : null;
+      const start = focused ? appointmentStart(focused) : null;
+      return start ? format(start, "yyyy-MM-dd'T'HH:mm") : null;
+    })(),
+    zoom: Math.round((state.zoom || 1) * 100),
+    agendas_panel: state.agendasPanel,
+    form_open: !!state.form.kind,
+    dialog_open: isDialogOpen(),
+    export_open: !!state.exportDialog,
+    settings: state.settings ? {
+      mode: state.settings.mode,
+      default_view: state.settings.default_view,
+      grouped_by: state.settings.grouped_by,
+      hour_height: state.settings.hour_height,
+      slot_duration: state.settings.slot_duration,
+      default_sede: state.settings.default_sede || 'all',
+      event_label_format: state.settings.event_label_format,
+      hidden_weekdays: state.settings.hidden_weekdays ?? [],
+      visible_hours_mode: state.settings.visible_hours_mode,
+    } : null,
   };
   return context;
 }
@@ -182,11 +213,13 @@ async function runNavigate(parsed: CalendarNavParsed, ctx: VoiceCommandContext) 
 registerVoiceCommand<CalendarNavParsed, CalendarVoiceAiResult>({
   id: 'calendar.navigate',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 5,
   match: (normalized) => parseCalendarNavigate(normalized),
   run: runNavigate,
   ai: {
     from: (r) => {
+      if (r.intent === 'calendar.today') return { kind: 'date', date: dayKeyOf(startOfToday()) };
       if (r.intent !== 'calendar.navigate') return null;
       if (r.date) return { kind: 'date', date: r.date };
       return r.step ? { kind: 'step', dir: r.step } : null;
@@ -210,6 +243,7 @@ async function runView(parsed: CalendarViewParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<CalendarViewParsed, CalendarVoiceAiResult>({
   id: 'calendar.view',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 10,
   match: (normalized) => parseCalendarView(normalized),
   run: runView,
@@ -234,6 +268,13 @@ function resolveFilter(parsed: CalendarFilterParsed, state: CalendarVoiceState):
     return items.length ? { target, ids: items.map((i) => i.id), label: items.map((i) => i.name).join(', ') } : null;
   }
   if (!parsed.name) return null;
+  // «chair 2», «consultorio 3» con agendas que se llaman distinto: por el número, si hay una sola.
+  const number = parsed.name.match(/\b(\d{1,3})\b/)?.[1];
+  if (number && parsed.target !== 'doctor' && parsed.target !== 'sede') {
+    const byNumber = lists.calendar.filter((c) => new RegExp(`\\b${number}\\b`).test(normalizeSpeech(c.name)));
+    const direct = bestByName(parsed.name, lists.calendar, (i) => i.name);
+    if (byNumber.length === 1 && (!direct || direct.score < 0.5)) return { target: 'calendar', ids: [byNumber[0].id], label: byNumber[0].name };
+  }
   const targets: FilterTarget[] = parsed.target === 'any' ? ['doctor', 'calendar', 'sede'] : [parsed.target];
   let best: { target: FilterTarget; id: string; name: string; score: number } | null = null;
   for (const target of targets) {
@@ -258,6 +299,8 @@ async function runFilter(parsed: CalendarFilterParsed, ctx: VoiceCommandContext)
   }
 
   const resolved = resolveFilter(parsed, state);
+  // «solo cuando atendemos» no es un doctor ni una agenda: quizás la IA lo entiende.
+  if (!resolved && await ctx.tryAi()) return;
   if (!resolved) {
     const message = tc(ctx, 'filterNotFound', { name: parsed.name ?? '' });
     await ctx.finish({ title, message, tone: 'error' }, message);
@@ -296,6 +339,7 @@ async function runFilter(parsed: CalendarFilterParsed, ctx: VoiceCommandContext)
 registerVoiceCommand<CalendarFilterParsed, CalendarVoiceAiResult>({
   id: 'calendar.filter',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 12,
   match: (normalized) => parseCalendarFilter(normalized),
   run: runFilter,
@@ -330,6 +374,7 @@ async function runGroup(parsed: CalendarGroupParsed, ctx: VoiceCommandContext) {
 registerVoiceCommand<CalendarGroupParsed, CalendarVoiceAiResult>({
   id: 'calendar.group',
   domain: CALENDAR_VOICE_DOMAIN,
+  aux: true,
   priority: 15,
   match: (normalized) => parseCalendarGroup(normalized),
   run: runGroup,
@@ -360,5 +405,11 @@ registerVoiceCommand<CalendarPanelParsed, CalendarVoiceAiResult>({
   priority: 26,
   match: (normalized) => parseCalendarPanel(normalized),
   run: runPanel,
-  ai: { from: (r) => (r.intent === 'calendar.search' && r.query ? { kind: 'search', query: r.query } : null) },
+  aux: true,
+  ai: {
+    from: (r) => (r.intent === 'calendar.search' && r.query ? { kind: 'search', query: r.query }
+      : r.intent === 'calendar.close_search' ? { kind: 'closeSearch' }
+        : r.intent === 'calendar.hide_gaps' ? { kind: 'hideGaps' }
+          : null),
+  },
 });

@@ -25,7 +25,7 @@ import { LabOrdersBoard, type LabOrdersBoardFilters } from '@/components/lab-ord
 import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabSelector } from '@/components/lab-orders/lab-selector';
-import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
 import {
   LabCreateDialog, LabOrdersSetupCard, LabOrdersSetupMenu, LabServicesDialog, useLabSetupStatus, type LabSetupDialog,
 } from '@/components/lab-orders/lab-orders-setup';
@@ -106,6 +106,8 @@ function useIsMobile() {
  */
 export default function LabOrdersPage() {
   const t = useTranslations('LabOrdersPage');
+  // La voz (botón del riel derecho) trabaja con el contexto de órdenes de laboratorio en esta pantalla.
+  useVoiceScreen(LAB_ORDERS_VOICE_DOMAINS);
   const { toast } = useToast();
   const errorText = useLabOrderErrorText();
   const isMobile = useIsMobile();
@@ -631,7 +633,6 @@ export default function LabOrdersPage() {
           </div>
           <div className="flex items-center gap-2">
             <LabOrdersSetupMenu onOpen={setSetupDialog} compact={isRightOpen} />
-            <VoiceCommandButton compact={isRightOpen} />
             <div data-help-id="lab-orders.section.view" role="group" aria-label={t('view.label')} className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
               {([['list', LayoutList], ['board', SquareKanban]] as const).map(([mode, Icon]) => (
                 <Button
@@ -775,7 +776,6 @@ export default function LabOrdersPage() {
       />
 
       {/* Comandos de voz de esta pantalla: Ctrl+Espacio o el micrófono del encabezado. */}
-      <VoiceCommandHost domains={LAB_ORDERS_VOICE_DOMAINS} />
     </div>
   );
 }

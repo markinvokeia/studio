@@ -25,11 +25,34 @@ export function registerVoiceCommand<P, R = any>(command: VoiceCommand<P, R>) {
 
 const activeCommands = (active: readonly string[]) => commands.filter((c) => active.includes(c.domain));
 
+const ENGLISH_POSSESSIVE = /^((?:show me|go to|take me to|select|open|delete|remove|erase|edit|mark|make|move|cancel|find|focus on|reschedule|change|paint|color)\s)?([a-z]+(?: [a-z]+){0,2}?) (?:appointment|appt)(\s.*)?$/;
+
+/** Cortesía y muletillas que no cambian el pedido («poné más zoom por favor», «dale, andá a hoy»). */
+const POLITE = /(?:^|\s)(?:por favor|porfa|porfis|please|pls|dale|bueno|che|eh|este|o sea|a ver|mira|mirá|fijate|che che|gracias|thanks|thank you|okay so|so|well)(?=\s|$)/g;
+export function stripPoliteness(normalized: string): string {
+  return normalized.replace(POLITE, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /** El primer comando de los módulos activos que reconoce la frase, con lo que entendió. */
-export function matchVoiceCommand(active: readonly string[], normalized: string, raw: string): { command: VoiceCommand<any>; parsed: unknown } | null {
-  for (const command of activeCommands(active)) {
-    const parsed = command.match(normalized, raw);
-    if (parsed != null) return { command, parsed };
+export function matchVoiceCommand(
+  active: readonly string[],
+  normalized: string,
+  raw: string,
+  /** Comandos que no cuentan (p. ej. el formulario abierto, al buscar si es otro pedido). */
+  skip?: (command: VoiceCommand<any>) => boolean,
+): { command: VoiceCommand<any>; parsed: unknown } | null {
+  const tries = [normalized];
+  const plain = stripPoliteness(normalized);
+  if (plain && plain !== normalized) tries.push(plain);
+  // Orden inglés «delete Carlos López appointment» → «delete the appointment of Carlos López».
+  const english = plain.match(ENGLISH_POSSESSIVE);
+  if (english) tries.push(`${english[1] ?? ''}the appointment of ${english[2]}${english[3] ?? ''}`.trim());
+  for (const text of tries) {
+    for (const command of activeCommands(active)) {
+      if (skip?.(command)) continue;
+      const parsed = command.match(text, raw);
+      if (parsed != null) return { command, parsed };
+    }
   }
   return null;
 }

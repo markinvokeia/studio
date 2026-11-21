@@ -172,6 +172,13 @@ export interface ContinuousListeningOptions {
   onError?: (error: ContinuousListeningError) => void;
   /** Se dejó de escuchar del todo (stop, abort o un error que no deja seguir). */
   onEnd?: () => void;
+  /**
+   * Pausa «blanda»: pause() no corta el reconocimiento, solo descarta lo que se oye mientras dura
+   * (y un momento después). Así no hay un reinicio en el que se pierdan las primeras palabras.
+   */
+  softPause?: boolean;
+  /** Pausa blanda: cuánto más se sigue descartando después de resume() (cola del eco). */
+  echoGraceMs?: number;
 }
 
 export interface ContinuousListening {
@@ -187,11 +194,15 @@ export interface ContinuousListening {
  * el micrófono. El navegador corta el reconocimiento tras un silencio; mientras no se pida parar,
  * se reinicia solo. Devuelve null si el navegador no tiene reconocimiento de voz.
  */
-export function startContinuousListening(locale: string, { onPhrase, onInterim, onError, onEnd }: ContinuousListeningOptions): ContinuousListening | null {
+export function startContinuousListening(locale: string, { onPhrase, onInterim, onError, onEnd, softPause = false, echoGraceMs = 350 }: ContinuousListeningOptions): ContinuousListening | null {
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) return null;
   let wanted = true;
   let paused = false;
+  /** Pausa blanda: hasta cuándo se descarta lo que se oye (lo que dice el asistente). */
+  let deafUntil = 0;
+  let deaf = false;
+  const ignoring = () => deaf || Date.now() < deafUntil;
   let current: ISpeechRecognition | null = null;
   let ended = false;
 
@@ -216,12 +227,12 @@ export function startContinuousListening(locale: string, { onPhrase, onInterim, 
         const result = event.results[i];
         if (result.isFinal) {
           const text = result[0].transcript.trim();
-          if (text) onPhrase(text);
+          if (text && !ignoring()) onPhrase(text);
         } else {
           live += result[0].transcript;
         }
       }
-      onInterim?.(live.trim());
+      if (!ignoring()) onInterim?.(live.trim());
     };
     recognition.onerror = (event) => {
       const error = (event as Event & { error?: string }).error;
@@ -234,7 +245,8 @@ export function startContinuousListening(locale: string, { onPhrase, onInterim, 
       onInterim?.('');
       if (!wanted) { finish(); return; }
       if (paused) return;
-      setTimeout(() => { if (wanted && !paused && !current) launch(); }, 150);
+      // Enseguida: cada milisegundo sin escuchar se puede comer el principio de lo que se dice.
+      setTimeout(() => { if (wanted && !paused && !current) launch(); }, softPause ? 0 : 150);
     };
     current = recognition;
     try {
@@ -260,11 +272,18 @@ export function startContinuousListening(locale: string, { onPhrase, onInterim, 
       else finish();
     },
     pause: () => {
+      if (softPause) { deaf = true; return; }
       if (!wanted || paused) return;
       paused = true;
       current?.abort();
     },
     resume: () => {
+      if (softPause) {
+        // Un momento más sordo: el final de lo que dijo el asistente todavía puede llegar.
+        if (deaf) { deaf = false; deafUntil = Date.now() + echoGraceMs; }
+        if (wanted && !current) launch();
+        return;
+      }
       if (!paused) return;
       paused = false;
       if (wanted && !current) launch();
