@@ -123,7 +123,7 @@ const SYNONYMS: Record<string, string[]> = {
 /** Palabras que no distinguen un destino («la pantalla de», «the … page»). */
 const FILLER = new Set([
   'de', 'del', 'la', 'las', 'el', 'los', 'lo', 'al', 'a', 'en', 'the', 'of', 'to', 'my', 'mi', 'mis', 'our', 'nuestro', 'nuestra', 'su', 'sus',
-  'pantalla', 'pagina', 'seccion', 'modulo', 'menu', 'parte', 'area', 'listado', 'lista', 'screen', 'page', 'section', 'module', 'list', 'tab', 'pestana',
+  'pantalla', 'pagina', 'seccion', 'modulo', 'menu', 'parte', 'area', 'listado', 'lista', 'screen', 'page', 'section', 'module', 'list',
   'vs', 'versus', 'y', 'and', 'por', 'favor', 'please', 'reporte', 'informe', 'report',
 ]);
 

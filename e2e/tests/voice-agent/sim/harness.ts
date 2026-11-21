@@ -10,6 +10,7 @@ import { activeVoiceDomains, cancelVoice, configureVoiceSession, configureVoiceT
 import { useVoiceCommand } from '@/stores/voice-command-store';
 
 import { createSimCalendar, PATIENTS, type SimCalendar } from './calendar';
+import { createSimRail, disposeSimRail, type SimRail } from './rail';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -33,6 +34,8 @@ export interface AiCall {
 
 export interface VoiceSim {
   cal: SimCalendar;
+  /** El riel derecho (paciente, sede, caja, TV, cobrar, alertas, notas…). */
+  rail: SimRail;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -116,6 +119,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
 
   setRoute(locale, route);
   const cal = createSimCalendar({ customMode });
+  const rail = createSimRail();
   configureVoiceTiming({ auxReturnMs: 10, awakeIdleMs: 60_000, awakePendingMs: 60_000, phraseGapMs: 0, echoGraceMs: 0 });
   configureVoiceSession({
     locale,
@@ -141,6 +145,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   const store = () => useVoiceCommand.getState();
   return {
     cal,
+    rail,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -171,6 +176,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       setAppointmentFocus(null);
       resetUiSelection();
       publishCalendarVoice(null);
+      disposeSimRail();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;
       resetDom();

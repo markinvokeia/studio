@@ -36,6 +36,7 @@ import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { MascotPeekZone } from '@/components/invoke-mascot';
 import { MascotWakeButton } from '@/components/help/mascot-wake-button';
 import { VoiceCommandButton, VoiceCommandHost } from '@/components/voice/voice-command-host';
+import { RailVoiceBridge } from '@/components/voice/rail-voice-bridge';
 
 // ── Deep-link helper ──────────────────────────────────────────────────────────
 
@@ -249,6 +250,13 @@ export function Header() {
         <>
             {/* Voz: un solo host para toda la app (tarjeta, atajo Ctrl+Espacio, avisos). */}
             <VoiceCommandHost />
+            <RailVoiceBridge
+                expanded={isPanelOpen}
+                setExpanded={(open) => (isNarrowViewport ? setIsMobileExpanded(open) : setIsExpanded(open))}
+                notesCount={notes.length}
+                openNotes={() => setIsStickyNotesOpen(true)}
+                createNote={async (text) => !!(user?.id && (await createNote({ text, color: 'yellow', created_by: String(user.id) })))}
+            />
             {/* ── Desktop widget: Google-style vertical right panel ─────── */}
             <div className="hidden sm:block">
                 {!isExpanded ? (

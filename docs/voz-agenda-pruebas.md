@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1435 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1559 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -572,6 +572,159 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-006 confianza media: pregunta antes
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
+
+## 07-screen.spec.ts (64)
+
+UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
+
+- **UI-PRESS · Botones y pestañas**
+  - «tocá nuevo paciente» → press:Nuevo paciente
+  - «apretá exportar» → press:Exportar
+  - «nuevo paciente» → press:Nuevo paciente
+  - «exportar» → press:Exportar
+  - «dale a actualizar» → press:Actualizar
+  - «hacé clic en exportar» → press:Exportar
+  - «presioná el botón nuevo paciente» → press:Nuevo paciente
+  - «tocá nuevo» → press:Nuevo paciente
+  - «la pestaña inactivos» → tab:Inactivos
+  - «andá a la pestaña todos» → tab:Todos
+  - «abrí la pestaña de inactivos» → tab:Inactivos
+  - «pestaña todos» → tab:Todos
+  - lo que no está en la pantalla no se toca
+- **UI-FILL · Campos y buscador**
+  - «poné Ana López en nombre» → fill:Nombre=Ana López
+  - «el teléfono es 099 123 456» → fill:Teléfono=099 123 456
+  - «escribí en notas trae los estudios» → fill:Notas=trae los estudios
+  - «notas: llamar el lunes» → fill:Notas=llamar el lunes
+  - «el email es ana@mail.com» → fill:Email=ana@mail.com
+  - «completá el nombre con Juan Pérez» → fill:Nombre=Juan Pérez
+  - «buscá Juan» → fill:Buscar...=Juan
+  - «buscá a María Fernández» → fill:Buscar...=María Fernández
+  - sin valor pregunta qué poner
+- **UI-TOGGLE · Interruptores**
+  - «activá enviar por email»
+  - «desactivá el recordatorio»
+  - «prendé recordatorio» ya prendido: lo dice y no lo toca
+  - «tocá enviar por email» lo cambia
+  - «marcá enviar por mail» (mail = email no) no adivina
+- **UI-SELECT · Listas desplegables**
+  - «elegí efectivo en método de pago» → select:Método de pago=Efectivo
+  - «método de pago tarjeta» → select:Método de pago=Tarjeta de crédito
+  - «método de pago: transferencia» → select:Método de pago=Transferencia
+  - «cambiá la moneda a USD» → select:Moneda=USD
+  - «poné tarjeta como método de pago» → select:Método de pago=Tarjeta de crédito
+  - sin opción: abre la lista y pregunta
+  - opción que no está: lo dice y pregunta entre las que hay
+- **UI-ROW · Filas de una lista**
+  - «abrí el primero»
+  - «abrí el segundo»
+  - «abrí el último»
+  - «seleccioná la fila 2»
+  - «abrí el de Juan Pérez»
+  - «abrí la de Carla»
+  - «el tercero»
+  - «abrí el de Gómez» con dos Gómez pregunta entre esos
+- **UI-HELP · ¿Qué puedo hacer acá?**
+  - lista lo que hay y aprieta lo elegido
+  - sin botones lo dice
+- **UI-OVERLAY · Con una ventana abierta, se trabaja sobre ella**
+  - lo de la ventana y no lo de la página
+- **UI-PRIORITY · Lo propio de la pantalla gana**
+  - en la agenda «hoy» es de la agenda aunque haya un botón Hoy
+  - navegar le gana a un botón con el mismo nombre
+  - la agenda sin pantalla de mentira sigue igual (no se rompe sin <main>)
+- **UI-EN · English**
+  - «click new patient» → press:New patient
+  - «save changes» → press:Save changes
+  - «press save» → press:Save changes
+  - «go to the payments tab» → tab:Payments
+  - «open the invoices tab» → tab:Invoices
+  - «type John Smith in name» → fill:Name=John Smith
+  - «the name is Anna» → fill:Name=Anna
+  - «search for John» → fill:Search patients...=John
+  - «turn on send by email» → toggle:Send by email=on
+  - «set payment method to cash» → select:Payment method=Cash
+  - «select credit card as payment method» → select:Payment method=Credit card
+  - «open the second one» → row:John Smith
+  - «open the last one» → row:John Smith
+  - «what can I do here»
+- **UI-ES-ES · Castellano (tú)**
+  - «pulsa nuevo paciente» y «busca a Juan»
+  - «qué puedo hacer aquí»
+
+## 08-rail.spec.ts (60)
+
+RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un paciente, cobro rápido, sede, caja, pantalla de la sala, alertas, bandeja, tipo de cambio, notas, asistente, mostrar/ocultar el panel.
+
+- **RL-PATIENT · Abrir un paciente desde cualquier lado**
+  - es «abrí la ficha de Juan Pérez» → p2:info
+  - es «mostrame la historia de Carlos López» → p4:clinical
+  - es «abrí la cuenta de Sofía Castro» → p9:financial
+  - es «buscá al paciente Roberto Díaz» → p8:-
+  - es «abrí el estado de cuenta de María Rodríguez» → p5:financial
+  - es «traeme los datos de Pedro Sánchez» → p7:info
+  - es-ES «abre la ficha del paciente Juan Pérez» → p2:info
+  - en «open patient Juan Pérez» → p2:-
+  - en «open Carlos López history» → p4:clinical
+  - en «show me Sofía Castro's account» → p9:financial
+  - en «find patient Roberto» → p8:-
+  - varios con el mismo nombre: pregunta cuál
+  - no existe: lo dice
+- **RL-BILL · Cobro rápido**
+  - es «cobro rápido»
+  - es «abrí el cobro rápido»
+  - es «quiero cobrar»
+  - es «cobrale a Juan Pérez»
+  - es «hacé un cobro rápido a Carlos López»
+  - es-ES «cóbrale a Sofía Castro»
+  - en «quick bill»
+  - en «charge Juan Pérez»
+  - en «open quick billing for Roberto Díaz»
+- **RL-SEDE · Sede de trabajo**
+  - «cambiá a la sede Pocitos»
+  - «quiero trabajar en la sede pocitos»
+  - «en qué sede estoy»
+  - «cambiá de sede» pregunta cuál
+  - ya está en esa sede
+  - en «switch to the Pocitos location»
+- **RL-CASH · Caja**
+  - «¿está abierta la caja?» cerrada
+  - «cuánto hay en caja» abierta dice los saldos
+  - «abrí la caja» cerrada: lleva a Caja para abrirla
+  - «abrí la caja» ya abierta: lo dice
+  - «cerrá la caja» abierta: lleva al cierre
+  - en «is the cash register open»
+- **RL-TV · Pantalla de la sala**
+  - «pausá la tele»
+  - «apagá la pantalla de la sala»
+  - «poné las promociones»
+  - «abrí la pantalla tv»
+  - «prendé la tele» ya prendida: lo dice
+  - «llamá al siguiente paciente» con dos sillones pregunta
+  - «siguiente paciente en el sillón 1»
+  - apagada: no llama
+  - en «turn off the tv»
+- **RL-INFO · Alertas, bandeja, tipo de cambio**
+  - «tengo alertas»
+  - es-ES «cuántas alertas tengo»
+  - «abrí las notificaciones»
+  - «tengo mensajes» sin nada
+  - «a cuánto está el dólar»
+  - en «what is the exchange rate»
+  - en «any alerts»
+- **RL-NOTES · Notas**
+  - «abrí las notas»
+  - «nueva nota: llamar al laboratorio el lunes»
+  - «anotá que diga comprar guantes»
+  - «agregá una nota» sin texto pregunta
+  - en «add a note saying call the lab»
+- **RL-PANEL · Panel derecho y asistente**
+  - «escondé el panel derecho» y «mostrá el panel derecho»
+  - en «hide the right panel»
+  - «despertá al asistente» aprieta el botón del asistente
+- **RL-PRIORITY · En la agenda gana la agenda**
+  - «cobrale» con la cita en foco es de la agenda (cobra esa cita)
+  - «abrí la cuenta» con la cita en foco es la de ese paciente (agenda)
 
 ## 10-atomic-es.spec.ts (28)
 

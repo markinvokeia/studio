@@ -5048,3 +5048,26 @@ export interface CalendarVoiceAiResult {
 
 /** El resultado del calendario con el plan: el primer paso arriba (compatibilidad) y todos en steps. */
 export type CalendarVoiceAiPlanResult = CalendarVoiceAiResult & VoiceAiPlan<CalendarVoiceAiResult>;
+
+/** Lo que el riel derecho le ofrece a la voz (ver src/components/voice/rail-voice-bridge.tsx). */
+export interface RailVoiceBridge {
+  expanded: boolean;
+  setExpanded: (open: boolean) => void;
+  /** null: sin permiso para ver la caja. */
+  cash: { open: boolean; balances: Array<{ currency: string; amount: number }> } | null;
+  sedes: Array<{ id: string; name: string }>;
+  activeSedeId: string | null;
+  setSede: (id: string) => Promise<void>;
+  tv: {
+    status: 'on' | 'paused' | 'promo' | 'off';
+    rooms: Array<{ id: string; name: string; hasNext: boolean }>;
+    setStatus: (status: 'on' | 'paused' | 'promo' | 'off') => void;
+    next: (roomId: string) => void;
+    openScreen: () => void;
+  } | null;
+  alerts: { count: number; highest: string };
+  inbox: { count: number; open: () => void };
+  notes: { count: number; open: () => void; create: (text: string) => Promise<boolean> } | null;
+  exchange: { code: string; rate: number } | null;
+  openBilling: (context: { patientId?: string; patientName?: string }) => void;
+}

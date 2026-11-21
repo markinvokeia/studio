@@ -5,6 +5,8 @@
  * como lo haría el navegador.
  */
 
+import { portal, screen, type FakeEl } from './page';
+
 type Observer = { callback: () => void };
 const observers = new Set<Observer>();
 const notify = () => { for (const o of observers) o.callback(); };
@@ -40,6 +42,8 @@ class FakeField {
 
 class FakeDialog {
   fields: FakeField[] = [];
+  /** Contenido armado con `screen` (para la voz genérica). */
+  tree: FakeEl | null = null;
   dataState = 'open';
   offsetWidth = 400;
   buttons: FakeButton[] = [];
@@ -52,9 +56,10 @@ class FakeDialog {
   querySelectorAll(selector: string) {
     if (selector.startsWith('button')) return this.buttons.filter((b) => !b.disabled);
     if (selector.startsWith('input')) return this.fields;
-    if (selector === '*') return [];
+    if (selector === '*') return this.tree ? this.tree.descendants() : [];
     return [];
   }
+  getAttribute() { return null; }
   closest() { return null; }
   hasAttribute(name: string) { return name === 'data-voice-popup' && this.voicePopup; }
   dispatchEvent(event: { key?: string }) { if (event.key === 'Escape') this.popup.close(); return true; }
@@ -81,7 +86,7 @@ export interface FakeWindow extends FakePopup {
 }
 
 /** Abre una ventana o panel lateral (estado de cuenta, historia, un formulario…) con su X, botones y campos. */
-export function openWindow(title: string, { buttons = [] as string[], fields = [] as string[] } = {}): FakeWindow {
+export function openWindow(title: string, { buttons = [] as string[], fields = [] as string[], tree = null as FakeEl | null } = {}): FakeWindow {
   const popup: FakeWindow = { title, open: true, pressed: [], close: () => {}, values: {} };
   const dialog = new FakeDialog('dialog', popup, '', false);
   popup.close = () => { popup.open = false; const i = dialogs.indexOf(dialog); if (i >= 0) dialogs.splice(i, 1); notify(); };
@@ -89,6 +94,7 @@ export function openWindow(title: string, { buttons = [] as string[], fields = [
     new FakeButton('', () => { popup.pressed.push('X'); popup.close(); }, undefined, 'Close'),
     ...buttons.map((label) => new FakeButton(label, () => { popup.pressed.push(label); })),
   ];
+  dialog.tree = tree;
   dialog.fields = fields.map((label) => {
     const field = new FakeField(label);
     Object.defineProperty(popup.values, label, { get: () => field.value, enumerable: true });
@@ -101,6 +107,7 @@ export function openWindow(title: string, { buttons = [] as string[], fields = [
 
 export function resetDom() {
   dialogs.length = 0;
+  screen.reset();
   scrollLog.length = 0;
 }
 
@@ -126,9 +133,15 @@ g.document = {
   scrollingElement: page,
   querySelectorAll: (selector: string) => {
     if (selector === '*') return [page];
+    if (selector === '[role="option"]') return portal.querySelectorAll('[role="option"]');
     return dialogs.filter((d) => selector.split(',').some((part) => matches(d, part.trim())));
   },
-  querySelector: () => null,
+  querySelector: (selector: string) => {
+    if (selector === 'main') return screen.root;
+    const help = selector.match(/^\[data-help-id="([^"]+)"\]$/);
+    if (help) return screen.root?.descendants().find((el) => el.getAttribute('data-help-id') === help[1]) ?? null;
+    return null;
+  },
 };
 g.getComputedStyle = () => ({ overflowY: 'auto', overflowX: 'auto' });
 g.MutationObserver = class {

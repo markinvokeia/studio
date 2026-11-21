@@ -4,6 +4,8 @@
  */
 import '@/lib/voice/commands/core';
 import '@/lib/voice/commands/navigation';
+import '@/lib/voice/commands/screen';
+import '@/lib/voice/commands/rail';
 import '@/lib/voice/commands/lab-orders';
 import '@/lib/voice/commands/lab-orders-create';
 import '@/lib/voice/commands/lab-orders-manage';

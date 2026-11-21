@@ -544,6 +544,8 @@ async function routeToPending(top: PendingAsk, heard: string, normalized: string
   // El formulario abierto acepta correcciones libres: decide el comando (y si no, ctx.handOff).
   if (top.options?.corrections) { resolveTop(heard); return; }
   if (parseYesNo(normalized)) { resolveTop(heard); return; }
+  // Una opción dicha tal cual es la respuesta aunque parezca un pedido («nuevo paciente»).
+  if (top.awaiting === 'choice' && (top.card.choices ?? []).some((c) => normalizeSpeech(c.label) === normalized)) { resolveTop(heard); return; }
   // Un pedido («poneme un recordatorio a las 9…») no se lee como elección aunque nombre una hora.
   if (top.awaiting === 'choice' && !looksLikeCommand(normalized) && parseChoice(normalized, top.card.choices?.length ?? 0, (top.card.choices ?? []).map((c) => c.label)) !== null) {
     resolveTop(heard);
@@ -819,7 +821,7 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
   // estaba abierto (una ventana, un panel lateral) se cierra antes para que se vea lo nuevo.
   if (!found.some((f) => f.command.usesFocus)) {
     setAppointmentFocus(null);
-    const keepsScreen = found.every((f) => ['calendar.close', 'calendar.dialog', 'core.scroll', 'calendar.form'].includes(f.command.id));
+    const keepsScreen = found.every((f) => ['calendar.close', 'calendar.dialog', 'core.scroll', 'core.screen', 'calendar.form'].includes(f.command.id));
     for (let guard = 0; !keepsScreen && guard < 4 && hasOpenOverlay(); guard++) closeTopOverlay();
   }
   try {

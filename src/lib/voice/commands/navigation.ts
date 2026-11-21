@@ -59,7 +59,8 @@ function parseWith(normalized: string, raw: string, mode: 'strong' | 'weak'): Na
     if (mode === 'strong' && strong && (strong[1] || /^(?:home|inicio)$/.test(strong[2]))) spoken = strong[2];
     else if (mode === 'weak' && weak) spoken = weak[1];
     else if (mode === 'weak' && !strong && !ARTICLE_START.test(text) && text.split(' ').length >= 2) spoken = text;
-    if (!spoken) continue;
+    // «la pestaña pagos», «the payments tab»: es una pestaña de la pantalla, no el menú.
+    if (!spoken || /\b(?:pestana|pestanas|solapa|tab|tabs)\b/.test(spoken)) continue;
     const match = matchNavTarget(spoken, matchTargets());
     if (!match) continue;
     // Lo dicho sin verbo tiene que ser el nombre entero.

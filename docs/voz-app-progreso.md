@@ -15,6 +15,7 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
   Si se pide algo de otro contexto, se suelta el foco y se cierra lo abierto antes de hacerlo.
 - **Pila de tareas**: buscar, elegir, retomar; herramientas en el medio; cambio de tema con confirmación; dormir y retomar. Igual en todas las páginas.
+- **Puente de voz** (`src/lib/voice/screen-bridge.ts`): una pantalla publica su estado y sus acciones con `useVoiceBridge('clave', …)` y los comandos los leen (como la agenda con su bridge).
 - **n8n**: `pnpm n8n:help` regenera los flujos y `N8N_API_KEY=… pnpm n8n:deploy:voice` publica «Voz - Interpretar». Cada módulo nuevo suma su entrada en `VOICE_DOMAINS` del generador.
 
 ## Plan y estado
@@ -24,7 +25,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 0 | **Agenda** (`/appointments`) | `calendar` | ✅ Completa: barra, vistas, zoom, panel, engranaje, exportar, citas, editor, avisos, pacientes (información y acciones), recordatorios, bloqueos | `e2e/tests/voice-agent/` (≈1300 casos es/en) |
 | 0 | **General** (todas las páginas) | `core` | ✅ Desplazarse; avisos, ventanas y campos genéricos; dejar de escuchar; cerrar | `02`, `03`, `04`, `05` |
 | 1 | Menú principal (izquierda): «andá a…», «abrí…», «go to…» | `core` (navegación) | ✅ Los 96 destinos del menú por nombre y sinónimos (es/es-ES/en), con permisos; ambiguos se preguntan; «andá a X y …» va y sigue en la página nueva; IA (n8n, módulo `core`) solo si no se nombró tal cual | `06` (126 casos) |
-| 2 | Panel flotante derecho (riel): paciente, sede, caja, TV, cobrar, alertas, cambio, bandeja, notas, asistente | `core` (riel) | ⏳ | — |
+| 2 | Panel flotante derecho (riel): paciente, sede, caja, TV, cobrar, alertas, cambio, bandeja, notas, asistente | `core` (riel) | ✅ Puente `rail` (`src/components/voice/rail-voice-bridge.tsx`) y comandos en `src/lib/voice/commands/rail.ts`; en la agenda gana la agenda | `08` |
+| 2b | **Cualquier pantalla** (aunque no tenga voz propia) | `core.screen` | ✅ Lo que se ve se puede tocar: botones, pestañas, campos, interruptores, listas, buscador, filas, «¿qué puedo hacer acá?» (`src/lib/voice/dom-ui.ts`) | `07` |
 | 3 | Panel de control (`/dashboard`) | `dashboard` | ⏳ | — |
 | 4 | Mi consultorio (`/workspace`) | `workspace` | ⏳ | — |
 | 5 | Centro de alertas | `alerts` | ⏳ | — |
