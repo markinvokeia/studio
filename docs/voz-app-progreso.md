@@ -31,8 +31,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 3 | Panel de control (`/`) | `dashboard` | ✅ Leer los números de hoy y del mes (producción, cobrado, gastos, resultado, atenciones, agendados, nuevos), resumen, ranking de sedes y servicios, comparación con el mes pasado; filtros de período (`src/lib/voice/period.ts`), sede y moneda; actualizar | `91` |
 | 4 | Mi consultorio (`/workspace`) | `workspace` | ✅ Elegir la cita, ¿quién sigue?, la agenda, acciones sobre la cita (sesión, receta, laboratorio, estética, perio, ficha, anamnesis, odontograma) con motivo si no se puede, filtros | `92` |
 | 5 | Centro de alertas (`/alerts`) | `alerts` | ✅ Leer y filtrar; completar, ignorar (motivo), posponer, llamada, nota, mail, WhatsApp, paciente sobre una/varias/todas/seleccionadas; confirma lo que cambia o manda | `93` |
-| 6 | Caja | `cashier` | ⏳ Siguiente | — |
-| 7 | Pacientes (lista y perfil, pestañas) | `patients` | ⏳ | — |
+| 6 | Caja (`/cashier`) | `cashier` | ✅ Cajas (ver, abrir, una por persona), sesión (efectivo, entradas, salidas, tarjeta, movimientos), cierre, conteo de efectivo por billetes/monedas o total; los botones del asistente con la voz genérica. Subpáginas de Caja: voz genérica | `94` |
+| 7 | Pacientes (lista y perfil, pestañas) | `patients` | ⏳ Siguiente | — |
 | 8 | Órdenes de laboratorio | `lab_orders` | 🟡 Comandos sueltos existentes; falta llevarlo al esquema de la agenda | `e2e/tests/lab-orders/voice-commands.spec.ts` |
 | 9 | Periodontograma (sesión) | `perio` | 🟡 Dictado propio existente; falta integrarlo al botón único | `e2e/tests/patients/perio-voice-*.spec.ts` |
 | 10 | Ventas, compras | `sales`, `purchases` | ⏳ | — |

@@ -5235,3 +5235,40 @@ export interface AlertsVoiceBridge {
   whatsapp: (ids: string[]) => Promise<void>;
   openPatient: (id: string) => void;
 }
+
+/** Caja por voz (src/lib/voice/commands/cashier.ts): la pantalla y lo que se está viendo. */
+export interface CashierVoiceBridge {
+  view: 'loading' | 'points' | 'active' | 'opening' | 'closing';
+  /** Paso del asistente de apertura o cierre ('CONFIG', 'COUNT_UYU', 'REVIEW'…). */
+  wizardStep: string | null;
+  cashPoints: Array<{ id: string; name: string; open: boolean; mine: boolean; user: string }>;
+  /** Abre la sesión de ese punto si está abierta; si está cerrada empieza la apertura. */
+  openPoint: (id: string) => void;
+  startClosing: (() => void) | null;
+  viewAll: (() => void) | null;
+}
+
+/** La sesión de caja abierta: saldos y movimientos. */
+export interface CashierSessionVoiceBridge {
+  name: string;
+  cashOnHand: Array<{ currency: string; amount: number }>;
+  income: Array<{ currency: string; amount: number }>;
+  outcome: Array<{ currency: string; amount: number }>;
+  card: Array<{ currency: string; amount: number }>;
+  movements: Array<{ type: 'INGRESO' | 'EGRESO'; amount: number; currency: string; method: string; document: string; client: string }>;
+}
+
+/** Un contador de efectivo (por moneda) del asistente de apertura o cierre. */
+export interface CashCountVoiceBridge {
+  currency: string;
+  title: string;
+  /** Billetes y monedas que se cuentan (vacío: solo un monto total). */
+  denominations: number[];
+  coins: number[];
+  quantities: Record<string, number>;
+  total: number;
+  setQuantity: (denomination: number, quantity: number) => void;
+  setTotal: (amount: number) => void;
+  setAll: (quantity: number) => void;
+  loadLast: (() => void) | null;
+}

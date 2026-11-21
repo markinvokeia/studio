@@ -15,6 +15,7 @@ import { createSimRail, disposeSimRail, type SimRail } from './rail';
 import { clearSimDashboard, publishSimDashboard, type SimDashboard } from './dashboard';
 import { clearSimWorkspace, publishSimWorkspace, type SimWorkspace } from './workspace';
 import { clearSimAlerts, publishSimAlerts, type SimAlerts } from './alerts';
+import { clearSimCashier, publishSimCashier, type SimCashier } from './cashier';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -46,6 +47,8 @@ export interface VoiceSim {
   workspace: () => SimWorkspace | null;
   /** El Centro de alertas (se publica al estar en «/alerts»). */
   alerts: () => SimAlerts | null;
+  /** La Caja (se publica al estar en «/cashier»). */
+  cashier: () => SimCashier | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -134,7 +137,10 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   let dashboard: SimDashboard | null = null;
   let workspace: SimWorkspace | null = null;
   let alerts: SimAlerts | null = null;
+  let cashier: SimCashier | null = null;
   const mountPage = (to: string) => {
+    clearSimCashier();
+    cashier = to === '/cashier' ? publishSimCashier() : null;
     clearSimDashboard();
     clearSimWorkspace();
     clearSimAlerts();
@@ -172,6 +178,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     dashboard: () => dashboard,
     workspace: () => workspace,
     alerts: () => alerts,
+    cashier: () => cashier,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -206,6 +213,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       clearSimDashboard();
       clearSimWorkspace();
       clearSimAlerts();
+      clearSimCashier();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

@@ -14506,7 +14506,10 @@
       "workspace_action": "hacer algo con la cita elegida",
       "workspace_filter": "cambiar lo que muestra tu agenda",
       "alerts_read": "leer o filtrar las alertas",
-      "alerts_action": "actuar sobre una alerta"
+      "alerts_action": "actuar sobre una alerta",
+      "cashier_points": "abrir o cerrar una caja",
+      "cashier_session": "leer la sesión de caja",
+      "cashier_count": "contar el efectivo"
     },
     "aiUnsureQuestion": "No estoy seguro: ¿quieres {action}?",
     "and": " y ",
@@ -14765,6 +14768,41 @@
       "confirmIgnore": "¿Ignoro {what}?",
       "completed": "Listo, he completado {what}.",
       "ignored": "Listo, he ignorado {what}."
+    },
+    "cashier": {
+      "title": "Caja",
+      "notUnderstood": "No he entendido qué hacer. Prueba, por ejemplo: «abre la Caja 1», «¿cuánto hay en efectivo?», «5 billetes de 1000» o «haz el cierre».",
+      "noPoints": "No hay cajas configuradas.",
+      "points": "{count, plural, one {Hay # caja} other {Hay # cajas}}; abiertas: {open}.",
+      "noneOpen": "ninguna",
+      "open": "abierta",
+      "closed": "cerrada",
+      "alreadyPoints": "Ya estás viendo las cajas.",
+      "showingPoints": "Muestro todas las cajas.",
+      "alreadyClosing": "Ya estás haciendo el cierre.",
+      "noSession": "No hay una sesión de caja abierta a la vista.",
+      "closingStarted": "Empiezo el cierre: revisa los movimientos y dime «siguiente».",
+      "pointNotFound": "No he encontrado la caja «{name}».",
+      "whichPoint": "¿Qué caja?",
+      "alreadyHasSession": "Ya tienes abierta {name}: ciérrala antes de abrir otra.",
+      "sessionShown": "He abierto la sesión de {name}.",
+      "openingStarted": "Empiezo la apertura de {name}.",
+      "cashOnHand": "En efectivo hay {amount} en {name}.",
+      "income": "Entró {amount}.",
+      "outcome": "Salió {amount}.",
+      "card": "Con tarjeta: {amount}.",
+      "noMovements": "Todavía no hay movimientos en la sesión.",
+      "last": "El último movimiento: {movement}.",
+      "movements": "{count, plural, one {Hay # movimiento} other {Hay # movimientos}}.",
+      "zeroed": "He puesto todo a cero ({currency}).",
+      "noLast": "No hay un cierre anterior para copiar.",
+      "lastLoaded": "He cargado lo del último cierre: {total}.",
+      "counted": "Contado: {total} ({detail}).",
+      "countByNotes": "Esta moneda se cuenta por billetes: dime, por ejemplo, «5 billetes de 1000».",
+      "totalSet": "Total: {total}.",
+      "onlyTotal": "Esta moneda se carga con el total: dime «el total es 1500».",
+      "noSuchNote": "No hay billetes ni monedas de {value} en {currency}.",
+      "countSet": "He cargado {items}. Total: {total}."
     }
   }
 }

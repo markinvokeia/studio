@@ -24,6 +24,11 @@ export function getVoiceBridge<T>(key: string): T | null {
   return (bridges.get(key)?.value as T | undefined) ?? null;
 }
 
+/** Todos los publicados con esa clave o que empiezan con `prefix.` (p. ej. un contador por moneda). */
+export function listVoiceBridges<T>(prefix: string): T[] {
+  return [...bridges.entries()].filter(([k]) => k === prefix || k.startsWith(`${prefix}.`)).map(([, v]) => v.value as T);
+}
+
 /** Espera a que la pantalla publique (recién abierta o recién navegada). */
 export async function waitVoiceBridge<T>(key: string, signal?: AbortSignal, timeoutMs = 3000): Promise<T | null> {
   const start = Date.now();

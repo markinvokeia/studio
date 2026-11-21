@@ -1,6 +1,9 @@
 
 'use client';
 
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { CashCountVoiceBridge, CashierSessionVoiceBridge, CashierVoiceBridge } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -253,6 +256,29 @@ function CashierPageInner() {
             setSessionMovements([]);
         }
     }, [activeSession, fetchSessionMovements]);
+
+    // Voz: «abrí la Caja 1», «hacé el cierre», «¿cuánto hay en efectivo?», «5 billetes de 1000».
+    // Ver src/lib/voice/commands/cashier.ts.
+    useVoiceScreen(['cashier']);
+    const userHasOpenPoint = cashPoints.some((cp) => cp.status === 'OPEN' && String(cp.session?.usuarioId) === String(user?.id));
+    useVoiceBridge<CashierVoiceBridge>('cashier', {
+        view: isLoading ? 'loading' : activeSession ? (showClosingWizard ? 'closing' : 'active') : showOpeningWizard ? 'opening' : 'points',
+        wizardStep: activeSession && showClosingWizard ? closeWizardStep : showOpeningWizard ? openWizardStep : null,
+        cashPoints: cashPoints.map((cp) => ({
+            id: String(cp.id), name: cp.name, open: cp.status === 'OPEN',
+            mine: cp.status === 'OPEN' && String(cp.session?.usuarioId) === String(user?.id), user: cp.session?.user_name ?? '',
+        })),
+        openPoint: (id) => {
+            const cp = cashPoints.find((c) => String(c.id) === id);
+            if (!cp) return;
+            if (cp.status === 'OPEN') { if (cp.session) setActiveSession(cp.session); return; }
+            if (userHasOpenPoint) return;
+            setOpeningSessionData({ puntoDeCajaId: cp.id, cash_point_name: cp.name, currency: clinicCurrency, date_rate: isDual ? 0 : 1 });
+            setShowOpeningWizard(true);
+        },
+        startClosing: activeSession && !showClosingWizard ? () => setShowClosingWizard(true) : null,
+        viewAll: activeSession && !showClosingWizard ? () => { viewingAllCashPointsRef.current = true; setActiveSession(null); fetchCashPointStatus(); } : null,
+    });
 
     if (isLoading) {
         return (
@@ -543,6 +569,16 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     );
 
     const allMovements = React.useMemo(() => movements, [movements]);
+
+    const asList = (totals: Record<string, number>) => Object.entries(totals).map(([currency, amount]) => ({ currency, amount }));
+    useVoiceBridge<CashierSessionVoiceBridge>('cashier.session', {
+        name: session.cash_point_name ?? '',
+        cashOnHand: asList(cashOnHand),
+        income: asList(totalIncome),
+        outcome: asList(totalOutcome),
+        card: asList(totalPos),
+        movements: movements.map((m) => ({ type: m.tipo, amount: m.monto, currency: String(m.currency ?? ''), method: m.metodoPagoNombre ?? m.metodoPago, document: m.documentNumber ?? '', client: m.registeredUserName ?? '' })),
+    });
 
     const handlePrintOpening = async () => {
         setIsPrinting(true);
@@ -1028,6 +1064,19 @@ function CurrencyDenominationCounter({ code, quantities, onQuantitiesChange, las
         (details: Record<string, number>) => onQuantitiesChange(code, details),
         [code, onQuantitiesChange],
     );
+    // Sin denominaciones: un solo monto total (con denominaciones lo publica DenominationCounter).
+    useVoiceBridge<CashCountVoiceBridge | null>(def.denominations?.length ? `cashier.count.${code}.unused` : `cashier.count.${code}`, def.denominations?.length ? null : {
+        currency: code,
+        title,
+        denominations: [],
+        coins: [],
+        quantities,
+        total: Number(quantities.total) || 0,
+        setQuantity: () => {},
+        setTotal: (amount) => handleChange({ total: Math.max(0, amount) }),
+        setAll: (qty) => handleChange({ total: qty }),
+        loadLast: lastClosingDetails ? () => handleChange(lastClosingDetails) : null,
+    });
 
     if (!def.denominations?.length) {
         return (
@@ -1152,6 +1201,19 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
         }, {} as Record<string, number>);
         onQuantitiesChange(newQuantities);
     }
+
+    useVoiceBridge<CashCountVoiceBridge>(`cashier.count.${currency}`, {
+        currency,
+        title,
+        denominations,
+        coins,
+        quantities,
+        total,
+        setQuantity: (den, qty) => handleQuantityChange(den, String(qty)),
+        setTotal: () => {},
+        setAll: (qty) => setAllTo(qty),
+        loadLast: lastClosingDetails ? () => onQuantitiesChange(lastClosingDetails) : null,
+    });
 
     const loadLastClosing = () => {
         if (lastClosingDetails) {

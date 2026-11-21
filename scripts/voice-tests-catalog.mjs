@@ -40,6 +40,7 @@ const FILE_INTRO = {
   '91-dashboard.spec.ts': 'PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.',
   '92-workspace.spec.ts': 'MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.',
   '93-alerts.spec.ts': 'AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, completar/ignorar (con motivo y confirmación), posponer (hasta cuándo), registrar llamada, nota, mail, WhatsApp (confirmado), abrir paciente; una, varias o todas.',
+  '94-cashier.spec.ts': 'CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.',
   '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
 };
 

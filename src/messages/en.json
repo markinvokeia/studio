@@ -14506,7 +14506,10 @@
       "workspace_action": "do something with the chosen appointment",
       "workspace_filter": "change what your schedule shows",
       "alerts_read": "read or filter the alerts",
-      "alerts_action": "act on an alert"
+      "alerts_action": "act on an alert",
+      "cashier_points": "open or close a register",
+      "cashier_session": "read the cash session",
+      "cashier_count": "count the cash"
     },
     "aiUnsureQuestion": "I'm not sure: do you want to {action}?",
     "and": " and ",
@@ -14765,6 +14768,41 @@
       "confirmIgnore": "Ignore {what}?",
       "completed": "Done, completed {what}.",
       "ignored": "Done, ignored {what}."
+    },
+    "cashier": {
+      "title": "Cashier",
+      "notUnderstood": "I didn’t understand what to do. Try, for example: “open register 1”, “how much cash is there?”, “5 notes of 1000” or “start the closing”.",
+      "noPoints": "There are no cash registers set up.",
+      "points": "{count, plural, one {There is # register} other {There are # registers}}; open: {open}.",
+      "noneOpen": "none",
+      "open": "open",
+      "closed": "closed",
+      "alreadyPoints": "You are already looking at the registers.",
+      "showingPoints": "Showing all registers.",
+      "alreadyClosing": "You are already closing.",
+      "noSession": "There is no open cash session on screen.",
+      "closingStarted": "Starting the closing: review the movements and say “next”.",
+      "pointNotFound": "I couldn’t find the register “{name}”.",
+      "whichPoint": "Which register?",
+      "alreadyHasSession": "You already have {name} open: close it before opening another one.",
+      "sessionShown": "Opened the {name} session.",
+      "openingStarted": "Starting to open {name}.",
+      "cashOnHand": "There is {amount} in cash at {name}.",
+      "income": "{amount} came in.",
+      "outcome": "{amount} went out.",
+      "card": "By card: {amount}.",
+      "noMovements": "There are no movements in the session yet.",
+      "last": "The last movement: {movement}.",
+      "movements": "{count, plural, one {There is # movement} other {There are # movements}}.",
+      "zeroed": "Set everything to zero ({currency}).",
+      "noLast": "There is no previous closing to copy.",
+      "lastLoaded": "Loaded the last closing: {total}.",
+      "counted": "Counted: {total} ({detail}).",
+      "countByNotes": "This currency is counted by notes: say, for example, “5 notes of 1000”.",
+      "totalSet": "Total: {total}.",
+      "onlyTotal": "This currency is entered as a total: say “the total is 1500”.",
+      "noSuchNote": "There are no notes or coins of {value} in {currency}.",
+      "countSet": "Entered {items}. Total: {total}."
     }
   }
 }

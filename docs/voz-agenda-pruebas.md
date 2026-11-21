@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1756 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1785 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2099,3 +2099,41 @@ AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, comple
   - en «send a whatsapp to Juan» and «yes»
 - **AL-NAV · Llegar y actuar**
   - «andá al centro de alertas y decime cuántas alertas hay»
+
+## 94-cashier.spec.ts (29)
+
+CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.
+
+- **CJ-POINTS · Cajas**
+  - «qué cajas hay»
+  - «abrí la caja principal»
+  - «abrí la caja» con dos: pregunta cuál
+  - «entrá a la caja recepción» (abierta): muestra la sesión
+  - con una propia abierta no deja abrir otra
+  - «cerrá la caja» sin sesión: lo dice (no navega)
+  - en «open the register Caja Principal»
+- **CJ-SESSION · La sesión abierta**
+  - «cuánto hay en efectivo»
+  - «cuánto hay en caja»
+  - «cuánto entró»
+  - «las salidas»
+  - «cuánto con tarjeta»
+  - «el último movimiento»
+  - «cuántos movimientos hay»
+  - «hacé el cierre»
+  - «volvé a las cajas»
+  - en «how much cash is there» y «start the closing»
+- **CJ-COUNT · Contar el efectivo**
+  - «5 billetes de 1000, 3 de 500 y 2 monedas de 10»
+  - «cinco de mil» (en palabras)
+  - «de 200 pongo 4»
+  - «todo en cero»
+  - «lo mismo que el último cierre»
+  - «cuánto da»
+  - un billete que no existe: lo dice
+  - moneda sin denominaciones: «el total es 1500»
+  - dos contadores: «3 de 100 en dólares» va al de dólares
+  - es-ES «pon todo a cero» no confunde
+  - en «five notes of 1000 and two of 500»
+- **CJ-NAV · Desde otra página**
+  - «andá a la caja y decime qué cajas hay»
