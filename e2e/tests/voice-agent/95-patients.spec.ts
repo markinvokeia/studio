@@ -74,3 +74,21 @@ test.describe('PA-NAV · Llegar y buscar', () => {
     expect(log()).toEqual(['search:Roberto Díaz', 'select:p8']);
   });
 });
+
+test.describe('PA-SECTION · «el estado de cuenta de …» abre el paciente y esa pestaña', () => {
+  for (const [locale, said, want] of [
+    ['es', 'abrí el estado de cuenta de Roberto Díaz', ['search:Roberto Díaz', 'select:p8', 'tab:financial']],
+    ['es', 'abrí las facturas de Carlos López', ['select:p4', 'tab:financial']],
+    ['es', 'abrí la historia clínica de Roberto Díaz', ['search:Roberto Díaz', 'select:p8', 'tab:clinical']],
+    ['es-ES', 'abre el estado de cuenta de Roberto Díaz', ['search:Roberto Díaz', 'select:p8', 'tab:financial']],
+    ['en', 'open the account statement of Roberto Díaz', ['search:Roberto Díaz', 'select:p8', 'tab:financial']],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => { await start(locale); await sim.say(said); expect(log()).toEqual([...want]); });
+  }
+  test('un nombre que no está no ofrece la lista de antes', async () => {
+    await start();
+    await sim.say('abrí el estado de cuenta de Zoe Zamora');
+    expect(log()).toEqual(['search:Zoe Zamora']);
+    expect(sim.card().choices).toEqual([]);
+  });
+});

@@ -1,3 +1,4 @@
+import { topOverlayElement } from '@/lib/voice/dom-dialog';
 import { controlsOf, createButtons, fillField, readSurface } from '@/lib/voice/dom-ui';
 import { currentRoute, isOnRoute, listNavTargets } from '@/lib/voice/nav-targets';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
@@ -128,6 +129,9 @@ registerVoiceCommand<Parsed>({
     if (!all.length) return null;
     const parsed = parseCrud(normalized, raw, all.filter((b) => b.create).map((b) => b.createLabel), routeNouns());
     if (!parsed) return null;
+    // Con una ventana abierta, lo dicho es para ella: la tabla de atrás solo si se nombra un registro suyo.
+    const overlay = topOverlayElement();
+    if (overlay && parsed.op !== 'open' && !all.some((b) => { const r = b.root?.(); return !!r && overlay.contains(r); })) return null;
     // «nuevo» suelto en una lista de solo consulta (historiales, auditoría): se dice que acá no se crea.
     if (parsed.op === 'create' && !tablesWith('create').length) return parsed.name === null && !parsed.rawName ? parsed : null;
     if (parsed.op === 'refresh' && !tablesWith('refresh').length) return null;

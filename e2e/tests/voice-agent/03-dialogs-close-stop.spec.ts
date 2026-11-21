@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { pickDialogButton, type DialogButton } from '@/lib/voice/dom-dialog';
+import { actionButtonIndex, pickDialogButton, type DialogButton } from '@/lib/voice/dom-dialog';
 import { normalizeSpeech } from '@/lib/voice/parse';
 import { isStopListeningPhrase } from '@/lib/voice/wake';
 
@@ -176,4 +176,14 @@ test.describe('AV-TOAST · Notificaciones con botones', () => {
     await sim.wait(40);
     expect(sim.store().awaiting).toBeNull();
   });
+});
+
+test.describe('AV-VERB · El botón por su verbo conjugado', () => {
+  for (const [said, want] of [['agrega un articulo', 'Agregar Artículo'], ['confirma', 'Confirmar'], ['guarda', 'Guardar'], ['add an item', 'Add item']] as const) {
+    test(`«${said}» → ${want}`, () => {
+      const labels = ['Agregar Artículo', 'Confirmar', 'Guardar', 'Add item', 'Cancelar'].map((l) => normalizeSpeech(l));
+      const i = actionButtonIndex(normalizeSpeech(said), labels);
+      expect(['Agregar Artículo', 'Confirmar', 'Guardar', 'Add item', 'Cancelar'][i]).toBe(want);
+    });
+  }
 });

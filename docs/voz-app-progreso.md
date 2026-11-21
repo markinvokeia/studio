@@ -57,11 +57,15 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
 | 25 | **Editar campos** (en todas las pantallas) | `core.screen` | ✅ «modificá / cambiá / editá / asigná / actualizá / seteá / poné …»; el campo dicho de cualquier forma («el nombre de la clínica a …» → Nombre; «Duración (días)» con «la duración»); con conector «a», «por», «es»; si el campo está bloqueado hasta «Editar», aprieta «Editar» y espera a que se habilite; fechas en cualquier forma al formato del campo (dd/mm/aaaa o fecha), horas, números con unidad («5 días» → 5), colores; receta completa por voz en Mi consultorio (medicamento con buscador, dosis, frecuencia, vía, duración) | `07`, `9d` + vivo |
 
+| 26 | **Estado de cuenta del paciente** (PatientLedger: ficha → Finanzas y panel «Estado de cuenta») | `ledger` | ✅ Moneda principal/secundaria («en dólares», «en pesos»), orden («descendente», «más recientes arriba»), período, «¿cuánto debe?», movimientos, altas en línea (presupuesto, tratamiento, pago) con sus campos por voz («tratamiento limpieza», «la cantidad es 2», «el precio es 1500», «el doctor es…», fecha), y por fila (número, fecha, posición, descripción): facturar, editar, nota de crédito, imprimir, email, eliminar, estado — lo que cambia algo se confirma. «Abrí el estado de cuenta de Carolina» abre la ficha en Finanzas. Con un editor abierto, lo que nombra uno de sus campos es para él | `9e` + vivo |
+| 27 | **Mi consultorio: cambiar de caso** | `workspace` | ✅ «cerrá este caso clínico y abrí el de Leonardo», «quiero ver ahora el de Martín», «ahora el de…», «el paciente X», «el siguiente / anterior / último paciente»; un nombre que coincide con varios prefiere otro distinto del actual | `92` + vivo |
+| 28 | **Prioridad de lo abierto** | `core` | ✅ Con una ventana abierta, las tablas de atrás no se llevan lo dicho (antes «agregá un artículo» creaba un paciente); botones por su verbo conjugado («agregá un artículo» → «Agregar Artículo») | `03`, `9a` + vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).
 3. ~~Selectores con búsqueda~~ (fila 21). 5. ~~Configuración del negocio y Sistema~~ (fila 22).
-6. **Estado de cuenta del paciente** (pedido el 2026-11-21): presupuestos y facturas con sus líneas, pagos, imprimir, ver todo, ordenar, moneda principal/secundaria, todas las acciones.
+6. ~~Estado de cuenta del paciente~~ (fila 26).
 
 Cada página se cierra con su batería de pruebas en verde (es y en), el flujo de n8n publicado, este documento actualizado y un commit propio.
 

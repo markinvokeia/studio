@@ -314,6 +314,8 @@ type DatePickerInputProps = {
   disabledDays?: (date: Date) => boolean
   /** Marks the field invalid (red border). `FormControl` passes it automatically. */
   'aria-invalid'?: React.AriaAttributes['aria-invalid']
+  /** Name of the field when it has no visible label (voice and screen readers). */
+  'aria-label'?: string
 }
 
 const DATE_FORMAT = 'dd/MM/yyyy'
@@ -362,6 +364,7 @@ export function DatePickerInput({
   iconClassName,
   disabledDays,
   'aria-invalid': ariaInvalid,
+  'aria-label': ariaLabel,
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
     if (!value) return ''
@@ -466,6 +469,7 @@ export function DatePickerInput({
             inputMode="numeric"
             maxLength={10}
             aria-invalid={ariaInvalid || error || undefined}
+            aria-label={ariaLabel}
           />
           <PopoverTrigger asChild>
             <button

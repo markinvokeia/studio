@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 import { clearSimCrud, publishSimCrud } from './sim/crud';
+import { openWindow } from './sim/dom';
 import { screen, uiLog } from './sim/page';
 
 /**
@@ -89,5 +90,20 @@ test.describe('LI-PAGEBTN · El alta es un botón de la pantalla (no de la tabla
     publishSimCrud({ createLabel: '' }).bridge.create = null;
     await sim.say('nuevo');
     expect(sim.card().message).toBe('En esta lista no se pueden crear registros: es de consulta.');
+  });
+});
+
+test.describe('LI-OVERLAY · Con una ventana abierta, la tabla de atrás no se lleva lo dicho', () => {
+  test('«agregá un artículo» con un presupuesto abierto aprieta «Agregar Artículo» (no crea en la lista)', async () => {
+    await start();
+    openWindow('Nuevo presupuesto', { buttons: ['Agregar Artículo', 'Guardar'] });
+    await sim.say('agregá un artículo');
+    expect(log()).toEqual([]);
+  });
+  test('«siguiente página» con una ventana abierta no mueve la lista de atrás', async () => {
+    await start();
+    openWindow('Nuevo presupuesto', { buttons: ['Agregar Artículo'] });
+    await sim.say('siguiente página');
+    expect(log()).toEqual([]);
   });
 });

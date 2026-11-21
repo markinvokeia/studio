@@ -158,6 +158,12 @@ test.describe('MC-SWITCH · Cambiar de caso clínico (de paciente)', () => {
     ['es', 'cambiá al paciente Carlos López', 'select:w3'], ['es', 'abrí el caso de Sofía', 'select:w4'],
     ['es-ES', 'cambia de Ana a Juan', 'select:w2'], ['es-ES', 'selecciona a Carlos', 'select:w3'],
     ['en', 'switch from Ana to Juan', 'select:w2'], ['en', 'select Carlos', 'select:w3'], ['en', 'switch to Sofía', 'select:w4'],
+    ['es', 'cerrá este caso clínico y abrí el de Juan', 'select:w2'], ['es', 'cerrá el caso y ahora el de Carlos', 'select:w3'],
+    ['es', 'quiero ver ahora el de Sofía', 'select:w4'], ['es', 'ahora el de Juan Pérez', 'select:w2'], ['es', 'mostrame el caso de Carlos', 'select:w3'],
+    ['es', 'abrí el caso de Juan', 'select:w2'], ['es-ES', 'cierra este caso y abre el de Juan', 'select:w2'], ['en', 'close this case and open Carlos', 'select:w3'],
+    ['en', 'now the one of Juan', 'select:w2'],
+    ['es', 'el paciente Juan', 'select:w2'], ['es', 'paciente Carlos', 'select:w3'], ['es', 'el siguiente paciente', 'select:w2'], ['es', 'el paciente siguiente', 'select:w2'],
+    ['es', 'el último paciente', 'select:w4'], ['es', 'el primer paciente', 'select:w1'], ['en', 'the next patient', 'select:w2'], ['en', 'the patient Carlos', 'select:w3'],
   ] as const) {
     test(`${locale} «${said}»`, async () => {
       sim = await createVoiceSim({ locale, route: '/workspace' });

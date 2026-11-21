@@ -156,6 +156,8 @@ export function DoctorSelector(props: DoctorSelectorProps) {
                     type="button"
                     variant="outline"
                     role="combobox"
+                    // Voz: qué es este selector aunque muestre lo elegido («sede», «doctor», «servicio»).
+                    data-voice-label={placeholder}
                     className={cn('w-full justify-between', !hasSelection && 'text-muted-foreground', className)}
                     disabled={disabled}
                     aria-invalid={props['aria-invalid']}

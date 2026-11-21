@@ -214,6 +214,28 @@ export function readTopOverlay(): OpenOverlay | null {
 
 const PRESS = /^(?:(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click)|haz (?:clic|click)|dale(?: (?:clic|click))?|selecciona\w*|elegi\w*|click(?: on)?|press|tap(?: on)?|hit|choose|select)\s(?:en |a |al |el |la |on |the )?(?:boton |button )?)/;
 
+const VERB_FILLER = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo', 'de', 'del', 'al', 'a', 'otro', 'otra', 'nuevo', 'nueva', 'the', 'an', 'another', 'new']);
+/** La raíz de un verbo o de una palabra para comparar («agregá» = «agregar», «artículos» = «artículo»). */
+export const actionRoot = (word: string) => word.replace(/(?:alo|ala|alos|alas|elo|ela|ilo|ila|lo|la|los|las)$/, '').replace(/(?:ar|er|ir|a|e|i|o|es|s)$/, '');
+
+/**
+ * El botón cuya primera palabra es el verbo dicho (conjugado como sea) y que tiene lo demás que
+ * se dijo: «agregá un artículo» → «Agregar Artículo»; «confirmá» → «Confirmar»; «guardá» → «Guardar».
+ * -1 si no hay uno solo claro.
+ */
+export function actionButtonIndex(said: string, labels: string[]): number {
+  const words = said.split(' ').filter(Boolean);
+  if (!words.length) return -1;
+  const verb = actionRoot(words[0]);
+  if (verb.length < 3) return -1;
+  const rest = words.slice(1).filter((w) => !VERB_FILLER.has(w)).map(actionRoot);
+  const hits = labels
+    .map((l, i) => ({ i, words: l.split(' ').filter(Boolean) }))
+    .filter(({ words: lw }) => lw.length && actionRoot(lw[0]) === verb)
+    .filter(({ words: lw }) => { const roots = lw.slice(1).filter((w) => !VERB_FILLER.has(w)).map(actionRoot); return rest.every((w) => roots.includes(w)) && (rest.length > 0 || roots.length === 0 || lw.length <= 2); });
+  return hits.length === 1 ? hits[0].i : -1;
+}
+
 /** «apretá Guardar», «dale a Editar», «click Save», o el texto de un botón dicho tal cual. */
 export function pickOverlayButton(normalized: string, overlay: OpenOverlay): OpenOverlay['buttons'][number] | null {
   const press = normalized.match(PRESS);
@@ -221,6 +243,9 @@ export function pickOverlayButton(normalized: string, overlay: OpenOverlay): Ope
   const labels = overlay.buttons.map((b) => normalizeSpeech(b.label));
   const exact = labels.findIndex((l) => l === said);
   if (exact >= 0) return overlay.buttons[exact];
+  // El verbo conjugado y lo que sigue: «agregá un artículo» → «Agregar Artículo», «confirmá» → «Confirmar».
+  const verb = actionButtonIndex(said, labels);
+  if (verb >= 0) return overlay.buttons[verb];
   if (!press) return null;
   const partial = labels.findIndex((l) => l.startsWith(said) || said.startsWith(l));
   return partial >= 0 ? overlay.buttons[partial] : null;

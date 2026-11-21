@@ -79,7 +79,12 @@ function isHidden(el: Element): boolean {
 
 const isDisabled = (el: El) => el.disabled === true || attr(el, 'aria-disabled') === 'true' || el.hasAttribute?.('disabled');
 
+/** «Seleccionar tratamiento», «Buscar doctor...»: el nombre es lo que se elige («tratamiento»). */
+const cleanPickLabel = (label: string) => label.replace(/^(?:seleccionar|selecciona|seleccione|elegir|elegi|elige|buscar|busca|select|choose|search(?: for)?)\s+(?:un |una |el |la |a |an |the )?/i, '').replace(/\s*(?:\.\.\.|…)\s*$/, '').trim();
+
 function ownLabel(el: El, all: Element[], usePlaceholder = true): string {
+  const voice = attr(el, 'data-voice-label');
+  if (voice) return cleanPickLabel(voice);
   const fromLabels = el.labels && el.labels.length ? text(el.labels[0] as unknown as Element) : '';
   if (fromLabels) return fromLabels;
   const aria = attr(el, 'aria-label');
@@ -124,7 +129,8 @@ function nearbyLabel(el: El): string {
     const row = cell.parentElement;
     const cells = row ? Array.from(row.children) : [];
     const index = cells.indexOf(cell);
-    const rowLabel = cells.map((c) => text(c as Element)).find((x) => x.length >= 2) ?? '';
+    // El nombre de la fila sale de una celda de texto (no de una con controles: el selector de servicio de una línea nueva).
+    const rowLabel = cells.filter((c) => !(c as HTMLElement).querySelector?.('button, input, select, textarea, [role="combobox"]')).map((c) => text(c as Element)).find((x) => x.length >= 2) ?? '';
     const table = cell.closest('table');
     const header = table?.querySelectorAll('thead th')[index];
     const col = header ? text(header) : '';
@@ -171,7 +177,7 @@ function classify(el: El, all: Element[]): UiControl | null {
     // En una barra de herramientas (la del editor: fuente, tamaño) se nombra por lo que muestra.
     const node = el as unknown as HTMLElement;
     const inToolbar = typeof node.closest === 'function' && ((node.parentElement?.parentElement?.querySelectorAll('button').length ?? 0) > 4 || !!node.closest('[role="toolbar"]'));
-    const label = ownLabel(el, all) || (inToolbar ? text(el) : nearbyLabel(el));
+    const label = cleanPickLabel(ownLabel(el, all) || (inToolbar ? text(el) : nearbyLabel(el)));
     return label ? { kind: 'select', label, key: uiKey(label), element: el, value: text(el) } : null;
   }
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {

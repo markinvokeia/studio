@@ -345,3 +345,12 @@ test.describe('UI-EDIT · Editar un campo dicho de cualquier forma', () => {
     test(`«${said}»`, async () => { await sim.say(said); expect(uiLog[0]?.replace(/\/20\d\d$/, '/2026')).toBe(want); });
   }
 });
+
+test.describe('UI-ABBR · Etiquetas abreviadas', () => {
+  test('«la cantidad es 2» en «Cant.»', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.field('Cant.'), screen.field('Precio'));
+    await sim.say('la cantidad es 2');
+    expect(uiLog).toEqual(['fill:Cant.=2']);
+  });
+});

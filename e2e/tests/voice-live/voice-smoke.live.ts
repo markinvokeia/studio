@@ -228,6 +228,27 @@ const ES: Scenario[] = [
     { say: 'la duración es 5 días', shows: /= 5\./ },
     { say: 'cancelar', dialog: false },
   ] },
+  { name: 'estado de cuenta: ver, moneda, orden y presupuesto en línea (sin guardar)', path: '/es/patients', steps: [
+    { say: 'abrí el estado de cuenta de Carolina Píriz', shows: /Muestro las finanzas/ },
+    { say: 'cuánto debe', shows: /Debe|a favor|No debe/ },
+    { say: 'ordená descendente', shows: /más recientes arriba/i },
+    { say: 'en dólares', shows: /USD|una sola moneda/ },
+    { say: 'en pesos', shows: /UYU|una sola moneda/ },
+    { say: 'nuevo presupuesto', shows: /presupuesto nuevo/ },
+    { say: 'tratamiento limpieza', shows: /tratamiento = Limpieza/i },
+    { say: 'la cantidad es 2', shows: /= 2/ },
+    { say: 'cancelar', shows: /Cancelar/ },
+  ] },
+  { name: 'Mi consultorio: cambiar de caso', path: '/es/workspace', steps: [
+    { say: 'el de las 9', shows: /Carolina/ },
+    { say: 'cerrá este caso clínico y abrí el de Leonardo', shows: /Leonardo/ },
+    { say: 'quiero ver ahora el de Martín', shows: /Mart[ií]n/ },
+    { say: 'el paciente Carolina', shows: /Carolina/ },
+    { say: 'el siguiente paciente', shows: /Abrí la cita/ },
+  ] },
+  { name: 'configuración: datos de la clínica (editar sin guardar)', path: '/es/config/clinics', steps: [
+    { say: 'modificá el nombre de la clínica a Clínica de Prueba Voz', shows: /Nombre» = Clínica de Prueba Voz/ },
+  ] },
   { name: 'alertas: leer', path: '/es/alerts', steps: [
     { say: 'cuántas alertas hay', shows: /alerta/i },
     { say: 'qué alertas críticas hay' },

@@ -266,6 +266,8 @@ export function ServiceSelector({
                     ref={triggerRef}
                     variant="outline"
                     role="combobox"
+                    // Voz: qué es este selector aunque muestre lo elegido («sede», «doctor», «servicio»).
+                    data-voice-label={placeholder}
                     className={cn("w-full justify-between", !value && "text-muted-foreground", className)}
                     disabled={disabled}
                     aria-invalid={ariaInvalid}

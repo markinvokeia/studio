@@ -1,7 +1,7 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
 import { controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
-import { voiceEscape } from '@/lib/voice/dom-dialog';
+import { actionButtonIndex, voiceEscape } from '@/lib/voice/dom-dialog';
 import { valueForField } from '@/lib/voice/field-values';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
@@ -22,6 +22,7 @@ import type { VoiceCommandContext } from '@/lib/types';
  *   «qué puedo hacer acá», «what can I do here»
  */
 
+export type ScreenParsed = Parsed;
 type Parsed =
   | { op: 'press'; control: UiControl }
   | { op: 'fill'; control: UiControl; value: string | null }
@@ -79,8 +80,20 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
     const short = normalizeSpeech(control.label.replace(/\([^)]*\)/g, ' '));
     return [...new Set([full, short])].filter(Boolean).map((label) => ({ control, label }));
   });
+  // Una palabra del nombre alcanza si es de un solo campo: «el precio es…» → «Precio Unitario»,
+  // «el diente es 16» → «Número de Diente».
+  const counts = new Map<string, Set<UiControl>>();
   for (const { control, label } of named) {
-    const l = escape(label);
+    for (const w of label.split(' ').filter((x) => x.length >= 4 && !['numero', 'nombre', 'fecha'].includes(x))) {
+      if (!counts.has(w)) counts.set(w, new Set());
+      counts.get(w)!.add(control);
+    }
+  }
+  for (const [w, set] of counts) if (set.size === 1 && !named.some((n) => n.label === w)) named.push({ control: [...set][0], label: w });
+  for (const { control, label } of named) {
+    // Una etiqueta abreviada («Cant.», «Desc.») acepta la palabra entera («cantidad», «descuento»).
+    const abbr = /^[a-z]{2,6}$/.test(label) && /\.\s*$/.test(control.label.trim());
+    const l = abbr ? `${escape(label)}[a-z]*` : escape(label);
     // «el teléfono es 099…», «teléfono: 099…», «poné en teléfono 099…», «poné el teléfono» (sin valor).
     // «el nombre de la clínica a X»: el nombre del campo puede venir con lo que es («de la clínica»).
     const qual = '(?:\\s(?:de|del|of)\\s(?:(?:la|el|los|las|the)\\s)?[a-z]+(?:\\s[a-z]+)?)?';
@@ -89,7 +102,8 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
     if (lead && (verb || /^(?:es|son|is|are)$/.test(lead[1] ?? '') || raw.includes(':'))) {
       const tail = (lead[2] ?? '').trim();
       const value = tail ? rawTail(raw, normalized, tail) : null;
-      if (!best || label.length > best.len) best = { control, value: value && value.replace(/^(?:es|son|is|are|a|por|to)\s+/i, ''), len: label.length };
+      // Con el mismo nombre (una línea nueva de un presupuesto), el de más abajo: la línea recién agregada.
+      if (!best || label.length >= best.len) best = { control, value: value && value.replace(/^(?:es|son|is|are|a|por|to)\s+/i, ''), len: label.length };
       continue;
     }
     // «poné Ana López en nombre», «type John in name».
@@ -102,7 +116,8 @@ function parseFill(normalized: string, raw: string, fields: UiControl[]): Parsed
 function parseSelect(normalized: string, selects: UiControl[]): Parsed | null {
   const verb = normalized.match(SELECT_VERB);
   const body = verb ? normalized.slice(verb[0].length) : normalized;
-  for (const control of selects) {
+  // De abajo hacia arriba: con el mismo nombre (otra línea), la recién agregada.
+  for (const control of [...selects].reverse()) {
     const label = normalizeSpeech(control.label);
     if (!label) continue;
     const l = escape(label);
@@ -240,6 +255,9 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   // El texto de un botón o pestaña dicho tal cual («guardar», «nuevo paciente», «siguiente»).
   const exact = findControl(normalized, pressables);
   if (exact) return { op: 'press', control: exact };
+  // «agregá un artículo» → «Agregar Artículo» (el verbo conjugado y su objeto).
+  const action = actionButtonIndex(normalized, pressables.map((c) => normalizeSpeech(c.label)));
+  if (action >= 0) return { op: 'press', control: pressables[action] };
   // «nuevo», «crear», «agregar» sueltos: el botón de alta de la pantalla («Nueva sede», «Agregar etapa»).
   if (/^(?:nuev[oa]|crea\w*|crear|agrega\w*|agregar|anad\w*|new|create|add)(?:\s+(?:uno|una|otro|otra|one|another))?$/.test(normalized)) {
     const create = createButtons(surface);
@@ -254,7 +272,7 @@ async function done(ctx: VoiceCommandContext, message: string, speech = message)
   await ctx.finish({ title: title(ctx), message, tone: 'success' }, speech);
 }
 
-async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
+export async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
   const { t } = ctx;
   switch (parsed.op) {
     case 'press': {

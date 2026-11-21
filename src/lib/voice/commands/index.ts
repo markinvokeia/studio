@@ -13,6 +13,7 @@ import '@/lib/voice/commands/workspace-agent';
 import '@/lib/voice/commands/alerts';
 import '@/lib/voice/commands/cashier';
 import '@/lib/voice/commands/patients';
+import '@/lib/voice/commands/ledger';
 import '@/lib/voice/commands/documents';
 import '@/lib/voice/commands/reports';
 import '@/lib/voice/commands/crud';

@@ -77,7 +77,10 @@ function resolveRef(ref: ApptRef, b: WorkspaceVoiceBridge): Appt[] {
   if (ref.by === 'time') return list.filter((a) => a.time.slice(0, 5) === ref.time);
   if (ref.by === 'name') {
     const words = normalizeSpeech(ref.name).split(' ').filter((w) => w.length > 1);
-    return list.filter((a) => { const n = normalizeSpeech(a.patient).split(' '); return words.every((w) => n.some((x) => x.startsWith(w))); });
+    const hits = list.filter((a) => { const n = normalizeSpeech(a.patient).split(' '); return words.every((w) => n.some((x) => x.startsWith(w))); });
+    // Un nombre es otro caso: si coincide con varios, no el que ya está elegido.
+    const others = hits.filter((a) => a.id !== b.selectedId);
+    return others.length ? others : hits;
   }
   if (ref.by === 'position') {
     const index = parseChoice(ref.text, list.length);
@@ -112,7 +115,23 @@ type SelectParsed = { op: 'select'; ref: ApptRef } | { op: 'whoNext' } | { op: '
  * contra las citas que se ven).
  */
 export function switchTarget(normalized: string): string | null {
-  const t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  let t = normalized.replace(/\b(?:por favor|please|che)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  // «cerrá este caso clínico y abrí el de Leonardo»: cerrar el de ahora es parte de cambiar.
+  const closed = t.match(/^(?:cerra\w*|cierra\w*|termina\w*|deja\w*|close|leave)\s+(?:este |el |this |the )?(?:caso(?: clinico)?|paciente|case|patient)(?:\s+(?:de|del|of)\s+[a-z ]+?)?\s+(?:y|and)\s+(?:(?:ahora|despues|luego|then|now)\s+)?/);
+  if (closed) {
+    // Lo que sigue es a quién se pasa: «abrí el de Leonardo», «el de Leonardo», «open Carlos».
+    const rest = t.slice(closed[0].length)
+      .replace(/^(?:abri\w*|abre|open|selecciona\w*|elegi\w*|select|pasa\w* a|cambia\w* a|switch to|go to|anda\w* a|ve a)\s+/, '')
+      .replace(/^(?:(?:el|la|the)\s+)?(?:(?:caso|paciente|cita|case|patient|one)\s+)?(?:(?:de|del|of|for)\s+)?/, '');
+    t = rest ? `select ${rest}` : t;
+  }
+  // «quiero ver ahora el de Leonardo», «ahora el de Leonardo», «mostrame el caso de Leonardo».
+  t = t.replace(/^(?:quiero ver|quiero|ver|veamos|mostra\w*|muestra\w*|i want to see|show(?: me)?|let me see)\s+(?:ahora\s+|now\s+)?(?:(?:el|la|the)\s+)?(?:(?:caso|paciente|cita|case|patient|appointment)\s+)?(?:de|del|of|for)\s+/, 'select ');
+  t = t.replace(/^(?:ahora|now)\s+(?:(?:el|la|the)\s+)?(?:(?:caso|paciente|cita|case|patient|one)\s+)?(?:de|del|of|for)\s+/, 'select ');
+  t = t.replace(/^(?:abri\w*|abre|open)\s+(?:(?:el|la|the)\s+)?(?:(?:caso|paciente|cita|case|patient|appointment)\s+)?(?:de|del|of|for)\s+/, 'select ');
+  // «el paciente Leonardo», «paciente Martín», «the patient Carlos», «el de Leonardo»: un nombre es otro caso.
+  t = t.replace(/^(?:(?:el|la|the)\s+)?(?:paciente|patient)\s+(?!(?:siguiente|anterior|proxim[oa]|ultim[oa]|primer[oa]?|next|previous|last|first)\b)/, 'select ');
+  t = t.replace(/^(?:el|la)\s+de\s+(?!las?\b)/, 'select ');
   const from = t.match(/^(?:cambia\w*|pasa\w*|switch|change|move|go)\s+(?:de|del|from)\s+.+?\s+(?:a|al|to)\s+(.+)$/);
   const to = t.match(/^(?:cambia\w*|pasa\w*|selecciona\w*|elegi\w*|elige|escoge\w*|escogi\w*|quiero ver a|quiero atender a|ver a|ahora|ahora con|vamos con|segui\w* con|atende\w*|llama\w*|abri\w* (?:el caso|la cita|el turno) de|switch to|change to|move to|go to|select|pick|choose|now|open (?:the case|the appointment) (?:of|for)|call)\s+(?:a\s+|al\s+|to\s+)?(.+)$/);
   const raw = (from?.[1] ?? to?.[1] ?? '').trim();
@@ -147,6 +166,31 @@ export function parseWorkspaceSelect(normalized: string): SelectParsed | null {
   return { op: 'select', ref };
 }
 
+// «Cerrá este caso clínico y abrí el de Leonardo»: una sola cosa (cambiar de caso), no un plan de dos
+// pasos para la IA. Se resuelve acá, con las citas que se ven.
+registerVoiceCommand<SelectParsed>({
+  id: 'workspace.switch',
+  domain: WORKSPACE_VOICE_DOMAIN,
+  priority: 42,
+  handlesCompound: true,
+  match: (normalized) => {
+    const b = ws();
+    if (!b || !/^(?:cerra\w*|cierra\w*|termina\w*|deja\w*|close|leave)\s/.test(normalized) || !/\s(?:y|and)\s/.test(normalized)) return null;
+    const target = switchTarget(normalized);
+    if (!target) return null;
+    const ref: ApptRef = { by: 'name', name: target };
+    return resolveRef(ref, b).length ? { op: 'select', ref } : null;
+  },
+  run: async (parsed, ctx) => {
+    const b = ws();
+    if (!b || parsed.op !== 'select') return;
+    const appt = await pick(ctx, parsed.ref, b);
+    if (!appt) return;
+    b.select(appt.id);
+    await say(ctx, T(ctx, 'selected', { time: appt.time, patient: appt.patient }));
+  },
+});
+
 registerVoiceCommand<SelectParsed>({
   id: 'workspace.select',
   domain: WORKSPACE_VOICE_DOMAIN,
@@ -160,6 +204,13 @@ registerVoiceCommand<SelectParsed>({
     if (target) {
       const ref: ApptRef = { by: 'name', name: target };
       if (resolveRef(ref, b).length) return { op: 'select', ref };
+    }
+    // «el siguiente paciente», «el paciente anterior», «el último paciente».
+    const order = normalized.match(/^(?:(?:el|la|the)\s+)?(?:(siguiente|proxim[oa]|anterior|ultim[oa]|primer[oa]?|next|previous|last|first)\s+(?:paciente|patient|caso|case)|(?:paciente|patient|caso|case)\s+(siguiente|anterior|next|previous))$/);
+    if (order) {
+      const w = order[1] ?? order[2];
+      const ref: ApptRef = /siguiente|proxim|next/.test(w) ? { by: 'next' } : /anterior|previous/.test(w) ? { by: 'previous' } : { by: 'position', text: w };
+      return { op: 'select', ref };
     }
     const p = parseWorkspaceSelect(normalized);
     // Un nombre que no está en la agenda («abrí la ficha de alguien más») va al buscador del panel derecho.

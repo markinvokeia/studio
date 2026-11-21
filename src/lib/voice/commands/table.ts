@@ -273,6 +273,8 @@ registerVoiceCommand<Parsed>({
     if (!all.length && !views.length && !exportDialog()) return null;
     const parsed = parseTable(normalized);
     if (!parsed) return null;
+    // Con una ventana abierta sin tabla, lo de la tabla de atrás no va (salvo elegir un registro por su valor).
+    if (topOverlayElement() && !all.some((x) => x.layer === 0) && !(parsed.op === 'row' && parsed.column) && parsed.op !== 'export') return null;
     if (parsed.op === 'view') return views.length ? parsed : null;
     if (parsed.op === 'export') return parsed;
     if (!all.length) return null;

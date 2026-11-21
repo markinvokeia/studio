@@ -43,7 +43,10 @@ async function loaded(ctx: VoiceCommandContext): Promise<PatientsVoiceBridge | n
   const before = page()?.rows;
   await settle(120);
   let p = page();
-  while (p && !p.loading && p.rows === before && Date.now() - start < 700 && !ctx.signal.aborted) { await settle(50); p = page(); }
+  // La búsqueda va al servidor: hasta 3 s para que la lista cambie (o empiece a cargar).
+  const ids = (rows: PatientsVoiceBridge['rows'] | undefined) => (rows ?? []).map((r) => r.id).join(',');
+  const was = ids(before);
+  while (p && !p.loading && ids(p.rows) === was && Date.now() - start < 3000 && !ctx.signal.aborted) { await settle(60); p = page(); }
   while (p?.loading && Date.now() - start < 6000 && !ctx.signal.aborted) { await settle(); p = page(); }
   return p;
 }
@@ -59,10 +62,12 @@ async function findAndOpen(ctx: VoiceCommandContext, query: string): Promise<{ i
   if (!found.length) {
     ctx.show({ title: T(ctx, 'title'), message: T(ctx, 'searching', { name: query }), tone: 'info' });
     p.search(query);
+    const before = page()?.rows.map((r) => r.id).join(',');
     p = await loaded(ctx);
     if (!p) return null;
     found = matches(p.rows);
-    if (!found.length) found = p.rows;
+    // Lo que devolvió el buscador (con o sin tildes) son los candidatos; la lista de antes, no.
+    if (!found.length && p.rows.map((r) => r.id).join(',') !== before) found = p.rows.slice(0, 8);
   }
   if (!found.length) { await say(ctx, T(ctx, 'notFound', { name: query }), 'info'); return null; }
   let pick = found[0];
@@ -80,7 +85,7 @@ async function findAndOpen(ctx: VoiceCommandContext, query: string): Promise<{ i
 
 type ListParsed =
   | { op: 'search'; query: string }
-  | { op: 'open'; query: string | null; position: string | null }
+  | { op: 'open'; query: string | null; position: string | null; tab?: 'info' | 'clinical' | 'financial' }
   | { op: 'debtors'; on: boolean }
   | { op: 'active'; on: boolean }
   | { op: 'date'; preset: 'today' | 'week' | 'month' | 'allTime' }
@@ -110,6 +115,13 @@ export function parsePatientsList(normalized: string): ListParsed | null {
     if (pos) return { op: 'open', query: null, position: pos[1] };
     if (/^(?:ficha|paciente|patient|record)$/.test(what)) return null;
     // «open John Smith record» (el posesivo ya se fue): el nombre sin la palabra del final.
+    // «el estado de cuenta de Carolina», «las facturas de Juan», «la historia clínica de Ana»: el
+    // paciente y, después, esa pestaña.
+    const section = what.match(/^(?:(?:el|la|los|las|the)\s+)?(estado de cuenta|cuenta corriente|cuenta|finanzas|facturas|pagos|presupuestos|historia clinica|historia|datos|informacion|account(?: statement)?|statement|finances|invoices|payments|quotes|history|clinical history|details|info)\s+(?:de|del|of|for)\s+(?:(?:el|la|the)\s+)?(?:paciente\s+|patient\s+)?(.+)$/);
+    if (section) {
+      const tab = /historia|history/.test(section[1]) ? 'clinical' : /datos|informacion|details|info/.test(section[1]) ? 'info' : 'financial';
+      return { op: 'open', query: section[2].trim(), position: null, tab };
+    }
     return { op: 'open', query: what.replace(/\s+(?:record|file|chart|details|profile)$/, ''), position: null };
   }
   return null;
@@ -170,7 +182,15 @@ registerVoiceCommand<ListParsed>({
           return;
         }
         const chosen = await findAndOpen(ctx, parsed.query!);
-        if (chosen) await say(ctx, T(ctx, 'opened', { name: chosen.name }));
+        if (!chosen) return;
+        // «el estado de cuenta de …»: después de abrir la ficha, esa pestaña.
+        if (parsed.tab) {
+          for (let i = 0; i < 20 && page()?.selected?.id !== chosen.id && !ctx.signal.aborted; i++) await settle(100);
+          page()?.setTab(parsed.tab);
+          await say(ctx, `${T(ctx, 'opened', { name: chosen.name })} ${T(ctx, `tab_${parsed.tab}`)}`);
+          return;
+        }
+        await say(ctx, T(ctx, 'opened', { name: chosen.name }));
       }
     }
   },

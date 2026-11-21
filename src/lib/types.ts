@@ -5242,6 +5242,44 @@ export interface DoctorAgentVoiceBridge {
   ask: (query: string) => Promise<DoctorAgentVoiceReply | null>;
 }
 
+/** Una fila del estado de cuenta para la voz. */
+export interface LedgerVoiceRow {
+  id: string;
+  date: string;
+  kind: 'item' | 'payment';
+  label: string;
+  docNo?: string;
+  quoteDocNo?: string;
+  status?: string;
+  debe: number;
+  haber: number;
+  balance: number;
+  can: { invoice: boolean; edit: boolean; creditNote: boolean; print: boolean; email: boolean; remove: boolean; enCurso: boolean; finalizado: boolean; toEnCurso: boolean; toPresupuesto: boolean };
+}
+
+/** El estado de cuenta del paciente (PatientLedger) para la voz (src/lib/voice/commands/ledger.ts). */
+export interface LedgerVoiceBridge {
+  patientName: string;
+  currency: string | null;
+  currencies: string[];
+  setCurrency: (currency: string) => void;
+  sortOrder: 'newest-first' | 'newest-last';
+  setSortOrder: (order: 'newest-first' | 'newest-last') => void;
+  setDateRange: ((from: Date, to: Date) => void) | null;
+  clearDateRange: (() => void) | null;
+  search: ((text: string) => void) | null;
+  rows: LedgerVoiceRow[];
+  totals: { debe: number; haber: number; balance: number };
+  create: { quote: (() => void) | null; treatment: (() => void) | null; payment: (() => void) | null };
+  select: (rowId: string) => void;
+  act: (rowId: string, action: 'invoice' | 'edit' | 'creditNote' | 'print' | 'email' | 'remove' | 'enCurso' | 'finalizado' | 'toEnCurso' | 'toPresupuesto') => void;
+  refresh: () => void;
+  /** Hay un editor abierto (alta o edición en línea): lo que nombra uno de sus campos es para él. */
+  editing: boolean;
+  /** El contenedor del estado de cuenta (para saber si un campo es suyo). */
+  root: () => HTMLElement | null;
+}
+
 /** Lo que el Centro de alertas le ofrece a la voz (src/lib/voice/commands/alerts.ts). */
 export interface AlertsVoiceBridge {
   loading: boolean;

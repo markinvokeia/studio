@@ -51,12 +51,14 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { buildPatientLedger, computeLedgerTotals, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
-import type { CreditNote, Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
+import type { CreditNote, Invoice, InvoiceItem, LedgerVoiceBridge, LedgerVoiceRow, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
 import { currencySchema, currencySymbol, formatMoney } from '@/lib/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
 import {
   allocationHasConversion,
   buildAllocationsPayload,
@@ -1060,6 +1062,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         ) : (
           <FieldIcon icon={Calendar} className="[grid-area:date]">
             <DatePickerInput
+              aria-label={t('fields.date')}
               value={format(createdAt, 'yyyy-MM-dd')}
               onChange={(iso) => iso && form.setValue('created_at', parseISO(iso), { shouldValidate: true })}
               aria-invalid={!!errors.created_at}
@@ -1074,6 +1077,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
               onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
               disabledDays={(date) => date <= createdAt}
               placeholder={t('fields.dueDate')}
+              aria-label={t('fields.dueDate')}
               aria-invalid={!!errors.due_date}
               className="h-8 pl-7 text-xs"
             />
@@ -2485,7 +2489,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   /** Centered action buttons shown attached under a selected row — the same actions the
    *  old "…" menu held (custom invoice, credit note, delete), plus a Cancelar to deselect.
    *  Returns a fragment; the row's merged card container provides border/background. */
-  const renderSelectionActions = React.useCallback((row: LedgerRow) => {
+  /** Qué se puede hacer con una fila (lo usan la barra de acciones y la voz). */
+  const rowCapabilities = React.useCallback((row: LedgerRow) => {
     const isUnbilledQuoteItem = row.kind === 'item' && row.status === 'presupuestado';
     const isInvoiceItem = row.kind === 'item' && !!row.status && row.status !== 'presupuestado' && row.status !== 'notaCredito';
     const isPayment = row.kind === 'payment';
@@ -2528,6 +2533,11 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       (isPayment && canDeletePayment) ||
       (isCreditNote && canDeleteCreditNote) ||
       (isInvoiceItem && canRevertInvoice);
+    return { showInvoice, showCreateCreditNote, showEditItem, showEditPayment, showEditCreditNote, showPrint, showEmail, canDelete };
+  }, [canInvoiceQuote, canCreateCreditNote, canEditQuote, canEditInvoice, canCreatePaymentPerm, canSendQuoteEmail, canSendInvoiceEmail, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, getMaxCreditableForInvoice]);
+
+  const renderSelectionActions = React.useCallback((row: LedgerRow) => {
+    const { showInvoice, showCreateCreditNote, showEditItem, showEditPayment, showEditCreditNote, showPrint, showEmail, canDelete } = rowCapabilities(row);
     return (
       <>
         {showInvoice && (
@@ -2584,7 +2594,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </Button>
       </>
     );
-  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, handlePrintRow, handleEmailRow, canSendQuoteEmail, canSendInvoiceEmail, printingRowId, t]);
+  }, [rowCapabilities, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, handlePrintRow, handleEmailRow, printingRowId, t]);
 
   // Search may be controlled by a host (the sheet renders the search box in its header);
   // otherwise the ledger keeps its own state and shows an expandable search in the toolbar.
@@ -2724,6 +2734,65 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     </div>
   );
 
+  const ledgerRootRef = React.useRef<HTMLDivElement | null>(null);
+  // Voz: el estado de cuenta (commands/ledger.ts): moneda, orden, período, altas, saldo y lo que
+  // se hace con cada fila (facturar, editar, nota de crédito, imprimir, enviar, eliminar, estado).
+  useVoiceScreen(['ledger']);
+  const voiceRows: LedgerVoiceRow[] = displayRows.filter((r) => r.kind !== 'balance').map((r) => {
+    const c = rowCapabilities(r);
+    const state = r.kind === 'item' && r.status && r.status !== 'notaCredito' ? getLedgerItemState(r) : null;
+    return {
+      id: r.id, date: r.date, kind: r.kind as 'item' | 'payment', label: r.label, docNo: r.docNo, quoteDocNo: r.quoteDocNo, status: r.status,
+      debe: r.debe, haber: r.haber, balance: r.runningBalance,
+      can: {
+        invoice: c.showInvoice, edit: c.showEditItem || c.showEditPayment || c.showEditCreditNote, creditNote: c.showCreateCreditNote,
+        print: c.showPrint, email: c.showEmail, remove: c.canDelete,
+        enCurso: state === 'presupuesto' && canConfirmQuote, finalizado: state === 'enCurso' && canCreatePaymentPerm,
+        toEnCurso: state === 'finalizado' && canDeletePayment, toPresupuesto: state === 'enCurso' && isFromQuote(r) && !!r.quoteId && canRevertInvoice,
+      },
+    };
+  });
+  useVoiceBridge<LedgerVoiceBridge>('ledger', {
+    patientName: patientName ?? '',
+    currency,
+    currencies,
+    setCurrency: (c) => setCurrency(c),
+    sortOrder,
+    setSortOrder,
+    setDateRange: setDateRange ? (from, to) => setDateRange({ from, to }) : null,
+    clearDateRange: setDateRange ? () => setDateRange(undefined) : null,
+    search: isSearchControlled ? null : (text) => { setSearchOpen(true); setInternalSearch(text); },
+    rows: voiceRows,
+    totals: { debe: totals.totalDebe, haber: totals.totalHaber, balance: totals.finalBalance },
+    create: {
+      quote: canCreateQuote ? () => { setSelectedRowId(null); setCreateDoc('quote'); } : null,
+      treatment: canCreateTreatment ? () => { setSelectedRowId(null); setCreateDoc('invoice'); } : null,
+      payment: canCreatePaymentPerm ? () => { setSelectedRowId(null); setCreateDoc('payment'); } : null,
+    },
+    select: (rowId) => setSelectedRowId(rowId),
+    act: (rowId, action) => {
+      const row = displayRows.find((r) => r.id === rowId);
+      if (!row) return;
+      if (action === 'invoice') handleInvoice(row);
+      else if (action === 'edit') {
+        setSelectedRowId(null);
+        if (row.kind === 'payment') setEditingPaymentRowId(row.id);
+        else if (row.status === 'notaCredito') handleEditCreditNote(row);
+        else setEditingItemRowId(row.id);
+      } else if (action === 'creditNote') handleCreditNote(row);
+      else if (action === 'print') void handlePrintRow(row);
+      else if (action === 'email') handleEmailRow(row);
+      else if (action === 'remove') handleDeleteRow(row);
+      else if (action === 'enCurso') void handleMarkEnCurso(row);
+      else if (action === 'finalizado') void handleMarkFinalized(row);
+      else if (action === 'toEnCurso') void handleUnmarkFinalized(row);
+      else if (action === 'toPresupuesto') handleRevertInvoice(row);
+    },
+    refresh: () => { void load(true); },
+    editing: !!createDoc || !!editingItemRowId || !!editingPaymentRowId || !!editingCreditNoteRow || !!creditNoteRow,
+    root: () => ledgerRootRef.current,
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -2737,7 +2806,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   return (
     <>
-      <Card className="h-full flex flex-col min-h-0">
+      <Card ref={ledgerRootRef} className="h-full flex flex-col min-h-0">
         <CardContent className="patient-ledger-container flex-1 flex flex-col min-h-0 gap-3 p-4">
           {toolbar}
 

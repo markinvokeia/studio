@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2237 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2309 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -70,7 +70,7 @@ Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar
   - MIC-013 lo que se está diciendo se ve en la tarjeta mientras se habla
   - MIC-014 con la voz del asistente silenciada, lo dicho justo después de un resultado no se pierde
 
-## 03-dialogs-close-stop.spec.ts (88)
+## 03-dialogs-close-stop.spec.ts (92)
 
 AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.
 
@@ -167,6 +167,11 @@ AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que est
   - por posición: «el segundo»
   - en «undo»
   - si la notificación se va sola, la pregunta se saca
+- **AV-VERB · El botón por su verbo conjugado**
+  - «agrega un articulo» → Agregar Artículo
+  - «confirma» → Confirmar
+  - «guarda» → Guardar
+  - «add an item» → Add item
 
 ## 04-popups-selection.spec.ts (185)
 
@@ -579,7 +584,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (87)
+## 07-screen.spec.ts (88)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -685,6 +690,8 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «asigná el teléfono 098 765»
   - «la fecha de inicio es el 15 de diciembre»
   - «poné la fecha de fin el 20 de diciembre»
+- **UI-ABBR · Etiquetas abreviadas**
+  - «la cantidad es 2» en «Cant.»
 
 ## 08-rail.spec.ts (60)
 
@@ -2029,7 +2036,7 @@ PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/result
   - desde la agenda: «volvé al inicio y decime cuánto producimos hoy»
   - en otra página no se lee el panel
 
-## 92-workspace.spec.ts (108)
+## 92-workspace.spec.ts (125)
 
 MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.
 
@@ -2137,6 +2144,23 @@ MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posici�
   - en «switch from Ana to Juan»
   - en «select Carlos»
   - en «switch to Sofía»
+  - es «cerrá este caso clínico y abrí el de Juan»
+  - es «cerrá el caso y ahora el de Carlos»
+  - es «quiero ver ahora el de Sofía»
+  - es «ahora el de Juan Pérez»
+  - es «mostrame el caso de Carlos»
+  - es «abrí el caso de Juan»
+  - es-ES «cierra este caso y abre el de Juan»
+  - en «close this case and open Carlos»
+  - en «now the one of Juan»
+  - es «el paciente Juan»
+  - es «paciente Carlos»
+  - es «el siguiente paciente»
+  - es «el paciente siguiente»
+  - es «el último paciente»
+  - es «el primer paciente»
+  - en «the next patient»
+  - en «the patient Carlos»
   - un nombre que no está en la lista no cambia de caso
 - **MC-DATE · Cambiar la fecha**
   - es «cambiá la fecha al martes»
@@ -2229,7 +2253,7 @@ CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salid
 - **CJ-NAV · Desde otra página**
   - «andá a la caja y decime qué cajas hay»
 
-## 95-patients.spec.ts (50)
+## 95-patients.spec.ts (56)
 
 PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).
 
@@ -2288,6 +2312,13 @@ PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros 
   - en «how much does he owe» con la ficha
 - **PA-NAV · Llegar y buscar**
   - «andá a pacientes y buscá a Roberto Díaz»
+- **PA-SECTION · «el estado de cuenta de …» abre el paciente y esa pestaña**
+  - es «abrí el estado de cuenta de Roberto Díaz»
+  - es «abrí las facturas de Carlos López»
+  - es «abrí la historia clínica de Roberto Díaz»
+  - es-ES «abre el estado de cuenta de Roberto Díaz»
+  - en «open the account statement of Roberto Díaz»
+  - un nombre que no está no ofrece la lista de antes
 
 ## 96-lab-orders.spec.ts (25)
 
@@ -2434,7 +2465,7 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
   - «qué cajas hay» lee las opciones
   - el período sigue siendo el período
 
-## 9a-crud.spec.ts (37)
+## 9a-crud.spec.ts (39)
 
 LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
 
@@ -2480,6 +2511,9 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
 - **LI-PAGEBTN · El alta es un botón de la pantalla (no de la tabla)**
   - «nuevo» aprieta «Crear» de la pantalla
   - una lista de consulta (sin alta) lo dice
+- **LI-OVERLAY · Con una ventana abierta, la tabla de atrás no se lleva lo dicho**
+  - «agregá un artículo» con un presupuesto abierto aprieta «Agregar Artículo» (no crea en la lista)
+  - «siguiente página» con una ventana abierta no mueve la lista de atrás
 
 ## 9b-clinical-agent.spec.ts (49)
 
@@ -2687,3 +2721,53 @@ FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), f
   - «#3366FF» → #3366ff
   - «purple» → #8b5cf6
   - campo color
+
+## 9e-ledger.spec.ts (42)
+
+EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimientos, acciones por fila con confirmación.
+
+- **EC-VIEW · Moneda, orden y período**
+  - es «en dólares»
+  - es «mostrame el estado de cuenta en dólares»
+  - es «cambiá la moneda a pesos»
+  - es «en la moneda secundaria»
+  - es «en la moneda principal»
+  - es-ES «enséñamelo en dólares»
+  - en «show it in dollars»
+  - es «ordená descendente»
+  - es «los más recientes arriba»
+  - es «ordená ascendente»
+  - es «los más viejos primero»
+  - en «newest first»
+  - en «sort ascending»
+  - es «todo el tiempo»
+  - en «all time»
+  - «el mes pasado» pone el período
+  - una sola moneda: «en dólares» lo dice
+- **EC-CREATE · Altas y saldo**
+  - es «nuevo presupuesto»
+  - es «agregá un presupuesto»
+  - es «nuevo tratamiento»
+  - es «nueva factura»
+  - es «registrá un pago»
+  - es «cobrale»
+  - es-ES «añade un presupuesto»
+  - en «new payment»
+  - en «add a quote»
+  - «¿cuánto debe?»
+  - «leeme los movimientos»
+  - en «what is the balance»
+- **EC-ROW · Una fila**
+  - «facturá el presupuesto 1» confirma y factura
+  - «imprimí la factura 12» (sin confirmar)
+  - «editá el pago»
+  - «hacé una nota de crédito de la restauración»
+  - «finalizá la factura 12»
+  - «volvé a presupuesto la factura 12»
+  - «eliminá el pago» pide confirmar; «no» no hace nada
+  - «mandá por mail el presupuesto 1»
+  - «facturá el del 17 de marzo»
+  - «seleccioná el último» y «facturalo» no se puede (es un pago)
+  - es-ES «factura el presupuesto 1» y «sí»
+  - en «print invoice 12»
+  - lo que no está lo dice
