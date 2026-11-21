@@ -241,7 +241,7 @@ export default function PaymentMethodsPage() {
                             </Button>
                         )}
                         {selectedMethod && !isEditing && canDelete && (
-                            <Button data-help-id="sales.payment-methods.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMethod(selectedMethod); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="sales.payment-methods.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('columns.delete')} title={t('columns.delete')} onClick={() => { setDeletingMethod(selectedMethod); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

@@ -880,7 +880,7 @@ function ProvidersPageContent() {
                             )}
                             data-help-id="purchases.providers.btn.toggle-active"
                             onClick={() => handleToggleActivate(selectedProvider)}
-                          >
+                           aria-label={selectedProvider.is_active ? t('ProviderColumns.deactivate') : t('ProviderColumns.activate')}>
                             <ToggleLeft className="h-5 w-5" />
                           </Button>
                         </TooltipTrigger>
@@ -896,7 +896,7 @@ function ProvidersPageContent() {
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
                           onClick={() => setIsRightExpanded(v => !v)}
-                        >
+                         aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'}>
                           {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                         </Button>
                       </TooltipTrigger>

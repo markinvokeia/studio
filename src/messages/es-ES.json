@@ -4045,7 +4045,8 @@
       "label": "Servicio de estética",
       "description": "Se registra en la ficha estética del paciente. Habilita la pestaña Estética para configurar el marcado y el consentimiento.",
       "turningOff": "Al guardar, el servicio dejará de aparecer en la ficha estética. Las sesiones ya registradas no cambian."
-    }
+    },
+    "closeDetail": "Cerrar detalle"
   },
   "ServicesColumns": {
     "id": "ID",

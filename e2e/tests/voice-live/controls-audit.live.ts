@@ -74,7 +74,7 @@ async function say(page: Page, text: string) {
 
 for (const route of ROUTES) {
   test(`audit ${route}`, async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(process.env.AUDIT_TABS ? 300_000 : 120_000);
     await install(page);
     await page.goto(`/es${route}`);
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined);
@@ -86,6 +86,18 @@ for (const route of ROUTES) {
     if (await page.evaluate(() => !!document.querySelector('main [data-voice-table] [data-row-id]'))) {
       await say(page, 'seleccioná el 1');
       report.push(`  detalle: ${(await missing(page)).join(' | ')}`);
+      // Con AUDIT_TABS=1: cada pestaña del detalle (ficha, finanzas, historia…).
+      if (process.env.AUDIT_TABS) {
+        const tabs = page.locator('[data-voice-panel="detail"] [role="tab"]');
+        const count = Math.min(await tabs.count(), 12);
+        for (let i = 0; i < count; i++) {
+          const tab = tabs.nth(i);
+          const name = ((await tab.innerText().catch(() => '')) || (await tab.getAttribute('aria-label')) || `#${i + 1}`).replace(/\s+/g, ' ').trim();
+          await tab.click().catch(() => undefined);
+          await page.waitForTimeout(2500);
+          report.push(`  pestaña ${name}: ${(await missing(page)).join(' | ')}`);
+        }
+      }
       await say(page, 'cerrá el detalle');
     }
     await say(page, 'nuevo');

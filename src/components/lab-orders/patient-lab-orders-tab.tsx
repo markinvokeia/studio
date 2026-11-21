@@ -274,7 +274,7 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false, 
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button data-help-id="patients.btn.open-lab-orders" variant="outline" size="icon" className="h-9 w-9" asChild>
+                    <Button data-help-id="patients.btn.open-lab-orders" variant="outline" size="icon" className="h-9 w-9" asChild aria-label={t('patientTab.openModule')}>
                       <Link href={`/${locale}/lab-orders?patient=${encodeURIComponent(patientId)}`} aria-label={t('patientTab.openModule')}>
                         <ExternalLink className="h-4 w-4" />
                       </Link>

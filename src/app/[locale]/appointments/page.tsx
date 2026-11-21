@@ -6021,7 +6021,7 @@ export default function AppointmentsPage() {
                                 className="h-8 gap-1.5 text-xs"
                                 disabled={bulkSelectedIds.size === 0}
                                 data-help-id="appointments.btn.bulk-reassign" onClick={() => setIsReassignDialogOpen(true)}
-                            >
+                             aria-label={tBulk('reassignDoctor')}>
                                 <Stethoscope className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('reassignDoctor')}
                             </Button>
@@ -6030,7 +6030,7 @@ export default function AppointmentsPage() {
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button data-help-id="appointments.btn.bulk-exit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                            <Button data-help-id="appointments.btn.bulk-exit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode} aria-label={tBulk('exitBulkMode')}>
                                 <X className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('exitBulkMode')}
                             </Button>
@@ -6473,7 +6473,7 @@ export default function AppointmentsPage() {
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
                                                     data-help-id="appointments.btn.search" onClick={handleToggleSearch}
-                                                >
+                                                 aria-label={tSearch('button')}>
                                                     <Search className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
                                                         <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tSearch('button')}</span>
@@ -6489,7 +6489,7 @@ export default function AppointmentsPage() {
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
                                                     data-help-id="appointments.btn.gaps" onClick={handleToggleGaps}
-                                                >
+                                                 aria-label={tGaps('button')}>
                                                     <CalendarSearch className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
                                                         <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tGaps('button')}</span>
@@ -6505,7 +6505,7 @@ export default function AppointmentsPage() {
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
                                                     onClick={handleToggleBulkMode}
-                                                >
+                                                 aria-label={tBulk('toggleButton')}>
                                                     <Layers className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
                                                         <span className="block w-[4.25rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tBulk('toggleButton')}</span>
@@ -6611,7 +6611,7 @@ export default function AppointmentsPage() {
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button data-help-id="appointments.btn.print" onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.print" onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"} aria-label={t('printSchedule')}>
                                                 <FileSpreadsheet className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
@@ -6621,7 +6621,7 @@ export default function AppointmentsPage() {
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button data-help-id="appointments.btn.refresh" onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.refresh" onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"} aria-label={t('refresh')}>
                                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </TooltipTrigger>

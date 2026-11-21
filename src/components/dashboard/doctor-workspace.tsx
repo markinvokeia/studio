@@ -1883,7 +1883,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                   </div>
                 </div>
-                <Button data-help-id="workspace.btn.refresh" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
+                <Button data-help-id="workspace.btn.refresh" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing} aria-label={t('agenda.refresh')} title={t('agenda.refresh')}>
                   <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
                 </Button>
               </CardHeader>

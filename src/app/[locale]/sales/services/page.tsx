@@ -1325,7 +1325,7 @@ export default function ServicesPage() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
-                    <button type="button" onClick={handleCloseDetail} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                    <button type="button" onClick={handleCloseDetail} aria-label={t('closeDetail')} title={t('closeDetail')} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                       <X className="h-4 w-4" />
                     </button>
                   </div>

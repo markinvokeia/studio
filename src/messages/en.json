@@ -4045,7 +4045,8 @@
       "label": "Aesthetic service",
       "description": "It is recorded on the patient's aesthetic record. Enables the Aesthetics tab to set up marking and consent.",
       "turningOff": "When saved, the service stops showing on the aesthetic record. Sessions already recorded do not change."
-    }
+    },
+    "closeDetail": "Close detail"
   },
   "ServicesColumns": {
     "id": "ID",

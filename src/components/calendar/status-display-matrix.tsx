@@ -101,7 +101,7 @@ export function StatusDisplayMatrix({
                                 className="h-6 w-6 text-muted-foreground hover:text-foreground"
                                 disabled={disabled}
                                 onClick={() => onRevertStatus?.(status)}
-                              >
+                               aria-label={t('scope.revertStatus')}>
                                 <Undo2 className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
