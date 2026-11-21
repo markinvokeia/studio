@@ -5208,3 +5208,30 @@ export interface WorkspaceVoiceBridge {
   };
   blocked: 'noAppointment' | 'futureDate' | 'noPermission' | 'odontogramSession' | null;
 }
+
+/** Lo que el Centro de alertas le ofrece a la voz (src/lib/voice/commands/alerts.ts). */
+export interface AlertsVoiceBridge {
+  loading: boolean;
+  alerts: Array<{
+    id: string; title: string; summary: string; patient: string; category: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; status: string; date: string;
+    canEmail: boolean; canWhatsApp: boolean; hasPatient: boolean;
+  }>;
+  counts: { total: number; critical: number; high: number; medium: number };
+  statusFilter: string;
+  priorityFilter: string;
+  setStatusFilter: (status: '' | 'PENDING' | 'COMPLETED' | 'ACTION_TAKEN' | 'IGNORED' | 'SUPPRESSED') => void;
+  setPriorityFilter: (priority: '' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL') => void;
+  refresh: () => void;
+  selected: string[];
+  setSelected: (ids: string[]) => void;
+  permissions: { complete: boolean; ignore: boolean; snooze: boolean; call: boolean; note: boolean; email: boolean; whatsapp: boolean };
+  complete: (ids: string[]) => Promise<void>;
+  ignore: (ids: string[], reason: string) => Promise<void>;
+  snooze: (ids: string[], until: string, reason: string) => Promise<void>;
+  registerCall: (ids: string[], scheduledAt: string, notes: string) => Promise<void>;
+  addNote: (ids: string[], text: string) => Promise<void>;
+  email: (id: string) => void;
+  whatsapp: (ids: string[]) => Promise<void>;
+  openPatient: (id: string) => void;
+}

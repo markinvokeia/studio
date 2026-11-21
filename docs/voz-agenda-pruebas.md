@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1723 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1756 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2058,3 +2058,44 @@ MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posici�
   - en «show me tomorrow» y «my appointments»
 - **MC-NAV · Llegar y seguir**
   - «andá a mi consultorio y abrí el de las 10»
+
+## 93-alerts.spec.ts (33)
+
+AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, completar/ignorar (con motivo y confirmación), posponer (hasta cuándo), registrar llamada, nota, mail, WhatsApp (confirmado), abrir paciente; una, varias o todas.
+
+- **AL-READ · Leer y filtrar**
+  - «cuántas alertas hay»
+  - «qué alertas críticas hay»
+  - la lectura va en filas
+  - «mostrame las completadas»
+  - «las ignoradas»
+  - «solo las pendientes»
+  - «ver todas»
+  - «solo las críticas»
+  - «mostrame las de prioridad alta»
+  - «ver todas las prioridades»
+  - «actualizá las alertas»
+  - en «how many alerts are there» y «show me the completed alerts»
+- **AL-ACT · Actuar sobre alertas**
+  - «completá la de Carlos» confirma y completa
+  - «completá la primera» y «no»: no cambia nada
+  - «ignorá la del laboratorio porque ya llegó» con el motivo
+  - «ignorá la de Sofía» pregunta el motivo
+  - «posponé las de cumpleaños hasta mañana» (varias, sin preguntar cuál)
+  - «posponé la de Carlos una semana»
+  - «posponé la de Juan» pregunta hasta cuándo
+  - «registrá una llamada a Carlos para mañana a las 10»
+  - «agregá una nota a la de Carlos: pagará el viernes»
+  - «mandale un whatsapp a Juan» confirma y manda
+  - sin teléfono ni plantilla: lo dice
+  - «mandale un mail a Carlos» abre el mail
+  - «abrí el paciente de la segunda»
+  - «las de cumpleaños» con una sola acción por persona: pregunta cuál
+  - seleccionar y completar las seleccionadas
+  - «completá todas las críticas»
+  - sin permiso: lo dice
+  - es-ES «pospón la de Carlos hasta mañana»
+  - en «complete the alert for Carlos», «yes», «snooze the alert for Juan until tomorrow»
+  - en «send a whatsapp to Juan» and «yes»
+- **AL-NAV · Llegar y actuar**
+  - «andá al centro de alertas y decime cuántas alertas hay»

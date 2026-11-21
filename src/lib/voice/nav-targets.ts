@@ -255,6 +255,7 @@ export const ROUTE_VOICE_DOMAINS: Record<string, string[]> = {
   '/': ['dashboard'],
   '/appointments': ['calendar'],
   '/workspace': ['workspace'],
+  '/alerts': ['alerts'],
   '/lab-orders': ['lab_orders'],
 };
 

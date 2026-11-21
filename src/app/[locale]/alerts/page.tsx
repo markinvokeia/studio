@@ -50,6 +50,9 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
 import React from 'react';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { AlertsVoiceBridge } from '@/lib/types';
 
 type DisplayField = {
     label: string;
@@ -296,6 +299,25 @@ const SummaryCard = ({ title, count, accentColor }: { title: string, count: numb
         </div>
     </div>
 );
+
+/** Publica el Centro de alertas para la voz, con los permisos de cada acción. */
+function AlertsVoice({ value }: { value: AlertsVoiceBridge }) {
+    const { hasPermission } = usePermissions();
+    useVoiceScreen(['alerts']);
+    useVoiceBridge<AlertsVoiceBridge>('alerts', {
+        ...value,
+        permissions: {
+            complete: hasPermission(ALERT_CENTER_PERMISSIONS.COMPLETE),
+            ignore: hasPermission(ALERT_CENTER_PERMISSIONS.IGNORE),
+            snooze: hasPermission(ALERT_CENTER_PERMISSIONS.SNOOZE),
+            call: hasPermission(ALERT_CENTER_PERMISSIONS.REGISTER_CALL),
+            note: hasPermission(ALERT_CENTER_PERMISSIONS.ADD_NOTES),
+            email: hasPermission(ALERT_CENTER_PERMISSIONS.SEND_EMAIL),
+            whatsapp: hasPermission(ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP),
+        },
+    });
+    return null;
+}
 
 function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
@@ -742,8 +764,40 @@ function AlertsCenterPageContent() {
         medium: Number(alertStatistics.alertas_media_prioridad),
     };
 
+    // Voz: «¿qué alertas críticas hay?», «completá la de Juan», «posponé las de cumpleaños hasta
+    // mañana», «mandale un WhatsApp a la primera». Ver src/lib/voice/commands/alerts.ts.
+    const voiceBridge: AlertsVoiceBridge = {
+        loading,
+        alerts: alerts.map((a) => ({
+            id: a.id, title: a.title, summary: a.summary ?? '', patient: a.patient_name ?? '', category: categoryLabel(getCategoryName(a.category_id)),
+            priority: a.priority, status: a.status, date: a.alert_date,
+            canEmail: !!getAlertEmail(a), canWhatsApp: !!getAlertWhatsAppTemplate(a) && !!getAlertPhone(a), hasPatient: !!getAlertPatientId(a),
+        })),
+        counts: summaryCounts,
+        statusFilter,
+        priorityFilter,
+        setStatusFilter: (v) => setStatusFilter(v),
+        setPriorityFilter: (v) => setPriorityFilter(v),
+        refresh: () => { void loadAlerts(); },
+        selected: selectedAlerts,
+        setSelected: (ids) => setSelectedAlerts(ids),
+        permissions: { complete: true, ignore: true, snooze: true, call: true, note: true, email: true, whatsapp: true },
+        complete: (ids) => markAsCompleted(ids),
+        ignore: (ids, reason) => markAsIgnored(ids, reason),
+        snooze: (ids, until, reason) => snoozeAlerts(ids, until, reason),
+        registerCall: (ids, at, notes) => registerCall(ids, at, notes),
+        addNote: (ids, text) => addNote(ids, text),
+        email: (id) => { const a = alerts.find((x) => x.id === id); if (a) openAlertEmailComposer(a); },
+        whatsapp: async (ids) => {
+            if (ids.length === 1) { const a = alerts.find((x) => x.id === ids[0]); if (a) await sendAlertWhatsApp(a); return; }
+            await sendBulkWhatsApp(ids);
+        },
+        openPatient: (id) => { const a = alerts.find((x) => x.id === id); if (a) openPatientFromAlert(a); },
+    };
+
     return (
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-24 min-h-0">
+            <AlertsVoice value={voiceBridge} />
             <Card className="shadow-sm border-0">
                 <CardHeader className="p-4">
                     <div className="flex items-start gap-3">

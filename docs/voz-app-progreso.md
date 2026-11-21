@@ -30,8 +30,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 | 2c | **Cobro rápido** (ventana, desde cualquier lado) | `billing` | ✅ Paciente → servicios (agregar con cantidad/precio, editar, descuentos por línea o total con permiso y máximo, quitar, moneda, sede, total) → pago (medios, montos, «el resto», moneda, notas) → facturar/cobrar/cerrar. Puentes en el modal y en cada paso | `09` |
 | 3 | Panel de control (`/`) | `dashboard` | ✅ Leer los números de hoy y del mes (producción, cobrado, gastos, resultado, atenciones, agendados, nuevos), resumen, ranking de sedes y servicios, comparación con el mes pasado; filtros de período (`src/lib/voice/period.ts`), sede y moneda; actualizar | `91` |
 | 4 | Mi consultorio (`/workspace`) | `workspace` | ✅ Elegir la cita, ¿quién sigue?, la agenda, acciones sobre la cita (sesión, receta, laboratorio, estética, perio, ficha, anamnesis, odontograma) con motivo si no se puede, filtros | `92` |
-| 5 | Centro de alertas | `alerts` | ⏳ Siguiente | — |
-| 6 | Caja | `cashier` | ⏳ | — |
+| 5 | Centro de alertas (`/alerts`) | `alerts` | ✅ Leer y filtrar; completar, ignorar (motivo), posponer, llamada, nota, mail, WhatsApp, paciente sobre una/varias/todas/seleccionadas; confirma lo que cambia o manda | `93` |
+| 6 | Caja | `cashier` | ⏳ Siguiente | — |
 | 7 | Pacientes (lista y perfil, pestañas) | `patients` | ⏳ | — |
 | 8 | Órdenes de laboratorio | `lab_orders` | 🟡 Comandos sueltos existentes; falta llevarlo al esquema de la agenda | `e2e/tests/lab-orders/voice-commands.spec.ts` |
 | 9 | Periodontograma (sesión) | `perio` | 🟡 Dictado propio existente; falta integrarlo al botón único | `e2e/tests/patients/perio-voice-*.spec.ts` |
