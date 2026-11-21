@@ -13,6 +13,7 @@ import { useVoiceCommand } from '@/stores/voice-command-store';
 import { createSimCalendar, PATIENTS, type SimCalendar } from './calendar';
 import { createSimRail, disposeSimRail, type SimRail } from './rail';
 import { clearSimDashboard, publishSimDashboard, type SimDashboard } from './dashboard';
+import { clearSimWorkspace, publishSimWorkspace, type SimWorkspace } from './workspace';
 import { prepare, validate, type PreparedQuery } from './n8n';
 
 import en from '@/messages/en.json';
@@ -40,6 +41,8 @@ export interface VoiceSim {
   rail: SimRail;
   /** El panel de control (se publica al estar en «/»). */
   dashboard: () => SimDashboard | null;
+  /** Mi consultorio (se publica al estar en «/workspace»). */
+  workspace: () => SimWorkspace | null;
   /** Dice una frase (llega como frase terminada del reconocedor) y espera a que la sesión termine. */
   say: (text: string) => Promise<void>;
   /** Toca el botón Voz (prende o apaga el micrófono). */
@@ -126,9 +129,12 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   const rail = createSimRail();
   // Cada página simulada publica lo suyo al montarse (como en la app).
   let dashboard: SimDashboard | null = null;
+  let workspace: SimWorkspace | null = null;
   const mountPage = (to: string) => {
     clearSimDashboard();
+    clearSimWorkspace();
     dashboard = to === '/' ? publishSimDashboard() : null;
+    workspace = to === '/workspace' ? publishSimWorkspace() : null;
   };
   mountPage(route);
   configureVoiceTiming({ auxReturnMs: 10, awakeIdleMs: 60_000, awakePendingMs: 60_000, phraseGapMs: 0, echoGraceMs: 0 });
@@ -158,6 +164,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     cal,
     rail,
     dashboard: () => dashboard,
+    workspace: () => workspace,
     say,
     sayAll: async (...texts) => { for (const t of texts) await say(t); },
     toggle: async () => { toggleAlwaysOn(); await settle(); },
@@ -190,6 +197,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
       publishCalendarVoice(null);
       disposeSimRail();
       clearSimDashboard();
+      clearSimWorkspace();
       resetVoiceBridges();
       setFetchHandler(null);
       FakeRecognition.instances.length = 0;

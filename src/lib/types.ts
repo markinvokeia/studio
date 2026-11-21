@@ -5179,3 +5179,32 @@ export interface DashboardVoiceBridge {
   setCurrency: (currency: string) => void;
   reload: () => void;
 }
+
+/** Lo que Mi consultorio le ofrece a la voz (src/lib/voice/commands/workspace.ts). */
+export interface WorkspaceVoiceBridge {
+  loading: boolean;
+  appointments: Array<{ id: string; date: string; time: string; patient: string; service: string; status: string }>;
+  selectedId: string | null;
+  select: (appointmentId: string) => void;
+  preset: string;
+  setPreset: (preset: 'today' | 'tomorrow' | 'week' | 'next7' | 'month' | 'nextMonth' | 'prevMonth') => void;
+  setRange: (from: Date, to: Date) => void;
+  viewMode: 'mine' | 'calendar';
+  setViewMode: (mode: 'mine' | 'calendar') => void;
+  calendars: Array<{ id: string; name: string }>;
+  calendarId: string;
+  setCalendar: (calendarId: string) => void;
+  refresh: () => void;
+  panel: 'sessions' | 'odontogram';
+  setPanel: (panel: 'sessions' | 'odontogram') => void;
+  /** Acciones sobre la cita elegida; null = no se puede ahora (el motivo, en `blocked`). */
+  actions: {
+    session: (() => void) | null;
+    prescribe: (() => void) | null;
+    labOrder: (() => void) | null;
+    aesthetic: (() => void) | null;
+    perio: (() => void) | null;
+    patientFile: ((view?: 'anamnesis' | 'timeline') => void) | null;
+  };
+  blocked: 'noAppointment' | 'futureDate' | 'noPermission' | 'odontogramSession' | null;
+}

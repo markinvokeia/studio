@@ -254,6 +254,7 @@ export function isOnRoute(href: string, route = currentRoute()): boolean {
 export const ROUTE_VOICE_DOMAINS: Record<string, string[]> = {
   '/': ['dashboard'],
   '/appointments': ['calendar'],
+  '/workspace': ['workspace'],
   '/lab-orders': ['lab_orders'],
 };
 

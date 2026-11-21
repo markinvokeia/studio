@@ -3,6 +3,9 @@
 import * as React from 'react';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { useVoiceScreen } from '@/hooks/use-voice-screen';
+import { useVoiceBridge } from '@/lib/voice/screen-bridge';
+import type { WorkspaceVoiceBridge } from '@/lib/types';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
 import {
   WorkspaceDateRange,
@@ -845,6 +848,13 @@ async function labOrderDraftFromSession(
   const items = await findLabItemsInTreatments(newTreatments);
   if (items.length === 0) return null;
   return { doctor: data.doctor_id ? { id: data.doctor_id, name: data.doctor_name } : null, items };
+}
+
+/** Publica Mi consultorio para la voz (fuera del componente grande, para no tocar su memoización). */
+function WorkspaceVoice({ value }: { value: WorkspaceVoiceBridge }) {
+  useVoiceScreen(['workspace']);
+  useVoiceBridge('workspace', value);
+  return null;
 }
 
 export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspaceProps) {
@@ -1819,8 +1829,42 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     </Card>
   );
 
+  // Voz: «el paciente de las 10», «¿quién sigue?», «nueva sesión», «recetá», «periodontograma»,
+  // «abrí la ficha», «mañana», «ver la agenda Sillón 1». Ver src/lib/voice/commands/workspace.ts.
+  const voiceBlocked: WorkspaceVoiceBridge['blocked'] = !selectedAppointment ? 'noAppointment' : !canManageSessions ? 'noPermission' : isSessionEditingBlockedByDate ? 'futureDate' : null;
+  const voiceBridge: WorkspaceVoiceBridge = {
+    loading: isLoadingAppointments,
+    appointments: appointments.map((a) => ({
+      id: a.id, date: a.date ? formatDate(a.date) : '', time: a.time || '', patient: a.patientName || '',
+      service: a.service_name || a.summary || '', status: String(a.status ?? ''),
+    })),
+    selectedId: selectedAppointment?.id ?? null,
+    select: (id) => selectAppointment(id, true),
+    preset: datePreset,
+    setPreset: (preset) => handleDateRangeChange(getWorkspacePresetRange(preset), preset),
+    setRange: (from, to) => handleDateRangeChange({ from, to }, 'custom'),
+    viewMode,
+    setViewMode,
+    calendars: accessibleCalendars.map((c) => ({ id: c.id, name: c.name })),
+    calendarId: selectedCalendarId,
+    setCalendar: (id) => { setViewMode('calendar'); setSelectedCalendarId(id); },
+    refresh: () => { void loadAppointments(true); },
+    panel: activePanel,
+    setPanel: (panel) => setActivePanel(panel),
+    actions: {
+      session: !voiceBlocked && !isOdontogramSession ? () => handleClinicSessionOpenChange(true) : null,
+      prescribe: selectedAppointment ? () => setPrescriptionOpen(true) : null,
+      labOrder: selectedAppointment ? openLabOrder : null,
+      aesthetic: !voiceBlocked ? () => setCreateAestheticTrigger((n) => n + 1) : null,
+      perio: !voiceBlocked ? () => setCreatePerioTrigger((n) => n + 1) : null,
+      patientFile: selectedAppointment ? (view) => { setPatientFichaDefaultView(view); setPatientFichaOpen(true); } : null,
+    },
+    blocked: voiceBlocked ?? (isOdontogramSession ? 'odontogramSession' : null),
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-1 overflow-hidden p-2 sm:p-4 sm:pr-2">
+      <WorkspaceVoice value={voiceBridge} />
       <div className="flex h-full w-full min-h-0 flex-col gap-4">
         {isMobile && mobileDetailsOpen ? (
           renderDetailPanel

@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1669 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **1723 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -1994,3 +1994,67 @@ PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/result
 - **PC-NAV · Llegar al panel y preguntar**
   - desde la agenda: «volvé al inicio y decime cuánto producimos hoy»
   - en otra página no se lee el panel
+
+## 92-workspace.spec.ts (54)
+
+MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.
+
+- **MC-SELECT · Elegir la cita**
+  - es «el de las 10»
+  - es «abrí la cita de las 10 y media»
+  - es «el paciente de las 3 y media»
+  - es «el siguiente»
+  - es «el próximo paciente»
+  - es «abrí la cita de Carlos»
+  - es «pasá al de Sofía Castro»
+  - es «el último»
+  - es «atendé a Juan»
+  - es-ES «abre la cita de las 9»
+  - en «the 10 o clock»
+  - en «open the appointment at 3 30 pm»
+  - en «next patient»
+  - en «open Carlos's appointment»
+  - «el siguiente» después del elegido sigue al que viene
+  - «el anterior»
+  - hora que no está: lo dice
+- **MC-READ · Preguntar la agenda**
+  - «¿quién sigue?»
+  - «qué pacientes tengo»
+  - «qué pacientes tengo mañana» cambia el día y lee
+  - es-ES «qué pacientes tengo»
+  - en «who is next» y «what is on my schedule»
+- **MC-ACTION · Acciones sobre la cita**
+  - con la cita elegida «nueva sesión»
+  - con la cita elegida «registrá la sesión»
+  - con la cita elegida «recetale»
+  - con la cita elegida «hacé una receta»
+  - con la cita elegida «orden de laboratorio»
+  - con la cita elegida «abrí una sesión estética»
+  - con la cita elegida «abrí el periodontograma»
+  - con la cita elegida «abrí la ficha»
+  - con la cita elegida «mostrame la anamnesis»
+  - con la cita elegida «abrí la línea de tiempo»
+  - con la cita elegida «mostrame el odontograma»
+  - con la cita elegida «volvé a las sesiones»
+  - con el paciente en la frase: elige y hace
+  - «recetale a Sofía»
+  - «orden de laboratorio para el de las 10»
+  - sin cita elegida: la pide
+  - cita futura: dice por qué no
+  - «abrí la ficha de alguien que no está en la agenda» va al buscador del panel derecho
+  - en «new session» y «prescribe»
+- **MC-FILTER · Lo que muestra la agenda**
+  - «mostrame mañana»
+  - «esta semana»
+  - «los próximos 7 días»
+  - «ver este mes»
+  - «el mes que viene»
+  - «mostrame el mes pasado»
+  - «mis citas»
+  - «ver la agenda Sillón 2»
+  - «actualizá la agenda»
+  - «las agendas» pregunta cuál
+  - «mostrame del 1 al 15»
+  - en «show me tomorrow» y «my appointments»
+- **MC-NAV · Llegar y seguir**
+  - «andá a mi consultorio y abrí el de las 10»
