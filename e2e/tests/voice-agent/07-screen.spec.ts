@@ -407,3 +407,12 @@ test.describe('UI-SYN · Sinónimos de «poner un valor» (verbos y sustantivos)
     expect(uiLog).toEqual(['fill:Dosis=400 mg', 'fill:Precio=1500']);
   });
 });
+
+test.describe('UI-NOSEARCH · Buscar donde no hay buscador', () => {
+  test('«filtrá por Juan» lo dice (no «no entendí»)', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(screen.heading('Plantillas'), screen.button('Nueva plantilla'));
+    await sim.say('filtrá por Juan');
+    expect(sim.card().message).toBe('Esta tabla no tiene buscador.');
+  });
+});

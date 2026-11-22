@@ -187,7 +187,8 @@ for (const route of ROUTES) {
           await record('tabla · mostrar columna', P.show(hideCol), (before > 0 && (await page.locator('main [data-voice-table] thead th').count()) === before) || /mostr|show/i.test(await cardText(page)));
         }
       }
-      if (table.word) {
+      const hasSearch = await page.evaluate(() => !!document.querySelector('main input[type="search"], main [data-voice-table] input, main input[placeholder*="iltr"], main input[placeholder*="usca"], main input[placeholder*="earch"], main input[placeholder*="ilter"]'));
+      if (table.word && hasSearch) {
         await say(page, P.filter(table.word), 3500);
         const value = await page.evaluate((w) => Array.from(document.querySelectorAll<HTMLInputElement>('main input')).map((i) => i.value).find((v) => v.trim().toLowerCase() === w.toLowerCase()) ?? '', table.word);
         const card = await cardText(page);

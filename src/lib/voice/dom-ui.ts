@@ -140,7 +140,8 @@ function nearbyLabel(el: El): string {
   let up: HTMLElement | null = node.parentElement;
   // Primero las etiquetas, después los títulos, al final cualquier texto corto; las de una barra de
   // herramientas propia (dentro del mismo bloque que otro control) no cuentan.
-  const ok = (n: HTMLElement) => n !== node && !n.contains(node) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"], [role="combobox"]')
+  // Nunca el texto de adentro del propio control (lo escrito en un editor enriquecido no es su nombre).
+  const ok = (n: HTMLElement) => n !== node && !n.contains(node) && !node.contains(n) && !n.querySelector('button, input, textarea, select, [role="switch"], [role="checkbox"], [role="combobox"]')
     && !n.closest('[role="toolbar"], button, [role="button"], [role="combobox"]')
     // La etiqueta de otro campo no vale, salvo que sea del mismo bloque (color + su código «#FFFFFF»).
     && !(n.tagName === 'LABEL' && n.getAttribute('for') && document.getElementById(n.getAttribute('for')!) && document.getElementById(n.getAttribute('for')!) !== node && !n.parentElement?.contains(node));

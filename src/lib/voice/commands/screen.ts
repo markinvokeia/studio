@@ -32,6 +32,7 @@ type Parsed =
   | { op: 'search'; control: UiControl; value: string }
   | { op: 'row'; rows: UiControl[]; index: number | null; ambiguous: number[] | null }
   | { op: 'help' }
+  | { op: 'noSearch' }
   | { op: 'date'; iso: string }
   | { op: 'rowColor'; row: HTMLElement; rowLabel: string; color: string }
   | { op: 'rowAction'; action: string; hits: Array<{ row: string; button: HTMLElement; disabled: boolean }> };
@@ -266,6 +267,8 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   if (search) {
     const control = controlsOf(surface, 'search')[0];
     if (control) return { op: 'search', control, value: searchTerm(search[1], raw) || rawTail(raw, normalized, search[1]) };
+    // Buscar o filtrar donde no hay buscador (y tampoco una tabla que busque): se dice, no «no entendí».
+    if (!surface.isOverlay && !listVoiceBridges<{ search?: unknown }>('crud').some((b) => b?.search)) return { op: 'noSearch' };
   }
   // Un calendario a la vista (Feriados, Excepciones): «el 15 de diciembre», «la fecha es el martes», «elegí el 3».
   if (visibleDayGrid()) {
@@ -349,6 +352,10 @@ export async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       }
       await fillField(parsed.control.element, typed, ctx.signal);
       await done(ctx, t('VoiceCommands.fieldFilled', { field: parsed.control.label, value: typed }));
+      return;
+    }
+    case 'noSearch': {
+      await done(ctx, t('VoiceCommands.table.noSearch'));
       return;
     }
     case 'search': {
