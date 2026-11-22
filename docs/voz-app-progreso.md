@@ -63,6 +63,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
 | 29 | **Sinónimos para poner un valor** | `core.screen` | ✅ Verbos (poné, cambiá, modificá, editá, actualizá, seteá, definí, registrá, establecé, fijá, indicá, colocá, especificá, asigná, corregí…), sustantivos («cambio de vía a oral», «actualización del precio a 2000», «nueva dosis 400 mg») y el campo con su valor sin verbo («vía oral»). Con una ventana abierta, lo que es un botón o un campo suyo no va al agente clínico; «cancelar» / «cerrar» aprietan el botón equivalente de la ventana | `07`, `9b` + vivo |
 
+| 30 | **Color de una fila** (Colores del calendario y cualquier tabla con selector de color) | `core.screen` | ✅ «el color de Confirmada es rojo», «poné Programada en azul», «cambiá el color de Cancelada a #ff0000», «set the color of … to purple»: busca la fila, abre su selector y pone el color; «guardar» lo guarda. Probado en vivo hasta guardar y vuelto al original | `07` + vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).

@@ -314,6 +314,37 @@ test.describe('UI-ROWACT · La acción de una fila («desactivá la etapa X»)',
   });
 });
 
+test.describe('UI-ROWCOLOR · El color de una fila («el color de Confirmada es rojo»)', () => {
+  const colorRow = (name: string) => {
+    const row = new FakeEl('DIV', { 'data-voice-row': '' });
+    const input = new FakeEl('INPUT', { type: 'color' });
+    input.type = 'color';
+    input.onInput = (v) => uiLog.push(`color:${name}=${v}`);
+    row.append(new FakeEl('TD', {}, name), input);
+    return row;
+  };
+  for (const [locale, said, row, want] of [
+    ['es', 'el color de confirmada es rojo', 'Confirmada', '#ef4444'],
+    ['es', 'poné programada en azul', 'Programada', '#3b82f6'],
+    ['es', 'cambiá el color de cancelada a #ff0000', 'Cancelada', '#ff0000'],
+    ['es-ES', 'pon el color de confirmada en verde', 'Confirmada', '#22c55e'],
+    ['en', 'set the color of confirmada to purple', 'Confirmada', '#8b5cf6'],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => {
+      sim = await createVoiceSim({ locale, route: '/purchases/providers' });
+      screen.page(colorRow('Programada'), colorRow('Confirmada'), colorRow('Cancelada'));
+      await sim.say(said);
+      expect(uiLog).toEqual([`color:${row}=${want}`]);
+    });
+  }
+  test('una fila que no está: no pinta nada', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    screen.page(colorRow('Programada'));
+    await sim.say('el color de atendida es rojo');
+    expect(uiLog.filter((l) => l.startsWith('color:'))).toEqual([]);
+  });
+});
+
 test.describe('UI-FIELDNAME · Nombre sin paréntesis y número sin unidad', () => {
   test('«la duración es 5 días» en «Duración (días)» (numérico)', async () => {
     sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });

@@ -14578,7 +14578,9 @@
       "dateNotPicked": "No pude elegir el {date} en el calendario.",
       "rowActionDone": "Apreté «{action}» en «{row}».",
       "rowActionDisabled": "«{action}» no se puede en «{row}» (está deshabilitado).",
-      "fieldLocked": "«{field}» no se puede editar acá (no encontré cómo ponerlo en modo edición)."
+      "fieldLocked": "«{field}» no se puede editar acá (no encontré cómo ponerlo en modo edición).",
+      "colorSet": "Puse {row} en {color}.",
+      "colorNotFound": "No encontré el color de {row}."
     },
     "rail": {
       "title": "Panel derecho",

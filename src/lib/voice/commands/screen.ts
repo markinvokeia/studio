@@ -2,7 +2,7 @@ import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
 import { FILL_INTENT_RE, controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
 import { actionButtonIndex, voiceEscape } from '@/lib/voice/dom-dialog';
-import { valueForField } from '@/lib/voice/field-values';
+import { spokenColor, valueForField } from '@/lib/voice/field-values';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
 
@@ -32,6 +32,7 @@ type Parsed =
   | { op: 'row'; rows: UiControl[]; index: number | null; ambiguous: number[] | null }
   | { op: 'help' }
   | { op: 'date'; iso: string }
+  | { op: 'rowColor'; row: HTMLElement; rowLabel: string; color: string }
   | { op: 'rowAction'; action: string; hits: Array<{ row: string; button: HTMLElement; disabled: boolean }> };
 
 const PRESS_RE = /^(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|pulsa\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click) (?:en|sobre)|haz (?:clic|click) (?:en|sobre)|dale (?:clic |click )?(?:a|al|en)|click(?: on)?|press|tap(?: on)?|hit|push)\s+(?:(?:en|a|al|el|la|on|the)\s+)*(?:(?:boton|button)\s+(?:de\s+)?)?(.+)$/;
@@ -207,6 +208,29 @@ function closeOpenList() {
   voiceEscape(pop ?? document.activeElement);
 }
 
+
+/**
+ * «el color de Confirmada es rojo», «poné Programada en azul», «cambiá el color de Cancelada a #ff0000»:
+ * la fila nombrada y su color (un selector de color dentro de la fila: el campo o el botón que lo abre).
+ */
+function parseRowColor(normalized: string, raw: string, surface: UiSurface): Parsed | null {
+  const m = normalized.match(/^(?:(?:pone\w*|pon|cambia\w*|deja\w*|set|change|make)\s+)?(?:(?:el|the)\s+)?colou?r\s+(?:de|del|de la|of|for)\s+(.+?)\s+(?:es|a|en|por|to|as|is|=)\s+(.+)$/)
+    ?? normalized.match(/^(?:pone\w*|pon|pinta\w*|set|make|paint)\s+(?:(?:el|la|the)\s+)?(.+?)\s+(?:en|de|a|to|in)\s+(?:color\s+)?(.+)$/);
+  if (!m) return null;
+  const color = spokenColor(m[2]) ?? spokenColor(raw.split(/\s+/).slice(-1)[0] ?? '');
+  if (!color) return null;
+  const root = surface.root as HTMLElement;
+  if (typeof root.querySelectorAll !== 'function') return null;
+  const name = m[1].replace(/^(?:la|el|los|las|the)\s+/, '');
+  const rows = Array.from(root.querySelectorAll<HTMLElement>('tbody tr, [data-voice-row], [role="row"], li'));
+  const hit = rows.find((r) => {
+    const first = normalizeSpeech((r.querySelector('td, th, [role="cell"]')?.textContent ?? r.textContent ?? '').trim());
+    return first === name || first.startsWith(`${name} `) || normalizeSpeech(r.textContent ?? '').startsWith(name);
+  });
+  if (!hit || !hit.querySelector('input[type="color"], button')) return null;
+  return { op: 'rowColor', row: hit, rowLabel: (hit.querySelector('td, th')?.textContent ?? name).trim(), color };
+}
+
 /** Qué se pide de la pantalla, o null (no es para esto). */
 export function parseScreen(normalized: string, raw: string, surface: UiSurface | null = readSurface()): Parsed | null {
   if (!surface || !normalized) return null;
@@ -253,6 +277,8 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   }
   const row = parseRow(normalized, controlsOf(surface, 'row'));
   if (row) return row;
+  const rowColor = parseRowColor(normalized, raw, surface);
+  if (rowColor) return rowColor;
   const rowAction = parseRowAction(normalized, surface);
   if (rowAction) return rowAction;
   // El texto de un botón o pestaña dicho tal cual («guardar», «nuevo paciente», «siguiente»).
@@ -409,6 +435,24 @@ export async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
       const row = parsed.rows[index];
       row.element.click();
       await done(ctx, t('VoiceCommands.ui.rowOpened', { label: row.label.slice(0, 80) }), t('VoiceCommands.ui.rowOpenedShort'));
+      return;
+    }
+    case 'rowColor': {
+      // El campo de color de la fila; si no hay, el botón que abre el selector y su campo.
+      let input = parsed.row.querySelector<HTMLInputElement>('input[type="color"]');
+      if (!input) {
+        const swatch = Array.from(parsed.row.querySelectorAll<HTMLElement>('button')).find((b) => /^#[0-9a-f]{3,6}$/i.test((b.textContent || b.getAttribute('aria-label') || '').trim()) || !!b.querySelector('[style*="background"]'));
+        swatch?.click();
+        for (let i = 0; i < 15 && !input && !ctx.signal.aborted; i++) {
+          await new Promise((r) => setTimeout(r, 80));
+          input = Array.from(document.querySelectorAll<HTMLInputElement>('[data-radix-popper-content-wrapper] input[type="color"], [role="dialog"] input[type="color"]')).pop() ?? null;
+        }
+      }
+      if (!input) { await done(ctx, t('VoiceCommands.ui.colorNotFound', { row: parsed.rowLabel })); return; }
+      typeInto(input, parsed.color);
+      await new Promise((r) => setTimeout(r, 80));
+      if (input.closest('[data-radix-popper-content-wrapper]')) voiceEscape(input);
+      await done(ctx, t('VoiceCommands.ui.colorSet', { row: parsed.rowLabel, color: parsed.color }));
       return;
     }
     case 'rowAction': {

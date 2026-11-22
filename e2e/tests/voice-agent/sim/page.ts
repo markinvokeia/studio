@@ -50,6 +50,7 @@ export class FakeEl {
     return this.querySelectorAll(selector)[0] ?? null;
   }
   closest() { return null; }
+  contains(other: unknown) { return other === this || this.descendants().includes(other as FakeEl); }
   click() { this.onClick?.(); }
   focus() {}
   dispatchEvent(event: { type?: string }) {
