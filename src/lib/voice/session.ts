@@ -3,8 +3,8 @@ import { useVoiceCommand } from '@/stores/voice-command-store';
 import { parseChoice, parseChoiceDetailed, parseYesNo, normalizeSpeech } from '@/lib/voice/parse';
 import { interpretWithAi } from '@/lib/voice/ai';
 import { suggestActions } from '@/lib/voice/suggest';
-import { closeTopOverlay, hasOpenOverlay, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, watchOverlays, type OpenDialog, type OpenOverlay } from '@/lib/voice/dom-dialog';
-import { isScreenLoading, waitScreenReady } from '@/lib/voice/dom-ui';
+import { closeTopOverlay, hasOpenOverlay, voiceEscape, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, watchOverlays, type OpenDialog, type OpenOverlay } from '@/lib/voice/dom-dialog';
+import { controlsOf, isScreenLoading, readSurface, waitScreenReady } from '@/lib/voice/dom-ui';
 import { valueForField } from '@/lib/voice/field-values';
 import { setAppointmentFocus } from '@/lib/voice/focus';
 import { getVoiceDomain, listVoiceAiDomains, matchVoiceAiResult, matchVoiceCommand } from '@/lib/voice/registry';
@@ -165,12 +165,25 @@ let overlayDuringTask: OpenOverlay | null = null;
 
 const CLOSE_LABEL = /^(?:x|cerrar|close|×)$/i;
 
+/** Los botones que hacen algo con la ventana van primero (guardar, cancelar…), después el resto. */
+const PRIMARY_BUTTON = /^(?:guardar|grabar|crear|confirmar|aceptar|aplicar|cobrar|facturar|enviar|continuar|siguiente|finalizar|cancelar|cerrar|eliminar|borrar|descartar|save|create|confirm|accept|apply|charge|send|continue|next|finish|cancel|close|delete|discard)\b/i;
+/** Lo que no sirve ofrecer: fechas sueltas, números, «Ampliar ventana». */
+const NOT_OFFERED = /^(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d+|ampliar ventana|expand window|reducir ventana)$/i;
+
 /** «Se abrió «Nueva sede». Podés completar Nombre, Dirección… o decir Guardar o Cancelar.» */
 function overlayPrompt(overlay: OpenOverlay): { message: string; choices: Array<{ label: string }> } | null {
   if (!deps) return null;
   const or = deps.t('VoiceCommands.or');
-  const buttons = Array.from(new Set(overlay.buttons.map((b) => b.label).filter((l) => l.length <= 40 && !CLOSE_LABEL.test(l)))).slice(0, 6);
-  const fields = Array.from(new Set(overlay.fields.map((f) => f.label).filter((l) => l.length <= 40))).slice(0, 4);
+  // Los nombres como los entiende la voz (la etiqueta del campo, no su ejemplo); si no, los del DOM.
+  const surface = readSurface();
+  const own = surface?.isOverlay ? surface : null;
+  const surfaceFields = own ? controlsOf(own, 'field', 'select').map((c) => c.label) : [];
+  const surfaceButtons = own ? controlsOf(own, 'button').map((c) => c.label) : [];
+  const fieldLabels = surfaceFields.length ? surfaceFields : overlay.fields.map((f) => f.label);
+  const buttonLabels = surfaceButtons.length ? surfaceButtons : overlay.buttons.map((b) => b.label);
+  const cleanButtons = Array.from(new Set(buttonLabels.filter((l) => l.length <= 40 && !CLOSE_LABEL.test(l) && !NOT_OFFERED.test(l.trim()))));
+  const buttons = [...cleanButtons.filter((l) => PRIMARY_BUTTON.test(l)), ...cleanButtons.filter((l) => !PRIMARY_BUTTON.test(l))].slice(0, 6);
+  const fields = Array.from(new Set(fieldLabels.filter((l) => l.length <= 40 && !/\.\.\.|…$/.test(l)))).slice(0, 4);
   if (!buttons.length && !fields.length) return null;
   const message = fields.length
     ? deps.t('VoiceCommands.overlayAskFields', { title: overlay.title, fields: fields.join(', '), options: buttons.join(or) || '—' })
@@ -264,6 +277,16 @@ function onDialogOpen(dialog: OpenDialog) {
         return;
       }
       if (!current) { dialogEntry = null; return; }
+      // Otro pedido (otra pantalla, otro tema): cambio de contexto. Se cierra el aviso sin elegir
+      // (como Escape) y se hace lo nuevo.
+      const normalizedText = normalizeSpeech(text);
+      const other = deps ? matchVoiceCommand(deps.domains, normalizedText, text, (c) => c.id === 'core.screen' || c.id === 'core.close') : null;
+      if (other && parseYesNo(normalizedText) === null) {
+        dialogEntry = null;
+        voiceEscape(current.element);
+        setTimeout(() => { if (deps) void handleText(text, { conversational: false }); }, 250);
+        return;
+      }
       if (++unclear > MAX_UNCLEAR) { dialogEntry = null; store().set({ awaiting: null }); return; }
       pendingStack.push(entry);
       store().set({ card: { ...card, message: deps!.t('VoiceCommands.dialogAskAgain', { options: labels.join(or) }) }, awaiting: 'choice', phase: 'waiting' });

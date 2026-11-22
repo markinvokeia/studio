@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { openWindow } from './sim/dom';
+import { openPopup, openWindow } from './sim/dom';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
 import { screen, uiLog } from './sim/page';
 
@@ -185,5 +185,54 @@ test.describe('UN-AI · La IA de la pantalla (n8n «screen»): pasos y propuesta
     await sim.say('quiero los mapas al día ya mismo');
     const call = sim.aiCalls.find((c) => (c.context as { screen?: unknown }).screen);
     expect(call?.prompt ?? '').not.toContain('Carolina');
+  });
+});
+
+test.describe('UN-SWITCH · Con un aviso abierto, otro pedido es un cambio de contexto', () => {
+  test('«andá a pacientes» cierra el aviso sin elegir y va', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+    page();
+    const popup = openPopup('Atención', [{ label: 'No' }, { label: 'Sí' }], { description: '¿Darle esta nueva hora?' });
+    await sim.wait(80);
+    expect(sim.card().awaiting).toBe('choice');
+    await sim.say('andá a pacientes');
+    await sim.wait(400);
+    expect(popup.open).toBe(false);
+    expect(popup.pressed).toEqual([]);
+    expect(sim.navigations).toContain('/patients');
+  });
+  test('«sí» sigue siendo la respuesta del aviso', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+    page();
+    const popup = openPopup('Atención', [{ label: 'No' }, { label: 'Sí' }]);
+    await sim.wait(80);
+    await sim.say('sí');
+    expect(popup.pressed).toEqual(['Sí']);
+  });
+});
+
+test.describe('UN-VERBS · El verbo dicho con otra palabra («aplicá los cambios» → «Confirmar todo»)', () => {
+  for (const [said, want] of [
+    ['aplicá los cambios', 'Confirmar todo'],
+    ['aceptá todo', 'Confirmar todo'],
+    ['grabá', 'Guardar'],
+    ['borrá esto', 'Eliminar'],
+  ] as const) {
+    test(`«${said}» → ${want}`, async () => {
+      sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+      screen.page(screen.heading('Odontograma'), screen.button('Confirmar todo'), screen.button('Guardar'), screen.button('Eliminar'));
+      await sim.say(said);
+      expect(uiLog).toEqual([`press:${want}`]);
+    });
+  }
+});
+
+test.describe('UN-OVERLAY2 · El aviso de ventana con los nombres de los campos y los botones de acción primero', () => {
+  test('etiquetas (no ejemplos) y Guardar/Cancelar antes que los demás', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+    page();
+    openWindow('Crear sesión', { tree: screen.group(screen.field('Procedimiento', { placeholder: 'Ingrese el procedimiento realizado...' }), screen.button('22/11/2026'), screen.button('Añadir'), screen.button('Cancelar'), screen.button('Guardar')) });
+    await sim.wait(80);
+    expect(sim.card().message).toBe('Se abrió «Crear sesión». Decime qué completar (Procedimiento…) o qué apretar: Cancelar o Guardar o Añadir.');
   });
 });

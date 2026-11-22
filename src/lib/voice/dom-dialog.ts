@@ -260,12 +260,37 @@ export function actionButtonIndex(said: string, labels: string[]): number {
   const verb = actionRoot(words[0]);
   if (verb.length < 3) return -1;
   const rest = words.slice(1).filter((w) => !VERB_FILLER.has(w)).map(actionRoot);
-  const hits = labels
+  const generic = rest.length > 0 && rest.every((w) => GENERIC_OBJECT.has(w));
+  const find = (same: (a: string) => boolean) => labels
     .map((l, i) => ({ i, words: l.split(' ').filter(Boolean) }))
-    .filter(({ words: lw }) => lw.length && actionRoot(lw[0]) === verb)
-    .filter(({ words: lw }) => { const roots = lw.slice(1).filter((w) => !VERB_FILLER.has(w)).map(actionRoot); return rest.every((w) => roots.includes(w)) && (rest.length > 0 || roots.length === 0 || lw.length <= 2); });
-  return hits.length === 1 ? hits[0].i : -1;
+    .filter(({ words: lw }) => lw.length && same(actionRoot(lw[0])))
+    .filter(({ words: lw }) => {
+      const roots = lw.slice(1).filter((w) => !VERB_FILLER.has(w)).map(actionRoot);
+      // «aplicá los cambios» = «Confirmar todo»: lo dicho y el botón hablan de «todo» sin nombrar qué.
+      if (generic && roots.every((w) => GENERIC_OBJECT.has(w))) return true;
+      return rest.every((w) => roots.includes(w)) && (rest.length > 0 || roots.length === 0 || lw.length <= 2);
+    });
+  const exact = find((r) => r === verb);
+  if (exact.length) return exact.length === 1 ? exact[0].i : -1;
+  // Sinónimos del verbo («grabá» = «Guardar», «aplicá» = «Confirmar», «borrá» = «Eliminar»).
+  const group = VERB_GROUPS.find((g) => g.includes(verb));
+  if (!group) return -1;
+  const synonyms = find((r) => group.includes(r));
+  return synonyms.length === 1 ? synonyms[0].i : -1;
 }
+
+/** Raíces de verbos que en un botón significan lo mismo. */
+const VERB_GROUPS = [
+  ['guard', 'grab', 'salv', 'sav'],
+  ['confirm', 'aplic', 'acept', 'apply', 'accept', 'ok'],
+  ['elimin', 'borr', 'quit', 'delet', 'remov', 'eras'],
+  ['agreg', 'anad', 'sum', 'add', 'cre', 'creat', 'insert'],
+  ['cancel', 'descart', 'discard', 'dismiss'],
+  ['cerr', 'cierr', 'clos', 'sal', 'exit'],
+  ['envi', 'mand', 'send', 'submit'],
+];
+/** Lo que nombra «todo» sin decir qué («los cambios», «todo», «esto»). */
+const GENERIC_OBJECT = new Set(['tod', 'todo', 'todos', 'cambi', 'cambio', 'cambios', 'est', 'esto', 'eso', 'all', 'everyth', 'everything', 'chang', 'change', 'changes', 'propuest', 'marc']);
 
 /** «apretá Guardar», «dale a Editar», «click Save», o el texto de un botón dicho tal cual. */
 export function pickOverlayButton(normalized: string, overlay: OpenOverlay): OpenOverlay['buttons'][number] | null {

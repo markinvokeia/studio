@@ -479,10 +479,22 @@ export async function fillField(element: HTMLElement, value: string, signal?: Ab
     const editable = el.getAttribute?.('contenteditable') === 'true';
     const now = editable ? (el.textContent ?? '').trim() : (el as HTMLInputElement).value;
     if (editable ? now.includes(value.trim()) : now === value) {
-      if (i >= 1) return el; // Se mantuvo dos vueltas: ya no lo borra el reset.
+      if (i >= 1) return commitTyped(el, value); // Se mantuvo dos vueltas: ya no lo borra el reset.
       continue;
     }
     typeInto(el, value);
+  }
+  return commitTyped(el, value);
+}
+
+/**
+ * Los campos que toman lo escrito al salir (el selector de fecha «dd/mm/aaaa»): se avisa la salida
+ * como si se pasara al campo siguiente, para que el formulario se quede con la fecha.
+ */
+function commitTyped(el: HTMLElement, value: string): HTMLElement {
+  if (el.tagName === 'INPUT' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value.trim()) && typeof FocusEvent !== 'undefined') {
+    el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    el.dispatchEvent(new FocusEvent('blur'));
   }
   return el;
 }

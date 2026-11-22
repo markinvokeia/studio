@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2373 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2380 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -2818,7 +2818,7 @@ EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimi
   - en «print invoice 12»
   - lo que no está lo dice
 
-## 9f-understanding.spec.ts (23)
+## 9f-understanding.spec.ts (30)
 
 UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.
 
@@ -2848,3 +2848,13 @@ UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más p
   - propuestas de la IA: se elige y se hace
   - en inglés
   - lo que está en las filas no viaja a la IA (pueden ser pacientes)
+- **UN-SWITCH · Con un aviso abierto, otro pedido es un cambio de contexto**
+  - «andá a pacientes» cierra el aviso sin elegir y va
+  - «sí» sigue siendo la respuesta del aviso
+- **UN-VERBS · El verbo dicho con otra palabra («aplicá los cambios» → «Confirmar todo»)**
+  - «aplicá los cambios» → Confirmar todo
+  - «aceptá todo» → Confirmar todo
+  - «grabá» → Guardar
+  - «borrá esto» → Eliminar
+- **UN-OVERLAY2 · El aviso de ventana con los nombres de los campos y los botones de acción primero**
+  - etiquetas (no ejemplos) y Guardar/Cancelar antes que los demás
