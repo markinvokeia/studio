@@ -755,7 +755,8 @@
     "ambiguous": "It can also be read as a number from {country} ({number}).",
     "useAlternative": "Use +{callingCode}",
     "searchCountry": "Search country...",
-    "noCountryFound": "No country found."
+    "noCountryFound": "No country found.",
+    "countryVoice": "phone country"
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",

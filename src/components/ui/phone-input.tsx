@@ -277,6 +277,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(({
               role="combobox"
               aria-expanded={open}
               aria-label={country ? countryName(country) : undefined}
+              data-voice-label={t('countryVoice')}
               disabled={rest.disabled}
               className="h-auto shrink-0 gap-1 rounded-e-none px-2"
             >

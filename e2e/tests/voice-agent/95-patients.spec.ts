@@ -20,6 +20,9 @@ test.describe('PA-LIST · Buscar, abrir, filtrar', () => {
   test('«abrí el segundo»', async () => { await start(); await sim.say('abrí el segundo'); expect(log()).toEqual(['select:p2']); });
   test('«abrí la ficha de Carlos López» (está en la lista)', async () => { await start(); await sim.say('abrí la ficha de Carlos López'); expect(log()).toEqual(['select:p4']); });
   test('«abrí la ficha de Sofía Castro» (no está a la vista): la busca', async () => { await start(); await sim.say('abrí la ficha de Sofía Castro'); expect(log()).toEqual(['search:Sofía Castro', 'select:p9']); });
+  for (const said of ['mostrá la columna Correo Electrónico', 'seleccioná el 1', 'abrí el registro 3', 'mostrá la fila 2']) {
+    test(`«${said}» es de la tabla, no un nombre de paciente`, async () => { await start(); await sim.say(said); expect(log().filter((l) => l.startsWith('search:'))).toEqual([]); });
+  }
   test('«abrí a Ana» con dos: pregunta', async () => { await start(); await sim.say('abrí a Ana'); await sim.say('Martínez'); expect(log()).toEqual(['select:p3']); });
   for (const [said, want] of [
     ['solo los deudores', 'debtors:true'], ['mostrame los que deben', 'debtors:true'], ['sacá el filtro de deudores', 'debtors:false'],

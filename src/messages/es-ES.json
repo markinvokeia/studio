@@ -755,7 +755,8 @@
     "ambiguous": "También puede ser un número de {country} ({number}).",
     "useAlternative": "Usar +{callingCode}",
     "searchCountry": "Buscar país...",
-    "noCountryFound": "No se ha encontrado ningún país."
+    "noCountryFound": "No se ha encontrado ningún país.",
+    "countryVoice": "país del teléfono"
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",

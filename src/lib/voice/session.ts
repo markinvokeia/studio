@@ -166,7 +166,7 @@ let overlayDuringTask: OpenOverlay | null = null;
 const CLOSE_LABEL = /^(?:x|cerrar|close|×)$/i;
 
 /** Los botones que hacen algo con la ventana van primero (guardar, cancelar…), después el resto. */
-const PRIMARY_BUTTON = /^(?:guardar|grabar|crear|confirmar|aceptar|aplicar|cobrar|facturar|enviar|continuar|siguiente|finalizar|cancelar|cerrar|eliminar|borrar|descartar|save|create|confirm|accept|apply|charge|send|continue|next|finish|cancel|close|delete|discard)\b/i;
+const PRIMARY_BUTTON = /^(?:guardar|grabar|crear|confirmar|aceptar|aplicar|cobrar|facturar|enviar|continuar|siguiente|finalizar|cancelar|cerrar|eliminar|borrar|descartar|save|create|confirm|accept|apply|charge|invoice|collect|pay|send|continue|next|finish|cancel|close|delete|discard)\b/i;
 /** Lo que no sirve ofrecer: fechas sueltas, números, «Ampliar ventana». */
 const NOT_OFFERED = /^(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d+|ampliar ventana|expand window|reducir ventana)$/i;
 

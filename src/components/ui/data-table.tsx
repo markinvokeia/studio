@@ -285,6 +285,8 @@ export function DataTable<TData, TValue>({
   useVoiceScreen(['crud']);
   const voiceKey = React.useId();
   const voiceRootRef = React.useRef<HTMLDivElement | null>(null);
+  // El nombre visto de cada columna: oculta no tiene encabezado, y «mostrá la columna X» la nombra igual.
+  const voiceColumnLabels = React.useRef(new Map<string, string>());
   const cellText = (value: unknown) => (typeof value === 'string' || typeof value === 'number' ? String(value) : '');
   const voiceRows = table.getRowModel().rows.map((row) => {
     const cells: Record<string, string> = {};
@@ -318,7 +320,9 @@ export function DataTable<TData, TValue>({
         .map((c) => {
           const th = root?.querySelector<HTMLElement>(`th[data-column-id="${CSS.escape(c.id)}"]`);
           const headerStr = typeof c.columnDef.header === 'string' ? c.columnDef.header : '';
-          const label = (th?.textContent || columnTranslations[c.id] || headerStr || c.id.replace(/[_-]+/g, ' ')).trim();
+          const seen = th?.textContent?.trim();
+          if (seen) voiceColumnLabels.current.set(c.id, seen);
+          const label = (seen || voiceColumnLabels.current.get(c.id) || columnTranslations[c.id] || headerStr || c.id.replace(/[_-]+/g, ' ')).trim();
           const sorted = c.getIsSorted();
           return { id: c.id, label, visible: c.getIsVisible(), canHide: c.getCanHide() && typeof c.accessorFn !== 'undefined', canSort: c.getCanSort(), sort: sorted === false ? null : sorted };
         })
