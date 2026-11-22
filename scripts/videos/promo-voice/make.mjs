@@ -27,6 +27,10 @@ const OUT = join(ROOT, 'videos', 'promo-voice', 'out');
 const INTRO_CLIP = join(ROOT, 'videos', 'promo-voice', 'intro', `intro-${LOCALE}.mp4`);
 mkdirSync(BUILD, { recursive: true });
 mkdirSync(OUT, { recursive: true });
+/** Con intro (la persona) no va la portada de título: el gancho ya la hace. */
+const HAS_INTRO = existsSync(INTRO_CLIP);
+/** Dónde está el celular al final de la intro (fracción del cuadro): ahí entra el zoom. */
+const PHONE = { es: [0.353, 0.48], en: [0.313, 0.66] }[LOCALE] ?? [0.5, 0.5];
 
 const W = 1920;
 const H = 1080;
@@ -86,7 +90,7 @@ for (let i = 0; i < phrases.length; i++) {
 
 // Dónde cae cada momento de la toma en el video (los fundidos se solapan XF).
 const offsets = [];
-let t = TITLE - XF;
+let t = HAS_INTRO ? 0 : TITLE - XF;
 for (let i = 0; i < keep.length; i++) {
   offsets.push(t);
   t += keep[i].e - keep[i].s - XF;
@@ -121,10 +125,11 @@ const inputs = ['-i', clip, '-loop', '1', '-t', String(TITLE), '-i', join(BUILD,
 const filters = [`[1:v]${fit}[title]`, `[2:v]${fit}[outro]`];
 keep.forEach((k, i) => filters.push(`[0:v]trim=start=${k.s.toFixed(3)}:end=${k.e.toFixed(3)},setpts=PTS-STARTPTS,${fit}[k${i}]`));
 // Fundidos en cadena: portada → tramos → cierre.
-let prev = 'title';
-let length = TITLE;
-const chain = [...keep.map((_, i) => `k${i}`), 'outro'];
-const lens = [...keep.map((k) => k.e - k.s), OUTRO];
+let prev = HAS_INTRO ? 'k0' : 'title';
+let length = HAS_INTRO ? keep[0].e - keep[0].s : TITLE;
+const chain = [...keep.map((_, i) => `k${i}`).slice(HAS_INTRO ? 1 : 0), 'outro'];
+const lens = [...keep.map((k) => k.e - k.s).slice(HAS_INTRO ? 1 : 0), OUTRO];
+if (HAS_INTRO) filters.push('[title]nullsink');
 chain.forEach((name, i) => {
   const out = i === chain.length - 1 ? 'v' : `x${i}`;
   filters.push(`[${prev}][${name}]xfade=transition=fade:duration=${XF}:offset=${(length - XF).toFixed(3)}[${out}]`);
@@ -143,17 +148,29 @@ run('ffmpeg', ['-y', '-v', 'error', ...inputs, '-filter_complex', filters.join('
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', body]);
 
 const out = join(OUT, `invoke-voz-${LOCALE}-16x9.mp4`);
-if (existsSync(INTRO_CLIP)) {
-  // La intro (la persona en la clínica) entra a la app con un zoom y un fundido.
+if (HAS_INTRO) {
+  // La intro (la persona en la clínica): en su último segundo la cámara entra a la pantalla del
+  // celular (curva suave) y un fundido pasa a la app.
   const introLen = duration(INTRO_CLIP);
-  const zoomFrom = Math.round((introLen - 1.0) * FPS);
-  const fz = `scale=${W * 2}:${H * 2},zoompan=z='if(gte(on,${zoomFrom}),min(zoom+0.06,2.4),1)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},format=yuv420p,setsar=1,settb=AVTB`;
+  const ZOOM_S = 1.15;
+  const ZMAX = 3.4;
+  const zs = Math.round((introLen - ZOOM_S) * FPS);
+  const nz = Math.round(ZOOM_S * FPS);
+  // p: 0 → 1 con aceleración suave (smoothstep); el centro va del medio al celular a medida que acerca.
+  const p = `(if(lt(on,${zs}),0,min(1,(on-${zs})/${nz})))`;
+  const ease = `(${p}*${p}*(3-2*${p}))`;
+  const z = `(1+${ease}*${ZMAX - 1})`;
+  const cx = `(iw/2+(${PHONE[0]}*iw-iw/2)*${ease})`;
+  const cy = `(ih/2+(${PHONE[1]}*ih-ih/2)*${ease})`;
+  const fz = `scale=${W * 2}:${H * 2}:flags=lanczos,setsar=1,fps=${FPS},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,${cx}-iw/zoom/2))':y='max(0,min(ih-ih/zoom,${cy}-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},format=yuv420p,setsar=1,settb=AVTB`;
+  const XI = 0.5;
   run('ffmpeg', ['-y', '-v', 'error', '-i', INTRO_CLIP, '-i', body, '-filter_complex',
-    `[0:v]${fz}[iv];[1:v]settb=AVTB[bv];[iv][bv]xfade=transition=fade:duration=0.6:offset=${(introLen - 0.6).toFixed(3)}[v];[0:a]aresample=44100[ia];[1:a]aresample=44100[ba];[ia][ba]acrossfade=d=0.6[a]`,
+    `[0:v]${fz}[iv];[1:v]settb=AVTB[bv];[iv][bv]xfade=transition=fade:duration=${XI}:offset=${(introLen - XI).toFixed(3)}[v];[0:a]aresample=44100,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100[ia];[1:a]aresample=44100[ba];[ia][ba]acrossfade=d=${XI}[a]`,
     '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out]);
 } else {
   run('ffmpeg', ['-y', '-v', 'error', '-i', body, '-c', 'copy', '-movflags', '+faststart', out]);
 }
 const sumAt = outAt(at('summary.ready') ?? 0);
-run('ffmpeg', ['-y', '-v', 'error', '-ss', String((sumAt ?? 10) + 1.5), '-i', out, '-frames:v', '1', '-q:v', '3', out.replace(/\.mp4$/, '.jpg')]);
+const introShift = HAS_INTRO ? duration(INTRO_CLIP) - 0.5 : 0;
+run('ffmpeg', ['-y', '-v', 'error', '-ss', String((sumAt ?? 10) + 1.5 + introShift), '-i', out, '-frames:v', '1', '-q:v', '3', out.replace(/\.mp4$/, '.jpg')]);
 console.log(`[promo-voice] ${out} (${duration(out).toFixed(1)} s)`);
