@@ -33,7 +33,7 @@ const FPS = 30;
 const INTRO = 1.1;
 const OUTRO = 1.6;
 /** Lo que pueden durar las frases (sin portada ni cierre). */
-const BUDGET = 39.7 - INTRO - OUTRO;
+const BUDGET = 39.5 - INTRO - OUTRO;
 
 /** De qué toma sale cada tramo: desde la marca `from` hasta la marca `to` (null: hasta el final). */
 const TAKES = {
@@ -68,8 +68,11 @@ for (const take of TAKES[LOCALE]) {
   for (let i = start; i < (stop < 0 ? marks.length : stop); i++) {
     const s = Math.max(0, marks[i].at / 1000 - LEAD);
     const e = i + 1 < marks.length ? marks[i + 1].at / 1000 - LEAD : total;
-    const audio = join(AUDIO, `${marks[i].key}.mp3`);
-    segments.push({ key: marks[i].key, file, s, e, raw: e - s, voice: existsSync(audio) ? audio : null, voiceLen: existsSync(audio) ? duration(audio) / TEMPO : 0 });
+    const original = join(AUDIO, `${marks[i].key}.mp3`);
+    // Más rápida antes de mezclar (atempo dentro de la mezcla rompe los tiempos de la pista).
+    const audio = TEMPO !== 1 && existsSync(original) ? join(BUILD, `${LOCALE}-${marks[i].key}.wav`) : original;
+    if (audio !== original) run('ffmpeg', ['-y', '-v', 'error', '-i', original, '-filter:a', `atempo=${TEMPO}`, '-ar', '44100', audio]);
+    segments.push({ key: marks[i].key, file, s, e, raw: e - s, voice: existsSync(audio) ? audio : null, voiceLen: existsSync(audio) ? duration(audio) : 0 });
   }
 }
 
@@ -151,8 +154,8 @@ let t = INTRO;
 const delays = [];
 segments.forEach((g) => { if (g.voice) delays.push(Math.round((t + 0.12) * 1000)); t += g.out; });
 const firstVoice = introIdx + 2;
-voiceInputs.forEach((_, i) => filters.push(`[${firstVoice + i}:a]${TEMPO !== 1 ? `atempo=${TEMPO},` : ''}adelay=${delays[i]}|${delays[i]},volume=1.0[a${i}]`));
-filters.push(`${voiceInputs.map((_, i) => `[a${i}]`).join('')}amix=inputs=${voiceInputs.length}:normalize=0,apad[a]`);
+voiceInputs.forEach((_, i) => filters.push(`[${firstVoice + i}:a]aresample=44100,adelay=${delays[i]}|${delays[i]},volume=1.0[a${i}]`));
+filters.push(`${voiceInputs.map((_, i) => `[a${i}]`).join('')}amix=inputs=${voiceInputs.length}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100,apad[a]`);
 
 const out = join(OUT, `invoke-voz-${LOCALE}-16x9.mp4`);
 const totalLen = INTRO + sum(target) + OUTRO;
