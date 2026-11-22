@@ -162,6 +162,7 @@ test.describe('MC-SWITCH · Cambiar de caso clínico (de paciente)', () => {
     ['es', 'quiero ver ahora el de Sofía', 'select:w4'], ['es', 'ahora el de Juan Pérez', 'select:w2'], ['es', 'mostrame el caso de Carlos', 'select:w3'],
     ['es', 'abrí el caso de Juan', 'select:w2'], ['es-ES', 'cierra este caso y abre el de Juan', 'select:w2'], ['en', 'close this case and open Carlos', 'select:w3'],
     ['en', 'now the one of Juan', 'select:w2'],
+    ['es', 'ahora el de las 15:30', 'select:w4'], ['es', 'y ahora el de las 10', 'select:w2'], ['es-ES', 'ahora el de las 10:30', 'select:w3'], ['en', 'now the one at 10:30', 'select:w3'],
     ['es', 'el paciente Juan', 'select:w2'], ['es', 'paciente Carlos', 'select:w3'], ['es', 'el siguiente paciente', 'select:w2'], ['es', 'el paciente siguiente', 'select:w2'],
     ['es', 'el último paciente', 'select:w4'], ['es', 'el primer paciente', 'select:w1'], ['en', 'the next patient', 'select:w2'], ['en', 'the patient Carlos', 'select:w3'],
   ] as const) {

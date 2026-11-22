@@ -66,8 +66,19 @@ function initScript() {
       el.appendChild(document.createElement('span'));
       document.body.appendChild(el);
     }
-    el.lastChild.textContent = text ? `«${text}»` : '';
+    clearInterval(window.__captionTimer);
     el.style.opacity = text ? '1' : '0';
+    if (!text) { el.lastChild.textContent = ''; return; }
+    // Se va escribiendo al ritmo de la voz (como el reconocimiento en vivo).
+    const words = text.split(' ');
+    const step = Math.max(40, (window.__captionMs || 0) / words.length);
+    let n = window.__captionMs ? 1 : words.length;
+    el.lastChild.textContent = `«${words.slice(0, n).join(' ')}${n < words.length ? '…' : '»'}`;
+    window.__captionTimer = setInterval(() => {
+      n++;
+      el.lastChild.textContent = `«${words.slice(0, n).join(' ')}${n < words.length ? '…' : '»'}`;
+      if (n >= words.length) clearInterval(window.__captionTimer);
+    }, step);
   };
   try {
     localStorage.setItem('voice-always-on', 'true');
@@ -125,7 +136,12 @@ const page = await context.newPage();
 const size = { width: VIEWPORT.width * SCALE, height: VIEWPORT.height * SCALE };
 const marks = [];
 let capture = null;
-const clip = `voice-${LOCALE}`;
+/** Cuánto dura la voz de cada frase (la acción pasa cuando termina de hablar). */
+const voiceMs = (key) => {
+  const file = join(ROOT, 'videos', 'promo-voice', 'audio', LOCALE, `${key}.mp3`);
+  try { return Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]).toString().trim()) * 1000); } catch { return 0; }
+};
+const clip = `voice-${LOCALE}${process.env.CLIP ? `-${process.env.CLIP}` : ''}`;
 
 const listening = () => page.waitForFunction(() => window.__voiceListening?.(), null, { timeout: 30_000 });
 /** La sesión de voz terminó lo pedido: la tarjeta muestra lo dicho y ya no está pensando. */
@@ -144,9 +160,11 @@ const ctx = {
   mark: (key) => { const at = Math.round((Date.now() / 1000 - capture.t0) * 1000); marks.push({ key, at }); console.log(`[promo-voice] ${key} @${at}ms`); },
   /** Lo dice: subtítulo, la frase al reconocedor y espera a que termine (o `waitFor`). */
   say: async (key, text, { waitFor, hold = 900, timeout } = {}) => {
-    await page.evaluate((t) => window.__caption(t), text);
+    const ms = voiceMs(key);
+    await page.evaluate(([t, d]) => { window.__captionMs = d; window.__caption(t); }, [text, ms]);
     ctx.mark(key);
-    await page.waitForTimeout(450);
+    // Mientras habla; lo dicho llega al reconocedor al terminar la frase.
+    await page.waitForTimeout(Math.max(450, ms + 150));
     const ok = await page.evaluate((t) => window.__voiceSay(t), text);
     if (!ok) throw new Error(`El micrófono no estaba escuchando para «${text}»`);
     await page.waitForTimeout(500);

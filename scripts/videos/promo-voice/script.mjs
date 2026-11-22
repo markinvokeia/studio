@@ -16,34 +16,34 @@ export const VOICES = {
 export const LINES = {
   es: {
     gaps: { say: 'Mostrame los huecos de hoy a la tarde' },
-    create: { say: 'Nueva cita para Paula Acosta hoy a las 18:30 con el doctor Raidel Martínez, limpieza', voice: 'Nueva cita para Paula Acosta hoy a las seis y media con el doctor Raidel Martínez, limpieza' },
-    change: { say: 'Cambiá la hora a las 19', voice: 'Cambiá la hora a las siete' },
+    create: { say: 'Nueva cita para Paula Acosta hoy a las 13:30 con el doctor Raidel Martínez, limpieza', voice: 'Nueva cita para Paula Acosta hoy a la una y media con el doctor Raidel Martínez, limpieza' },
+    change: { say: 'Cambiá la hora a las 14', voice: 'Cambiá la hora a las dos' },
     save: { say: 'Sí, guardala' },
     yes: { say: 'Sí' },
-    go: { say: 'Andá a Mi consultorio' },
-    next: { say: 'El siguiente paciente' },
-    paula: { say: 'Ahora el de las 19', voice: 'Ahora el de las siete' },
+    go: { say: 'Andá a Mi consultorio y abrí el de las 10:30', voice: 'Andá a Mi consultorio y abrí el de las diez y media' },
+    paula: { say: 'Ahora el de las 14', voice: 'Ahora el de las dos' },
     summary: { say: 'Haceme un resumen médico' },
     odo: { say: 'Nuevo odontograma' },
     dictate: { say: 'Caries OM en 47, corona indicada en 46, implante planificado en 36', voice: 'Caries O M en cuarenta y siete, corona indicada en cuarenta y seis, implante planificado en treinta y seis' },
-    confirm: { say: 'Confirmá todo y registrá la sesión clínica' },
+    confirm: { say: 'Confirmá todo' },
+    session: { say: 'Registrá una sesión clínica' },
     sessionSave: { say: 'Guardá' },
     inbox: { say: 'Abrí la bandeja' },
     bill: { say: 'Cobro rápido' },
   },
   en: {
     gaps: { say: "Show me this afternoon's free slots" },
-    create: { say: 'New appointment for Paula Acosta today at 6:30 pm with doctor Raidel Martínez, cleaning', voice: 'New appointment for Paula Acosta today at six thirty p m with doctor Raidel Martínez, cleaning' },
-    change: { say: 'Change the time to 7 pm', voice: 'Change the time to seven p m' },
-    save: { say: 'Yes, save it' },
+    create: { say: 'New appointment for Paula Acosta today at 6 pm with doctor Raidel Martínez, cleaning', voice: 'New appointment for Paula Acosta today at six p m with doctor Raidel Martínez, cleaning' },
+    change: { say: 'Change the time to 6:15 pm', voice: 'Change the time to six fifteen p m' },
+    save: { say: 'Yes' },
     yes: { say: 'Yes' },
-    go: { say: 'Go to my workspace' },
-    next: { say: 'Next patient' },
-    paula: { say: 'Now the 7 pm one', voice: 'Now the seven p m one' },
+    go: { say: 'Go to my workspace and open the one at 10:30', voice: 'Go to my workspace and open the one at ten thirty' },
+    paula: { say: 'Now the one at 6:15 pm', voice: 'Now the one at six fifteen p m' },
     summary: { say: 'Give me a medical summary' },
     odo: { say: 'New odontogram' },
     dictate: { say: 'Caries OM on 47, crown indicated on 46, planned implant on 36', voice: 'Caries O M on forty seven, crown indicated on forty six, planned implant on thirty six' },
-    confirm: { say: 'Confirm all and record the clinical session' },
+    confirm: { say: 'Confirm all' },
+    session: { say: 'New clinical session' },
     sessionSave: { say: 'Save' },
     inbox: { say: 'Open the inbox' },
     bill: { say: 'Quick billing' },
@@ -55,17 +55,18 @@ const card = (page, re, timeout = 30_000) => page.waitForFunction((src) => new R
 const until = {
   gaps: (page) => page.locator('text=/Huecos disponibles|Available slots/i').first().waitFor({ timeout: 20_000 }),
   create: (page) => card(page, /Nueva cita|New appointment/),
-  change: (page) => card(page, /19:00|7:00 ?PM/),
+  change: (page) => card(page, /14:00|18:15|6:15 ?PM/),
   save: (page) => page.locator('[role="alertdialog"]').first().waitFor({ timeout: 20_000 }),
   yes: (page) => page.locator('[role="alertdialog"]').first().waitFor({ state: 'detached', timeout: 20_000 }),
-  go: (page) => page.waitForURL(/\/workspace/, { timeout: 30_000 }),
+  go: async (page) => { await page.waitForURL(/\/workspace/, { timeout: 30_000 }); await card(page, /Abr. la cita|Opened/); },
   next: (page) => card(page, /Abrí la cita|Opened the/),
-  paula: (page) => card(page, /19:00|7:00 ?PM/),
-  summary: (page) => page.locator('[data-voice-card] li').first().waitFor({ timeout: 45_000 }),
+  paula: (page) => card(page, /14:00|18:15|6:15 ?PM/),
+  summary: (page) => card(page, /Resumen m.dico|Medical summary/, 45_000),
   odo: (page) => card(page, /odontograma|odontogram/),
   dictate: (page) => page.locator('text=/propone|proposes/').first().waitFor({ timeout: 45_000 }),
-  confirm: (page) => page.locator('[role="dialog"] h2', { hasText: /Sesión|Session/ }).first().waitFor({ timeout: 30_000 }),
-  sessionSave: (page) => page.locator('[role="dialog"] h2', { hasText: /Crear Sesión|Create Session/ }).first().waitFor({ state: 'detached', timeout: 30_000 }),
+  confirm: (page) => card(page, /Confirmar todo|Confirm all/),
+  session: (page) => page.locator('[role="dialog"] h2', { hasText: /Crear Sesión|Create Session|New Session|Nueva Sesión/i }).first().waitFor({ timeout: 30_000 }),
+  sessionSave: (page) => page.locator('[role="dialog"] h2', { hasText: /Crear Sesión|Create Session|New Session|Nueva Sesión/i }).first().waitFor({ state: 'detached', timeout: 30_000 }),
   inbox: (page) => page.locator('text=/Cobro Rápido|Quick Billing/i').first().waitFor({ timeout: 20_000 }),
   bill: (page) => page.locator('[role="dialog"]', { hasText: /Cobro|Billing|Cobrar/i }).first().waitFor({ timeout: 20_000 }),
 };
@@ -75,18 +76,21 @@ const SETUP = {
   en: ['show sundays', 'day view', 'go to today'],
 };
 
-const HOLD = { gaps: 1600, create: 1800, change: 1300, save: 900, yes: 1200, go: 1500, next: 1300, paula: 1500, summary: 3800, odo: 1200, dictate: 2200, confirm: 1500, sessionSave: 1800, inbox: 1500, bill: 3000 };
+const HOLD = { gaps: 1600, create: 1800, change: 1300, save: 900, yes: 1200, go: 1500, next: 1300, paula: 1500, summary: 3800, odo: 1200, dictate: 2200, confirm: 900, session: 1400, sessionSave: 1800, inbox: 1500, bill: 3000 };
 
 async function run(ctx, { base, only }) {
   const L = LINES[ctx.locale];
   const { page } = ctx;
+  // Solo la parte de Mi consultorio (toma B): se empieza ahí, sin la preparación de la agenda.
+  const AGENDA = ['gaps', 'create', 'change', 'save', 'yes', 'go'];
+  const workspaceOnly = !!only && !only.some((k) => AGENDA.includes(k));
   // Antes de grabar: la agenda de hoy (vista de día, Carrasco), con la voz escuchando.
-  await page.goto(`${base}/${ctx.locale}/appointments`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}/${ctx.locale}/${workspaceOnly ? 'workspace' : 'appointments'}`, { waitUntil: 'domcontentloaded' });
   await ctx.listening();
   await page.waitForFunction(() => !document.querySelector('main .animate-pulse, main .animate-spin'), null, { timeout: 30_000 }).catch(() => undefined);
   await ctx.wait(2500);
   // Fuera de cámara: los domingos a la vista y la vista de día (hoy).
-  for (const setup of SETUP[ctx.locale]) {
+  for (const setup of workspaceOnly ? [] : SETUP[ctx.locale]) {
     await page.evaluate((t) => window.__voiceSay(t), setup);
     await ctx.wait(2500);
   }

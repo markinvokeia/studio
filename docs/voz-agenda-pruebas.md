@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2380 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2386 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -1153,7 +1153,7 @@ N4 · Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos,
   - VZ-ES-420 una acción de la pantalla que tira error: avisa y la voz sigue
   - VZ-ES-421 sin la pantalla de citas cargada: lo dice y no se cuelga
 
-## 50-english.spec.ts (88)
+## 50-english.spec.ts (89)
 
 EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incompletos.
 
@@ -1255,6 +1255,8 @@ EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incom
   - VZ-EN-120 «edit the appointment» without saying which: asks
   - VZ-EN-121 nonsense: shows examples and keeps working
   - VZ-EN-122 «Juan Peres arrived» (misspelled) still finds him
+- **EN-SERVICE · English dental terms with a Spanish catalog**
+  - «cleaning» is «Limpieza»; «change the time to 11 am» corrects; «yes» saves
 
 ## 60-patient-info.spec.ts (37)
 
@@ -2058,7 +2060,7 @@ PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/result
   - desde la agenda: «volvé al inicio y decime cuánto producimos hoy»
   - en otra página no se lee el panel
 
-## 92-workspace.spec.ts (125)
+## 92-workspace.spec.ts (129)
 
 MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.
 
@@ -2175,6 +2177,10 @@ MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posici�
   - es-ES «cierra este caso y abre el de Juan»
   - en «close this case and open Carlos»
   - en «now the one of Juan»
+  - es «ahora el de las 15:30»
+  - es «y ahora el de las 10»
+  - es-ES «ahora el de las 10:30»
+  - en «now the one at 10:30»
   - es «el paciente Juan»
   - es «paciente Carlos»
   - es «el siguiente paciente»
@@ -2818,7 +2824,7 @@ EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimi
   - en «print invoice 12»
   - lo que no está lo dice
 
-## 9f-understanding.spec.ts (30)
+## 9f-understanding.spec.ts (31)
 
 UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.
 
@@ -2858,3 +2864,5 @@ UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más p
   - «borrá esto» → Eliminar
 - **UN-OVERLAY2 · El aviso de ventana con los nombres de los campos y los botones de acción primero**
   - etiquetas (no ejemplos) y Guardar/Cancelar antes que los demás
+- **UN-NAMED · Un botón de lo abierto que se llama así gana (la bandeja sobre el riel)**
+  - «cobro rápido» con la bandeja abierta aprieta el de la notificación

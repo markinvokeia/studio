@@ -699,6 +699,27 @@ async function routeToPending(top: PendingAsk, heard: string, normalized: string
 }
 
 /** Aprieta un botón o completa un campo de la ventana abierta si lo dicho es eso. true = hecho. */
+/**
+ * El botón de la ventana o panel de arriba cuyo texto es lo dicho (o empieza con lo dicho y sigue
+ * con un número o una etiqueta corta: «Cobro Rápido 1 precargados»). El primero (el más reciente
+ * en una bandeja). null si no hay.
+ */
+function overlayButtonNamed(normalized: string): { label: string; element: HTMLElement } | null {
+  const overlay = readTopOverlay();
+  if (!overlay || normalized.split(' ').length > 6) return null;
+  const said = normalized.replace(/^(?:(?:apreta\w*|toca\w*|dale(?: a)?|press|tap|click(?: on)?)\s+)?(?:(?:el|la|the)\s+)?(?:(?:boton|button)\s+(?:de\s+)?)?/, '');
+  if (said.length < 3) return null;
+  for (const b of overlay.buttons) {
+    const label = normalizeSpeech(b.label).replace(/(\D)(\d)/g, '$1 $2');
+    if (label === said) return { label: b.label, element: b.element };
+    if (label.startsWith(`${said} `)) {
+      const rest = label.slice(said.length + 1).split(' ');
+      if (/^\d/.test(rest[0]) && rest.length <= 3) return { label: b.label.replace(/\d.*$/, '').trim(), element: b.element };
+    }
+  }
+  return null;
+}
+
 function pressOrFillOverlay(heard: string, normalized: string): boolean {
   if (!deps) return false;
   const overlay = readTopOverlay();
@@ -894,6 +915,17 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
   }
   // Con una ventana abierta, lo que se dice es primero para ella: sus botones y sus campos (salvo
   // que el comando sea el de esa ventana, como el formulario de la cita).
+  // Un botón de lo de arriba que se llama así («Cobro rápido» en la bandeja abierta) gana siempre:
+  // lo abierto es el contexto, aunque otro comando conozca la frase (el cobro rápido del riel).
+  // (Salvo un comando que maneja él mismo la ventana abierta: el dictado del periodontograma.)
+  if (local?.command.id !== 'calendar.form' && !local?.command.keepsOverlay) {
+    const named = overlayButtonNamed(normalized);
+    if (named) {
+      named.element.click();
+      void quickFinish(deps.t('VoiceCommands.dialogPressed', { label: named.label }));
+      return;
+    }
+  }
   if (local?.command.id !== 'calendar.form' && !local?.command.keepsOverlay && pressOrFillOverlay(heard, normalized)) return;
   if (local) {
     if (local.command.aux && controller) { await runAux([local], heard, 'local'); return; }

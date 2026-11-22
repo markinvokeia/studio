@@ -695,6 +695,18 @@ export function findDoctorMention(
  * Un nombre completo gana a los que solo empiezan igual ("consulta" → "Consulta", no "Consulta de
  * urgencia"); si varios empatan, vuelven todos para preguntar. `skip`: palabras ya usadas.
  */
+/**
+ * Los términos dentales dichos en inglés con un catálogo en español («cleaning» = «Limpieza»): la
+ * app en inglés y los servicios cargados en español es lo común en una clínica de acá.
+ */
+const SERVICE_TERMS_EN: Record<string, string> = {
+  cleaning: 'limpieza', cleanup: 'limpieza', prophylaxis: 'profilaxis', filling: 'obturacion', fillings: 'obturacion',
+  extraction: 'extraccion', extractions: 'extraccion', crown: 'corona', crowns: 'corona', implant: 'implante', implants: 'implante',
+  whitening: 'blanqueamiento', bleaching: 'blanqueamiento', consultation: 'consulta', checkup: 'control', control: 'control',
+  orthodontics: 'ortodoncia', braces: 'ortodoncia', endodontics: 'endodoncia', bridge: 'puente', veneer: 'carilla', veneers: 'carillas',
+  resin: 'resina', sealant: 'sellante', sealants: 'sellantes', denture: 'protesis', dentures: 'protesis', periodontics: 'periodoncia',
+};
+
 export function findServiceMentions(text: string, services: NamedOption[], skip: Set<number> = new Set()): SpanMatch[] {
   const list = splitWords(text);
   const names = services
@@ -708,7 +720,7 @@ export function findServiceMentions(text: string, services: NamedOption[], skip:
     let ids: string[] = [];
     for (const service of names) {
       let k = 0;
-      while (k < service.words.length && i + k < list.length && !skip.has(i + k) && sameWord(service.words[k], list[i + k])) k++;
+      while (k < service.words.length && i + k < list.length && !skip.has(i + k) && (sameWord(service.words[k], list[i + k]) || sameWord(service.words[k], SERVICE_TERMS_EN[list[i + k]] ?? ''))) k++;
       if (!k) continue;
       // Entero = +0.5: "consulta" es "Consulta" antes que "Consulta de urgencia".
       const score = k + (k === service.words.length ? 0.5 : 0);

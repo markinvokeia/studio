@@ -74,6 +74,8 @@ La voz de Invoke IA se lleva página por página con el mismo esquema que la age
 
 | 37 | **Probado en la app real hasta guardar** | `core` | ✅ Horario de domingo creado por voz en Horarios (días, horas, «guardar»), disponibilidad del doctor en Disponibilidad (doctor con buscador, día, horas, «crear»), cita nueva con cambio de hora y confirmación, sesión clínica y odontograma por dictado en Mi consultorio, bandeja con «Cobro Rápido». Arreglado en el camino: otro pedido con un aviso abierto cierra el aviso y se hace (antes «andá a Mi consultorio» se tomaba como respuesta); el aviso de ventana nombra los campos por su etiqueta y pone primero Guardar/Cancelar; la fecha escrita en un selector de fecha queda guardada (se avisa la salida del campo); verbos sinónimos en botones («aplicá los cambios» → «Confirmar todo», «grabá» → «Guardar») | `9f` + vivo |
 
+| 38 | **Promo de voz grabada en la app real** (`scripts/videos/promo-voice`) | — | ✅ Agenda → Mi consultorio → odontograma → cobro, todo por voz, en modo producción, con voces de ElevenLabs (la clave por variable de entorno, nunca en el repo). Lo que la grabación destapó y se arregló: el panel de notificaciones no era visible para la voz (ahora `data-state`) y un botón de lo abierto que se llama así gana a otros comandos («Cobro rápido» de un aviso, no el del riel); «ahora el de las 14» elige por hora; con la app en inglés y el catálogo en español, «cleaning» es «Limpieza» (términos dentales) | `9f`, `50`, `92` + vivo |
+
 ### Próximo (pedido el 2026-11-21, en este orden)
 
 1. ~~Tablas~~ (hecho, fila 18). 2. ~~Contexto por capas~~ (fila 19). 4. ~~Filtros de los reportes~~ (fila 20).

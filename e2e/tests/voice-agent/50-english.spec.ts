@@ -245,3 +245,14 @@ test.describe('EN-N4 · Incomplete or misheard', () => {
     expect(status('a2')).toBe('arrived');
   });
 });
+
+test.describe('EN-SERVICE · English dental terms with a Spanish catalog', () => {
+  test('«cleaning» is «Limpieza»; «change the time to 11 am» corrects; «yes» saves', async () => {
+    await sim.say('new appointment for Sofía Castro tomorrow at 10 with doctor Pérez, cleaning');
+    expect(sim.card().rows.join(' ')).toContain('Limpieza');
+    await sim.say('change the time to 11 am');
+    expect(sim.card().rows.join(' ')).toContain('11:00');
+    await sim.say('yes');
+    expect(sim.cal.savedForms).toHaveLength(1);
+  });
+});

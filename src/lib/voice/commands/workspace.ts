@@ -151,7 +151,7 @@ export function parseWorkspaceSelect(normalized: string): SelectParsed | null {
     const preset = !w ? null : /^(?:hoy|today)$/.test(w) ? 'today' : /^(?:manana|tomorrow)$/.test(w) ? 'tomorrow' : /^(?:esta semana|this week)$/.test(w) ? 'week' : 'month';
     return { op: 'list', preset };
   }
-  const m = t.match(/^(?:(?:abri\w*|abre|selecciona\w*|elegi\w*|mostra\w*|muestra\w*|pasa\w* al?|anda\w* al?|ve al?|ir al?|volve\w* al?|atende\w*|vamos con|segui\w* con|open|select|show(?: me)?|go to|move to|lets see|call)\s+)?(?:(?:a |al )?(?:la cita|el turno|el paciente|la paciente|the appointment|the patient|el|la|the)\s*)?(.*)$/);
+  const m = t.match(/^(?:(?:abri\w*|abre|selecciona\w*|elegi\w*|mostra\w*|muestra\w*|pasa\w* al?|anda\w* al?|ve al?|ir al?|volve\w* al?|atende\w*|vamos con|segui\w* con|(?:y )?ahora(?: con)?|(?:and )?now|open|select|show(?: me)?|go to|move to|lets see|call)\s+)?(?:(?:a |al )?(?:la cita|el turno|el paciente|la paciente|the appointment|the patient|el|la|the)\s*)?(.*)$/);
   if (!m) return null;
   const rest = m[1].trim();
   const hasVerb = t !== m[1].trim() || /^(?:el|la)\b/.test(t);

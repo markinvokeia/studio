@@ -236,3 +236,14 @@ test.describe('UN-OVERLAY2 · El aviso de ventana con los nombres de los campos 
     expect(sim.card().message).toBe('Se abrió «Crear sesión». Decime qué completar (Procedimiento…) o qué apretar: Cancelar o Guardar o Añadir.');
   });
 });
+
+test.describe('UN-NAMED · Un botón de lo abierto que se llama así gana (la bandeja sobre el riel)', () => {
+  test('«cobro rápido» con la bandeja abierta aprieta el de la notificación', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/workspace' });
+    const inbox = openWindow('Notificaciones', { buttons: ['Ver en workspace', 'Cobro Rápido1 precargados', 'Crear presupuesto'] });
+    await sim.wait(80);
+    await sim.say('cobro rápido');
+    expect(inbox.pressed).toEqual(['Cobro Rápido1 precargados']);
+    expect(sim.rail.log.filter((l) => /bill|cobr/i.test(l))).toEqual([]);
+  });
+});

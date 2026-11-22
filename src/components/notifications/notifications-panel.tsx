@@ -50,6 +50,8 @@ export function NotificationsPanel() {
         role="dialog"
         aria-modal="true"
         aria-label={t('panelTitle')}
+        // La voz lo reconoce como lo abierto arriba (sus botones: «Cobro rápido» de un aviso).
+        data-state={isPanelOpen ? 'open' : 'closed'}
         // Read by DialogContent/AlertDialogContent so they can decline to close on Escape
         // while this panel visually covers them (see dialog.tsx / alert-dialog.tsx).
         data-notifications-panel={isPanelOpen ? 'open' : 'closed'}
