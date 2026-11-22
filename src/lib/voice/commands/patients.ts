@@ -1,4 +1,6 @@
 import { parseNavigation } from '@/lib/voice/commands/navigation';
+import { parseScreen } from '@/lib/voice/commands/screen';
+import { topOverlayElement } from '@/lib/voice/dom-dialog';
 import { searchKeyword } from '@/lib/voice/search-term';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 import { answerPatientInfo, needsFor, parsePatientInfo, type PatientInfoTopic } from '@/lib/voice/patient-info';
@@ -137,6 +139,9 @@ registerVoiceCommand<ListParsed>({
   match: (normalized, raw) => {
     if (!page()) return null;
     const p = parsePatientsList(normalized);
+    // Con una ventana abierta, lo que nombra uno de sus campos o botones es para ella («elegí
+    // Afganistán en país del teléfono» en el alta): no es buscar ni abrir un paciente.
+    if ((p?.op === 'search' || p?.op === 'open') && topOverlayElement() && parseScreen(normalized, raw)) return null;
     if (p?.op === 'search') return { ...p, query: asSaid(raw, p.query) };
     if (p?.op === 'open' && p.query) {
       // «abrí la caja», «abrí el centro de alertas»: es un lugar del menú, no un paciente.

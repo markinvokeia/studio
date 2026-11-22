@@ -40,4 +40,9 @@ test.describe('FV-COLOR · Colores', () => {
     test(`«${said}» → ${want}`, () => { expect(spokenColor(said)).toBe(want); });
   }
   test('campo color', () => { expect(valueForField(input('color'), 'naranja')).toBe('#f97316'); });
+  test('la caja del código del color (#…): «rojo» → #ef4444', () => {
+    const hex = { type: 'text', value: '#000000', getAttribute: () => null } as unknown as HTMLElement;
+    expect(valueForField(hex, 'rojo')).toBe('#ef4444');
+    expect(valueForField(input('text', { placeholder: '#FFFFFF' }), 'azul')).toBe('#3b82f6');
+  });
 });

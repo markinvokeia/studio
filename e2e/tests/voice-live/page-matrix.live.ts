@@ -60,6 +60,8 @@ const P = {
     numbers: ['1500', '2300', '99'],
     dates: ['el 15 de diciembre', 'el 3 de enero', 'el 20 de marzo'],
     dateWant: ['15/12', '03/01', '20/03'],
+    phones: ['099 123 456', '098 765 432', '091 222 333'],
+    colors: ['rojo', 'azul', 'verde'],
   },
   en: {
     help: 'what can I do here',
@@ -83,6 +85,8 @@ const P = {
     numbers: ['1500', '2300', '99'],
     dates: ['December 15', 'January 3', 'March 20'],
     dateWant: ['15/12', '03/01', '20/03'],
+    phones: ['099 123 456', '098 765 432', '091 222 333'],
+    colors: ['red', 'blue', 'green'],
   },
 }[LOCALE];
 
@@ -139,7 +143,7 @@ const dialogOpen = (page: Page) => page.evaluate(() => Array.from(document.query
 
 for (const route of ROUTES) {
   test(`matrix ${route}`, async ({ page }) => {
-    test.setTimeout(420_000);
+    test.setTimeout(720_000);
     const steps: Array<{ step: string; said: string; ok: boolean; note: string }> = [];
     const record = async (step: string, said: string, ok: boolean, note = '') => {
       const card = await cardText(page).catch(() => '');
@@ -206,21 +210,31 @@ for (const route of ROUTES) {
       await record('alta · se abre y avisa', P.create, /abri|open|complet|fill|apret|press/i.test(await cardText(page)));
       const controls = await surface(page);
       // Cada campo con un valor de su tipo: texto, número (precio, monto…) o fecha («el 15 de diciembre» → 15/12/aaaa).
-      const kindOf = (c: Control) => /dd\/mm|mm\/dd|aaaa|yyyy/i.test(c.placeholder ?? '') || /^(?:fecha|vencimiento|date|due)/i.test(c.label) ? 'date'
-        : c.type === 'number' || /^(?:precio|monto|importe|cantidad|total|valor|price|amount|quantity)/i.test(c.label) ? 'number' : 'text';
-      const texts = controls.filter((c) => c.kind === 'field' && !/time|color|file|search/.test(c.type ?? '') && c.label.length >= 3 && c.label.length <= 30 && !/[.…]{2,}|buscar|search/i.test(c.label)).slice(0, 3);
+      const kindOf = (c: Control) => /^(?:dd\/mm\/(?:aaaa|yyyy)|mm\/dd\/yyyy)$/i.test(c.placeholder ?? '') || /^(?:fecha|vencimiento|date|due)/i.test(c.label) ? 'date'
+        : /tel[eé]fono|celular|m[oó]vil|phone|whatsapp/i.test(c.label) ? 'phone'
+          : /colou?r/i.test(c.label) || /^#[0-9a-f]{6}$/i.test(c.value ?? '') ? 'color'
+            : c.type === 'number' || /^(?:precio|monto|importe|cantidad|total|valor|price|amount|quantity)/i.test(c.label) ? 'number' : 'text';
+      const COLOR_HEX: Record<string, string> = { rojo: '#ef4444', azul: '#3b82f6', verde: '#22c55e', red: '#ef4444', blue: '#3b82f6', green: '#22c55e' };
+      const texts = controls.filter((c) => c.kind === 'field' && !/time|file|search/.test(c.type ?? '') && c.label.length >= 3 && c.label.length <= 30 && !/[.…]{2,}|buscar|search/i.test(c.label)).slice(0, 3);
       for (const field of texts) {
         const kind = kindOf(field);
-        const values = kind === 'date' ? P.dates : kind === 'number' ? P.numbers : P.values;
+        const values = kind === 'date' ? P.dates : kind === 'number' ? P.numbers : kind === 'phone' ? P.phones : kind === 'color' ? P.colors : P.values;
         for (let i = 0; i < P.fill.length; i++) {
           const phrase = P.fill[i](field.label.toLowerCase(), values[i]);
           await say(page, phrase, 2200);
           const now = (await surface(page)).find((c) => c.label === field.label);
-          const got = now?.value ?? '';
+          // Un campo que cambia de nombre al escribir (editor enriquecido): lo escrito en la ventana.
+          const got = now?.value ?? await page.evaluate(() => {
+            const d = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]')).pop();
+            return Array.from(d?.querySelectorAll<HTMLElement>('input, textarea, [contenteditable="true"]') ?? []).map((e) => (e as HTMLInputElement).value ?? e.innerText ?? '').join(' | ');
+          });
+          const digits = (x: string) => x.replace(/\D/g, '');
           const ok = kind === 'date' ? got.includes(P.dateWant[i]) || /\d{4}-\d{2}-\d{2}/.test(got)
-            : kind === 'number' ? got.replace(/\D/g, '') === values[i]
-              : got.toLowerCase().includes(values[i].toLowerCase());
-          await record(`campo «${field.label}» (${kind}, ${i + 1}/3)`, phrase, ok, `quedó «${got}»`);
+            : kind === 'number' ? Number(got.replace(',', '.')) === Number(values[i])
+              : kind === 'phone' ? digits(got).includes(digits(values[i]).replace(/^0/, ''))
+                : kind === 'color' ? got.toLowerCase().includes(COLOR_HEX[values[i]])
+                  : got.toLowerCase().includes(values[i].toLowerCase());
+          await record(`campo «${field.label}» (${kind}, ${i + 1}/3)`, phrase, ok, `quedó «${got.slice(0, 80)}»`);
         }
       }
       for (const toggle of controls.filter((c) => c.kind === 'toggle' && c.label.length <= 40).slice(0, 2)) {
@@ -239,7 +253,7 @@ for (const route of ROUTES) {
           if (!(await el.count())) return [] as string[];
           await el.click().catch(() => undefined);
           await page.waitForTimeout(500);
-          const list = (await page.locator('[role="option"]').allInnerTexts().catch(() => [])).map((t) => t.trim()).filter((t) => t && t.length < 40);
+          const list = (await page.locator('[role="option"]').allInnerTexts().catch(() => [])).map((t) => t.split('\n')[0].trim()).filter((t) => t && t.length < 40);
           await page.keyboard.press('Escape');
           await page.waitForTimeout(300);
           return list;

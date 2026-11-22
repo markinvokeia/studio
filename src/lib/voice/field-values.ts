@@ -88,6 +88,10 @@ export function valueForField(el: HTMLElement | null | undefined, spoken: string
     return type === 'date' ? iso : format(parseISO(iso), 'dd/MM/yyyy');
   }
   if (type === 'color') return spokenColor(spoken) ?? spoken;
+  // La caja del código de un color («#8674dc» al lado del selector): lo dicho como color.
+  if (/^#[0-9a-f]{3,6}$/i.test(String(input?.value ?? '').trim()) || /^#[0-9a-f]{3,6}$/.test(placeholder.replace(/\s/g, ''))) {
+    return spokenColor(spoken) ?? spoken;
+  }
   if (type === 'number' || input?.getAttribute?.('inputmode') === 'numeric' || input?.getAttribute?.('inputmode') === 'decimal') {
     // «5 días», «400 mg», «2 comprimidos»: el número, sin la unidad dicha después.
     let num = spokenNumber(spoken);

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+import { openWindow } from './sim/dom';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
+import { screen } from './sim/page';
 
 /**
  * PA · Pacientes por voz (src/lib/voice/commands/patients.ts): buscar y abrir, filtros, nuevo
@@ -23,6 +25,13 @@ test.describe('PA-LIST · Buscar, abrir, filtrar', () => {
   for (const said of ['mostrá la columna Correo Electrónico', 'seleccioná el 1', 'abrí el registro 3', 'mostrá la fila 2']) {
     test(`«${said}» es de la tabla, no un nombre de paciente`, async () => { await start(); await sim.say(said); expect(log().filter((l) => l.startsWith('search:'))).toEqual([]); });
   }
+  test('con el alta abierta, «elegí Uruguay en país del teléfono» es de la ventana, no un paciente', async () => {
+    await start();
+    openWindow('Crear Nuevo Paciente', { tree: screen.group(screen.select('país del teléfono', ['Argentina', 'Uruguay']), screen.button('Crear Paciente')) });
+    await sim.wait(80);
+    await sim.say('elegí Uruguay en país del teléfono');
+    expect(log().filter((l) => l.startsWith('search:') || l.startsWith('select:'))).toEqual([]);
+  });
   test('«abrí a Ana» con dos: pregunta', async () => { await start(); await sim.say('abrí a Ana'); await sim.say('Martínez'); expect(log()).toEqual(['select:p3']); });
   for (const [said, want] of [
     ['solo los deudores', 'debtors:true'], ['mostrame los que deben', 'debtors:true'], ['sacá el filtro de deudores', 'debtors:false'],
