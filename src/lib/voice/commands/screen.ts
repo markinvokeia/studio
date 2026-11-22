@@ -2,6 +2,7 @@ import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
 import { FILL_INTENT_RE, controlsOf, createButtons, lockedFields, pickCalendarDay, unlockField, visibleDayGrid, fillField, findControl, isScreenLoading, openListSearchBox, openOptions, readSurface, typeInto, uiKey, waitForOptions, type UiControl, type UiSurface } from '@/lib/voice/dom-ui';
 import { normalizeSpeech, parseChoiceDetailed, parseSpokenDate } from '@/lib/voice/parse';
 import { actionButtonIndex, voiceEscape } from '@/lib/voice/dom-dialog';
+import { searchTerm } from '@/lib/voice/search-term';
 import { spokenColor, valueForField } from '@/lib/voice/field-values';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { listVoiceBridges } from '@/lib/voice/screen-bridge';
@@ -264,7 +265,7 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   const search = normalized.match(SEARCH_RE);
   if (search) {
     const control = controlsOf(surface, 'search')[0];
-    if (control) return { op: 'search', control, value: rawTail(raw, normalized, search[1]) };
+    if (control) return { op: 'search', control, value: searchTerm(search[1], raw) || rawTail(raw, normalized, search[1]) };
   }
   // Un calendario a la vista (Feriados, Excepciones): «el 15 de diciembre», «la fecha es el martes», «elegí el 3».
   if (visibleDayGrid()) {

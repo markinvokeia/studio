@@ -14580,7 +14580,11 @@
       "rowActionDisabled": "«{action}» no se puede en «{row}» (está deshabilitado).",
       "fieldLocked": "«{field}» no se puede editar acá (no encontré cómo ponerlo en modo edición).",
       "colorSet": "Puse {row} en {color}.",
-      "colorNotFound": "No encontré el color de {row}."
+      "colorNotFound": "No encontré el color de {row}.",
+      "closed": "Listo, cerré: {names}.",
+      "window": "la ventana",
+      "detail": "el detalle",
+      "nothingToClose": "No hay nada abierto para cerrar."
     },
     "rail": {
       "title": "Panel derecho",
@@ -15004,7 +15008,9 @@
       "exportWhich": "¿En qué formato? {options}.",
       "exportNoPdf": "En PDF no se puede: ¿en cuál? {options}.",
       "exporting": "Exporto en {format}.",
-      "exportStarted": "Exporto la lista."
+      "exportStarted": "Exporto la lista.",
+      "searchingId": "Busco el {id}…",
+      "idNotFound": "No encontré un registro con «{id}»."
     },
     "ledger": {
       "title": "Estado de cuenta",
@@ -15053,6 +15059,22 @@
       "did_finalizado": "Finalicé {row}.",
       "did_toEnCurso": "Volví {row} a en curso.",
       "did_toPresupuesto": "Volví {row} a presupuesto."
+    },
+    "overlayAsk": "Se abrió «{title}». ¿Qué hago? {options}.",
+    "overlayAskFields": "Se abrió «{title}». Decime qué completar ({fields}…) o qué apretar: {options}.",
+    "suggest": {
+      "title": "¿Te referís a…?",
+      "ask": "No entendí «{heard}». ¿Te referís a {options}? Decí cuál, o «no».",
+      "press": "apretar {label}",
+      "tab": "abrir la pestaña {label}",
+      "turnOn": "activar {label}",
+      "turnOff": "desactivar {label}",
+      "select": "elegir en {label}",
+      "navigate": "ir a {label}",
+      "askAi": "¿Te referís a {options}? Decí cuál, o «no»."
+    },
+    "screenAi": {
+      "stepMissing": "No encuentro «{target}» en la pantalla."
     }
   }
 }

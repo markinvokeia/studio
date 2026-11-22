@@ -2,7 +2,8 @@ import { speakAssistant, stopAssistantSpeech, useAssistantVoice } from '@/hooks/
 import { useVoiceCommand } from '@/stores/voice-command-store';
 import { parseChoice, parseChoiceDetailed, parseYesNo, normalizeSpeech } from '@/lib/voice/parse';
 import { interpretWithAi } from '@/lib/voice/ai';
-import { closeTopOverlay, hasOpenOverlay, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, type OpenDialog } from '@/lib/voice/dom-dialog';
+import { suggestActions } from '@/lib/voice/suggest';
+import { closeTopOverlay, hasOpenOverlay, isDialogOpen, pickDialogButton, pickOverlayButton, pickOverlayField, readOpenDialog, readTopOverlay, setFieldValue, watchDialogs, watchOverlays, type OpenDialog, type OpenOverlay } from '@/lib/voice/dom-dialog';
 import { isScreenLoading, waitScreenReady } from '@/lib/voice/dom-ui';
 import { valueForField } from '@/lib/voice/field-values';
 import { setAppointmentFocus } from '@/lib/voice/focus';
@@ -145,12 +146,76 @@ export function configureVoiceSession(next: VoiceSessionDeps | null) {
   deps = next;
   stopWatchingDialogs?.();
   stopWatchingDialogs = null;
+  stopWatchingOverlays?.();
+  stopWatchingOverlays = null;
   if (!next) {
     stopAlwaysOn();
     cancelVoice();
     return;
   }
   stopWatchingDialogs = watchDialogs(onDialogOpen, onDialogClose);
+  stopWatchingOverlays = watchOverlays(onOverlayOpen, () => { overlayDuringTask = null; });
+}
+
+// ── Ventanas que se abren ─────────────────────────────────────────────────────
+
+let stopWatchingOverlays: (() => void) | null = null;
+/** La ventana que se abrió mientras corría una tarea (se ofrece al terminar). */
+let overlayDuringTask: OpenOverlay | null = null;
+
+const CLOSE_LABEL = /^(?:x|cerrar|close|×)$/i;
+
+/** «Se abrió «Nueva sede». Podés completar Nombre, Dirección… o decir Guardar o Cancelar.» */
+function overlayPrompt(overlay: OpenOverlay): { message: string; choices: Array<{ label: string }> } | null {
+  if (!deps) return null;
+  const or = deps.t('VoiceCommands.or');
+  const buttons = Array.from(new Set(overlay.buttons.map((b) => b.label).filter((l) => l.length <= 40 && !CLOSE_LABEL.test(l)))).slice(0, 6);
+  const fields = Array.from(new Set(overlay.fields.map((f) => f.label).filter((l) => l.length <= 40))).slice(0, 4);
+  if (!buttons.length && !fields.length) return null;
+  const message = fields.length
+    ? deps.t('VoiceCommands.overlayAskFields', { title: overlay.title, fields: fields.join(', '), options: buttons.join(or) || '—' })
+    : deps.t('VoiceCommands.overlayAsk', { title: overlay.title, options: buttons.join(or) });
+  return { message, choices: buttons.map((label) => ({ label })) };
+}
+
+/**
+ * Se abrió una ventana o un panel (a mano o por voz) con la voz prendida: se dice cuál y qué se le
+ * puede pedir (sus botones y sus campos). No es una pregunta que trabe: lo que se diga después va
+ * primero a esa ventana (pressOrFillOverlay) y cualquier otro pedido sigue normal.
+ */
+function onOverlayOpen(overlay: OpenOverlay) {
+  if (!deps || !store().alwaysOn) return;
+  // Abierta por una tarea en curso: se ofrece cuando termine (si sigue abierta).
+  if (controller || inflight > 0) { overlayDuringTask = overlay; return; }
+  if (pendingStack.length) return;
+  const prompt = overlayPrompt(overlay);
+  if (!prompt) return;
+  const card: VoiceCard = { title: overlay.title, message: prompt.message, choices: prompt.choices, tone: 'info', soft: true };
+  clearTimeout(hideTimer);
+  store().set({ card, awaiting: null });
+  hideTimer = setTimeout(() => { if (store().card === card && !pendingStack.length) store().reset(); }, visibleMs(card));
+}
+
+/** Al terminar una tarea que abrió una ventana: el resultado más lo que se le puede pedir a la ventana. */
+function offerOverlayAfterTask() {
+  const overlay = overlayDuringTask;
+  overlayDuringTask = null;
+  if (!overlay || !deps || pendingStack.length) return;
+  const top = readTopOverlay();
+  if (!top || top.element !== overlay.element) return;
+  const card = store().card;
+  if (card && (card.sticky || card.tone === 'error' || store().awaiting)) return;
+  const prompt = overlayPrompt(top);
+  if (!prompt) return;
+  const next: VoiceCard = {
+    ...(card ?? { title: top.title, tone: 'info' as const }),
+    message: [card?.message, prompt.message].filter(Boolean).join(' '),
+    choices: card?.choices?.length ? card.choices : prompt.choices,
+    soft: true,
+  };
+  clearTimeout(hideTimer);
+  store().set({ card: next });
+  hideTimer = setTimeout(() => { if (store().card === next && !pendingStack.length) store().reset(); }, visibleMs(next));
 }
 
 // ── Avisos de la pantalla ─────────────────────────────────────────────────────
@@ -817,6 +882,8 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
   if (plan?.found.length && plan.confidence < SURE_AI_CONFIDENCE && !(await confirmUnsure(plan))) return;
   if (plan?.relation === 'cancel') { await cancelTask(); return; }
   if (!plan?.found.length) {
+    // Lo más parecido a lo que se puede hacer: «¿Te referís a…?».
+    if (await offerSuggestions(heard, normalized, opts)) return;
     // Con el micrófono prendido se oye todo: lo que no se entiende se muestra sin decirlo en voz
     // alta (puede ser una charla de la sala, no un pedido).
     if (opts.conversational) {
@@ -832,6 +899,34 @@ async function runRequest(heard: string, normalized: string, opts: HandleOptions
     return;
   }
   await runFound(plan.found, heard, opts, 'ai');
+}
+
+/**
+ * No se entendió, pero se parece a algo que se puede hacer (un botón, una pestaña, un destino del
+ * menú): se proponen hasta tres y lo elegido se hace como si se hubiera dicho. «No» / «ninguna»
+ * deja todo como estaba; otro pedido sigue sin preguntar (la tarjeta es liviana).
+ */
+async function offerSuggestions(heard: string, normalized: string, opts: HandleOptions): Promise<boolean> {
+  if (!deps) return false;
+  const d = deps;
+  const list = suggestActions(normalized, { locale: d.locale, t: d.t, hasPermission: d.hasPermission });
+  // Con el micrófono siempre prendido se oye la charla de la sala: solo lo que se parece mucho.
+  if (!list.length || (opts.conversational && list[0].score < 0.75)) return false;
+  const command: VoiceCommand<null> = {
+    id: 'core.suggest',
+    domain: 'core',
+    keepsOverlay: true,
+    match: () => null,
+    run: async (_parsed, ctx) => {
+      const options = list.map((s) => s.label).join(d.t('VoiceCommands.or'));
+      const message = d.t('VoiceCommands.suggest.ask', { heard: heard.trim().slice(0, 80), options });
+      const card: VoiceCard = { title: d.t('VoiceCommands.suggest.title'), message, choices: list.map((s) => ({ label: s.label })), tone: 'info', soft: true };
+      const index = await ctx.choose(card, message);
+      ctx.followUp(list[index].phrase);
+    },
+  };
+  await runFound([{ command, parsed: null }], heard, opts, 'local');
+  return true;
 }
 
 async function quickFinishError(title: string, message: string) {
@@ -896,7 +991,8 @@ async function runFound(found: Found[], heard: string, _opts: HandleOptions, sou
     }
   }
   // Lo que queda del pedido, ya en la pantalla nueva y con sus módulos de voz.
-  if (next && deps) handleText(next, { conversational: false });
+  if (next && deps) { overlayDuringTask = null; handleText(next, { conversational: false }); return; }
+  if (!own.signal.aborted && controller === null) setTimeout(offerOverlayAfterTask, 60);
 }
 
 let auxController: AbortController | null = null;

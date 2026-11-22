@@ -1,5 +1,6 @@
 import { closeTopOverlay, hasOpenOverlay, topOverlayElement } from '@/lib/voice/dom-dialog';
 import { waitListUpdate } from '@/lib/voice/dom-ui';
+import { searchKeyword, searchTerm } from '@/lib/voice/search-term';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 import { registerVoiceCommand } from '@/lib/voice/registry';
 import { getVoiceBridge, listVoiceBridges } from '@/lib/voice/screen-bridge';
@@ -79,6 +80,7 @@ type Parsed =
   | { op: 'search'; text: string | null }
   | { op: 'filter'; text: string }
   | { op: 'row'; index: number | null; ordinal: string | null; column: string | null; value: string | null }
+  | { op: 'rowId'; id: string }
   | { op: 'deselect' }
   | { op: 'export'; format: 'excel' | 'csv' | 'pdf' | null };
 
@@ -135,6 +137,9 @@ export function parseTable(normalized: string): Parsed | null {
   }
   const byOrdinal = t.match(new RegExp(`^(?:${rowVerb}\\s+)?(?:(?:el|la|the)\\s+)?(?:(?:registro|fila|row|record|item|elemento)\\s+)?(${ORDINAL})(?:\\s+(?:registro|fila|row|record|item|elemento|one|de la lista|of the list))?$`));
   if (byOrdinal && (t !== byOrdinal[1] || /^(?:primer[oa]|ultim[oa]|first|last)$/.test(byOrdinal[1]))) return { op: 'row', index: null, ordinal: byOrdinal[1], column: null, value: null };
+  // «seleccioná el ID 45», «abrí el de código A-12», «el registro con id 7», «open the one with id 12».
+  const byId = t.match(new RegExp(`^(?:${rowVerb}\\s+)?(?:(?:el|la|the)\\s+)?(?:(?:registro|fila|row|record|one|item|elemento)\\s+)?(?:(?:de|del|con|with|que tiene|that has)\\s+)?(?:(?:el|la|the)\\s+)?(?:id|identificador|identifier|codigo|code|referencia|reference|ref)\\s+(?:(?:numero|number|n)\\s+)?([a-z0-9][a-z0-9 -]{0,30})$`));
+  if (byId && (byId[0] !== t || new RegExp(`^${rowVerb}`).test(t) || /^(?:el|la|the)\s/.test(t))) return { op: 'rowId', id: byId[1].trim() };
   // «abrí el que tiene teléfono 099…», «seleccioná el registro con email ana@…», «select the one whose name is Ana».
   const byColumn = t.match(new RegExp(`^${rowVerb}\\s+(?:(?:el|la|the)\\s+)?(?:(?:registro|fila|row|record|one|item)\\s+)?(?:que tiene|que tenga|con|cuyo|cuya|de|with|whose|where|that has)\\s+(?:(?:el|la|the)\\s+)?(.+)$`));
   if (byColumn) return { op: 'row', index: null, ordinal: null, column: byColumn[1].trim(), value: null };
@@ -267,7 +272,7 @@ registerVoiceCommand<Parsed>({
   priority: 6,
   // Una tabla dentro de una ventana se maneja sin cerrarla (si la tabla está afuera, se cierra a mano).
   keepsOverlay: true,
-  match: (normalized) => {
+  match: (normalized, raw) => {
     const all = tables();
     const views = listVoiceBridges<ViewModeVoiceBridge>('view').filter(Boolean);
     if (!all.length && !views.length && !exportDialog()) return null;
@@ -281,8 +286,15 @@ registerVoiceCommand<Parsed>({
     if (parsed.op === 'filter') {
       // Solo si alguna tabla tiene ese filtro (si no, es de otro comando: «solo los deudores» en Pacientes).
       const key = parsed.text;
-      return all.some(({ table }) => table.filter && (/^(?:todos|todas|all)$/.test(key) || table.filter.options.some((o) => sameWords(key, o.label) || sameWords(o.label, key)))) ? parsed : null;
+      if (all.some(({ table }) => table.filter && (/^(?:todos|todas|all)$/.test(key) || table.filter.options.some((o) => sameWords(key, o.label) || sameWords(o.label, key))))) return parsed;
+      // «filtrá por Carolina», «filtrá los que se llaman Ana»: no es una opción del filtro, es buscar la palabra clave.
+      const keyword = searchKeyword(key);
+      if (/^(?:filtra\w*|filter)\b/.test(normalized) && keyword && keyword.split(' ').length <= 5 && all.some(({ table }) => table.search)) {
+        return { op: 'search', text: searchTerm(keyword, raw) };
+      }
+      return null;
     }
+    if (parsed.op === 'search' && parsed.text) parsed.text = searchTerm(parsed.text, raw) || parsed.text;
     if (parsed.op === 'column' || (parsed.op === 'sort' && parsed.name)) {
       const name = parsed.name!;
       return all.some(({ table }) => table.columns && findColumn(table.columns(), name)) ? parsed : null;
@@ -291,6 +303,7 @@ registerVoiceCommand<Parsed>({
       return all.some(({ table }) => table.columns && columnAndValue(table.columns(), parsed.column!)) ? parsed : null;
     }
     if (parsed.op === 'search') return all.some(({ table }) => table.search) ? parsed : null;
+    if (parsed.op === 'rowId') return all.some(({ table }) => table.open) ? { ...parsed, id: searchTerm(parsed.id, raw) || parsed.id } : null;
     if (parsed.op === 'deselect') return all.some(({ table }) => table.selectedId && table.deselect) ? parsed : null;
     return parsed;
   },
@@ -382,6 +395,44 @@ registerVoiceCommand<Parsed>({
         const option = all ? null : filter.options.find((o) => normalizeSpeech(o.label) === normalizeSpeech(parsed.text)) ?? filter.options.find((o) => sameWords(parsed.text, o.label) || sameWords(o.label, parsed.text));
         filter.set(option ? option.value : 'all');
         await say(ctx, option ? T(ctx, 'filtered', { label: option.label }) : T(ctx, 'filterAll'));
+        return;
+      }
+      case 'rowId': {
+        // Por su identificador: el id de la fila o una columna de código/número; si no está en la página, se busca.
+        const want = normalizeSpeech(parsed.id).replace(/[\s-]+/g, '');
+        const isIdColumn = (c: TableVoiceColumn) => /^(?:id|codigo|code|numero|nro|n|ref|referencia|reference|number|#)\b/.test(normalizeSpeech(`${c.label} ${c.id}`)) || /(?:^|_)(?:id|code|codigo|number|nro|ref)$/i.test(c.id);
+        const hitIn = (table: CrudVoiceBridge) => {
+          const idCols = (table.columns?.() ?? []).filter(isIdColumn);
+          return table.rows.filter((r) => normalizeSpeech(String(r.id)).replace(/[\s-]+/g, '') === want
+            || idCols.some((c) => normalizeSpeech(r.cells?.[c.id] ?? '').replace(/[\s#-]+/g, '') === want));
+        };
+        let found = tables().map(({ table }) => ({ table, hits: hitIn(table) })).find((x) => x.hits.length && x.table.open);
+        if (!found) {
+          const searchable = await tableWith(ctx, (t) => !!t.search && !!t.open);
+          if (searchable?.search) {
+            ctx.show({ title: T(ctx, 'title'), message: T(ctx, 'searchingId', { id: parsed.id }), tone: 'info' });
+            const idsOf = (t: CrudVoiceBridge) => t.rows.map((r) => r.id).join(',');
+            const before = idsOf(searchable);
+            searchable.search.set(parsed.id);
+            const current = () => tables().find((x) => x.table.search && normalizeSpeech(x.table.search.value) === normalizeSpeech(parsed.id))?.table ?? searchable;
+            const start = Date.now();
+            while (Date.now() - start < 3000 && !ctx.signal.aborted && idsOf(current()) === before) await settle(100);
+            await waitListUpdate(ctx.signal, 0);
+            const now = current();
+            const hits = hitIn(now);
+            if (hits.length) found = { table: now, hits };
+          }
+        }
+        if (!found) { await say(ctx, T(ctx, 'idNotFound', { id: parsed.id }), 'info'); return; }
+        const target = await tableWith(ctx, (t) => t === found!.table) ?? found.table;
+        let row = found.hits[0];
+        if (found.hits.length > 1) {
+          const question = T(ctx, 'which');
+          const choice = await ctx.choose({ title: T(ctx, 'title'), message: question, choices: found.hits.slice(0, 8).map((r) => ({ label: rowLabel(target, r) })), tone: 'info' }, question);
+          row = found.hits[choice];
+        }
+        target.open!(row.id);
+        await say(ctx, T(ctx, 'selected', { label: rowLabel(target, row) }));
         return;
       }
       case 'deselect': {

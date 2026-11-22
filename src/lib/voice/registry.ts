@@ -59,11 +59,17 @@ export function matchVoiceCommand(
 
 /** Los módulos activos que saben preguntarle a la IA, en el orden en que los activó la pantalla. */
 export function listVoiceAiDomains(active: readonly string[]): VoiceDomain<any>[] {
-  return active.flatMap((id) => {
+  const out = active.flatMap((id) => {
     const domain = domains.get(id);
     return domain?.ai ? [domain] : [];
   });
+  // La IA de la pantalla (lo que está a la vista) va siempre, al final: después de la de cada módulo.
+  const screen = domains.get(ALWAYS_LAST_AI);
+  if (screen?.ai && !active.includes(ALWAYS_LAST_AI)) out.push(screen);
+  return out;
 }
+
+const ALWAYS_LAST_AI = 'screen';
 
 /** El primer comando del módulo que acepta lo que interpretó la IA. */
 export function matchVoiceAiResult(domain: string, result: unknown, raw: string): { command: VoiceCommand<any>; parsed: unknown } | null {

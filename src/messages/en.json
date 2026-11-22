@@ -14580,7 +14580,11 @@
       "rowActionDisabled": "“{action}” isn't available for “{row}” (it's disabled).",
       "fieldLocked": "“{field}” can't be edited here (I couldn't find how to switch to edit mode).",
       "colorSet": "Set {row} to {color}.",
-      "colorNotFound": "I couldn't find the color for {row}."
+      "colorNotFound": "I couldn't find the color for {row}.",
+      "closed": "Done, I closed: {names}.",
+      "window": "the window",
+      "detail": "the details",
+      "nothingToClose": "There's nothing open to close."
     },
     "rail": {
       "title": "Right panel",
@@ -15004,7 +15008,9 @@
       "exportWhich": "Which format? {options}.",
       "exportNoPdf": "PDF isn't available: which one? {options}.",
       "exporting": "Exporting as {format}.",
-      "exportStarted": "Exporting the list."
+      "exportStarted": "Exporting the list.",
+      "searchingId": "Looking for {id}…",
+      "idNotFound": "I couldn't find a record with “{id}”."
     },
     "ledger": {
       "title": "Account statement",
@@ -15053,6 +15059,22 @@
       "did_finalizado": "Finished {row}.",
       "did_toEnCurso": "Moved {row} back to in progress.",
       "did_toPresupuesto": "Moved {row} back to quote."
+    },
+    "overlayAsk": "“{title}” is open. What should I do? {options}.",
+    "overlayAskFields": "“{title}” is open. Tell me what to fill in ({fields}…) or what to press: {options}.",
+    "suggest": {
+      "title": "Did you mean…?",
+      "ask": "I didn't understand “{heard}”. Did you mean {options}? Say which one, or “no”.",
+      "press": "press {label}",
+      "tab": "open the {label} tab",
+      "turnOn": "turn on {label}",
+      "turnOff": "turn off {label}",
+      "select": "choose in {label}",
+      "navigate": "go to {label}",
+      "askAi": "Did you mean {options}? Say which one, or “no”."
+    },
+    "screenAi": {
+      "stepMissing": "I can't find “{target}” on the screen."
     }
   }
 }

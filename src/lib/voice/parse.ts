@@ -79,7 +79,7 @@ function wordsToDigits(text: string): string {
 // ── Sí / no ───────────────────────────────────────────────────────────────────
 
 const YES = /^(si|sii+|dale|ok|okay|okey|vale|claro|correcto|exacto|perfecto|confirmo|confirma|confirmar|confirmalo|confirmala|hacelo|hazlo|adelante|de una|yes|yeah|yep|sure|confirm|go ahead|do it|correct|right)\b/;
-const NO = /^(no|nop|nope|cancela|cancelar|cancelalo|cancelala|cancel|para|pare|deja|dejalo|olvidalo|olvidate|mejor no|ni loco|stop|never mind|nevermind)\b/;
+const NO = /^(no|nop|nope|cancela|cancelar|cancelalo|cancelala|cancel|para|pare|deja|dejalo|olvidalo|olvidate|mejor no|ni loco|stop|never mind|nevermind|ninguna|ninguno|ninguna de esas|nada que ver|nada de eso|none|neither|none of them|none of those)\b/;
 
 /** "sí, dale" → 'yes'; "no, cancelá" → 'no'; otra cosa → null. */
 export function parseYesNo(normalized: string): 'yes' | 'no' | null {

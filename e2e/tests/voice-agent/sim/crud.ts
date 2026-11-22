@@ -25,6 +25,7 @@ export function publishSimCrud({
   filterOptions = null as Array<{ value: string; label: string }> | null,
   pages = 3,
   withView = false,
+  codes = null as string[] | null,
 } = {}): SimCrud {
   const log: string[] = [];
   const columns: TableVoiceColumn[] = [
@@ -32,10 +33,11 @@ export function publishSimCrud({
     { id: 'detalle', label: 'Detalle', visible: true, canHide: true, canSort: true, sort: null },
     { id: 'telefono', label: 'Teléfono', visible: true, canHide: true, canSort: false, sort: null },
     { id: 'fecha_alta', label: 'Fecha de alta', visible: true, canHide: false, canSort: true, sort: null },
+    ...(codes ? [{ id: 'codigo', label: 'Código', visible: true, canHide: true, canSort: true, sort: null }] : []),
   ];
   const allRows = rows.map((label, i) => {
     const [nombre, detalle = ''] = label.split(' · ');
-    return { id: `r${i + 1}`, label, cells: { nombre, detalle, telefono: `09${i + 1}55${i}000`, fecha_alta: `0${i + 1}/03/2026` } };
+    return { id: `r${i + 1}`, label, cells: { nombre, detalle, telefono: `09${i + 1}55${i}000`, fecha_alta: `0${i + 1}/03/2026`, ...(codes ? { codigo: codes[i] ?? '' } : {}) } };
   });
   let page = 0;
   let size = 25;

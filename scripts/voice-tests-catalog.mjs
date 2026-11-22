@@ -50,6 +50,7 @@ const FILE_INTRO = {
   '9c-tables.spec.ts': 'TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.',
   '9d-field-values.spec.ts': 'FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).',
   '9e-ledger.spec.ts': 'EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimientos, acciones por fila con confirmación.',
+  '9f-understanding.spec.ts': 'UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.',
   '9a-crud.spec.ts': 'LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.',
   '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
 };

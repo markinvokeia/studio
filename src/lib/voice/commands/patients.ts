@@ -1,4 +1,5 @@
 import { parseNavigation } from '@/lib/voice/commands/navigation';
+import { searchKeyword } from '@/lib/voice/search-term';
 import { normalizeSpeech, parseChoice } from '@/lib/voice/parse';
 import { answerPatientInfo, needsFor, parsePatientInfo, type PatientInfoTopic } from '@/lib/voice/patient-info';
 import { registerVoiceCommand, registerVoiceDomain } from '@/lib/voice/registry';
@@ -107,7 +108,7 @@ export function parsePatientsList(normalized: string): ListParsed | null {
   const date = t.match(/^(?:(?:mostra\w*|ver|show(?: me)?)\s+)?(?:los (?:pacientes )?(?:de|registrados|nuevos de)|patients (?:from|registered))\s+(hoy|esta semana|este mes|today|this week|this month)$/);
   if (date) return { op: 'date', preset: /hoy|today/.test(date[1]) ? 'today' : /semana|week/.test(date[1]) ? 'week' : 'month' };
   const search = t.match(/^(?:busca\w*|buscar|encontra\w*|search(?: for)?|find|look (?:for|up))\s+(?:(?:a|al|el|la|the)\s+)?(?:paciente\s+|patient\s+)?(.+)$/);
-  if (search && !/^(?:huecos?|turnos?|citas?|slots?)\b/.test(search[1])) return { op: 'search', query: search[1] };
+  if (search && !/^(?:huecos?|turnos?|citas?|slots?)\b/.test(search[1])) return { op: 'search', query: searchKeyword(search[1]) || search[1] };
   const open = t.match(/^(?:abri\w*|abre|mostra\w*|muestra\w*|selecciona\w*|elegi\w*|entra\w* (?:a|en)|open|select|show(?: me)?)\s+(?:(?:la ficha|el paciente|la paciente|el registro|los datos|the (?:patient|record|file))\s+)?(?:(?:de|del|of)\s+)?(?:(?:el|la|the)\s+)?(.+)$/);
   if (open) {
     const what = open[1].trim();

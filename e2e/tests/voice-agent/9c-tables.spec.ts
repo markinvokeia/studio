@@ -97,6 +97,44 @@ test.describe('TB-SEARCH · Buscar y filtrar', () => {
   test('un filtro que la tabla no tiene no se toma', async () => { await start(); await sim.say('solo los presupuestos'); expect(log()).toEqual([]); });
 });
 
+test.describe('TB-KEYWORD · Al filtrar se escribe solo la palabra clave', () => {
+  for (const [locale, said, want] of [
+    ['es', 'filtrá los que se llaman ibuprofeno', 'search:ibuprofeno'],
+    ['es', 'filtrá por paracetamol', 'search:paracetamol'],
+    ['es', 'buscá los medicamentos que contengan amoxicilina', 'search:amoxicilina'],
+    ['es', 'buscá el registro con el nombre Ibuprofeno', 'search:Ibuprofeno'],
+    ['es', 'filtrá la lista por los que tengan paracetamol', 'search:paracetamol'],
+    ['es-ES', 'filtra los que tengan amoxicilina', 'search:amoxicilina'],
+    ['es-ES', 'busca los medicamentos llamados paracetamol', 'search:paracetamol'],
+    ['en', 'filter by the ones named paracetamol', 'search:paracetamol'],
+    ['en', 'search for records containing ibuprofeno', 'search:ibuprofeno'],
+    ['en', 'filter the medications called amoxicilina', 'search:amoxicilina'],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => { await start(locale); await sim.say(said); expect(log()).toEqual([want]); });
+  }
+  test('una opción del filtro sigue siendo el filtro («filtrá por facturas»)', async () => { await start(); await sim.say('filtrá por facturas'); expect(log()).toEqual(['filter:invoice']); });
+});
+
+test.describe('TB-ID · Elegir por ID o código', () => {
+  const codes = ['MED-1', 'MED-2', 'MED-3', 'MED-4'];
+  for (const [locale, said, want] of [
+    ['es', 'seleccioná el código MED-2', 'open:r2'],
+    ['es', 'abrí el de código med 3', 'open:r3'],
+    ['es', 'el registro con id r4', 'open:r4'],
+    ['es-ES', 'abre el código MED-1', 'open:r1'],
+    ['en', 'open the one with code med 4', 'open:r4'],
+    ['en', 'select id r2', 'open:r2'],
+  ] as const) {
+    test(`${locale} «${said}»`, async () => { await start(locale, { codes }); await sim.say(said); expect(log()).toEqual([want]); });
+  }
+  test('si no está en la página lo busca, y si no aparece lo dice', async () => {
+    await start('es', { codes });
+    await sim.say('abrí el código MED-9');
+    expect(log()).toEqual(['search:MED-9']);
+    expect(sim.card().message).toBe('No encontré un registro con «MED-9».');
+  });
+});
+
 test.describe('TB-ROW · Elegir el registro', () => {
   for (const [locale, said, want] of [
     ['es', 'seleccioná el 3', 'open:r3'], ['es', 'abrí el registro 2', 'open:r2'], ['es', 'seleccioná la fila número 4', 'open:r4'], ['es', 'abrí el tercero', 'open:r3'],

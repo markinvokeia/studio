@@ -1154,6 +1154,28 @@ REGLAS
 
 FORMATO: {"relation":"new","intent":"navigate","target_key":"ReportDeudores","rest":null,"confidence":0.9}`;
 
+const SCREEN_VOICE_PROMPT = `Interpretás un pedido de voz del equipo de una clínica sobre la PANTALLA ABIERTA de Invoke IA (lo que está arriba: una ventana, un panel o la página). La frase viene del reconocimiento de voz (con errores, sin puntuación), en español o en inglés, y puede ser indirecta ("dejame esto guardado", "que no se mande el recordatorio", "poné que es particular"). El intérprete local no la entendió.
+
+Recibís CONTROLES: lo que se puede tocar, con su tipo y su nombre tal cual (button, tab, toggle con on true/false, field, search, select).
+
+Devolvé SOLO JSON con:
+- relation: "new" (un pedido), "ignore" (no es para el asistente: charla de la sala), "cancel" (cancelar lo que se hacía), "resume" (seguir con lo de antes).
+- intent: "steps" (se hace con los controles), "suggest" (no está claro cuál: proponé lo más parecido) o "unknown".
+- steps: lista ordenada (máximo 6) de { op, target, value, on }:
+  · op "press" (button), "tab" (tab), "toggle" (toggle; on = true para activar, false para desactivar), "fill" (field; value = el valor tal como se dijo), "select" (select; value = la opción dicha), "search" (search o field de búsqueda; value = SOLO la palabra clave: un nombre, un número, un código, nunca la frase entera).
+  · target: el NOMBRE EXACTO de uno de CONTROLES. Nunca inventes uno.
+- suggestions (solo con intent "suggest"): hasta 3 { label, op, target, value, on }; label es lo que se le muestra a la persona, corto y en su idioma ("apretar «Guardar»", "desactivar «Enviar recordatorio»").
+- confidence: 0–1.
+
+REGLAS
+1. Lo que se pide es para lo que está a la vista; si pide ir a otra sección del menú → intent "unknown" (otro módulo lo resuelve).
+2. Varias cosas en una frase → varios steps en el orden dicho ("poné el nombre Sede Pocitos y guardá" → fill Nombre, press Guardar).
+3. Sinónimos: guardar = grabar = confirmar = aceptar = listo si no hay otro; eliminar = borrar = quitar; activar = prender = habilitar = marcar; desactivar = apagar = deshabilitar = desmarcar; agregar = añadir = sumar = crear = nuevo.
+4. Si dos controles son igual de probables → intent "suggest" con esas opciones (confidence ≥ 0.6). Si es claro → "steps" con confidence ≥ 0.8.
+5. Nunca pongas datos que no se dijeron. Fechas, horas y montos van en value tal como se dijeron.
+
+FORMATO: {"relation":"new","intent":"steps","steps":[{"op":"fill","target":"Nombre","value":"Sede Pocitos"},{"op":"press","target":"Guardar"}],"suggestions":[],"confidence":0.9}`;
+
 /**
  * Código JS de cada módulo, que se pega en los nodos Code:
  * - prepare(ctx, body): { lines, meta }: líneas del prompt con el contexto (listas cerradas) y lo
@@ -1505,6 +1527,59 @@ const VOICE_DOMAINS = {
     steps,
     confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
   });
+}`,
+  },
+  screen: {
+    system: SCREEN_VOICE_PROMPT,
+    prepare: `(ctx) => {
+  // Lo que está a la vista (los nombres; nunca valores ni filas: los manda el frontend así).
+  const s = ctx.screen && typeof ctx.screen === 'object' ? ctx.screen : {};
+  const KINDS = ['button', 'tab', 'toggle', 'field', 'search', 'select'];
+  const controls = (Array.isArray(s.controls) ? s.controls : []).slice(0, 80)
+    .map(c => ({ kind: String((c && c.kind) || ''), label: String((c && c.label) || '').replace(/\\s+/g, ' ').trim().slice(0, 60), on: c && typeof c.on === 'boolean' ? c.on : undefined }))
+    .filter(c => KINDS.includes(c.kind) && c.label.length >= 2);
+  const c = ctx.conversation && typeof ctx.conversation === 'object' ? ctx.conversation : null;
+  return {
+    lines: [
+      '',
+      'ARRIBA: ' + (s.overlay ? 'una ventana' : 'la página') + (s.title ? ' «' + String(s.title).slice(0, 80) + '»' : ''),
+      'CONTROLES (tipo · nombre):',
+      controls.map(x => '- ' + x.kind + ' · ' + x.label + (x.on === undefined ? '' : ' (on: ' + x.on + ')')).join('\\n') || '(ninguno)',
+      ...(c && c.task ? ['', 'TAREA EN CURSO: ' + String(c.task).slice(0, 200)] : []),
+    ],
+    meta: { controls: controls.map(x => ({ kind: x.kind, label: x.label })) },
+  };
+}`,
+    validate: `(p, m) => {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/\\s+/g, ' ').trim();
+  const byLabel = new Map((m.controls || []).map(c => [norm(c.label), c]));
+  const KIND_OF = { press: ['button', 'tab'], tab: ['tab', 'button'], toggle: ['toggle'], fill: ['field', 'search'], select: ['select'], search: ['search', 'field'] };
+  const RELATIONS = ['new', 'ignore', 'cancel', 'resume'];
+  const step = x => {
+    if (!x || typeof x !== 'object' || !KIND_OF[x.op]) return null;
+    const c = byLabel.get(norm(x.target));
+    if (!c || !KIND_OF[x.op].includes(c.kind)) return null;
+    const value = typeof x.value === 'string' && x.value.trim() ? x.value.trim().slice(0, 200) : null;
+    if ((x.op === 'fill' || x.op === 'search' || x.op === 'select') && !value) return null;
+    return { op: x.op, target: c.label, value, on: typeof x.on === 'boolean' ? x.on : null };
+  };
+  const steps = (Array.isArray(p.steps) ? p.steps : []).map(step).filter(Boolean).slice(0, 6);
+  const suggestions = (Array.isArray(p.suggestions) ? p.suggestions : [])
+    .map(x => { const s = step(x); const label = x && typeof x.label === 'string' ? x.label.trim().slice(0, 80) : ''; return s && label ? Object.assign(s, { label }) : null; })
+    .filter(Boolean).slice(0, 3);
+  const relation = RELATIONS.includes(p.relation) ? p.relation : 'new';
+  const intent = p.intent === 'steps' && steps.length ? 'steps' : p.intent === 'suggest' && suggestions.length ? 'suggest' : 'unknown';
+  const confidence = Number(p.confidence);
+  const c = Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0;
+  return {
+    relation,
+    intent,
+    // «actions» (no «steps»: la sesión toma «steps» como un plan de varios pedidos).
+    actions: intent === 'steps' ? steps : [],
+    suggestions: intent === 'suggest' ? suggestions : [],
+    // Las propuestas ya son una pregunta: no se vuelve a confirmar.
+    confidence: intent === 'suggest' ? Math.max(c, 0.85) : intent === 'unknown' && !['ignore', 'cancel', 'resume'].includes(relation) ? Math.min(0.3, c) : c,
+  };
 }`,
   },
   perio: {

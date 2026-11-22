@@ -213,6 +213,36 @@ export function readTopOverlay(): OpenOverlay | null {
   return { element, title, buttons, fields };
 }
 
+/**
+ * Avisa cuando cambia la ventana o el panel lateral de arriba (uno con título: no las listas ni los
+ * calendarios desplegables). `onOpen` con la nueva; `onClose` cuando no queda ninguna.
+ */
+export function watchOverlays(onOpen: (overlay: OpenOverlay) => void, onClose: () => void): () => void {
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return () => {};
+  let current: HTMLElement | null = null;
+  let frame = 0;
+  const check = () => {
+    frame = 0;
+    const top = readTopOverlay();
+    const titled = top && top.title ? top : null;
+    if (titled && titled.element !== current) {
+      current = titled.element;
+      onOpen(titled);
+    } else if (!top && current) {
+      current = null;
+      onClose();
+    }
+  };
+  const schedule = () => {
+    if (frame) return;
+    frame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(check) : (setTimeout(check, 16) as unknown as number);
+  };
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-state'] });
+  check();
+  return () => observer.disconnect();
+}
+
 const PRESS = /^(?:(?:apreta\w*|apretar|toca\w*|tocar|presiona\w*|clic(?:k)?ea\w*|hace\w* (?:clic|click)|haz (?:clic|click)|dale(?: (?:clic|click))?|selecciona\w*|elegi\w*|click(?: on)?|press|tap(?: on)?|hit|choose|select)\s(?:en |a |al |el |la |on |the )?(?:boton |button )?)/;
 
 const VERB_FILLER = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo', 'de', 'del', 'al', 'a', 'otro', 'otra', 'nuevo', 'nueva', 'the', 'an', 'another', 'new']);

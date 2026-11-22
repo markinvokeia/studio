@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2326 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2373 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -584,7 +584,7 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (102)
+## 07-screen.spec.ts (108)
 
 UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
@@ -680,6 +680,13 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «eliminá recibido en clínica»
   - una fila que no está: nada
   - en «deactivate solicitud creada»
+- **UI-ROWCOLOR · El color de una fila («el color de Confirmada es rojo»)**
+  - es «el color de confirmada es rojo»
+  - es «poné programada en azul»
+  - es «cambiá el color de cancelada a #ff0000»
+  - es-ES «pon el color de confirmada en verde»
+  - en «set the color of confirmada to purple»
+  - una fila que no está: no pinta nada
 - **UI-FIELDNAME · Nombre sin paréntesis y número sin unidad**
   - «la duración es 5 días» en «Duración (días)» (numérico)
   - «la hora es las 9 y media» en un campo de hora
@@ -2595,7 +2602,7 @@ CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agen
   - «la dosis es 400 mg» con la receta abierta va al campo
   - una pregunta del paciente con la receta abierta sí va al agente
 
-## 9c-tables.spec.ts (90)
+## 9c-tables.spec.ts (108)
 
 TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.
 
@@ -2668,6 +2675,26 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
   - es-ES «filtra por notas de crédito»
   - en «only facturas»
   - un filtro que la tabla no tiene no se toma
+- **TB-KEYWORD · Al filtrar se escribe solo la palabra clave**
+  - es «filtrá los que se llaman ibuprofeno»
+  - es «filtrá por paracetamol»
+  - es «buscá los medicamentos que contengan amoxicilina»
+  - es «buscá el registro con el nombre Ibuprofeno»
+  - es «filtrá la lista por los que tengan paracetamol»
+  - es-ES «filtra los que tengan amoxicilina»
+  - es-ES «busca los medicamentos llamados paracetamol»
+  - en «filter by the ones named paracetamol»
+  - en «search for records containing ibuprofeno»
+  - en «filter the medications called amoxicilina»
+  - una opción del filtro sigue siendo el filtro («filtrá por facturas»)
+- **TB-ID · Elegir por ID o código**
+  - es «seleccioná el código MED-2»
+  - es «abrí el de código med 3»
+  - es «el registro con id r4»
+  - es-ES «abre el código MED-1»
+  - en «open the one with code med 4»
+  - en «select id r2»
+  - si no está en la página lo busca, y si no aparece lo dice
 - **TB-ROW · Elegir el registro**
   - es «seleccioná el 3»
   - es «abrí el registro 2»
@@ -2790,3 +2817,34 @@ EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimi
   - es-ES «factura el presupuesto 1» y «sí»
   - en «print invoice 12»
   - lo que no está lo dice
+
+## 9f-understanding.spec.ts (23)
+
+UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.
+
+- **UN-SUGGEST · «¿Te referís a…?»**
+  - es «los mapas sincronizados» propone apretar «Sincronizar mapas»
+  - es «el listado para exportar» propone apretar «Exportar listado»
+  - es-ES «los mapas sincronizados» propone pulsar «Sincronizar mapas»
+  - en «listado exportar please» propone press “Exportar listado”
+  - elegir la propuesta la hace («la primera»)
+  - o por su nombre («sincronizar mapas»)
+  - «no» no hace nada
+  - «ninguna» no hace nada
+  - «no, nada que ver» no hace nada
+  - «none of those» no hace nada
+  - otro pedido sigue sin preguntar («exportar listado»)
+  - lo que no se parece a nada: «no entendí» sin propuestas
+- **UN-OVERLAY · Se abrió una ventana: se dice qué se le puede pedir**
+  - abierta a mano: el título, sus campos y sus botones
+  - sin campos: ¿qué hago?
+  - lo que se dice después va a la ventana («guardar»)
+  - «cerrá» cierra la ventana (lo último que se abrió)
+  - es-ES y en
+- **UN-AI · La IA de la pantalla (n8n «screen»): pasos y propuestas con lo que se ve**
+  - arma los pasos y los hace («dejame esto guardado con el nombre Sede Pocitos»)
+  - un control que no está en pantalla no se toca (lo descarta la validación)
+  - «que no mande los recordatorios» → desactiva el interruptor
+  - propuestas de la IA: se elige y se hace
+  - en inglés
+  - lo que está en las filas no viaja a la IA (pueden ser pacientes)

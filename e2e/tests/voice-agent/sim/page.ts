@@ -49,7 +49,14 @@ export class FakeEl {
     if (selector.includes('h2')) return this.descendants().find((d) => d.tagName === 'H2') ?? null;
     return this.querySelectorAll(selector)[0] ?? null;
   }
-  closest() { return null; }
+  closest(selector?: string): FakeEl | null {
+    if (!selector) return null;
+    const parts = selector.split(',').map((x) => x.trim());
+    for (let el: FakeEl | null = this; el; el = el.parentElement) {
+      if (parts.some((part) => matchesSimple(el!, part))) return el;
+    }
+    return null;
+  }
   contains(other: unknown) { return other === this || this.descendants().includes(other as FakeEl); }
   click() { this.onClick?.(); }
   focus() {}
