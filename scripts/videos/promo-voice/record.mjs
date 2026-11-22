@@ -80,8 +80,32 @@ function initScript() {
       if (n >= words.length) clearInterval(window.__captionTimer);
     }, step);
   };
+  // Un cursor a la vista (la grabación no muestra el del sistema): se mueve suave hasta lo que se toca.
+  window.__cursor = (x, y, ms = 900) => {
+    let c = document.getElementById('__promo-cursor');
+    if (!c) {
+      c = document.createElement('div');
+      c.id = '__promo-cursor';
+      c.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#1f1235" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+      c.style.cssText = 'position:fixed;left:0;top:0;z-index:2147483647;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));transition:transform 0ms cubic-bezier(.22,.8,.3,1)';
+      c.style.transform = `translate(${window.innerWidth * 0.55}px, ${window.innerHeight * 0.6}px)`;
+      document.body.appendChild(c);
+    }
+    c.style.transitionDuration = `${ms}ms`;
+    requestAnimationFrame(() => { c.style.transform = `translate(${x}px, ${y}px)`; });
+  };
+  window.__click = () => {
+    const c = document.getElementById('__promo-cursor');
+    if (!c) return;
+    const r = document.createElement('div');
+    const m = c.style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+    r.style.cssText = `position:fixed;left:${Number(m?.[1] ?? 0) - 18}px;top:${Number(m?.[2] ?? 0) - 18}px;width:36px;height:36px;border-radius:50%;border:3px solid #a78bfa;z-index:2147483646;pointer-events:none;animation:__ripple .6s ease-out forwards`;
+    if (!document.getElementById('__ripple-style')) { const st = document.createElement('style'); st.id = '__ripple-style'; st.textContent = '@keyframes __ripple{from{transform:scale(.4);opacity:1}to{transform:scale(1.8);opacity:0}}'; document.head.appendChild(st); }
+    document.body.appendChild(r);
+    setTimeout(() => r.remove(), 700);
+  };
   try {
-    localStorage.setItem('voice-always-on', 'true');
+    localStorage.setItem('voice-always-on', 'false');
     localStorage.setItem('invoke-help-voice-muted', '1');
     localStorage.setItem('invoke-help:automation', '1');
   } catch { /* */ }
@@ -158,21 +182,38 @@ const ctx = {
   wait: (ms) => page.waitForTimeout(ms),
   start: async () => { capture = await startCapture(page, size, clip); },
   mark: (key) => { const at = Math.round((Date.now() / 1000 - capture.t0) * 1000); marks.push({ key, at }); console.log(`[promo-voice] ${key} @${at}ms`); },
-  /** Lo dice: subtítulo, la frase al reconocedor y espera a que termine (o `waitFor`). */
-  say: async (key, text, { waitFor, hold = 900, timeout } = {}) => {
+  /** Lo dice: subtítulo al ritmo de la voz, la frase al reconocedor al terminar, espera la respuesta y la deja ver. */
+  say: async (key, text, { waitFor, hold = 2500, timeout } = {}) => {
     const ms = voiceMs(key);
     await page.evaluate(([t, d]) => { window.__captionMs = d; window.__caption(t); }, [text, ms]);
     ctx.mark(key);
-    // Mientras habla; lo dicho llega al reconocedor al terminar la frase.
-    await page.waitForTimeout(Math.max(450, ms + 150));
+    await page.waitForTimeout(Math.max(600, ms + 250));
     const ok = await page.evaluate((t) => window.__voiceSay(t), text);
     if (!ok) throw new Error(`El micrófono no estaba escuchando para «${text}»`);
-    await page.waitForTimeout(500);
+    ctx.mark(`${key}.said`);
     await settled(text, timeout);
     if (waitFor) await waitFor().catch((e) => console.warn(`[promo-voice] ${key}: ${String(e.message).split('\n')[0]}`));
-    await page.waitForTimeout(hold);
+    ctx.mark(`${key}.ready`);
+    // El subtítulo se va cuando ya se ve la respuesta; la respuesta queda a la vista.
+    await page.waitForTimeout(700);
     await page.evaluate(() => window.__caption(''));
+    await page.waitForTimeout(Math.max(0, hold - 700));
   },
+  /** Prende la voz como una persona: el cursor va al botón Voz y lo toca. */
+  micOn: async () => {
+    const btn = page.locator('[data-help-id="rail.btn.voice"]').first();
+    const box = await btn.boundingBox();
+    if (!box) throw new Error('No encuentro el botón Voz');
+    await page.evaluate(([x, y]) => window.__cursor(x, y, 1100), [box.x + box.width / 2 + 4, box.y + box.height / 2 + 4]);
+    await page.waitForTimeout(1300);
+    ctx.mark('mic');
+    await page.evaluate(() => window.__click());
+    await btn.click();
+    await listening();
+    await page.waitForTimeout(400);
+    await page.evaluate(() => window.__cursor(window.innerWidth * 0.62, window.innerHeight * 0.72, 900));
+  },
+  micToggle: async () => { await page.locator('[data-help-id="rail.btn.voice"]').first().click(); },
   listening,
 };
 

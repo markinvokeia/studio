@@ -13,6 +13,12 @@ export const VOICES = {
   en: 'cjVigY5qzO86Huf0OWal',
 };
 
+/** La intro (el gancho, con la misma voz): la persona en la clínica con el celular. */
+export const INTRO_LINES = {
+  es: '¿Y si te digo que con Invoke IA ya no necesitás las manos? Todo lo podés hacer con la voz, solo hablando. Mirá, te muestro.',
+  en: "What if I told you that with Invoke IA you don't need your hands anymore? You can do everything with your voice, just by talking. Let me show you.",
+};
+
 export const LINES = {
   es: {
     gaps: { say: 'Mostrame los huecos de hoy a la tarde' },
@@ -54,15 +60,16 @@ export const LINES = {
 const card = (page, re, timeout = 30_000) => page.waitForFunction((src) => new RegExp(src, 'i').test((document.querySelector('[data-voice-card]')?.innerText ?? '').replace(/\s+/g, ' ')), re.source, { timeout, polling: 150 });
 const until = {
   gaps: (page) => page.locator('text=/Huecos disponibles|Available slots/i').first().waitFor({ timeout: 20_000 }),
-  create: (page) => card(page, /Nueva cita|New appointment/),
+  create: (page) => card(page, /Cuándo|When /),
   change: (page) => card(page, /14:00|18:15|6:15 ?PM/),
   save: (page) => page.locator('[role="alertdialog"]').first().waitFor({ timeout: 20_000 }),
   yes: (page) => page.locator('[role="alertdialog"]').first().waitFor({ state: 'detached', timeout: 20_000 }),
   go: async (page) => { await page.waitForURL(/\/workspace/, { timeout: 30_000 }); await card(page, /Abr. la cita|Opened/); },
   next: (page) => card(page, /Abrí la cita|Opened the/),
   paula: (page) => card(page, /14:00|18:15|6:15 ?PM/),
-  summary: (page) => card(page, /Resumen m.dico|Medical summary/, 45_000),
-  odo: (page) => card(page, /odontograma|odontogram/),
+  // La respuesta del agente («Resumen médico — Paula Acosta (30 años): …»), no lo dicho.
+  summary: (page) => card(page, /Paula Acosta \(\d+|\d+ (?:años|years)/, 60_000),
+  odo: (page) => card(page, /Muestro el odontograma|Showing the odontogram|odontogram is open/),
   dictate: (page) => page.locator('text=/propone|proposes/').first().waitFor({ timeout: 45_000 }),
   confirm: (page) => card(page, /Confirmar todo|Confirm all/),
   session: (page) => page.locator('[role="dialog"] h2', { hasText: /Crear Sesión|Create Session|New Session|Nueva Sesión/i }).first().waitFor({ timeout: 30_000 }),
@@ -76,7 +83,8 @@ const SETUP = {
   en: ['show sundays', 'day view', 'go to today'],
 };
 
-const HOLD = { gaps: 1600, create: 1800, change: 1300, save: 900, yes: 1200, go: 1500, next: 1300, paula: 1500, summary: 3800, odo: 1200, dictate: 2200, confirm: 900, session: 1400, sessionSave: 1800, inbox: 1500, bill: 3000 };
+/** Lo que queda a la vista la respuesta antes de pedir lo siguiente (ms). */
+const HOLD = { gaps: 2800, create: 3200, change: 2400, save: 1800, yes: 2400, go: 2800, paula: 2400, summary: 6500, odo: 2400, dictate: 3800, confirm: 2000, session: 2800, sessionSave: 2400, inbox: 2600, bill: 4500 };
 
 async function run(ctx, { base, only }) {
   const L = LINES[ctx.locale];
@@ -86,18 +94,28 @@ async function run(ctx, { base, only }) {
   const workspaceOnly = !!only && !only.some((k) => AGENDA.includes(k));
   // Antes de grabar: la agenda de hoy (vista de día, Carrasco), con la voz escuchando.
   await page.goto(`${base}/${ctx.locale}/${workspaceOnly ? 'workspace' : 'appointments'}`, { waitUntil: 'domcontentloaded' });
-  await ctx.listening();
+  await page.locator('[data-help-id="rail.btn.voice"]').first().waitFor({ timeout: 60_000 });
   await page.waitForFunction(() => !document.querySelector('main .animate-pulse, main .animate-spin'), null, { timeout: 30_000 }).catch(() => undefined);
   await ctx.wait(2500);
-  // Fuera de cámara: los domingos a la vista y la vista de día (hoy).
-  for (const setup of workspaceOnly ? [] : SETUP[ctx.locale]) {
-    await page.evaluate((t) => window.__voiceSay(t), setup);
-    await ctx.wait(2500);
+  // Fuera de cámara: la voz se prende, se ponen los domingos y la vista de día, y se apaga.
+  if (!workspaceOnly) {
+    await ctx.micToggle();
+    await ctx.listening();
+    await ctx.wait(1200);
+    for (const setup of SETUP[ctx.locale]) {
+      await page.evaluate((t) => window.__voiceSay(t), setup);
+      await ctx.wait(2500);
+    }
+    await ctx.micToggle();
+    await ctx.wait(1500);
   }
-  await page.locator('[data-voice-card] button[aria-label]').last().click({ timeout: 2000 }).catch(() => undefined);
-  await ctx.wait(800);
+  await page.locator('[data-voice-card] button[aria-label]').last().click({ timeout: 1500 }).catch(() => undefined);
+  await ctx.wait(1500);
+  // En cámara: la pantalla quieta, el cursor va al botón Voz y lo prende.
   await ctx.start();
-  await ctx.wait(900);
+  await ctx.wait(1800);
+  await ctx.micOn();
+  await ctx.wait(1400);
   for (const [key, line] of Object.entries(L)) {
     if (only && !only.includes(key)) continue;
     await ctx.say(key, line.say, { waitFor: until[key] ? () => until[key](page) : undefined, hold: HOLD[key] ?? 1200, timeout: 45_000 });

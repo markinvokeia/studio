@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { LINES, VOICES } from './script.mjs';
+import { INTRO_LINES, LINES, VOICES } from './script.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const KEY = process.env.ELEVENLABS_API_KEY;
@@ -22,7 +22,7 @@ const FORCE = process.env.FORCE === '1';
 for (const locale of LOCALES) {
   const dir = join(ROOT, 'videos', 'promo-voice', 'audio', locale);
   mkdirSync(dir, { recursive: true });
-  for (const [key, line] of Object.entries(LINES[locale])) {
+  for (const [key, line] of [...Object.entries(LINES[locale]), ['intro', { say: INTRO_LINES[locale] }]]) {
     const file = join(dir, `${key}.mp3`);
     if (existsSync(file) && !FORCE) continue;
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICES[locale]}?output_format=mp3_44100_128`, {
@@ -31,7 +31,7 @@ for (const locale of LOCALES) {
       body: JSON.stringify({
         text: line.voice ?? line.say,
         model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1.2 },
+        voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1.0 },
       }),
     });
     if (!res.ok) throw new Error(`ElevenLabs ${res.status} en ${locale}/${key}: ${(await res.text()).slice(0, 200)}`);
