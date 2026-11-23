@@ -58,7 +58,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'internal_id', label: 'ID Interno', required: false, type: 'text' },
       { key: 'birthday', label: 'Fecha de Nacimiento', required: false, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
       { key: 'address', label: 'Dirección', required: false, type: 'text' },
-      { key: 'alternative_phone', label: 'Teléfono Alternativo', required: false, type: 'phone' },
+      { key: 'alternative_phone', label: 'Teléfono Fijo', required: false, type: 'phone', hint: 'no recibe WhatsApp', aliases: ['telefono_fijo', 'landline', 'landline_phone'] },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
       { key: 'rut', label: 'RUT', required: false, type: 'text' },
       { key: 'bank_account', label: 'Cuenta Bancaria', required: false, type: 'text' },

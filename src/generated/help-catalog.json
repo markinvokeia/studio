@@ -1,5 +1,5 @@
 {
- "version": "8933dbfc79098a49",
+ "version": "ee44291538a4227e",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -9976,6 +9976,12 @@
      "kind": "field",
      "label": "Dirección",
      "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "patients.field.alternative_phone",
+     "kind": "field",
+     "label": "Teléfono fijo",
+     "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "description": "Muestra la edad y habilita el saludo de cumpleaños.",

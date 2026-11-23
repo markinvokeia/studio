@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertTriangle, Cake, CheckCircle, CreditCard, Heart, Mail, Users } from 'lucide-react'
+import { AlertTriangle, Cake, CheckCircle, CreditCard, Heart, Mail, Phone, Users } from 'lucide-react'
 import { differenceInYears, parseISO } from 'date-fns'
 import { useTranslations } from 'next-intl'
 
@@ -213,6 +213,12 @@ export function PatientDetailHeader({
           <span className="flex items-center gap-1">
             <WhatsAppIcon className="h-3 w-3" />
             {formatPhoneNumber(effectivePatientPhone)}
+          </span>
+        ) : null}
+        {user.alternative_phone ? (
+          <span className="flex items-center gap-1" title={t('UsersPage.createDialog.landlinePhone')}>
+            <Phone className="h-3 w-3" />
+            {formatPhoneNumber(user.alternative_phone)}
           </span>
         ) : null}
         {currentDischarge && (

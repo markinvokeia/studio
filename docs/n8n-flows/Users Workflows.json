@@ -5884,7 +5884,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT u.id, u.email, u.phone_number, u.alternative_phone,\n       COALESCE(\n         NULLIF(u.phone_number, ''),\n         NULLIF(u.alternative_phone, ''),\n         CASE WHEN u.is_dependant THEN NULLIF(r.phone_number, '') END,\n         CASE WHEN u.is_dependant THEN NULLIF(r.alternative_phone, '') END\n       ) AS effective_phone,\n       (COALESCE(NULLIF(u.phone_number, ''), NULLIF(u.alternative_phone, '')) IS NULL\n        AND u.is_dependant\n        AND COALESCE(NULLIF(r.phone_number, ''), NULLIF(r.alternative_phone, '')) IS NOT NULL) AS phone_from_responsible\nFROM public.users u\nLEFT JOIN public.users r ON r.id = u.responsible_contact_id\nWHERE u.id = ANY($1::uuid[]);",
+        "query": "SELECT u.id, u.email, u.phone_number, u.alternative_phone,\n       -- alternative_phone es el teléfono fijo: no recibe WhatsApp, nunca es el teléfono de envío.\n       COALESCE(\n         NULLIF(u.phone_number, ''),\n         CASE WHEN u.is_dependant THEN NULLIF(r.phone_number, '') END\n       ) AS effective_phone,\n       (NULLIF(u.phone_number, '') IS NULL\n        AND u.is_dependant\n        AND NULLIF(r.phone_number, '') IS NOT NULL) AS phone_from_responsible\nFROM public.users u\nLEFT JOIN public.users r ON r.id = u.responsible_contact_id\nWHERE u.id = ANY($1::uuid[]);",
         "options": {
           "queryReplacement": "={{ [$json.body.ids] }}"
         }
@@ -6086,7 +6086,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Pacientes a cargo de un tutor (users.responsible_contact_id = $1).\n-- Siempre devuelve UNA fila con `data` (array, vacío si no hay): un Postgres con 0\n-- filas no le deja nada al nodo de respuesta.\nSELECT COALESCE(json_agg(json_build_object(\n         'id', d.id,\n         'name', d.name,\n         'email', d.email,\n         'phone_number', d.phone_number,\n         'identity_document', d.identity_document,\n         'identity_document_type', d.identity_document_type,\n         'birth_date', d.birthday,\n         'is_active', d.is_active,\n         -- Sin teléfono propio: alertas y recordatorios le escriben al tutor.\n         'uses_responsible_phone', (COALESCE(NULLIF(d.phone_number, ''), NULLIF(d.alternative_phone, '')) IS NULL)\n       ) ORDER BY d.is_active DESC, d.name), '[]'::json) AS data\nFROM public.users d\nWHERE d.responsible_contact_id = $1::uuid\n  AND d.is_dependant IS TRUE;",
+        "query": "-- Pacientes a cargo de un tutor (users.responsible_contact_id = $1).\n-- Siempre devuelve UNA fila con `data` (array, vacío si no hay): un Postgres con 0\n-- filas no le deja nada al nodo de respuesta.\nSELECT COALESCE(json_agg(json_build_object(\n         'id', d.id,\n         'name', d.name,\n         'email', d.email,\n         'phone_number', d.phone_number,\n         'identity_document', d.identity_document,\n         'identity_document_type', d.identity_document_type,\n         'birth_date', d.birthday,\n         'is_active', d.is_active,\n         -- Sin celular propio: alertas y recordatorios le escriben al tutor (el fijo no recibe WhatsApp).\n         'uses_responsible_phone', (NULLIF(d.phone_number, '') IS NULL)\n       ) ORDER BY d.is_active DESC, d.name), '[]'::json) AS data\nFROM public.users d\nWHERE d.responsible_contact_id = $1::uuid\n  AND d.is_dependant IS TRUE;",
         "options": {
           "queryReplacement": "={{ [$json.query.user_id] }}"
         }

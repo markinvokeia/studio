@@ -51,6 +51,11 @@ export const userFormSchema = (
       if (!val || val.trim() === '') return true;
       return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
     }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
+    /** Teléfono fijo. Se guarda en `users.alternative_phone`; nunca se usa para WhatsApp. */
+    alternative_phone: z.string().optional().refine((val) => {
+      if (!val || val.trim() === '') return true;
+      return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
+    }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
     identity_document: z.string().optional().default(''),
     identity_document_type: z.enum(
       IDENTITY_DOCUMENT_TYPES as [string, ...string[]]
@@ -87,7 +92,9 @@ export const userFormSchema = (
     if (data.is_dependent) return true;
     const hasEmail = data.email && data.email.trim() !== '';
     const hasPhone = data.phone && data.phone.trim() !== '';
-    return hasEmail || hasPhone;
+    // Un fijo alcanza para poder contactarlo (pacientes mayores sin celular), aunque no reciba WhatsApp.
+    const hasLandline = data.alternative_phone && data.alternative_phone.trim() !== '';
+    return hasEmail || hasPhone || hasLandline;
   }, {
     message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
     path: ['email'],
@@ -415,6 +422,7 @@ function mapSearchUser(apiUser: any): User {
     name: apiUser.name || '',
     email: apiUser.email || '',
     phone_number: apiUser.phone_number || '',
+    alternative_phone: apiUser.alternative_phone || '',
     is_active: apiUser.is_active ?? true,
     avatar: '',
     identity_document: apiUser.identity_document || '',
@@ -530,6 +538,7 @@ export function userToFormValues(u: User): UserFormValues {
     name: u.name,
     email: u.email || '',
     phone: u.phone_number || '',
+    alternative_phone: u.alternative_phone || '',
     identity_document: u.identity_document || '',
     identity_document_type: u.identity_document_type || 'cedula_uy',
     birth_date: u.birth_date || '',
@@ -546,7 +555,7 @@ export function userToFormValues(u: User): UserFormValues {
 
 /** Datos del alta que se pueden pasar a una ficha existente (el nombre queda el de la ficha). */
 export const MERGEABLE_PATIENT_FIELDS = [
-  'identity_document', 'phone', 'email', 'birth_date', 'sex', 'address', 'mutual_society_id', 'doctor_id', 'notes',
+  'identity_document', 'phone', 'alternative_phone', 'email', 'birth_date', 'sex', 'address', 'mutual_society_id', 'doctor_id', 'notes',
 ] as const;
 export type MergeablePatientField = typeof MERGEABLE_PATIENT_FIELDS[number];
 
@@ -559,7 +568,7 @@ function isBlankValue(value: unknown): boolean {
 
 function isSameFieldValue(field: MergeablePatientField, a: unknown, b: unknown): boolean {
   if (field === 'identity_document') return normalizeIdentityDocument(String(a)) === normalizeIdentityDocument(String(b));
-  if (field === 'phone') return (phoneMatchKey(String(a)) ?? String(a)) === (phoneMatchKey(String(b)) ?? String(b));
+  if (field === 'phone' || field === 'alternative_phone') return (phoneMatchKey(String(a)) ?? String(a)) === (phoneMatchKey(String(b)) ?? String(b));
   if (field === 'email') return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
   return String(a).trim() === String(b).trim();
 }

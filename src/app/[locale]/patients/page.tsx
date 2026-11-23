@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -164,6 +164,7 @@ function mapApiUser(apiUser: any): User {
     name: apiUser.name || '',
     email: apiUser.email || '',
     phone_number: apiUser.phone_number || '',
+    alternative_phone: apiUser.alternative_phone || '',
     is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
     internal_id: apiUser.internal_id ?? null,
     identity_document: apiUser.identity_document,
@@ -762,6 +763,7 @@ export default function UsersPage() {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
       identity_document_type: 'cedula_uy',
       birth_date: '',
@@ -1035,6 +1037,7 @@ export default function UsersPage() {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
       identity_document_type: 'cedula_uy',
       birth_date: '',
@@ -1060,6 +1063,7 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       phone: user.phone_number,
+      alternative_phone: user.alternative_phone || '',
       identity_document: user.identity_document || '',
       identity_document_type: user.identity_document_type || 'cedula_uy',
       birth_date: user.birth_date || '',
@@ -1209,6 +1213,7 @@ export default function UsersPage() {
           name: data.name,
           email: data.email || '',
           phone_number: data.phone || '',
+          alternative_phone: data.alternative_phone || '',
           identity_document: data.identity_document,
           identity_document_type: data.identity_document_type as User['identity_document_type'],
           birth_date: data.birth_date,
@@ -1747,6 +1752,25 @@ export default function UsersPage() {
                           value={field.value}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="alternative_phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.landlinePhone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>{t('UsersPage.createDialog.landlinePhoneHint')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

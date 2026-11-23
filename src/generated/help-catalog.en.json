@@ -1,5 +1,5 @@
 {
- "version": "949f3897a5c02098",
+ "version": "b730166edc7b9a9c",
  "locale": "en",
  "journey": [
   {
@@ -9887,6 +9887,12 @@
      "kind": "field",
      "label": "Address",
      "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "patients.field.alternative_phone",
+     "kind": "field",
+     "label": "Landline",
+     "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "description": "Shows the age and enables the birthday greeting.",

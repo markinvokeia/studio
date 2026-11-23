@@ -2209,6 +2209,8 @@
       "email": "Email",
       "emailPlaceholder": "john.doe@example.com",
       "phone": "Phone",
+      "landlinePhone": "Landline",
+      "landlinePhoneHint": "Optional. It doesn't receive WhatsApp: reminders go to the mobile number.",
       "isDependent": "Dependent patient (child, elderly, caregiver-managed)",
       "responsibleContact": "Responsible contact (guardian)",
       "responsibleContactPlaceholder": "Not assigned",

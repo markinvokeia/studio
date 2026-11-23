@@ -14,7 +14,7 @@ import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DialogCancelButton } from '@/components/ui/dialog';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -64,6 +64,7 @@ const MERGE_FIELD_LABEL_KEYS: Record<MergeablePatientField | 'name', string> = {
   name: 'UsersPage.createDialog.name',
   identity_document: 'UsersPage.createDialog.identity_document',
   phone: 'UsersPage.createDialog.phone',
+  alternative_phone: 'UsersPage.createDialog.landlinePhone',
   email: 'UsersPage.createDialog.email',
   birth_date: 'UsersPage.createDialog.birth_date',
   sex: 'UsersPage.createDialog.sex',
@@ -450,7 +451,7 @@ export function PatientInfoTab({
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: draftDependent?.initial?.values ?? {
-      id: '', name: initialName || '', email: initialContact?.email || '', phone: initialContact?.phone || '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: initialContact?.address || '',
+      id: '', name: initialName || '', email: initialContact?.email || '', phone: initialContact?.phone || '', alternative_phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: initialContact?.address || '',
       notes: '', is_active: true, mutual_society_id: '',
       is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
       doctor_id: null, sex: null,
@@ -591,6 +592,7 @@ export function PatientInfoTab({
           name: normalizePersonName(data.name),
           email: data.email || '',
           phone_number: data.phone || '',
+          alternative_phone: data.alternative_phone || '',
           is_active: data.is_active,
           avatar: '',
           identity_document: data.identity_document,
@@ -614,6 +616,7 @@ export function PatientInfoTab({
         name: data.name,
         email: data.email || '',
         phone_number: data.phone || '',
+        alternative_phone: data.alternative_phone || '',
         identity_document: data.identity_document,
         identity_document_type: data.identity_document_type as User['identity_document_type'],
         birth_date: data.birth_date,
@@ -942,6 +945,16 @@ export function PatientInfoTab({
                 </FormControl>
                 <FormMessage />
                 {renderExistingMatchHint('phone')}
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="alternative_phone" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.landlinePhone')}{addedMark('alternative_phone')}</FormLabel>
+                <FormControl>
+                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
+                </FormControl>
+                <FormDescription>{t('UsersPage.createDialog.landlinePhoneHint')}</FormDescription>
+                <FormMessage />
               </FormItem>
             )} />
             <FormField control={infoForm.control} name="email" render={({ field }) => (

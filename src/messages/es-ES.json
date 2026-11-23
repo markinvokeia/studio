@@ -2209,6 +2209,8 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "juan.perez@ejemplo.com",
       "phone": "Teléfono",
+      "landlinePhone": "Teléfono fijo",
+      "landlinePhoneHint": "Opcional. No recibe WhatsApp: los recordatorios van al móvil.",
       "isDependent": "Paciente dependiente (menor, adulto mayor, a cargo de tutor)",
       "responsibleContact": "Contacto responsable (tutor/padre)",
       "responsibleContactPlaceholder": "Sin asignar",
