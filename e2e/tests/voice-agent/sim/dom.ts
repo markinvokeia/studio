@@ -134,6 +134,8 @@ export function resetDom() {
 }
 
 const matches = (d: FakeDialog, part: string) => {
+  // Las ventanas no son el contenido de un popover de Radix (las listas desplegables van en el portal).
+  if (part.includes('data-radix-popper-content-wrapper')) return false;
   const role = part.match(/\[role="(\w+)"\]/)?.[1];
   if (role && d.role !== role) return false;
   if (part.includes('[data-voice-popup]') && !d.voicePopup) return false;

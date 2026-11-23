@@ -1,9 +1,9 @@
 import { CORE_VOICE_DOMAIN } from '@/lib/voice/commands/core';
 import { closeTopOverlay, hasOpenOverlay } from '@/lib/voice/dom-dialog';
 import { registerVoiceCommand } from '@/lib/voice/registry';
-import { listVoiceBridges } from '@/lib/voice/screen-bridge';
+import { getVoiceBridge, listVoiceBridges } from '@/lib/voice/screen-bridge';
 
-import type { CrudVoiceBridge, VoiceCommandContext } from '@/lib/types';
+import type { CrudVoiceBridge, LabOrdersPageVoiceBridge, VoiceCommandContext } from '@/lib/types';
 
 /**
  * Cerrar lo último que se abrió, en cualquier pantalla: «cerrá», «cerrá esto», «cerrá la
@@ -18,7 +18,11 @@ const ALL_RE = /\b(?:todo|todos|everything|all|paneles|panels|ventanas|windows)\
 
 interface CloseParsed { all: boolean }
 
-const selected = () => listVoiceBridges<CrudVoiceBridge>('crud').filter((b) => !!b?.selectedId && !!b.deselect);
+/** Los detalles abiertos que se pueden cerrar: el de una tabla común y el de una orden de laboratorio. */
+const selected = (): Array<{ deselect: () => void }> => [
+  ...listVoiceBridges<CrudVoiceBridge>('crud').filter((b) => !!b?.selectedId && !!b.deselect).map((b) => ({ deselect: () => b.deselect!() })),
+  ...[getVoiceBridge<LabOrdersPageVoiceBridge>('lab_orders.page')].filter((b): b is LabOrdersPageVoiceBridge => !!b && b.selectedId != null).map((b) => ({ deselect: () => b.select(null) })),
+];
 
 registerVoiceCommand<CloseParsed>({
   id: 'core.close',
@@ -43,7 +47,7 @@ registerVoiceCommand<CloseParsed>({
     }
     if (all || !closed.length) {
       for (const table of selected()) {
-        table.deselect!();
+        table.deselect();
         closed.push(T('detail'));
         if (!all) break;
       }

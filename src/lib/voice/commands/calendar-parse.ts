@@ -536,7 +536,7 @@ export interface CalendarRescheduleParsed {
 }
 
 const RESCHEDULE_VERB = /^(?:reprograma(?:r|me|la|le|lo)?|reagenda(?:r|me|la|le|lo)?|cambia(?:r|me|la|le|lo)?|pasa(?:r|me|la|le|lo)?|move|mueve|movela|movelo|mover|corre(?:r|me|la|le|lo)?|adelanta(?:r|me|la|le|lo)?|atrasa(?:r|me|la|le|lo)?|posterga(?:r|me|la|le|lo)?|reschedule|postpone)(?=\s)/;
-const TARGET_START = new RegExp(`^(?:el|la|las|hoy|manana|pasado|proxim[oa]|semana|mes|dentro|en \\d|mediodia|\\d|next|tomorrow|today|${WEEKDAY_ALT}|${MONTH_ALT})\\b`);
+const TARGET_START = new RegExp(`^(?:el|la|las|hoy|manana|pasado|proxim[oa]|semana|mes|dentro|en \\d|mediodia|\\d|next|tomorrow|today|the|day after|in \\d|noon|${WEEKDAY_ALT}|${MONTH_ALT})\\b`);
 
 export function parseCalendarReschedule(normalized: string, today: Date = startOfToday()): CalendarRescheduleParsed | null {
   const verb = normalized.match(RESCHEDULE_VERB);

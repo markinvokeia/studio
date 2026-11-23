@@ -85,3 +85,14 @@ test.describe('LB-NAV · Llegar y seguir', () => {
     expect(lab().bridge.selectedId).toBe(46);
   });
 });
+
+test.describe('LO-CLOSE · «cerrá» cierra la orden abierta', () => {
+  for (const [locale, said] of [['es', 'cerrá'], ['es-ES', 'cierra el detalle'], ['en', 'close it']] as const) {
+    test(`${locale} «${said}»`, async () => {
+      await start(locale);
+      sim.lab()!.bridge.select(46);
+      await sim.say(said);
+      expect(sim.lab()!.bridge.selectedId).toBeNull();
+    });
+  }
+});

@@ -131,7 +131,11 @@ registerVoiceCommand<Parsed>({
     if (!parsed) return null;
     // Con una ventana abierta, lo dicho es para ella: la tabla de atrás solo si se nombra un registro suyo.
     const overlay = topOverlayElement();
-    if (overlay && parsed.op !== 'open' && !all.some((b) => { const r = b.root?.(); return !!r && overlay.contains(r); })) return null;
+    // Salvo «nuevo» frente a una ventana que no crea nada (un aviso de notificaciones): es cambiar de
+    // contexto; la sesión cierra la ventana y se abre el alta.
+    const overlayCreates = (): boolean => { const s = readSurface(); return !!s?.isOverlay && createButtons(s).length > 0; };
+    if (overlay && parsed.op !== 'open' && !all.some((b) => { const r = b.root?.(); return !!r && overlay.contains(r); })
+      && !(parsed.op === 'create' && !overlayCreates())) return null;
     // «nuevo» suelto en una lista de solo consulta (historiales, auditoría): se dice que acá no se crea.
     if (parsed.op === 'create' && !tablesWith('create').length) return parsed.name === null && !parsed.rawName ? parsed : null;
     if (parsed.op === 'refresh' && !tablesWith('refresh').length) return null;

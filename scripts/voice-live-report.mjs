@@ -2,7 +2,7 @@
 /**
  * Galería de las pruebas en vivo por pantalla (e2e/tests/voice-live/page-matrix.live.ts): arma
  * docs/voz-pruebas-vivo.md con lo que se dijo en cada pantalla y cómo salió, a partir de
- * test-results/voice-matrix/*.json (la última corrida de cada pantalla y cada idioma).
+ * voice-matrix-results/*.json (la última corrida de cada pantalla y cada idioma).
  *
  *   pnpm test:voice:live -g matrix && pnpm test:voice:matrix:report
  */
@@ -11,7 +11,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const DIR = join(ROOT, 'test-results', 'voice-matrix');
+const DIR = join(ROOT, 'voice-matrix-results');
 const OUT = join(ROOT, 'docs', 'voz-pruebas-vivo.md');
 if (!existsSync(DIR)) throw new Error('No hay resultados: corré primero pnpm test:voice:live -g matrix');
 

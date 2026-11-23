@@ -60,10 +60,10 @@ table('en', 'V-EN-MENU · duration', [
 ], async (end) => { await yes('en')(); expect(sim.cal.calls('retime')[0]?.[2]).toBe(end); });
 
 table('es', 'V-ES-MENU · mover', [
-  ['pasá la cita de Juan Pérez al viernes a las 11', 'a2'], ['reprogramá la cita de Juan Pérez para el lunes', 'a2'], ['mové la cita de Juan Pérez a las 4', 'a2'], ['corré la cita de Juan Pérez para mañana', 'a2'],
+  ['pasá la cita de Juan Pérez al viernes a las 11', 'a2'], ['reprogramá la cita de Juan Pérez para pasado mañana', 'a2'], ['mové la cita de Juan Pérez a las 4', 'a2'], ['corré la cita de Juan Pérez para mañana', 'a2'],
 ], (id) => { expect(sim.cal.calls('openAppointmentForm')[0]).toEqual(['reschedule', id]); });
 table('en', 'V-EN-MENU · move', [
-  ["move Juan Pérez's appointment to Friday at 11", 'a2'], ["reschedule Juan Pérez's appointment for Monday", 'a2'], ["move Juan Pérez's appointment to 4", 'a2'],
+  ["move Juan Pérez's appointment to Friday at 11", 'a2'], ["reschedule Juan Pérez's appointment for the day after tomorrow", 'a2'], ["move Juan Pérez's appointment to 4", 'a2'],
 ], (id) => { expect(sim.cal.calls('openAppointmentForm')[0]).toEqual(['reschedule', id]); });
 
 table('es', 'V-ES-MENU · abrir', [

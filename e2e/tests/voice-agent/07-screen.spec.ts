@@ -408,11 +408,31 @@ test.describe('UI-SYN · Sinónimos de «poner un valor» (verbos y sustantivos)
   });
 });
 
+test.describe('UI-FILTER-EN · «filter …» en inglés escribe la palabra clave en el buscador', () => {
+  test('«filter the ones that have Carolina»', async () => {
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
+    screen.page(screen.heading('Orders'), screen.field('', { placeholder: 'Search orders', type: 'search' }));
+    await sim.say('filter the ones that have Carolina');
+    expect(uiLog).toEqual(['fill:Search orders=Carolina']);
+  });
+});
+
 test.describe('UI-NOSEARCH · Buscar donde no hay buscador', () => {
   test('«filtrá por Juan» lo dice (no «no entendí»)', async () => {
     sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
     screen.page(screen.heading('Plantillas'), screen.button('Nueva plantilla'));
     await sim.say('filtrá por Juan');
     expect(sim.card().message).toBe('Esta tabla no tiene buscador.');
+  });
+});
+
+test.describe('UI-SEARCHSEL-MISS · Una opción que no aparece no cierra la ventana', () => {
+  test('«elegí Zeta en proveedor» con el pago abierto: lo dice y la ventana sigue', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/purchases/providers' });
+    const w = openWindow('Nuevo Pre-pago a Proveedor', { tree: screen.group(screen.searchSelect('Proveedor', ['Laboratorio Dental Sur', 'Acme']), screen.button('Guardar')) });
+    await sim.wait(80);
+    await sim.say('elegí Zeta en proveedor');
+    expect(w.open).toBe(true);
+    expect(w.pressed).toEqual([]);
   });
 });

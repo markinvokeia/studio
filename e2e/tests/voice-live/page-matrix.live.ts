@@ -18,7 +18,7 @@ import { join } from 'node:path';
  * - cambio de contexto: con la ventana abierta, «andá a …» la cierra y navega.
  *
  * No falla al primer problema: cada paso es un expect.soft y queda en
- * test-results/voice-matrix/<pantalla>.json (con lo que dijo la voz). VOICE_MATRIX_ROUTES elige
+ * voice-matrix-results/<pantalla>.json (con lo que dijo la voz). VOICE_MATRIX_ROUTES elige
  * pantallas; VOICE_MATRIX_LOCALE=en prueba en inglés.
  */
 
@@ -32,9 +32,15 @@ const ROUTES = (process.env.VOICE_MATRIX_ROUTES ?? [
   // Sistema
   '/system/users', '/system/staff', '/system/alert-categories', '/system/alert-rules', '/system/communication-templates',
   '/system/communication-history', '/system/execution-history', '/system/audit', '/system/access', '/system/errors',
-  // Catálogo, ventas, compras, caja, pacientes, laboratorio
-  '/clinic-catalog/medications', '/clinic-catalog/dental-conditions', '/sales/quotes', '/sales/invoices', '/sales/payments',
-  '/purchases/providers', '/purchases/products', '/patients', '/lab-orders',
+  '/system/notification-settings', '/system/config', '/system/whatsapp-agent', '/roles', '/permissions',
+  // Catálogo, ventas, compras, caja, pacientes, laboratorio, estudios
+  '/clinic-catalog/ailments', '/clinic-catalog/medications', '/clinic-catalog/dental-conditions', '/clinic-catalog/dental-surfaces',
+  '/clinic-catalog/measurement-units', '/sales/quotes', '/sales/invoices', '/sales/payments', '/sales/services', '/sales/payment-methods',
+  '/purchases/quotes', '/purchases/invoices', '/purchases/payments', '/purchases/providers', '/purchases/services',
+  '/cashier/cash-points', '/cashier/sessions', '/cashier/miscellaneous-categories', '/cashier/miscellaneous-transactions',
+  '/patients', '/lab-orders', '/studies', '/alerts',
+  // Configuración que no es una lista
+  '/config/clinic-prefs', '/config/patients-portal', '/config/calendar-colors', '/config/templates',
 ].join(',')).split(',').filter(Boolean);
 
 const P = {
@@ -292,7 +298,7 @@ for (const route of ROUTES) {
       await record('alta', P.create, /no se|no hay|nothing|can.t|cannot|no tiene|consulta/i.test(await cardText(page)) || true, 'pantalla sin alta');
     }
 
-    const dir = join('test-results', 'voice-matrix');
+    const dir = join('voice-matrix-results');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `${LOCALE}${route.replace(/\//g, '_')}.json`), JSON.stringify({ route, locale: LOCALE, steps }, null, 2));
     console.log(`[matrix] ${route} ${steps.filter((s) => s.ok).length}/${steps.length}${steps.filter((s) => !s.ok).map((s) => `\n  ✘ ${s.step} «${s.said}» → ${s.note}`).join('')}`);

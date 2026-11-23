@@ -100,6 +100,14 @@ test.describe('LI-OVERLAY · Con una ventana abierta, la tabla de atrás no se l
     await sim.say('agregá un artículo');
     expect(log()).toEqual([]);
   });
+  test('«nuevo» frente a un aviso que no crea nada (notificaciones): lo cierra y abre el alta', async () => {
+    await start();
+    const notice = openWindow('Notificaciones', { buttons: ['Siguiente', 'Descartar todas'] });
+    await sim.wait(80);
+    await sim.say('nuevo');
+    expect(notice.open).toBe(false);
+    expect(log()).toContain('create');
+  });
   test('«siguiente página» con una ventana abierta no mueve la lista de atrás', async () => {
     await start();
     openWindow('Nuevo presupuesto', { buttons: ['Agregar Artículo'] });
