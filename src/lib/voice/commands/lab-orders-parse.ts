@@ -133,6 +133,8 @@ const LIST_CREATE_RE = /\b(crea|crear|creame|nueva|nuevo|carga|cargar|cargame|re
 
 export function parseLabOrdersList(normalized: string): LabListParsed | null {
   if (ORDER_RE.test(normalized) || LIST_CREATE_RE.test(normalized)) return null;
+  // «mostrá la columna Laboratorio», «show the Lab column»: es de la tabla, no de la lista de órdenes.
+  if (/\b(?:columna|column)\b/.test(normalized)) return null;
   const clear = CLEAR_RE.test(normalized);
   if (!clear && !(LIST_VERB_RE.test(normalized) && LIST_NOUN_RE.test(normalized))) return null;
   const overdue = /\b(atrasad|vencid|retrasad|demorad|overdue|late)\w*/.test(normalized);

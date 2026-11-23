@@ -117,8 +117,8 @@ export function parsePatientsList(normalized: string): ListParsed | null {
     const pos = what.match(/^(primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|ultim[oa]|penultim[oa]|first|second|third|fourth|fifth|last)(?: one| paciente| patient)?$/);
     if (pos) return { op: 'open', query: null, position: pos[1] };
     if (/^(?:ficha|paciente|patient|record)$/.test(what)) return null;
-    // Lo que es de la tabla («la columna Correo», «el 1», «el registro 3», «la fila 2»): no es un nombre.
-    if (/^(?:(?:la |el |the )?(?:columna|column|fila|row|registro|record|pagina|page)\b|(?:(?:numero|number|n)\s+)?\d{1,3}$)/.test(what)) return null;
+    // Lo que es de la tabla («la columna Correo», «the Email column», «el 1», «el registro 3», «la fila 2»): no es un nombre.
+    if (/^(?:(?:la |el |the )?(?:columna|column|fila|row|registro|record|pagina|page)\b|(?:(?:numero|number|n)\s+)?\d{1,3}$)|\s(?:column|columns)$/.test(what)) return null;
     // «open John Smith record» (el posesivo ya se fue): el nombre sin la palabra del final.
     // «el estado de cuenta de Carolina», «las facturas de Juan», «la historia clínica de Ana»: el
     // paciente y, después, esa pestaña.

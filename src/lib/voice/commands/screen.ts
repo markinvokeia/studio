@@ -33,6 +33,7 @@ type Parsed =
   | { op: 'row'; rows: UiControl[]; index: number | null; ambiguous: number[] | null }
   | { op: 'help' }
   | { op: 'noSearch' }
+  | { op: 'clearSearch'; control: UiControl }
   | { op: 'date'; iso: string }
   | { op: 'rowColor'; row: HTMLElement; rowLabel: string; color: string }
   | { op: 'rowAction'; action: string; hits: Array<{ row: string; button: HTMLElement; disabled: boolean }> };
@@ -44,6 +45,7 @@ const FILL_VERB = FILL_INTENT_RE;
 const ON_RE = /^(?:activa\w*|activar|prende\w*|prender|encende\w*|enciende|habilita\w*|marca\w*|tilda\w*|turn on|switch on|enable|check|tick)\s+(.+)$/;
 const OFF_RE = /^(?:desactiva\w*|desactivar|apaga\w*|apagar|deshabilita\w*|desmarca\w*|destilda\w*|saca\w* (?:el )?tilde (?:de|a)|turn off|switch off|disable|uncheck|untick)\s+(.+)$/;
 const SELECT_VERB = /^(?:elegi\w*|elige|selecciona\w*|escoge\w*|pone\w*|pon|cambia\w*|choose|select|pick|set|change)\s+/;
+const CLEAR_SEARCH_RE = /^(?:borra\w*|limpia\w*|saca\w*|quita\w*|vacia\w*|clear|remove|reset|empty)\s+(?:la\s+|el\s+|the\s+)?(?:busqueda|buscador|search(?: box)?|filtro de texto)$/;
 const SEARCH_RE = /^(?:busca\w*|buscar|filtra\w*|search(?: for)?|filter(?: by| for)?|find|look (?:for|up))\s+(?:(?:a|al|por|for|the)\s+)?(.+)$/;
 const ROW_VERB = /^(?:abri\w*|abre|abrir|mostra\w*|muestra\w*|selecciona\w*|elegi\w*|entra\w*(?: a| en)?|anda\w* a|ve a|ir a|open|select|show(?: me)?|pick|go to)\s+/;
 const HELP_RE = /^(?:que (?:puedo|se puede|podemos) hacer(?: aca| aqui| aca adentro| en esta pantalla| en esta ventana)?|que hay (?:aca|aqui|en esta pantalla|en esta ventana)|que botones hay|que opciones (?:hay|tengo)|que puedo tocar|what can i do(?: here)?|what is on (?:this|the) screen|what buttons are there|what are my options|what can i press)$/;
@@ -265,6 +267,11 @@ export function parseScreen(normalized: string, raw: string, surface: UiSurface 
   // Un campo bloqueado (hasta «Editar»): se nombra igual; al llenarlo se pone en modo edición.
   const locked = parseFill(normalized, raw, lockedFields(surface));
   if (locked) return locked;
+  // «borrá la búsqueda» con el buscador de la pantalla (no el de una tabla que busca sola).
+  if (CLEAR_SEARCH_RE.test(normalized)) {
+    const control = controlsOf(surface, 'search')[0];
+    if (control) return { op: 'clearSearch', control };
+  }
   const search = normalized.match(SEARCH_RE);
   if (search) {
     const control = controlsOf(surface, 'search')[0];
@@ -358,6 +365,11 @@ export async function runScreen(parsed: Parsed, ctx: VoiceCommandContext) {
     }
     case 'noSearch': {
       await done(ctx, t('VoiceCommands.table.noSearch'));
+      return;
+    }
+    case 'clearSearch': {
+      typeInto(parsed.control.element, '');
+      await done(ctx, t('VoiceCommands.table.searchCleared'));
       return;
     }
     case 'search': {

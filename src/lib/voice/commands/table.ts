@@ -466,6 +466,8 @@ registerVoiceCommand<Parsed>({
           await say(ctx, T(ctx, 'byColumnNotFound', { text: parsed.column }), 'info');
           return;
         }
+        // Recién buscada o borrada la búsqueda, la tabla se está recargando: se esperan sus filas.
+        for (let waited = 0; waited < 4000 && !tables().some((x) => !!x.table.open && x.table.rows.length > 0) && tables().some((x) => !!x.table.open); waited += 200) await settle(200);
         const table = await tableWith(ctx, (t) => !!t.open && t.rows.length > 0);
         if (!table?.open) { await say(ctx, T(ctx, 'noRows'), 'info'); return; }
         const index = parsed.index !== null ? parsed.index - 1 : parseChoice(parsed.ordinal!, table.rows.length);

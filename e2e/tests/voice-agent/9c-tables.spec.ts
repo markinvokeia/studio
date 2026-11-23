@@ -159,6 +159,21 @@ test.describe('TB-ROW · Elegir el registro', () => {
   });
   test('«cerrá el detalle» suelta el registro', async () => { await start(); await sim.sayAll('seleccioná el 2', 'cerrá el detalle'); expect(log()).toEqual(['open:r2', 'deselect']); });
   test('en «back to the list»', async () => { await start('en'); await sim.sayAll('select row 2', 'back to the list'); expect(log()).toEqual(['open:r2', 'deselect']); });
+  test('con la tabla recargándose (recién borrada la búsqueda) espera sus filas', async () => {
+    await start();
+    const rows = t.bridge.rows;
+    t.bridge.rows = [];
+    setTimeout(() => { t.bridge.rows = rows; }, 700);
+    await sim.say('seleccioná el 1');
+    expect(log()).toEqual(['open:r1']);
+  });
+  test('una tabla que sigue vacía lo dice', async () => {
+    await start();
+    t.bridge.rows = [];
+    await sim.say('seleccioná el 1');
+    expect(log()).toEqual([]);
+    expect(sim.card().message).toBe('No hay registros para elegir.');
+  });
 });
 
 test.describe('TB-EXPORT · Exportar', () => {

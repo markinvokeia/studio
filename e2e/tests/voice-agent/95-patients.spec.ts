@@ -22,7 +22,7 @@ test.describe('PA-LIST · Buscar, abrir, filtrar', () => {
   test('«abrí el segundo»', async () => { await start(); await sim.say('abrí el segundo'); expect(log()).toEqual(['select:p2']); });
   test('«abrí la ficha de Carlos López» (está en la lista)', async () => { await start(); await sim.say('abrí la ficha de Carlos López'); expect(log()).toEqual(['select:p4']); });
   test('«abrí la ficha de Sofía Castro» (no está a la vista): la busca', async () => { await start(); await sim.say('abrí la ficha de Sofía Castro'); expect(log()).toEqual(['search:Sofía Castro', 'select:p9']); });
-  for (const said of ['mostrá la columna Correo Electrónico', 'seleccioná el 1', 'abrí el registro 3', 'mostrá la fila 2']) {
+  for (const said of ['mostrá la columna Correo Electrónico', 'seleccioná el 1', 'abrí el registro 3', 'mostrá la fila 2', 'show the Email column', 'show the Last name column']) {
     test(`«${said}» es de la tabla, no un nombre de paciente`, async () => { await start(); await sim.say(said); expect(log().filter((l) => l.startsWith('search:'))).toEqual([]); });
   }
   test('con el alta abierta, «elegí Uruguay en país del teléfono» es de la ventana, no un paciente', async () => {

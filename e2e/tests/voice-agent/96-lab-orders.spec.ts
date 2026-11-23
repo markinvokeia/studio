@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { parseLabOrdersList } from '@/lib/voice/commands/lab-orders-parse';
 import { parseLabOrderPick } from '@/lib/voice/commands/lab-orders-pick';
 import { normalizeSpeech } from '@/lib/voice/parse';
 
@@ -94,5 +95,14 @@ test.describe('LO-CLOSE · «cerrá» cierra la orden abierta', () => {
       await sim.say(said);
       expect(sim.lab()!.bridge.selectedId).toBeNull();
     });
+  }
+});
+
+test.describe('LO-COLUMN · «mostrá la columna Laboratorio» es de la tabla, no la lista de órdenes', () => {
+  for (const said of ['mostrá la columna Laboratorio', 'ocultá la columna Laboratorio', 'show the Lab column']) {
+    test(`no: «${said}»`, () => { expect(parseLabOrdersList(normalizeSpeech(said))).toBeNull(); });
+  }
+  for (const said of ['mostrame las órdenes en el tablero', 'mostrame las órdenes en columnas', 'show the overdue orders']) {
+    test(`sí: «${said}»`, () => { expect(parseLabOrdersList(normalizeSpeech(said))).not.toBeNull(); });
   }
 });

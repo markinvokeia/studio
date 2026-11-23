@@ -62,9 +62,19 @@ test.describe('UI-FILL · Campos y buscador', () => {
     ['completá el nombre con Juan Pérez', 'fill:Nombre=Juan Pérez'],
     ['buscá Juan', 'fill:Buscar...=Juan'],
     ['buscá a María Fernández', 'fill:Buscar...=María Fernández'],
+    ['borrá la búsqueda', 'fill:Buscar...='],
+    ['limpiá el buscador', 'fill:Buscar...='],
   ] as const) {
     test(`«${said}» → ${want}`, async () => { await sim.say(said); expect(uiLog).toEqual([want]); });
   }
+  test('en «clear the search» vacía el buscador de la pantalla', async () => {
+    sim.dispose();
+    sim = await createVoiceSim({ locale: 'en', route: '/purchases/providers' });
+    screen.page(screen.field('Name'), screen.field('', { placeholder: 'Search...' }));
+    await sim.say('clear the search');
+    expect(uiLog).toEqual(['fill:Search...=']);
+    expect(sim.card().message).toBe('Cleared the search.');
+  });
   test('sin valor pregunta qué poner', async () => {
     await sim.say('poné el teléfono');
     expect(sim.card().message).toBe('¿Qué pongo en Teléfono?');
