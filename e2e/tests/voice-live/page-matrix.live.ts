@@ -155,6 +155,9 @@ for (const route of ROUTES) {
       const card = await cardText(page).catch(() => '');
       steps.push({ step, said, ok, note: note || card.slice(0, 220) });
       expect.soft(ok, `${route} · ${step} · «${said}» → ${card.slice(0, 160)}`).toBeTruthy();
+      // Se guarda en cada paso: si la pantalla se cuelga, queda lo que se llegó a probar.
+      mkdirSync('voice-matrix-results', { recursive: true });
+      writeFileSync(join('voice-matrix-results', `${LOCALE}${route.replace(/\//g, '_')}.json`), JSON.stringify({ route, locale: LOCALE, steps }, null, 2));
     };
     await install(page);
     await page.goto(`/${LOCALE}${route}`);
@@ -180,17 +183,17 @@ for (const route of ROUTES) {
       const col = table.headers[0];
       if (col) {
         await say(page, P.sort(col));
-        await record('tabla · ordenar', P.sort(col), /orden|sort/i.test(await cardText(page)));
+        await record('tabla · ordenar', P.sort(col), /Orden[eé] por|ordenado por|Sorted by|no se puede ordenar|can.t be sorted/i.test(await cardText(page)) && !(await dialogOpen(page)));
       }
       const hideCol = table.headers[1] ?? table.headers[0];
       if (hideCol) {
         const before = await page.locator('main [data-voice-table] thead th').count();
         await say(page, P.hide(hideCol));
         const hidden = await page.locator('main [data-voice-table] thead th').count();
-        await record('tabla · ocultar columna', P.hide(hideCol), hidden < before || /ocult|hid|no se puede|can.t/i.test(await cardText(page)));
-        if (hidden < before || /ocult|hid/i.test(await cardText(page))) {
+        await record('tabla · ocultar columna', P.hide(hideCol), hidden < before || /Oculté la columna|Hid the|no se puede ocultar|can.t be hidden/i.test(await cardText(page)));
+        if (hidden < before || /Oculté la columna|Hid the/i.test(await cardText(page))) {
           await say(page, P.show(hideCol));
-          await record('tabla · mostrar columna', P.show(hideCol), (before > 0 && (await page.locator('main [data-voice-table] thead th').count()) === before) || /mostr|show/i.test(await cardText(page)));
+          await record('tabla · mostrar columna', P.show(hideCol), (before > 0 && (await page.locator('main [data-voice-table] thead th').count()) === before) || /Muestro la columna|Volví a mostrar|Showing the .+ column/i.test(await cardText(page)));
         }
       }
       const hasSearch = await page.evaluate(() => !!document.querySelector('main input[type="search"], main [data-voice-table] input, main input[placeholder*="iltr"], main input[placeholder*="usca"], main input[placeholder*="earch"], main input[placeholder*="ilter"]'));
@@ -199,11 +202,15 @@ for (const route of ROUTES) {
         const value = await page.evaluate((w) => Array.from(document.querySelectorAll<HTMLInputElement>('main input')).map((i) => i.value).find((v) => v.trim().toLowerCase() === w.toLowerCase()) ?? '', table.word);
         const card = await cardText(page);
         await record('tabla · filtrar con la palabra clave', P.filter(table.word), value.trim().toLowerCase() === table.word.toLowerCase() || new RegExp(`(?:busc|search)\\w*[^«“]*[«“]${table.word}[»”]`, 'i').test(card), `escribió «${value}»`);
-        await say(page, LOCALE === 'en' ? 'clear the search' : 'borrá la búsqueda', 2500);
+        const clear = LOCALE === 'en' ? 'clear the search' : 'borrá la búsqueda';
+        await say(page, clear, 2500);
+        const left = await page.evaluate((w) => Array.from(document.querySelectorAll<HTMLInputElement>('main input')).some((i) => i.value.trim().toLowerCase() === w.toLowerCase()), table.word);
+        const waiting = await page.evaluate(() => /Esperando tu respuesta|Waiting for your answer/.test((document.querySelector('[data-voice-card]') as HTMLElement | null)?.innerText ?? ''));
+        await record('tabla · borrar la búsqueda', clear, !left && !waiting, `${left ? 'quedó escrito' : 'vacía'}${waiting ? ' · quedó esperando respuesta' : ''}`);
       }
       await say(page, P.first);
       const detail = await page.evaluate(() => !!document.querySelector('[data-voice-panel="detail"]') || !!document.querySelector('[role="dialog"][data-state="open"]'));
-      await record('tabla · elegir el primero', P.first, detail || /abr|open|eleg|select/i.test(await cardText(page)));
+      await record('tabla · elegir el primero', P.first, detail || /Abrí |Opened /.test(await cardText(page)));
       if (detail) {
         await say(page, P.close);
         const still = await page.evaluate(() => !!document.querySelector('[data-voice-panel="detail"]') || !!document.querySelector('[role="dialog"][data-state="open"]'));
@@ -258,7 +265,7 @@ for (const route of ROUTES) {
         const el = page.locator('[role="dialog"][data-state="open"] [role="combobox"]').filter({ hasText: select.value?.slice(0, 20) || '' }).first();
         const options = await (async () => {
           if (!(await el.count())) return [] as string[];
-          await el.click().catch(() => undefined);
+          await el.click({ timeout: 3000 }).catch(() => undefined);
           await page.waitForTimeout(500);
           const list = (await page.locator('[role="option"]').allInnerTexts().catch(() => [])).map((t) => t.split('\n')[0].trim()).filter((t) => t && t.length < 40);
           await page.keyboard.press('Escape');
@@ -298,9 +305,6 @@ for (const route of ROUTES) {
       await record('alta', P.create, /no se|no hay|nothing|can.t|cannot|no tiene|consulta/i.test(await cardText(page)) || true, 'pantalla sin alta');
     }
 
-    const dir = join('voice-matrix-results');
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, `${LOCALE}${route.replace(/\//g, '_')}.json`), JSON.stringify({ route, locale: LOCALE, steps }, null, 2));
     console.log(`[matrix] ${route} ${steps.filter((s) => s.ok).length}/${steps.length}${steps.filter((s) => !s.ok).map((s) => `\n  ✘ ${s.step} «${s.said}» → ${s.note}`).join('')}`);
   });
 }

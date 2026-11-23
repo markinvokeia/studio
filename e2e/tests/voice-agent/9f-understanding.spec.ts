@@ -211,6 +211,28 @@ test.describe('UN-SWITCH · Con un aviso abierto, otro pedido es un cambio de co
   });
 });
 
+test.describe('UN-NONAME · Una pregunta que no es de ninguna tarea no pregunta «¿Cambiamos de tarea?»', () => {
+  test('con «¿Te referís a…?» abierto, «andá a pacientes» va sin preguntar ni nombrar «»', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+    page();
+    await sim.say('los mapas sincronizados');
+    expect(sim.card().awaiting).toBe('choice');
+    await sim.say('andá a pacientes');
+    await sim.wait(300);
+    expect(sim.card().message ?? '').not.toMatch(/Estábamos con «»|Cambiamos de tarea/);
+    expect(sim.navigations).toContain('/patients');
+  });
+  test('con la ventana recién abierta a mano, «andá a pacientes» va sin preguntar', async () => {
+    sim = await createVoiceSim({ locale: 'es', route: '/config/sedes' });
+    page();
+    openWindow('Importar sedes', { buttons: ['Subir archivo', 'Cerrar'] });
+    await sim.wait(80);
+    await sim.say('andá a pacientes');
+    await sim.wait(300);
+    expect(sim.card().message ?? '').not.toMatch(/Estábamos con «»/);
+  });
+});
+
 test.describe('UN-VERBS · El verbo dicho con otra palabra («aplicá los cambios» → «Confirmar todo»)', () => {
   for (const [said, want] of [
     ['aplicá los cambios', 'Confirmar todo'],

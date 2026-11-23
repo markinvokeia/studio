@@ -2,7 +2,8 @@ import coreWebVitals from 'eslint-config-next/core-web-vitals';
 
 const eslintConfig = [
   // La config de Next no cubre .cjs: sin esto, las reglas de abajo rompen ESLint al llegar a uno.
-  { ignores: ['**/*.cjs'] },
+  // Los informes de Playwright (generados, fuera de git) traen su propio JS minificado.
+  { ignores: ['**/*.cjs', 'playwright-report/**', 'test-results/**', 'voice-matrix-results/**'] },
   ...coreWebVitals,
   {
     rules: {

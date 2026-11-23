@@ -769,14 +769,15 @@ async function switchTask(heard: string, start: () => Promise<void>): Promise<bo
   if (!deps) return false;
   const top = topPending();
   const current = store().task;
-  // Una pregunta liviana (el menú de ayuda) se deja sin preguntar: lo nuevo es lo que se quiere.
-  const yes = top?.card.soft ? true : await askOnTop(
+  // Una pregunta liviana (el menú de ayuda) o una sin tarea con nombre se deja sin preguntar:
+  // lo nuevo es lo que se quiere (y no hay nada que nombrar en «Estábamos con…»).
+  const yes = top?.card.soft || !current?.trim() ? true : await askOnTop(
     {
       title: deps.t('VoiceCommands.switchTitle'),
-      message: deps.t('VoiceCommands.switchQuestion', { current: current ?? '', next: heard }),
+      message: deps.t('VoiceCommands.switchQuestion', { current: current!, next: heard }),
       tone: 'confirm',
     },
-    deps.t('VoiceCommands.switchSpeech', { current: current ?? '' }),
+    deps.t('VoiceCommands.switchSpeech', { current: current! }),
   );
   if (!yes) {
     if (top) representPending();

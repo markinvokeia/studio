@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { clearSimCrud, openSimExportDialog, publishSimCrud, type SimCrud } from './sim/crud';
 import { createVoiceSim, type VoiceSim } from './sim/harness';
-import { screen } from './sim/page';
+import { screen, uiLog } from './sim/page';
 
 /**
  * TB · Tablas (src/lib/voice/commands/table.ts): todo lo que se hace con la tabla común, en
@@ -206,5 +206,21 @@ test.describe('TB-HELP · Después de «¿qué puedo hacer acá?»', () => {
     await sim.say('ordená por nombre');
     expect(log()).toEqual(['sort:nombre:asc']);
     expect(sim.card().message).not.toMatch(/Cambiamos de tarea/);
+  });
+  test('«ordená por …» no se toma como elegir «Nueva orden» del menú de ayuda', async () => {
+    await start();
+    screen.page(screen.button('Nueva orden'), screen.button('Tablero'));
+    await sim.say('qué puedo hacer acá');
+    await sim.say('ordená por nombre descendente');
+    expect(log()).toEqual(['sort:nombre:desc']);
+    expect(uiLog).toEqual([]);
+  });
+  test('en «sort by nombre descending» con el menú de ayuda abierto', async () => {
+    await start('en');
+    screen.page(screen.button('New order'), screen.button('Board'));
+    await sim.say('what can I do here');
+    await sim.say('sort by nombre descending');
+    expect(log()).toEqual(['sort:nombre:desc']);
+    expect(uiLog).toEqual([]);
   });
 });
