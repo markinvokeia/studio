@@ -3069,8 +3069,9 @@ export default function AppointmentsPage() {
         } else if (appointment.quote_id) {
             openBillingWizard({ ...base, quoteId: String(appointment.quote_id) }, () => refreshCalendarDataRef.current());
         } else {
-            const preloadedItems = (appointment.services || []).map((svc) => ({
-                tempId: svc.id,
+            // Con el índice: una cita puede llevar el mismo servicio dos veces.
+            const preloadedItems = (appointment.services || []).map((svc, index) => ({
+                tempId: `${svc.id}-${index}`,
                 service_id: svc.id,
                 service_name: svc.name,
                 unit_price: svc.price || 0,

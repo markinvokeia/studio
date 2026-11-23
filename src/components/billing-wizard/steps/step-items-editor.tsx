@@ -54,6 +54,61 @@ function makeTempId() {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+interface PriceInputProps {
+  value: number;
+  onValueChange: (value: string) => void;
+  className?: string;
+}
+
+/**
+ * Campo de precio que deja escribir decimales.
+ *
+ * Con un `type="number"` controlado directamente por el número, al tipear
+ * "1250." el navegador entrega `value === ''` (número a medio escribir) y eso
+ * se convertía en 0: el campo saltaba a "0" y lo siguiente quedaba "05". Acá se
+ * guarda el texto tecleado y sólo se propaga cuando es un número completo; al
+ * salir del campo se re-sincroniza con el importe de la línea (vacío ⇒ 0).
+ */
+function PriceInput({ value, onValueChange, className }: PriceInputProps) {
+  const [draft, setDraft] = React.useState(String(value));
+  const isEditingRef = React.useRef(false);
+
+  // Cambios que llegan de afuera (p. ej. otra línea, reinicio) mientras no se edita.
+  React.useEffect(() => {
+    if (!isEditingRef.current) setDraft(String(value));
+  }, [value]);
+
+  return (
+    <Input
+      type="number"
+      min={0}
+      // `any`: las flechas suben de a 1 y se siguen aceptando centavos
+      // (con step="1" el navegador marcaría 1250.50 como inválido).
+      step="any"
+      value={draft}
+      onFocus={() => { isEditingRef.current = true; }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw !== '') onValueChange(raw);
+      }}
+      onBlur={(e) => {
+        isEditingRef.current = false;
+        const { value: raw, validity } = e.currentTarget;
+        if (raw === '' && !validity.badInput) {
+          // Borrado a mano: la línea queda en 0, como antes.
+          onValueChange('0');
+          setDraft('0');
+          return;
+        }
+        // Texto incompleto o inválido: se vuelve al último importe válido.
+        setDraft(String(value));
+      }}
+      className={className}
+    />
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function StepItemsEditor({
@@ -105,7 +160,15 @@ export function StepItemsEditor({
       onItemsChange(items.map((item) => {
         if (item.tempId !== tempId) return item;
         const discount = { mode: next.mode ?? null, value: next.value ?? null };
-        return { ...item, ...discount, total: computeLineTotals(item.unit_price, item.quantity, discount).total };
+        // Los campos de la línea se llaman discount_mode/discount_value: copiar
+        // `discount` tal cual dejaba mode/value sueltos, la fila mostraba el neto
+        // pero el pie y el guardado veían la línea sin descuento.
+        return {
+          ...item,
+          discount_mode: discount.mode,
+          discount_value: discount.value,
+          total: computeLineTotals(item.unit_price, item.quantity, discount).total,
+        };
       }));
     },
     [items, onItemsChange],
@@ -250,12 +313,9 @@ export function StepItemsEditor({
                 />
 
                 {/* Unit price */}
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
+                <PriceInput
                   value={item.unit_price}
-                  onChange={(e) => handlePriceChange(item.tempId, e.target.value)}
+                  onValueChange={(raw) => handlePriceChange(item.tempId, raw)}
                   className="h-7 text-sm text-right px-1 tabular-nums"
                 />
 
@@ -274,6 +334,7 @@ export function StepItemsEditor({
                     maxPct={discounts.maxPct}
                     defaultPct={discounts.defaultPct}
                     canApply={discounts.canApply}
+                    inputStep="any"
                     onApply={(next) => setLineDiscount(item.tempId, next)}
                     onRemove={() => setLineDiscount(item.tempId, { mode: null, value: null })}
                   />
@@ -306,6 +367,7 @@ export function StepItemsEditor({
                 maxPct={discounts.maxPct}
                 defaultPct={discounts.defaultPct}
                 canApply={discounts.canApply}
+                inputStep="any"
                 onApply={(next) => onDocumentDiscountChange({ mode: next.mode ?? null, value: next.value ?? null })}
                 onRemove={() => onDocumentDiscountChange({ mode: null, value: null })}
               />

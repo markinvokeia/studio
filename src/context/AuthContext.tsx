@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
 import { AuthUser, Sede } from '@/lib/types';
@@ -33,6 +33,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getPermissionCodes = (userData: AuthUser | null): string[] => {
+  if (!userData?.roles_and_permissions) return [];
+  return userData.roles_and_permissions.flatMap(role =>
+    role.permissions.map(p => p.code)
+  );
+};
+
+const getRoleNames = (userData: AuthUser | null): string[] => {
+  if (!userData?.roles_and_permissions) return [];
+  return userData.roles_and_permissions.map(r => r.role_name);
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,24 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getPermissionCodes = (userData: AuthUser | null): string[] => {
-    if (!userData?.roles_and_permissions) return [];
-    return userData.roles_and_permissions.flatMap(role =>
-      role.permissions.map(p => p.code)
-    );
-  };
+  // Memoizados: este provider se vuelve a renderizar con cada consulta de la
+  // sesión de caja (p. ej. al volver a la pestaña). Si estos valores fueran
+  // objetos nuevos en cada render, cualquier efecto que dependa de ellos se
+  // volvería a ejecutar y reiniciaría formularios abiertos (Cobro rápido).
+  const permissionCodes = useMemo(() => getPermissionCodes(user), [user]);
+  const roleNames = useMemo(() => getRoleNames(user), [user]);
 
-  const getRoleNames = (userData: AuthUser | null): string[] => {
-    if (!userData?.roles_and_permissions) return [];
-    return userData.roles_and_permissions.map(r => r.role_name);
-  };
-
-  const permissionCodes = getPermissionCodes(user);
-  const roleNames = getRoleNames(user);
-
-  const activeSede: ActiveSede | null = activeSedeId
-    ? { id: activeSedeId, name: sedes.find(s => s.id === activeSedeId)?.name || '' }
-    : null;
+  const activeSedeName = activeSedeId ? sedes.find(s => s.id === activeSedeId)?.name || '' : '';
+  const activeSede: ActiveSede | null = useMemo(
+    () => (activeSedeId ? { id: activeSedeId, name: activeSedeName } : null),
+    [activeSedeId, activeSedeName],
+  );
 
   const loadSedes = async () => {
     try {

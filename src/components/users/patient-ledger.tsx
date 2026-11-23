@@ -68,6 +68,7 @@ import {
   type CurrencyPair,
 } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { useBillingChangeVersion } from '@/stores/billing-wizard-store';
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -1896,7 +1897,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [ledgerData, setLedgerData] = React.useState<PatientLedgerData | null>(null);
   const [currency, setCurrency] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const prevRefreshTrigger = React.useRef(refreshTrigger);
+  // A Cobro rápido saved for this patient from anywhere (header, actions menu…) also refreshes.
+  const billingChangeVersion = useBillingChangeVersion(userId);
+  const effectiveRefreshTrigger = (refreshTrigger ?? 0) + billingChangeVersion;
+  const prevRefreshTrigger = React.useRef(effectiveRefreshTrigger);
   // Period filter — controllable by a host (the account-statement sheet renders the
   // picker in its header). Defaults to "Todo el tiempo" (undefined = no date filter).
   const [internalDateRange, setInternalDateRange] = React.useState<DateRange | undefined>(undefined);
@@ -1943,10 +1947,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   }, [userId, clinicInfo]);
 
   React.useEffect(() => {
-    const forceRefresh = prevRefreshTrigger.current !== refreshTrigger;
-    prevRefreshTrigger.current = refreshTrigger;
+    const forceRefresh = prevRefreshTrigger.current !== effectiveRefreshTrigger;
+    prevRefreshTrigger.current = effectiveRefreshTrigger;
     void load(forceRefresh);
-  }, [load, refreshTrigger]);
+  }, [load, effectiveRefreshTrigger]);
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 

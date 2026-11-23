@@ -5,19 +5,9 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowLeft, ArrowRight, Box, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Loader2, Plus, X } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { AlertTriangle, ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Loader2, Plus, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,21 +18,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
-import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
+import type { Credit, Invoice, LineDiscountFields, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { CurrencySelect } from '@/components/ui/currency-select';
-import { convertAmount, formatMoney } from '@/lib/currency';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
+import { convertAmount, currencySymbol, formatMoney } from '@/lib/currency';
+import { mapLineDiscountFields, readDiscountAmount, readGrossTotal, roundCurrency } from '@/lib/discounts';
 import { pendingInPaymentCurrency, targetAmountFor } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { NoCashSessionDialog } from '@/components/billing-wizard/no-cash-session-dialog';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -143,7 +134,10 @@ interface InvoiceLineItem {
   description: string;
   toothNumber?: number;
   quantity: number;
+  /** Importe NETO de la línea. */
   total: number;
+  /** Bruto y descuento, para que el detalle muestre la rebaja aplicada. */
+  discount: LineDiscountFields;
 }
 
 interface InvoicePaymentEntry {
@@ -181,6 +175,7 @@ async function fetchInvoiceDetail(
     toothNumber: item.tooth_number ? Number(item.tooth_number) : undefined,
     quantity: Number(item.quantity || 1),
     total: Math.abs(Number(item.total || item.amount || 0)),
+    discount: mapLineDiscountFields(item),
   }));
   const payments: InvoicePaymentEntry[] = rawPayments
     .filter((p: any) => p?.status !== 'failed' && (p?.transaction_id || p?.id))
@@ -198,6 +193,40 @@ async function fetchInvoiceDetail(
 function calcEquivalent(amount: number, fromCurrency: string, toCurrency: string, rate: number): number {
   if (fromCurrency === toCurrency || !rate) return amount;
   return convertAmount(amount, fromCurrency, toCurrency, rate, getClinicCurrency());
+}
+
+/**
+ * What the entries discount from one invoice, in its currency — the same amounts
+ * `submitPayments` sends as `converted_amount`: same-currency entries first, then each
+ * converted entry via `targetAmountFor`, which counts covering the balance as the exact
+ * balance (amount × rate would leave a phantom cent).
+ */
+function convertedEntriesTotal(
+  entries: Array<{ amount?: number | string; payment_currency?: string }>,
+  pending: number,
+  invoiceCurrency: string,
+  rate: number,
+): number {
+  const pair = { primary: getClinicCurrency(), rate };
+  const currencyOf = (e: { payment_currency?: string }) => e.payment_currency || invoiceCurrency;
+  const sameCurrency = entries
+    .filter((e) => currencyOf(e) === invoiceCurrency)
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  let pendingForConverted = Math.max(0, pending - sameCurrency);
+  let total = sameCurrency;
+  for (const entry of entries) {
+    const currency = currencyOf(entry);
+    if (currency === invoiceCurrency) continue;
+    const converted = targetAmountFor(
+      Number(entry.amount) || 0,
+      { id: '', pending: pendingForConverted, currency: invoiceCurrency, date: '' },
+      currency,
+      pair,
+    );
+    pendingForConverted = Math.max(0, pendingForConverted - converted);
+    total += converted;
+  }
+  return roundCurrency(total);
 }
 
 function distributePayment(invoices: Invoice[], total: number): InvoiceAllocation[] {
@@ -232,12 +261,10 @@ export function StepPayment({
   const isMultiInvoice = !!invoices && invoices.length > 0;
   const t = useTranslations('InvoicesPage');
   const tw = useTranslations('BillingWizard');
-  const locale = useLocale();
+  const tDiscounts = useTranslations('Discounts');
   const { user, checkActiveSession, activeCashSession } = useAuth();
   const { validateActiveSession } = useCashSessionValidation();
-  const { hasPermission } = usePermissions();
   const { toast } = useToast();
-  const canAccessCashier = hasPermission(CASHIER_PERMISSIONS.VIEW_MENU);
 
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -310,12 +337,6 @@ export function StepPayment({
     form.setValue('exchange_rate', sessionExchangeRate);
   }, [sessionExchangeRate, form]);
 
-  // When transitioning to sub-step 1 or when credits change, sync entries[0].amount
-  React.useEffect(() => {
-    if (creditSubStep === 1) {
-      form.setValue('entries.0.amount', pendingAmountAfterCredits);
-    }
-  }, [pendingAmountAfterCredits, creditSubStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch payment methods
   React.useEffect(() => {
@@ -364,12 +385,15 @@ export function StepPayment({
 
   // Total of all entries converted to invoice currency
   const totalInInvoiceCurrency = React.useMemo(() => {
-    const rate = watchedExchangeRate || sessionExchangeRate || 1;
+    const rate = Number(watchedExchangeRate) || sessionExchangeRate || 1;
+    if (!isMultiInvoice) {
+      return convertedEntriesTotal(watchedEntries || [], pendingAmountAfterCredits, invoiceCurrency, rate);
+    }
     return (watchedEntries || []).reduce((sum, entry) => {
       const amount = Number(entry.amount) || 0;
       return sum + calcEquivalent(amount, entry.payment_currency || invoiceCurrency, invoiceCurrency, rate);
     }, 0);
-  }, [watchedEntries, watchedExchangeRate, sessionExchangeRate, invoiceCurrency]);
+  }, [watchedEntries, watchedExchangeRate, sessionExchangeRate, invoiceCurrency, isMultiInvoice, pendingAmountAfterCredits]);
 
   const remainingAfterPayment = Math.max(
     0,
@@ -387,6 +411,62 @@ export function StepPayment({
     if (!isMultiInvoice) return [];
     return distributePayment(invoices!, totalInInvoiceCurrency);
   }, [isMultiInvoice, invoices, totalInInvoiceCurrency]);
+
+  /**
+   * Most an entry can carry in `currency` without overpaying the invoice, at the rate typed in
+   * the form — same rule `submitPayments` enforces: credits and same-currency entries come
+   * first, and a converted payment can't leave a leftover.
+   */
+  const maxAmountForEntry = (index: number, currency: string): number => {
+    const entries = form.getValues('entries') || [];
+    const rate = Number(form.getValues('exchange_rate')) || sessionExchangeRate || 1;
+    const others = entries.filter((_, i) => i !== index);
+    const sum = (list: typeof entries) => list.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const sameCurrencyOthers = sum(others.filter((e) => (e.payment_currency || invoiceCurrency) === invoiceCurrency));
+    const pending = Math.max(0, pendingAmountAfterCredits - sameCurrencyOthers);
+    if (currency === invoiceCurrency) {
+      const crossOthers = others.reduce(
+        (acc, e) => acc + calcEquivalent(Number(e.amount) || 0, e.payment_currency || invoiceCurrency, invoiceCurrency, rate),
+        0,
+      ) - sameCurrencyOthers;
+      return roundCurrency(Math.max(0, pending - crossOthers));
+    }
+    const ceiling = pendingInPaymentCurrency(
+      { id: invoice.id, pending, currency: invoiceCurrency, date: '' },
+      currency,
+      { primary: getClinicCurrency(), rate },
+    );
+    const crossOthersSameCurrency = sum(others.filter((e) => e.payment_currency === currency));
+    return roundCurrency(Math.max(0, ceiling - crossOthersSameCurrency));
+  };
+
+  /** Puts the balance, in entry 0's own currency, into entry 0. */
+  const syncFirstEntryToBalance = () => {
+    const currency = form.getValues('entries.0.payment_currency') || invoiceCurrency;
+    form.setValue('entries.0.amount', maxAmountForEntry(0, currency));
+  };
+
+  // When transitioning to sub-step 1 or when credits change, sync entries[0].amount
+  // (in entry 0's own currency: an entry already switched to USD gets the balance in USD).
+  React.useEffect(() => {
+    if (creditSubStep === 1) syncFirstEntryToBalance();
+  }, [pendingAmountAfterCredits, creditSubStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Switching an entry's currency while it held the whole balance keeps it holding the whole
+   * balance, converted (4.020 UYU → 100 USD), instead of 4.020 USD that the overpayment check
+   * would then reject.
+   */
+  const handleEntryCurrencyChange = (index: number, nextCurrency: string, onChange: (value: string) => void) => {
+    const entry = form.getValues(`entries.${index}`);
+    const prevCurrency = entry?.payment_currency || invoiceCurrency;
+    const heldFullBalance =
+      prevCurrency !== nextCurrency && Math.abs((Number(entry?.amount) || 0) - maxAmountForEntry(index, prevCurrency)) < 0.005;
+    onChange(nextCurrency);
+    if (heldFullBalance) {
+      form.setValue(`entries.${index}.amount`, maxAmountForEntry(index, nextCurrency), { shouldValidate: true });
+    }
+  };
 
   const handleAddEntry = () => {
     append({
@@ -512,7 +592,7 @@ export function StepPayment({
       handleCreditOnlySubmit();
       return;
     }
-    form.setValue('entries.0.amount', pendingAmountAfterCredits);
+    syncFirstEntryToBalance();
     setCreditSubStep(1);
     onSubStepChange?.(1);
   };
@@ -633,6 +713,7 @@ export function StepPayment({
         });
       } else {
         // Single invoice: one POST per payment entry, credits on first entry
+        let cashPaidTotal = 0;
         for (let i = 0; i < values.entries.length; i++) {
           const entry = values.entries[i];
           const isFirst = i === 0;
@@ -644,6 +725,7 @@ export function StepPayment({
             ? targetAmountFor(Number(entry.amount), pendingForEntries(), entry.payment_currency, conversionPair)
             : Number(entry.amount);
           if (isCrossEntry) pendingForConverted = Math.max(0, pendingForConverted - convertedAmount);
+          cashPaidTotal += convertedAmount;
 
           const payload = {
             cash_session_id: sessionId,
@@ -691,10 +773,7 @@ export function StepPayment({
         }
 
         if (!values.is_historical) await checkActiveSession();
-        const cashPaidTotal = (watchedEntries || []).reduce((sum, entry) => {
-          return sum + calcEquivalent(Number(entry.amount) || 0, entry.payment_currency || invoiceCurrency, invoiceCurrency, values.exchange_rate || sessionExchangeRate || 1);
-        }, 0);
-        const totalWithCredits = cashPaidTotal + creditsTotalConverted;
+        const totalWithCredits = roundCurrency(cashPaidTotal + creditsTotalConverted);
         onPaymentSuccess({
           payments: createdPayments,
           invoiceDocNo: invoice.doc_no || invoice.invoice_doc_no,
@@ -714,7 +793,42 @@ export function StepPayment({
   };
   const submit = useAsyncAction(submitPayments);
 
+  // Bruto y descuento del detalle, sumados de las líneas guardadas.
+  const detailGross = roundCurrency((invoiceDetail?.items ?? []).reduce((sum, item) => sum + readGrossTotal({ ...item.discount, total: item.total }), 0));
+  const detailDiscount = roundCurrency((invoiceDetail?.items ?? []).reduce((sum, item) => sum + readDiscountAmount(item.discount), 0));
+
   // ── Invoice detail expandable panel ──
+  /**
+   * For an entry in another currency: one click puts the invoice balance converted at the
+   * typed rate, and flags an amount over it (it would be rejected on submit).
+   */
+  const renderConvertedBalanceShortcut = (index: number) => {
+    const entry = watchedEntries?.[index];
+    const entryCurrency = entry?.payment_currency || invoiceCurrency;
+    if (isMultiInvoice || entryCurrency === invoiceCurrency) return null;
+    const max = maxAmountForEntry(index, entryCurrency);
+    if (!(max > 0)) return null;
+    const amount = Number(entry?.amount) || 0;
+    const exceeds = amount > max + 0.005;
+    if (!exceeds && Math.abs(amount - max) < 0.005) return null;
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+        {exceeds && (
+          <span className="text-xs text-destructive">{tw('payment.exceedsConvertedBalance')}</span>
+        )}
+        <Button
+          type="button"
+          variant={exceeds ? 'default' : 'outline'}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => form.setValue(`entries.${index}.amount`, max, { shouldValidate: true, shouldDirty: true })}
+        >
+          {tw('payment.useConvertedBalance', { amount: fmtCurrency(max, entryCurrency) })}
+        </Button>
+      </div>
+    );
+  };
+
   const renderDetailPanel = () => {
     if (isMultiInvoice || !invoiceDetailExpanded) return null;
     return (
@@ -733,10 +847,12 @@ export function StepPayment({
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{tw('invoices.servicesInvoiced')}</p>
                 {invoiceDetail.items.map((item) => (
                   <div key={item.id} className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-foreground">
+                    <span className="min-w-0 truncate text-foreground">
                       {item.description}
                       {item.toothNumber ? <span className="ml-1 text-muted-foreground">{tw('toothAbbr', { tooth: item.toothNumber })}</span> : null}
                       {item.quantity > 1 ? <span className="ml-1 text-muted-foreground">×{item.quantity}</span> : null}
+                      {/* Símbolo ($U) y no código (UYU): los importes de al lado van con formatMoney. */}
+                      <AppliedDiscountNote line={item.discount} currency={currencySymbol(invoiceCurrency)} />
                     </span>
                     <span className="tabular-nums shrink-0">{fmtCurrency(item.total, invoiceCurrency)}</span>
                   </div>
@@ -759,6 +875,18 @@ export function StepPayment({
               </div>
             )}
             <div className="px-4 py-2.5 space-y-1">
+              {detailDiscount > 0 && (
+                <>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{tDiscounts('subtotal')}</span>
+                    <span className="tabular-nums">{fmtCurrency(detailGross, invoiceCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{tDiscounts('discount')}</span>
+                    <span className="tabular-nums">- {fmtCurrency(detailDiscount, invoiceCurrency)}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between font-semibold">
                 <span>{tw('invoices.invoiceTotal')}</span>
                 <span className="tabular-nums">{fmtCurrency(invoice.total || 0, invoiceCurrency)}</span>
@@ -1016,32 +1144,7 @@ export function StepPayment({
         </div>
 
         {/* No session alert (reused here too) */}
-        <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex items-start gap-3">
-                <div className="header-icon-circle mt-0.5">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <AlertDialogTitle>{t('noSessionDialog.title')}</AlertDialogTitle>
-                  <AlertDialogDescription>{t('noSessionDialog.description')}</AlertDialogDescription>
-                </div>
-              </div>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{tw('actions.cancel')}</AlertDialogCancel>
-              {canAccessCashier && (
-                <Link href={`/${locale}/cashier`} passHref>
-                  <Button>
-                    <Box className="mr-2 h-4 w-4" />
-                    {tw('payment.openCashSession')}
-                  </Button>
-                </Link>
-              )}
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <NoCashSessionDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen} />
       </div>
     );
   }
@@ -1191,7 +1294,13 @@ export function StepPayment({
                     render={({ field: f }) => (
                       <FormItem>
                         <FormLabel className="text-xs">{tw('payment.currency')}</FormLabel>
-                        <FormControl><CurrencySelect value={f.value} onChange={f.onChange} className="h-8 text-xs" /></FormControl>
+                        <FormControl>
+                          <CurrencySelect
+                            value={f.value}
+                            onChange={(next) => handleEntryCurrencyChange(index, next, f.onChange)}
+                            className="h-8 text-xs"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1245,6 +1354,7 @@ export function StepPayment({
                     )}
                   />
                 </div>
+                {renderConvertedBalanceShortcut(index)}
               </div>
             ))}
           </div>
@@ -1343,32 +1453,7 @@ export function StepPayment({
       </Form>
 
       {/* No session alert */}
-      <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              </div>
-              <div className="flex flex-col text-left">
-                <AlertDialogTitle>{t('noSessionDialog.title')}</AlertDialogTitle>
-                <AlertDialogDescription>{t('noSessionDialog.description')}</AlertDialogDescription>
-              </div>
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tw('actions.cancel')}</AlertDialogCancel>
-            {canAccessCashier && (
-              <Link href={`/${locale}/cashier`} passHref>
-                <Button>
-                  <Box className="mr-2 h-4 w-4" />
-                  {tw('payment.openCashSession')}
-                </Button>
-              </Link>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <NoCashSessionDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen} />
     </>
   );
 }

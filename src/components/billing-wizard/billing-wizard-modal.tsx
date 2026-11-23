@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { api } from '@/services/api';
 import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -41,8 +42,9 @@ import { buildDiscountedDocument, type BuildDiscountedDocumentOptions } from '@/
 import type { DiscountMode } from '@/lib/types';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
+import { NoCashSessionDialog } from './no-cash-session-dialog';
 import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
-import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { getClinicCurrency, useClinicInfoStore } from '@/stores/clinic-info-store';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -303,10 +305,11 @@ async function loadAppointmentItems(
     const services: any[] = Array.isArray(appt.services) ? appt.services : [];
     return services
       .filter((s: any) => s.id && Number(s.price || s.unit_price || 0) > 0)
-      .map((s: any) => {
+      .map((s: any, index: number) => {
         const price = Number(s.price || s.unit_price || 0);
         return {
-          tempId: `appt-svc-${s.id}`,
+          // Con el índice: una cita puede llevar el mismo servicio dos veces.
+          tempId: `appt-svc-${s.id}-${index}`,
           service_id: String(s.id),
           service_name: s.name || '',
           unit_price: price,
@@ -363,6 +366,7 @@ async function fetchInvoicePaymentsForConfirmation(
 export function BillingWizardModal() {
   const t = useTranslations('BillingWizard');
   const { isOpen, context, onSuccess, close } = useBillingWizard();
+  const notifyChange = useBillingWizard((s) => s.notifyChange);
   const { activeSede } = useAuth();
   const isSales = context?.isSales ?? true;
 
@@ -422,6 +426,18 @@ export function BillingWizardModal() {
   const effectivePatientId = selectedPatient?.id || context?.patientId;
   const effectivePatientName = selectedPatient?.name || context?.patientName;
 
+  // Patient whose finances just changed, read when a save finishes (the invoice may be the only
+  // source when the wizard started from an invoice or a quote).
+  const changedPatientIdRef = React.useRef<string | null>(null);
+  React.useLayoutEffect(() => {
+    changedPatientIdRef.current =
+      effectivePatientId || resolvedInvoice?.user_id || pendingInvoicesForPayment[0]?.user_id || null;
+  });
+  /** Tells every open patient view (ficha, ledger sheet…) that this patient's invoices/payments changed. */
+  const reportChange = React.useCallback((patientId?: string | null) => {
+    notifyChange(patientId || changedPatientIdRef.current);
+  }, [notifyChange]);
+
   // Whether any service line has been selected for invoicing
   const hasSelectedServices = React.useMemo(
     () => quoteBillingLines.some((l) => l.selected && l.amountToInvoice > 0),
@@ -451,8 +467,21 @@ export function BillingWizardModal() {
     creditsTotal?: number;
   } | null>(null);
 
+  // La sede activa y `t` se leen por ref: el efecto de abajo inicializa el
+  // asistente y SOLO debe correr al abrirlo o al cambiar de contexto. Con ellos
+  // como dependencias, cualquier re-render del AuthContext (p. ej. al volver a
+  // la pestaña) borraba los servicios que se estaban cargando.
+  const activeSedeId = activeSede?.id || '';
+  const activeSedeIdRef = React.useRef(activeSedeId);
+  const tRef = React.useRef(t);
+  React.useLayoutEffect(() => {
+    activeSedeIdRef.current = activeSedeId;
+    tRef.current = t;
+  });
+
   // Reset state when modal opens/closes
   React.useEffect(() => {
+    let cancelled = false;
     if (!isOpen) {
       setCurrentStep(0);
       setQuote(null);
@@ -470,6 +499,8 @@ export function BillingWizardModal() {
       setError(null);
       setTreatmentLoadError(null);
       setEditableItems([]);
+      setIsLoadingTreatment(false);
+      setFreeformDiscount({ mode: null, value: null });
       setFreeformCurrency(getClinicCurrency());
       setFreeformSedeId('');
       setSelectedPatient(null);
@@ -486,7 +517,7 @@ export function BillingWizardModal() {
       if (context.invoice) setResolvedInvoice(context.invoice);
       if (context.invoiceId && context.patientId) {
         fetchInvoiceById(context.invoiceId, context.patientId).then((inv) => {
-          if (inv) setResolvedInvoice(inv);
+          if (inv && !cancelled) setResolvedInvoice(inv);
         });
       }
     } else if (context.quoteId) {
@@ -505,6 +536,7 @@ export function BillingWizardModal() {
         existingQuote ? Promise.resolve(existingQuote) : loadQuoteById(quoteId, context.patientId),
       ])
         .then(([items, oid, fetchedInvoices, resolvedQuote]) => {
+          if (cancelled) return;
           setQuoteItems(items);
           setOrderId(oid);
           const finSummary = resolvedQuote
@@ -524,12 +556,15 @@ export function BillingWizardModal() {
           setSelectedInvoiceIds(new Set(unpaidInvoices.map((inv) => inv.id)));
         })
         .catch(() => {
-          setTreatmentLoadError(t('errors.quoteLoad'));
+          if (!cancelled) setTreatmentLoadError(tRef.current('errors.quoteLoad'));
         })
-        .finally(() => setIsLoadingTreatment(false));
+        .finally(() => {
+          if (!cancelled) setIsLoadingTreatment(false);
+        });
     } else {
       setFreeformCurrency(context.currency || getClinicCurrency());
-      setFreeformSedeId(activeSede?.id || '');
+      setFreeformSedeId(activeSedeIdRef.current);
+      setFreeformDiscount({ mode: null, value: null });
       if (context.preloadedItems && context.preloadedItems.length > 0) {
         // Caller already prepared items (e.g. AppointmentPanel) — use them directly
         setEditableItems(context.preloadedItems);
@@ -537,19 +572,53 @@ export function BillingWizardModal() {
         // Auto-fetch services from the appointment
         setIsLoadingTreatment(true);
         loadAppointmentItems(context.patientId, context.appointmentId, context.appointmentDate)
-          .then((items) => setEditableItems(items))
-          .finally(() => setIsLoadingTreatment(false));
+          .then((items) => { if (!cancelled) setEditableItems(items); })
+          .finally(() => { if (!cancelled) setIsLoadingTreatment(false); });
       } else if (context.sessionId && context.patientId) {
         // Auto-fetch tratamientos from the clinic/odontogram session
         setIsLoadingTreatment(true);
         loadSessionItems(context.patientId, context.sessionId)
-          .then((items) => setEditableItems(items))
-          .finally(() => setIsLoadingTreatment(false));
+          .then((items) => { if (!cancelled) setEditableItems(items); })
+          .finally(() => { if (!cancelled) setIsLoadingTreatment(false); });
       } else {
         setEditableItems([]);
       }
     }
-  }, [isOpen, context, startFromInvoice, isSales, activeSede, t]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, context, startFromInvoice, isSales]);
+
+  // La sede activa puede llegar después de abrir el asistente (AuthContext aún
+  // cargando): se completa sin pisar una sede que el usuario ya eligió.
+  React.useEffect(() => {
+    if (isOpen && isFreeformFlow && activeSedeId) {
+      setFreeformSedeId((current) => current || activeSedeId);
+    }
+  }, [isOpen, isFreeformFlow, activeSedeId]);
+
+  // Lo mismo con la moneda: si se abrió antes de cargar la info de la clínica,
+  // `getClinicCurrency()` devolvió el valor por defecto (USD). Se corrige cuando
+  // llega la moneda real, salvo que el usuario ya la haya cambiado a mano o que
+  // quien abrió el asistente haya fijado una.
+  const clinicCurrencyLoaded = useClinicInfoStore((s) => s.info?.currency);
+  const currencyIsProvisionalRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isOpen && isFreeformFlow) {
+      currencyIsProvisionalRef.current = !context?.currency && !useClinicInfoStore.getState().info?.currency;
+    }
+  }, [isOpen, isFreeformFlow, context]);
+  React.useEffect(() => {
+    if (isOpen && clinicCurrencyLoaded && currencyIsProvisionalRef.current) {
+      currencyIsProvisionalRef.current = false;
+      setFreeformCurrency(clinicCurrencyLoaded);
+    }
+  }, [isOpen, clinicCurrencyLoaded]);
+  const handleFreeformCurrencyChange = React.useCallback((currency: string) => {
+    currencyIsProvisionalRef.current = false;
+    setFreeformCurrency(currency);
+  }, []);
 
   const handleClose = React.useCallback(() => {
     close();
@@ -579,6 +648,16 @@ export function BillingWizardModal() {
     setPendingInvoicesForPayment(selectedInvoices);
     setCurrentStep(1);
   }, [selectedInvoices, t]);
+
+  // "Facturar y Cobrar" without an open cash session: which flow offers "Solo facturar" instead.
+  const [noSessionFlow, setNoSessionFlow] = React.useState<'quote' | 'freeform' | null>(null);
+  const { validateActiveSession } = useCashSessionValidation();
+  const validateActiveSessionRef = React.useRef(validateActiveSession);
+  React.useLayoutEffect(() => { validateActiveSessionRef.current = validateActiveSession; });
+  const hasActiveCashSession = React.useCallback(
+    async () => (await validateActiveSessionRef.current()).isValid,
+    [],
+  );
 
   // Fire-and-forget: link the new invoice back to the originating appointment/session
   const linkInvoiceToContext = React.useCallback((invoiceId: string) => {
@@ -626,6 +705,14 @@ export function BillingWizardModal() {
     setIsProcessing(true);
     setError(null);
 
+    // The payment needs an open cash session: check it BEFORE creating the invoice, otherwise
+    // the user leaves for the cashier with an invoice they believe was collected.
+    if (action === 'invoice-and-pay' && !(await hasActiveCashSession())) {
+      setIsProcessing(false);
+      setNoSessionFlow('quote');
+      return;
+    }
+
     try {
       // Auto-confirm quote if needed
       if (quoteObj.status && !['confirmed', 'accepted'].includes(quoteObj.status)) {
@@ -648,6 +735,7 @@ export function BillingWizardModal() {
 
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
+      reportChange(invoice.user_id);
 
       if (action === 'invoice-only') {
         setConfirmationData({
@@ -670,7 +758,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [context, quote, orderId, quoteBillingLines, isSales, linkInvoiceToContext, steps.length, onSuccess, selectedInvoices, t]);
+  }, [context, quote, orderId, quoteBillingLines, isSales, linkInvoiceToContext, reportChange, hasActiveCashSession, steps.length, onSuccess, selectedInvoices, t]);
 
   // Freeform flow: create invoice directly from editable items
   const handleItemsEditorNext = React.useCallback(async (action: 'invoice-only' | 'invoice-and-pay') => {
@@ -687,6 +775,12 @@ export function BillingWizardModal() {
     setIsProcessing(true);
     setError(null);
 
+    if (action === 'invoice-and-pay' && !(await hasActiveCashSession())) {
+      setIsProcessing(false);
+      setNoSessionFlow('freeform');
+      return;
+    }
+
     try {
       const invoice = await createDirectInvoice(
         effectivePatientId,
@@ -699,6 +793,7 @@ export function BillingWizardModal() {
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
+      reportChange(invoice.user_id);
       await context?.onInvoiceCreated?.(invoice.id);
 
       if (action === 'invoice-only') {
@@ -720,7 +815,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [context, effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext,
+  }, [context, effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext, reportChange, hasActiveCashSession,
       discounts.enabled, discounts.scope, freeformDiscount, t]);
 
   const handlePaymentSuccess = React.useCallback(
@@ -790,9 +885,10 @@ export function BillingWizardModal() {
         });
       }
       setCurrentStep(steps.length - 1);
+      reportChange();
       onSuccess?.();
     },
-    [resolvedInvoice, steps.length, onSuccess, pendingInvoicesForPayment, isSales],
+    [resolvedInvoice, steps.length, onSuccess, pendingInvoicesForPayment, isSales, reportChange],
   );
 
   const handleSkipPayment = React.useCallback(
@@ -867,7 +963,7 @@ export function BillingWizardModal() {
             items={editableItems}
             onItemsChange={setEditableItems}
             currency={freeformCurrency}
-            onCurrencyChange={setFreeformCurrency}
+            onCurrencyChange={handleFreeformCurrencyChange}
             sedeId={freeformSedeId}
             onSedeChange={setFreeformSedeId}
             isSales={isSales}
@@ -1162,6 +1258,16 @@ export function BillingWizardModal() {
           </div>
         </DialogBody>
       </DialogContent>
+      <NoCashSessionDialog
+        open={noSessionFlow !== null}
+        onOpenChange={(open) => { if (!open) setNoSessionFlow(null); }}
+        onInvoiceOnly={() => {
+          const flow = noSessionFlow;
+          setNoSessionFlow(null);
+          if (flow === 'quote') void handleTreatmentNext('invoice-only');
+          else if (flow === 'freeform') void handleItemsEditorNext('invoice-only');
+        }}
+      />
     </Dialog>
   );
 }

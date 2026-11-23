@@ -330,7 +330,7 @@
   },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
-    "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
+    "description": "Tienes cambios sin guardar. Si cierras ahora, se perderán.",
     "confirm": "Descartar cambios",
     "cancel": "Seguir editando",
     "closeLabel": "Cerrar"
@@ -9622,6 +9622,9 @@
         "pending": "Pendiente"
       }
     },
+    "noSession": {
+      "invoiceOnlyHint": "Puedes generar la factura ahora y cobrarla después, cuando abras la caja."
+    },
     "payment": {
       "validation": {
         "methodRequired": "Método requerido",
@@ -9663,6 +9666,8 @@
       "addMethod": "Añadir otro método de pago",
       "exchangeRate": "Tipo de cambio ({primary} por 1 {secondary})",
       "exchangeRateHint": "Aplica a todos los pagos con moneda distinta a {currency}",
+      "useConvertedBalance": "Cobrar el saldo convertido: {amount}",
+      "exceedsConvertedBalance": "Supera el saldo al tipo de cambio actual.",
       "notes": "Notas (opcional)",
       "notesPlaceholder": "Observaciones del cobro...",
       "distribution": "Distribución del pago",
