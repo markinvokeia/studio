@@ -26,7 +26,7 @@ const lines = [
   '',
   'Generado por `scripts/voice-live-report.mjs` a partir de la última corrida de `e2e/tests/voice-live/page-matrix.live.ts` (app en modo producción, reconocimiento falso, sin guardar). En cada pantalla se descubre lo que hay y se prueba por voz: ayuda, tabla (ordenar, ocultar y mostrar columnas, filtrar con la palabra clave, elegir y cerrar el detalle), alta (se abre y avisa qué se le puede pedir; campos con tres sinónimos; interruptores y casillas; listas; opciones), cerrar lo último que se abrió y cambio de contexto con la ventana abierta.',
   '',
-  `**${ok} de ${total} pasos bien** en ${runs.length} pantallas.`,
+  `**${ok} de ${total} pasos bien** en ${new Set(runs.map((r) => r.route)).size} pantallas (${[...new Set(runs.map((r) => r.locale))].sort().join(' y ')}).`,
   '',
   '| Pantalla | Idioma | Bien | Falló |',
   '| --- | --- | --- | --- |',
@@ -39,4 +39,4 @@ for (const r of runs) {
   lines.push('');
 }
 writeFileSync(OUT, `${lines.join('\n')}\n`);
-console.log(`[voz] ${OUT}: ${ok}/${total} en ${runs.length} pantallas`);
+console.log(`[voz] ${OUT}: ${ok}/${total} en ${new Set(runs.map((r) => r.route)).size} pantallas × ${new Set(runs.map((r) => r.locale)).size} idiomas`);
