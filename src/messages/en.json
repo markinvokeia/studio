@@ -15003,6 +15003,7 @@
       "rowNotFound": "There's no record {n} on screen (there are {count}).",
       "byColumnNotFound": "I couldn't find a record with “{text}”.",
       "noRows": "There are no records to pick.",
+      "cantOpenRow": "This table's rows don't open: try one of their actions (for example “edit…”).",
       "deselected": "Closed the detail.",
       "noSelection": "No record is open.",
       "noExport": "There's nothing to export here.",

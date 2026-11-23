@@ -15003,6 +15003,7 @@
       "rowNotFound": "No hay un registro {n} en lo que se ve (hay {count}).",
       "byColumnNotFound": "No encontré un registro con «{text}».",
       "noRows": "No hay registros para elegir.",
+      "cantOpenRow": "Las filas de esta tabla no se abren: probá con lo que tiene cada una (por ejemplo «editá…»).",
       "deselected": "Cerré el detalle.",
       "noSelection": "No hay ningún registro abierto.",
       "noExport": "Acá no hay para exportar.",

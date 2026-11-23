@@ -167,6 +167,28 @@ test.describe('TB-ROW · Elegir el registro', () => {
     await sim.say('seleccioná el 1');
     expect(log()).toEqual(['open:r1']);
   });
+  test('una tabla que no abre sola: aprieta «Editar» de esa fila', async () => {
+    await start('es', { rowActions: ['Editar', 'Eliminar'] });
+    await sim.say('seleccioná el 2');
+    expect(log()).toEqual(['editar:r2']);
+    expect(sim.card().message).toBe('Abrí Amoxicilina · 500 mg.');
+  });
+  test('con «Ver» y «Editar», «Ver» primero', async () => {
+    await start('en', { rowActions: ['Edit', 'View'] });
+    await sim.say('select row 1');
+    expect(log()).toEqual(['view:r1']);
+  });
+  test('por el código, en una tabla que no abre sola', async () => {
+    await start('es', { rowActions: ['Editar'], codes: ['MED-1', 'MED-2', 'MED-3', 'MED-4'] });
+    await sim.say('seleccioná el código MED-3');
+    expect(log()).toEqual(['editar:r3']);
+  });
+  test('filas sin cómo abrirse: lo dice (no «no hay registros»)', async () => {
+    await start('es', { rowActions: ['Eliminar'] });
+    await sim.say('seleccioná el 1');
+    expect(log()).toEqual([]);
+    expect(sim.card().message).toMatch(/^Las filas de esta tabla no se abren/);
+  });
   test('una tabla que sigue vacía lo dice', async () => {
     await start();
     t.bridge.rows = [];

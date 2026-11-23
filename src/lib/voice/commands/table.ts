@@ -64,6 +64,24 @@ async function tableWith(ctx: VoiceCommandContext, has: (t: CrudVoiceBridge) => 
   return found.table;
 }
 
+/**
+ * Cómo se abre una fila: la tabla que abre su detalle lo hace sola; la que no (Servicios, Cajas)
+ * tiene en la fila su botón «Ver» o «Editar», y se aprieta ese (primero «Ver»).
+ */
+const VIEW_ROW_RE = /^(?:ver|ver detalle|detalle|abrir|view|open|details?)$/;
+const EDIT_ROW_RE = /^(?:editar|edit)$/;
+/** Puede abrir filas: sola, o por los botones de la fila (se ve al elegir). */
+const mayOpen = (table: CrudVoiceBridge) => !!table.open || !!table.root;
+function rowOpener(table: CrudVoiceBridge, id: string): (() => void) | null {
+  if (table.open) return () => table.open!(id);
+  const root = table.root?.();
+  const tr = root ? Array.from(root.querySelectorAll<HTMLElement>('[data-row-id]')).find((el) => el.getAttribute('data-row-id') === id) : null;
+  if (!tr) return null;
+  const buttons = Array.from(tr.querySelectorAll<HTMLElement>('button, a')).map((b) => ({ b, name: normalizeSpeech(b.getAttribute('aria-label') || b.textContent || '') }));
+  const pick = buttons.find((x) => VIEW_ROW_RE.test(x.name)) ?? buttons.find((x) => EDIT_ROW_RE.test(x.name));
+  return pick ? () => pick.b.click() : null;
+}
+
 // ── Lo que se dice ────────────────────────────────────────────────────────────
 
 const ORDINAL = '(?:primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|sext[oa]|septim[oa]|setim[oa]|octav[oa]|noven[oa]|decim[oa]|ultim[oa]|penultim[oa]|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|last)';
@@ -303,7 +321,7 @@ registerVoiceCommand<Parsed>({
       return all.some(({ table }) => table.columns && columnAndValue(table.columns(), parsed.column!)) ? parsed : null;
     }
     if (parsed.op === 'search') return all.some(({ table }) => table.search) ? parsed : null;
-    if (parsed.op === 'rowId') return all.some(({ table }) => table.open) ? { ...parsed, id: searchTerm(parsed.id, raw) || parsed.id } : null;
+    if (parsed.op === 'rowId') return all.some(({ table }) => mayOpen(table)) ? { ...parsed, id: searchTerm(parsed.id, raw) || parsed.id } : null;
     if (parsed.op === 'deselect') return all.some(({ table }) => table.selectedId && table.deselect) ? parsed : null;
     return parsed;
   },
@@ -406,9 +424,9 @@ registerVoiceCommand<Parsed>({
           return table.rows.filter((r) => normalizeSpeech(String(r.id)).replace(/[\s-]+/g, '') === want
             || idCols.some((c) => normalizeSpeech(r.cells?.[c.id] ?? '').replace(/[\s#-]+/g, '') === want));
         };
-        let found = tables().map(({ table }) => ({ table, hits: hitIn(table) })).find((x) => x.hits.length && x.table.open);
+        let found = tables().map(({ table }) => ({ table, hits: hitIn(table) })).find((x) => x.hits.length && mayOpen(x.table));
         if (!found) {
-          const searchable = await tableWith(ctx, (t) => !!t.search && !!t.open);
+          const searchable = await tableWith(ctx, (t) => !!t.search && mayOpen(t));
           if (searchable?.search) {
             ctx.show({ title: T(ctx, 'title'), message: T(ctx, 'searchingId', { id: parsed.id }), tone: 'info' });
             const idsOf = (t: CrudVoiceBridge) => t.rows.map((r) => r.id).join(',');
@@ -431,7 +449,9 @@ registerVoiceCommand<Parsed>({
           const choice = await ctx.choose({ title: T(ctx, 'title'), message: question, choices: found.hits.slice(0, 8).map((r) => ({ label: rowLabel(target, r) })), tone: 'info' }, question);
           row = found.hits[choice];
         }
-        target.open!(row.id);
+        const openRow = rowOpener(target, row.id);
+        if (!openRow) { await say(ctx, T(ctx, 'cantOpenRow'), 'info'); return; }
+        openRow();
         await say(ctx, T(ctx, 'selected', { label: rowLabel(target, row) }));
         return;
       }
@@ -448,7 +468,7 @@ registerVoiceCommand<Parsed>({
           for (const { table } of tables()) {
             const cols = table.columns?.() ?? [];
             const cv = columnAndValue(cols, parsed.column);
-            if (!cv || !table.open) continue;
+            if (!cv || !mayOpen(table)) continue;
             const value = normalizeSpeech(cv.value);
             const hits = table.rows.filter((r) => normalizeSpeech(r.cells?.[cv.column.id] ?? '').includes(value) || normalizeSpeech(r.cells?.[cv.column.id] ?? '').replace(/\s/g, '').includes(value.replace(/\s/g, '')));
             if (!hits.length) continue;
@@ -459,7 +479,9 @@ registerVoiceCommand<Parsed>({
               const index = await ctx.choose({ title: T(ctx, 'title'), message: question, tone: 'info', choices: hits.slice(0, 8).map((r) => ({ label: rowLabel(table, r) })) }, `${question} ${hits.slice(0, 5).map((r, i) => `${i + 1}: ${rowLabel(table, r)}`).join('. ')}.`);
               row = hits[index];
             }
-            target?.open?.(row.id);
+            const openRow = rowOpener(target ?? table, row.id);
+            if (!openRow) { await say(ctx, T(ctx, 'cantOpenRow'), 'info'); return; }
+            openRow();
             await say(ctx, T(ctx, 'selected', { label: rowLabel(table, row) }));
             return;
           }
@@ -467,13 +489,15 @@ registerVoiceCommand<Parsed>({
           return;
         }
         // Recién buscada o borrada la búsqueda, la tabla se está recargando: se esperan sus filas.
-        for (let waited = 0; waited < 4000 && !tables().some((x) => !!x.table.open && x.table.rows.length > 0) && tables().some((x) => !!x.table.open); waited += 200) await settle(200);
-        const table = await tableWith(ctx, (t) => !!t.open && t.rows.length > 0);
-        if (!table?.open) { await say(ctx, T(ctx, 'noRows'), 'info'); return; }
+        for (let waited = 0; waited < 4000 && !tables().some((x) => x.table.rows.length > 0); waited += 200) await settle(200);
+        const table = await tableWith(ctx, (t) => t.rows.length > 0);
+        if (!table) { await say(ctx, T(ctx, 'noRows'), 'info'); return; }
         const index = parsed.index !== null ? parsed.index - 1 : parseChoice(parsed.ordinal!, table.rows.length);
         const row = index !== null && index >= 0 ? table.rows[index] : undefined;
         if (!row) { await say(ctx, T(ctx, 'rowNotFound', { n: parsed.index ?? parsed.ordinal ?? '', count: table.rows.length }), 'info'); return; }
-        table.open(row.id);
+        const open = rowOpener(table, row.id);
+        if (!open) { await say(ctx, T(ctx, 'cantOpenRow'), 'info'); return; }
+        open();
         await say(ctx, T(ctx, 'selected', { label: rowLabel(table, row) }));
       }
     }

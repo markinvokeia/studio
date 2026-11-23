@@ -1,7 +1,7 @@
 import { publishVoiceBridge } from '@/lib/voice/screen-bridge';
 
 import { openWindow } from './dom';
-import { screen } from './page';
+import { FakeEl, screen } from './page';
 
 import type { CrudVoiceBridge, ExportDialogVoiceBridge, TableVoiceColumn, ViewModeVoiceBridge } from '@/lib/types';
 
@@ -26,6 +26,8 @@ export function publishSimCrud({
   pages = 3,
   withView = false,
   codes = null as string[] | null,
+  /** La tabla no abre sola (Servicios, Cajas): cada fila trae estos botones («Editar», «Eliminar»). */
+  rowActions = null as string[] | null,
 } = {}): SimCrud {
   const log: string[] = [];
   const columns: TableVoiceColumn[] = [
@@ -78,6 +80,20 @@ export function publishSimCrud({
     sortBy: (id, dir) => { for (const c of columns) c.sort = c.id === id ? dir : null; log.push(`sort:${id}:${dir ?? 'none'}`); },
     setColumnVisible: (id, visible) => { const c = columns.find((x) => x.id === id); if (c) c.visible = visible; log.push(`${visible ? 'show' : 'hide'}:${id}`); },
   };
+  if (rowActions) {
+    const root = new FakeEl('DIV', { 'data-voice-table': '' });
+    for (const r of allRows) {
+      const tr = new FakeEl('TR', { 'data-row-id': r.id }, r.label);
+      for (const name of rowActions) {
+        const b = new FakeEl('BUTTON', {}, name);
+        b.onClick = () => log.push(`${name.toLowerCase()}:${r.id}`);
+        tr.append(b);
+      }
+      root.append(tr);
+    }
+    bridge.open = null;
+    bridge.root = () => root as unknown as HTMLElement;
+  }
   publishVoiceBridge(key, bridge, OWNER);
   if (withView) {
     const view: ViewModeVoiceBridge = { value: 'table', set: (m) => { view.value = m; log.push(`view:${m}`); }, root: () => null };
