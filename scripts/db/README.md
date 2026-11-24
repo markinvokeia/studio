@@ -8,12 +8,14 @@ Dos scripts para dejar la base de **DEV** limpia y con datos de demo coherentes.
 | `dev-cleanup.sql` | Borra datos importados, E2E y basura: todo lo transaccional, todos los usuarios salvo `__system__`, el agente de WhatsApp, `raidel@invokeia.com` (E2E_USER) y `markmm82@gmail.com`, el catálogo de servicios, padecimientos y medicamentos. Conserva la configuración (clínica, sedes, cajas, métodos de pago, roles, permisos, plantillas, alertas, feriados, calendarios). |
 | `dev-seed.sql` | Crea servicios, 6 doctores y 2 recepcionistas, 155 pacientes (15 menores), agenda de −90 a +21 días, sesiones clínicas, odontogramas, periodontogramas, sesiones estéticas, presupuestos, órdenes, facturas, pagos y cajas diarias. Todo lleva `seed:` en `external_id` / `internal_id`. |
 | `dev-seed-reports.sql` | Datos para los reportes: historia de ~15 meses antes del seed (agenda, sesiones, ventas en UYU y USD, pagos diferidos y deudas viejas), 40 pacientes inactivos (8 con alta médica) y 10 nuevos, presupuestos en todos los estados, servicios en flujo con planes de tratamiento, gastos operativos mensuales con su movimiento de caja, proveedores con facturas de compra, nómina (honorarios con % de productividad) y grupos de servicios. Recalcula el cierre de todas las cajas del seed. Si falta, crea la secuencia de numeración `miscellaneous`. |
+| `dev-seed-study-orders.sql` | Órdenes de estudio: catálogo de Clínica Imagen (78 estudios y 46 opciones, incluye lo que traen los formularios impresos), doctores derivadores, técnicos, recepción, pacientes, 2 salas y 24 órdenes `OE-DEMO-*` en todos los estados del tablero. Se puede volver a correr: regenera solo sus órdenes, citas y sesiones (`seed:so:`). |
 
 Se pegan enteros en el **Query Tool de pgAdmin** y se ejecutan con F5, en este orden:
 
 1. `dev-cleanup.sql`
 2. `dev-seed.sql`
 3. `dev-seed-reports.sql` (opcional; ~30 s)
+4. `dev-seed-study-orders.sql` (opcional; no depende de los anteriores)
 
 Cada uno corre en una sola transacción (`BEGIN … COMMIT`) y termina con una consulta de resumen, que es lo que pgAdmin muestra en la grilla.
 
