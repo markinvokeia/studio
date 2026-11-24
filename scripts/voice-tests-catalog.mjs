@@ -10,50 +10,13 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { VOICE_TEST_AREAS } from './voice-test-areas.mjs';
+
 const root = process.cwd();
 const json = execFileSync('npx', ['playwright', 'test', '-c', 'playwright.voice.config.ts', '--list', '--reporter=json'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const report = JSON.parse(json.slice(json.indexOf('{')));
 
-const FILE_INTRO = {
-  '01-wake.spec.ts': 'Escucha sin palabra de activación («Invoke» se tolera): cómo la transcribe el reconocedor, retomar y cancelar.',
-  '03-dialogs-close-stop.spec.ts': 'AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.',
-  '02-mic.spec.ts': 'Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar los pedazos de una frase.',
-  '04-popups-selection.spec.ts': 'AV · Avisos y ventanas: elegir por número, posición («la última», «la de abajo»), hora o texto; apretar botones por nombre; sí/no.',
-  '05-core-overlay.spec.ts': 'G · General (cualquier página): desplazarse, prioridad de la ventana o panel abierto (sus botones y campos), cambio de contexto que cierra lo abierto y suelta el foco.',
-  '06-navigation.spec.ts': 'NV · Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.',
-  '07-screen.spec.ts': 'UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.',
-  '08-rail.spec.ts': 'RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un paciente, cobro rápido, sede, caja, pantalla de la sala, alertas, bandeja, tipo de cambio, notas, asistente, mostrar/ocultar el panel.',
-  '09-billing.spec.ts': 'CR · Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y precio), cambiar precio/cantidad, descuentos por línea o total (permiso y máximo), quitar, moneda, sede, total, pago mixto, el resto, notas, facturar/cobrar/cerrar; de punta a punta.',
-  '10-atomic-es.spec.ts': 'N1 · Atómicos en español: escucha, navegación, vistas, zoom.',
-  '11-toolbar-settings-es.spec.ts': 'N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.',
-  '12-appointments-es.spec.ts': 'N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.',
-  '13-form-export-patients-es.spec.ts': 'N1 · Atómicos en español: editor de la cita campo por campo, nueva cita, exportar, pacientes y agente clínico.',
-  '20-chained-es.spec.ts': 'N2 · Encadenados: foco, herramientas en el medio, cambio de tema, cancelar, elegir de muchas formas.',
-  '30-ai-plans-es.spec.ts': 'N3 · Con IA: solo cuando hace falta, sinónimos, planes de varios pasos, relación con la tarea, formulario con IA.',
-  '40-incomplete-es.spec.ts': 'N4 · Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos, regla de oro (nunca se traba).',
-  '50-english.spec.ts': 'EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incompletos.',
-  '60-patient-info.spec.ts': 'N5 · Información del paciente (estadísticas, deuda, pagos, presupuestos, tratamientos) y acciones (presupuesto, factura, tratamiento, sesión, cobro), es y en.',
-  '70-variants-es.spec.ts': 'V · Variantes en español: la misma acción pedida de muchas formas.',
-  '71-variants-en.spec.ts': 'V · Variantes en inglés.',
-  '72-variants-more.spec.ts': 'V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y cada corrección del editor.',
-  '80-routines.spec.ts': 'R · Rutinas reales de recepción y doctores: conversaciones largas que combinan todo, es y en.',
-  '91-dashboard.spec.ts': 'PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.',
-  '92-workspace.spec.ts': 'MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.',
-  '93-alerts.spec.ts': 'AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, completar/ignorar (con motivo y confirmación), posponer (hasta cuándo), registrar llamada, nota, mail, WhatsApp (confirmado), abrir paciente; una, varias o todas.',
-  '94-cashier.spec.ts': 'CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.',
-  '95-patients.spec.ts': 'PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).',
-  '96-lab-orders.spec.ts': 'LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la primera», la orden abierta; abrir, mover de etapa (con confirmación), estado; con backend de laboratorio simulado.',
-  '97-perio.spec.ts': 'PE · Periodontograma con el botón único: con el examen abierto lo dicho va a su dictado (sin cerrar la ventana); navegar, desplazarse y dejar de escuchar siguen generales; un solo micrófono a la vez.',
-  '98-documents.spec.ts': 'DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras, ficha): leer y sumar (pendientes), abrir/imprimir/mail/editar/confirmar/rechazar/cobrar/asignar una fila (número, nombre, posición), crear, exportar, actualizar, filtrar.',
-  '99-reports.spec.ts': 'RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.',
-  '9b-clinical-agent.spec.ts': 'CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.',
-  '9c-tables.spec.ts': 'TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.',
-  '9d-field-values.spec.ts': 'FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).',
-  '9e-ledger.spec.ts': 'EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimientos, acciones por fila con confirmación.',
-  '9f-understanding.spec.ts': 'UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.',
-  '9a-crud.spec.ts': 'LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.',
-  '90-ai-understanding.spec.ts': 'AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.',
-};
+const FILE_INTRO = Object.fromEntries(Object.entries(VOICE_TEST_AREAS).map(([file, area]) => [file, area.intro]));
 
 const lines = [];
 let total = 0;

@@ -1,6 +1,6 @@
 # Voz en Invoke IA · Catálogo de pruebas
 
-Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2386 casos.**
+Generado por `pnpm test:voice:catalog` desde `e2e/tests/voice-agent/` — no editar a mano. **2420 casos.**
 Reglas y levantamiento del feature: [voz-agenda.md](voz-agenda.md).
 
 ## Cómo se prueba
@@ -72,7 +72,7 @@ Micrófono permanente: pausa blanda (no se oye a sí mismo, no reinicia), juntar
 
 ## 03-dialogs-close-stop.spec.ts (92)
 
-AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.
+Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que esté abierto, dejar de escuchar, buscar huecos.
 
 - **AV-DLG · Elegir el botón de un aviso**
   - «agendar igual» → Agendar igual
@@ -175,7 +175,7 @@ AV · Avisos (elegir el botón por texto, posición o sí/no), cerrar lo que est
 
 ## 04-popups-selection.spec.ts (185)
 
-AV · Avisos y ventanas: elegir por número, posición («la última», «la de abajo»), hora o texto; apretar botones por nombre; sí/no.
+Avisos y ventanas: elegir por número, posición («la última», «la de abajo»), hora o texto; apretar botones por nombre; sí/no.
 
 - **PU-ES · Avisos de la agenda**
   - «citas futuras del paciente»: la voz lee el aviso y dice sus botones
@@ -371,7 +371,7 @@ AV · Avisos y ventanas: elegir por número, posición («la última», «la de 
 
 ## 05-core-overlay.spec.ts (66)
 
-G · General (cualquier página): desplazarse, prioridad de la ventana o panel abierto (sus botones y campos), cambio de contexto que cierra lo abierto y suelta el foco.
+Cualquier página: desplazarse, prioridad de la ventana o panel abierto (sus botones y campos), cambio de contexto que cierra lo abierto y suelta el foco.
 
 - **CO-SCROLL · Qué es desplazarse**
   - «bajá» → down normal
@@ -446,7 +446,7 @@ G · General (cualquier página): desplazarse, prioridad de la ventana o panel a
 
 ## 06-navigation.spec.ts (126)
 
-NV · Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.
+Menú principal desde cualquier página: «andá a…», «abrí…», «go to…»; cada destino en es/es-ES/en; permisos; ambigüedad; ir y seguir en la página nueva; cambio de contexto; IA solo si no se nombró tal cual.
 
 - **NV-PARSE · Qué es ir a otra página (es)**
   - «andá a pacientes» → Pacientes
@@ -584,9 +584,9 @@ NV · Menú principal desde cualquier página: «andá a…», «abrí…», «g
   - NV-AI-007 una charla de la sala no se le manda a la IA
   - NV-AI-008 en «take me where I see today’s income»
 
-## 07-screen.spec.ts (108)
+## 07-screen.spec.ts (114)
 
-UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
+Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en campos, prender/apagar, elegir en listas, buscar, abrir filas, «¿qué puedo hacer acá?»; lo abierto primero; lo propio de la pantalla gana.
 
 - **UI-PRESS · Botones y pestañas**
   - «tocá nuevo paciente» → press:Nuevo paciente
@@ -611,6 +611,9 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «completá el nombre con Juan Pérez» → fill:Nombre=Juan Pérez
   - «buscá Juan» → fill:Buscar...=Juan
   - «buscá a María Fernández» → fill:Buscar...=María Fernández
+  - «borrá la búsqueda» → fill:Buscar...=
+  - «limpiá el buscador» → fill:Buscar...=
+  - en «clear the search» vacía el buscador de la pantalla
   - sin valor pregunta qué poner
 - **UI-TOGGLE · Interruptores**
   - «activá enviar por email»
@@ -714,10 +717,16 @@ UI · Cualquier pantalla sin voz propia: tocar botones y pestañas, escribir en 
   - «dosis 400 mg»
   - «seteá la vía en oral»
   - en «set the dosis to 400 mg» / «record the precio 1500»
+- **UI-FILTER-EN · «filter …» en inglés escribe la palabra clave en el buscador**
+  - «filter the ones that have Carolina»
+- **UI-NOSEARCH · Buscar donde no hay buscador**
+  - «filtrá por Juan» lo dice (no «no entendí»)
+- **UI-SEARCHSEL-MISS · Una opción que no aparece no cierra la ventana**
+  - «elegí Zeta en proveedor» con el pago abierto: lo dice y la ventana sigue
 
 ## 08-rail.spec.ts (60)
 
-RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un paciente, cobro rápido, sede, caja, pantalla de la sala, alertas, bandeja, tipo de cambio, notas, asistente, mostrar/ocultar el panel.
+Panel derecho desde cualquier página: ficha/historia/cuenta de un paciente, cobro rápido, sede, caja, pantalla de la sala, alertas, bandeja, tipo de cambio, notas, asistente, mostrar/ocultar el panel.
 
 - **RL-PATIENT · Abrir un paciente desde cualquier lado**
   - es «abrí la ficha de Juan Pérez» → p2:info
@@ -791,7 +800,7 @@ RL · Panel derecho desde cualquier página: ficha/historia/cuenta de un pacient
 
 ## 09-billing.spec.ts (59)
 
-CR · Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y precio), cambiar precio/cantidad, descuentos por línea o total (permiso y máximo), quitar, moneda, sede, total, pago mixto, el resto, notas, facturar/cobrar/cerrar; de punta a punta.
+Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y precio), cambiar precio/cantidad, descuentos por línea o total (permiso y máximo), quitar, moneda, sede, total, pago mixto, el resto, notas, facturar/cobrar/cerrar; de punta a punta.
 
 - **CR-PAT · Paciente**
   - «para Juan Pérez» lo elige y pasa a los servicios
@@ -863,7 +872,7 @@ CR · Cobro rápido paso por paso: paciente, agregar servicios (con cantidad y p
 
 ## 10-atomic-es.spec.ts (28)
 
-N1 · Atómicos en español: escucha, navegación, vistas, zoom.
+Atómicos en español: escucha, navegación, vistas, zoom.
 
 - **N1.1 · Escucha**
   - VZ-ES-001 con Voz prendido escucha todo, sin palabra de activación
@@ -900,7 +909,7 @@ N1 · Atómicos en español: escucha, navegación, vistas, zoom.
 
 ## 11-toolbar-settings-es.spec.ts (67)
 
-N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.
+Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, huecos, actualizar y todo el engranaje.
 
 - **N1.5 · Agendas, doctores y sedes**
   - VZ-ES-040 «qué agendas hay» lista y «la segunda» la muestra (modo personalizado)
@@ -977,7 +986,7 @@ N1 · Atómicos en español: agendas, doctores, sedes, agrupar, panel, buscar, h
 
 ## 12-appointments-es.spec.ts (31)
 
-N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.
+Atómicos en español sobre una cita: encontrar, estados, cancelar con motivo, borrar, color, doctor, consultorio, duración, mover, abrir.
 
 - **N1.10 · Encontrar y seleccionar**
   - VZ-ES-110 «la cita de Juan Pérez» la selecciona y queda en foco
@@ -1017,7 +1026,7 @@ N1 · Atómicos en español sobre una cita: encontrar, estados, cancelar con mot
 
 ## 13-form-export-patients-es.spec.ts (34)
 
-N1 · Atómicos en español: editor de la cita campo por campo, nueva cita, exportar, pacientes y agente clínico.
+Atómicos en español: editor de la cita campo por campo, nueva cita, exportar, pacientes y agente clínico.
 
 - **N1.14 · Editor de la cita: cada campo**
   - VZ-ES-150 editar abre el formulario y queda parado ahí
@@ -1060,7 +1069,7 @@ N1 · Atómicos en español: editor de la cita campo por campo, nueva cita, expo
 
 ## 20-chained-es.spec.ts (24)
 
-N2 · Encadenados: foco, herramientas en el medio, cambio de tema, cancelar, elegir de muchas formas.
+Encadenados: foco, herramientas en el medio, cambio de tema, cancelar, elegir de muchas formas.
 
 - **N2.1 · Foco: elegida una cita, todo actúa sobre ella**
   - VZ-ES-200 seleccionar → «marcala como llegó» → «sí»
@@ -1093,7 +1102,7 @@ N2 · Encadenados: foco, herramientas en el medio, cambio de tema, cancelar, ele
 
 ## 30-ai-plans-es.spec.ts (27)
 
-N3 · Con IA: solo cuando hace falta, sinónimos, planes de varios pasos, relación con la tarea, formulario con IA.
+Con IA: solo cuando hace falta, sinónimos, planes de varios pasos, relación con la tarea, formulario con IA.
 
 - **N3.0 · Solo se llama a la IA cuando hace falta**
   - VZ-ES-300 lo que entiende el intérprete local no llama a la IA
@@ -1131,7 +1140,7 @@ N3 · Con IA: solo cuando hace falta, sinónimos, planes de varios pasos, relaci
 
 ## 40-incomplete-es.spec.ts (16)
 
-N4 · Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos, regla de oro (nunca se traba).
+Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos, regla de oro (nunca se traba).
 
 - **N4.1 · Falta información: pregunta y sigue**
   - VZ-ES-400 «dame una cita» sin nada: pregunta paciente, hora… y abre el formulario
@@ -1155,7 +1164,7 @@ N4 · Incompletos o mal dichos: pregunta lo que falta, nombres mal transcriptos,
 
 ## 50-english.spec.ts (89)
 
-EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incompletos.
+La batería en inglés (app en inglés): atómicos, encadenados, IA, incompletos.
 
 - **EN-N1.1 · Listening**
   - VZ-EN-001 with Voice on it hears everything, no wake word
@@ -1260,7 +1269,7 @@ EN · La batería en inglés (app en inglés): atómicos, encadenados, IA, incom
 
 ## 60-patient-info.spec.ts (37)
 
-N5 · Información del paciente (estadísticas, deuda, pagos, presupuestos, tratamientos) y acciones (presupuesto, factura, tratamiento, sesión, cobro), es y en.
+Información del paciente (estadísticas, deuda, pagos, presupuestos, tratamientos) y acciones (presupuesto, factura, tratamiento, sesión, cobro), es y en.
 
 - **N5.ES · Información del paciente (español)**
   - VZ-ES-500 ¿cuántas veces vino Juan Pérez? (no pregunta qué cita)
@@ -1305,7 +1314,7 @@ N5 · Información del paciente (estadísticas, deuda, pagos, presupuestos, trat
 
 ## 70-variants-es.spec.ts (213)
 
-V · Variantes en español: la misma acción pedida de muchas formas.
+La misma acción pedida de muchas formas, en español.
 
 - **V-ES-NAV · hoy**
   - «hoy»
@@ -1549,7 +1558,7 @@ V · Variantes en español: la misma acción pedida de muchas formas.
 
 ## 71-variants-en.spec.ts (192)
 
-V · Variantes en inglés.
+La misma acción pedida de muchas formas, en inglés.
 
 - **V-EN-NAV · today / tomorrow / yesterday**
   - «today»
@@ -1769,7 +1778,7 @@ V · Variantes en inglés.
 
 ## 72-variants-more.spec.ts (119)
 
-V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y cada corrección del editor.
+Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y cada corrección del editor.
 
 - **V-ES-MENU · borrar**
   - «borrá la cita de Carlos López»
@@ -1807,12 +1816,12 @@ V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y
   - «extend Juan Pérez's appointment to one hour»
 - **V-ES-MENU · mover**
   - «pasá la cita de Juan Pérez al viernes a las 11»
-  - «reprogramá la cita de Juan Pérez para el lunes»
+  - «reprogramá la cita de Juan Pérez para pasado mañana»
   - «mové la cita de Juan Pérez a las 4»
   - «corré la cita de Juan Pérez para mañana»
 - **V-EN-MENU · move**
   - «move Juan Pérez's appointment to Friday at 11»
-  - «reschedule Juan Pérez's appointment for Monday»
+  - «reschedule Juan Pérez's appointment for the day after tomorrow»
   - «move Juan Pérez's appointment to 4»
 - **V-ES-MENU · abrir**
   - «abrí la historia clínica de Juan Pérez»
@@ -1915,7 +1924,7 @@ V · Más variantes es/en: menú de la cita, recordatorios, bloqueos, exportar y
 
 ## 80-routines.spec.ts (27)
 
-R · Rutinas reales de recepción y doctores: conversaciones largas que combinan todo, es y en.
+Rutinas reales de recepción y doctores: conversaciones largas que combinan todo, es y en.
 
 - **R-ES · Rutinas en español**
   - R-ES-01 arranque del día: qué tengo, quién sigue, llega el primero y pasa a consulta
@@ -1949,7 +1958,7 @@ R · Rutinas reales de recepción y doctores: conversaciones largas que combinan
 
 ## 90-ai-understanding.spec.ts (42)
 
-AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.
+Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta con confianza media), es y en.
 
 - **AI-ES · tamaño, panel y configuración dicho con adjetivos**
   - «está todo apretadito, no veo nada»
@@ -2002,7 +2011,7 @@ AI · Adjetivos y formas indirectas con IA, ambigüedad y confianza (pregunta co
 
 ## 91-dashboard.spec.ts (51)
 
-PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.
+Panel de control: períodos dichos, leer producción/cobrado/gastos/resultado/atenciones/agendados/nuevos de hoy y del mes, resumen, sede y servicio que más venden, comparación con el mes pasado; filtros de período, sede y moneda; actualizar.
 
 - **PC-PERIOD · Períodos dichos**
   - «hoy»
@@ -2062,7 +2071,7 @@ PC · Panel de control: períodos dichos, leer producción/cobrado/gastos/result
 
 ## 92-workspace.spec.ts (129)
 
-MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio.
+Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posición), ¿quién sigue?, la agenda del día, sesión/receta/laboratorio/estética/perio/ficha/anamnesis/odontograma sobre la cita, filtros de día/semana/mes, mis citas, agenda de un consultorio, cambiar de caso.
 
 - **MC-SELECT · Elegir la cita**
   - es «el de las 10»
@@ -2204,7 +2213,7 @@ MC · Mi consultorio: elegir la cita (hora, nombre, siguiente, anterior, posici�
 
 ## 93-alerts.spec.ts (33)
 
-AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, completar/ignorar (con motivo y confirmación), posponer (hasta cuándo), registrar llamada, nota, mail, WhatsApp (confirmado), abrir paciente; una, varias o todas.
+Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, completar/ignorar (con motivo y confirmación), posponer (hasta cuándo), registrar llamada, nota, mail, WhatsApp (confirmado), abrir paciente; una, varias o todas.
 
 - **AL-READ · Leer y filtrar**
   - «cuántas alertas hay»
@@ -2245,7 +2254,7 @@ AL · Centro de alertas: leer y filtrar (estado, prioridad), seleccionar, comple
 
 ## 94-cashier.spec.ts (29)
 
-CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.
+Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salidas/tarjeta/movimientos de la sesión, empezar el cierre, contar el efectivo por billetes y monedas (en cifras o palabras), todo en cero, último cierre, total; por moneda.
 
 - **CJ-POINTS · Cajas**
   - «qué cajas hay»
@@ -2281,9 +2290,9 @@ CJ · Caja: ver y abrir cajas (una abierta por persona), efectivo/entradas/salid
 - **CJ-NAV · Desde otra página**
   - «andá a la caja y decime qué cajas hay»
 
-## 95-patients.spec.ts (56)
+## 95-patients.spec.ts (63)
 
-PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).
+Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros (deudores, activos, fechas), nuevo paciente; pestañas y todas las acciones de la ficha (también con el nombre en la frase); preguntas (deuda, visitas, resumen).
 
 - **PA-LIST · Buscar, abrir, filtrar**
   - «buscá a Roberto Díaz» con uno solo: lo abre
@@ -2291,6 +2300,13 @@ PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros 
   - «abrí el segundo»
   - «abrí la ficha de Carlos López» (está en la lista)
   - «abrí la ficha de Sofía Castro» (no está a la vista): la busca
+  - «mostrá la columna Correo Electrónico» es de la tabla, no un nombre de paciente
+  - «seleccioná el 1» es de la tabla, no un nombre de paciente
+  - «abrí el registro 3» es de la tabla, no un nombre de paciente
+  - «mostrá la fila 2» es de la tabla, no un nombre de paciente
+  - «show the Email column» es de la tabla, no un nombre de paciente
+  - «show the Last name column» es de la tabla, no un nombre de paciente
+  - con el alta abierta, «elegí Uruguay en país del teléfono» es de la ventana, no un paciente
   - «abrí a Ana» con dos: pregunta
   - «solo los deudores»
   - «mostrame los que deben»
@@ -2348,9 +2364,9 @@ PA · Pacientes: buscar y abrir (posición, nombre, busca si no está), filtros 
   - en «open the account statement of Roberto Díaz»
   - un nombre que no está no ofrece la lista de antes
 
-## 96-lab-orders.spec.ts (25)
+## 96-lab-orders.spec.ts (34)
 
-LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la primera», la orden abierta; abrir, mover de etapa (con confirmación), estado; con backend de laboratorio simulado.
+Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la primera», la orden abierta; abrir, mover de etapa (con confirmación), estado; cerrar; con backend de laboratorio simulado.
 
 - **LB-PARSE · Qué orden se nombró**
   - «abrí la de Ana Gómez»
@@ -2380,10 +2396,21 @@ LB · Órdenes de laboratorio por lo que se ve: «la de Ana Gómez», «la prime
   - en «open the one for Juan» y «it arrived»
 - **LB-NAV · Llegar y seguir**
   - «andá a laboratorio y abrí la de Juan Pérez»
+- **LO-CLOSE · «cerrá» cierra la orden abierta**
+  - es «cerrá»
+  - es-ES «cierra el detalle»
+  - en «close it»
+- **LO-COLUMN · «mostrá la columna Laboratorio» es de la tabla, no la lista de órdenes**
+  - no: «mostrá la columna Laboratorio»
+  - no: «ocultá la columna Laboratorio»
+  - no: «show the Lab column»
+  - sí: «mostrame las órdenes en el tablero»
+  - sí: «mostrame las órdenes en columnas»
+  - sí: «show the overdue orders»
 
 ## 97-perio.spec.ts (17)
 
-PE · Periodontograma con el botón único: con el examen abierto lo dicho va a su dictado (sin cerrar la ventana); navegar, desplazarse y dejar de escuchar siguen generales; un solo micrófono a la vez.
+Periodontograma con el botón único: con el examen abierto lo dicho va a su dictado (sin cerrar la ventana); navegar, desplazarse y dejar de escuchar siguen generales; un solo micrófono a la vez.
 
 - **PE-ROUTE · Lo dicho va al dictado del periodontograma**
   - «3 2 3»
@@ -2408,7 +2435,7 @@ PE · Periodontograma con el botón único: con el examen abierto lo dicho va a 
 
 ## 98-documents.spec.ts (35)
 
-DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras, ficha): leer y sumar (pendientes), abrir/imprimir/mail/editar/confirmar/rechazar/cobrar/asignar una fila (número, nombre, posición), crear, exportar, actualizar, filtrar.
+Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras, ficha): leer y sumar (pendientes), abrir/imprimir/mail/editar/confirmar/rechazar/cobrar/asignar una fila (número, nombre, posición), crear, exportar, actualizar, filtrar.
 
 - **DO-READ · Leer y sumar**
   - «cuántas facturas hay»
@@ -2452,7 +2479,7 @@ DO · Facturas, pagos y presupuestos en las tablas compartidas (Ventas, Compras,
 
 ## 99-reports.spec.ts (33)
 
-RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir.
+Reportes (piezas comunes de los 23): generar, período dicho (lo pone y genera), desde siempre, leer los totales, cuántas filas, exportar a Excel/PDF/CSV, imprimir, filtros de la barra.
 
 - **RP · Generar y período**
   - «generá el reporte»
@@ -2493,9 +2520,9 @@ RP · Reportes (piezas comunes de los 23): generar, período dicho (lo pone y ge
   - «qué cajas hay» lee las opciones
   - el período sigue siendo el período
 
-## 9a-crud.spec.ts (39)
+## 9a-crud.spec.ts (40)
 
-LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
+Listas con la tabla común (Catálogo, Configuración del negocio, Sistema): crear con nombre («nuevo medicamento Diclofenac»), abrir por nombre o posición, contar, actualizar; el formulario con la voz genérica.
 
 - **LI-CREATE · Altas**
   - «nuevo medicamento Diclofenac» abre el alta y escribe el nombre
@@ -2541,11 +2568,12 @@ LI · Listas con la tabla común (Catálogo, Configuración del negocio, Sistema
   - una lista de consulta (sin alta) lo dice
 - **LI-OVERLAY · Con una ventana abierta, la tabla de atrás no se lleva lo dicho**
   - «agregá un artículo» con un presupuesto abierto aprieta «Agregar Artículo» (no crea en la lista)
+  - «nuevo» frente a un aviso que no crea nada (notificaciones): lo cierra y abre el alta
   - «siguiente página» con una ventana abierta no mueve la lista de atrás
 
 ## 9b-clinical-agent.spec.ts (52)
 
-CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.
+Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agente clínico (resumen, preguntas, dictar la sesión, guardar o revisar, odontograma); lo de la pantalla sigue siendo de la página; cerrar y volver al caso; la charla de la sala no se manda.
 
 - **CC-CASE · El caso es el paciente elegido**
   - al elegir la cita queda marcado el caso clínico
@@ -2608,9 +2636,9 @@ CC · Caso clínico en Mi consultorio: con la cita elegida, lo pedido va al agen
   - «la dosis es 400 mg» con la receta abierta va al campo
   - una pregunta del paciente con la receta abierta sí va al agente
 
-## 9c-tables.spec.ts (108)
+## 9c-tables.spec.ts (116)
 
-TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición o por columna, cerrar el detalle.
+Tablas: buscar, filtro de la barra, exportar (pregunta el formato), páginas, cantidad por página, vista tabla/lista, columnas, ordenar, elegir el registro por posición, por columna o por ID/código, cerrar el detalle.
 
 - **TB-PAGE · Páginas y cantidad por página**
   - es «siguiente página»
@@ -2720,6 +2748,12 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
   - por columna con varios: pregunta
   - «cerrá el detalle» suelta el registro
   - en «back to the list»
+  - con la tabla recargándose (recién borrada la búsqueda) espera sus filas
+  - una tabla que no abre sola: aprieta «Editar» de esa fila
+  - con «Ver» y «Editar», «Ver» primero
+  - por el código, en una tabla que no abre sola
+  - filas sin cómo abrirse: lo dice (no «no hay registros»)
+  - una tabla que sigue vacía lo dice
 - **TB-EXPORT · Exportar**
   - con la ventana de exportar abierta: «exportá a CSV»
   - sin decir el formato: pregunta
@@ -2730,10 +2764,12 @@ TB · Tablas: buscar, filtro de la barra, exportar (pregunta el formato), págin
   - con dos tablas (lista y la de una pestaña del detalle), «siguiente página» va a la de arriba
 - **TB-HELP · Después de «¿qué puedo hacer acá?»**
   - un pedido nuevo se hace sin preguntar si cambiamos de tarea
+  - «ordená por …» no se toma como elegir «Nueva orden» del menú de ayuda
+  - en «sort by nombre descending» con el menú de ayuda abierto
 
-## 9d-field-values.spec.ts (34)
+## 9d-field-values.spec.ts (35)
 
-FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).
+Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), fechas, números («mil quinientos», «3 coma 5») y colores («rojo»).
 
 - **FV-NUM · Números**
   - «veinte» → 20
@@ -2773,10 +2809,11 @@ FV · Lo dicho como lo espera cada campo: horas («las 9 y media» → 09:30), f
   - «#3366FF» → #3366ff
   - «purple» → #8b5cf6
   - campo color
+  - la caja del código del color (#…): «rojo» → #ef4444
 
 ## 9e-ledger.spec.ts (42)
 
-EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimientos, acciones por fila con confirmación.
+Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimientos, acciones por fila con confirmación.
 
 - **EC-VIEW · Moneda, orden y período**
   - es «en dólares»
@@ -2824,9 +2861,9 @@ EC · Estado de cuenta: moneda, orden, período, altas en línea, saldo y movimi
   - en «print invoice 12»
   - lo que no está lo dice
 
-## 9f-understanding.spec.ts (31)
+## 9f-understanding.spec.ts (33)
 
-UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana y «cerrá» lo último que se abrió.
+Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más parecido (botones, pestañas, interruptores, menú), la IA de la pantalla (n8n «screen») que arma los pasos con lo que se ve, el aviso al abrirse una ventana, «cerrá» lo último que se abrió y el cambio de contexto.
 
 - **UN-SUGGEST · «¿Te referís a…?»**
   - es «los mapas sincronizados» propone apretar «Sincronizar mapas»
@@ -2857,6 +2894,9 @@ UN · Entender lo que no se dijo tal cual: «¿te referís a…?» con lo más p
 - **UN-SWITCH · Con un aviso abierto, otro pedido es un cambio de contexto**
   - «andá a pacientes» cierra el aviso sin elegir y va
   - «sí» sigue siendo la respuesta del aviso
+- **UN-NONAME · Una pregunta que no es de ninguna tarea no pregunta «¿Cambiamos de tarea?»**
+  - con «¿Te referís a…?» abierto, «andá a pacientes» va sin preguntar ni nombrar «»
+  - con la ventana recién abierta a mano, «andá a pacientes» va sin preguntar
 - **UN-VERBS · El verbo dicho con otra palabra («aplicá los cambios» → «Confirmar todo»)**
   - «aplicá los cambios» → Confirmar todo
   - «aceptá todo» → Confirmar todo

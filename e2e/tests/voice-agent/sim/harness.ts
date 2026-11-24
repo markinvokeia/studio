@@ -1,3 +1,7 @@
+import { appendFileSync } from 'node:fs';
+
+import { test as pwTest } from '@playwright/test';
+
 import { FakeRecognition, setFetchHandler } from './globals';
 import { resetDom } from './dom';
 import { createTranslator } from 'next-intl';
@@ -36,10 +40,23 @@ import esES from '@/messages/es-ES.json';
 
 export type ModelReply = Record<string, unknown> | ((q: PreparedQuery) => Record<string, unknown> | null);
 
+/** Una frase dicha en una prueba (para el catálogo de ejemplos). */
+interface ExampleRecord {
+  file: string;
+  titlePath: string[];
+  locale: string;
+  route: string;
+  said: string;
+  ai: boolean;
+  reply: { title: string; message: string; choices: string[]; awaiting: string | null } | null;
+}
+
 export interface AiCall {
   text: string;
   context: Record<string, unknown>;
   prompt: string;
+  /** La IA simulada contestó algo (la prueba le dio una respuesta); si no, contestó «no sé». */
+  answered?: boolean;
 }
 
 export interface VoiceSim {
@@ -128,9 +145,9 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     if (url.includes('/voice/interpret')) {
       const body = JSON.parse(String(init.body ?? '{}')) as Record<string, unknown>;
       const prepared = prepare(body);
-      aiCalls.push({ text: String(body.text), context: (body.context ?? {}) as Record<string, unknown>, prompt: prepared.prompt });
       const found = replies.find((r) => r.match.test(String(body.text)));
       const raw = found ? (typeof found.reply === 'function' ? found.reply(prepared) : found.reply) : null;
+      aiCalls.push({ text: String(body.text), context: (body.context ?? {}) as Record<string, unknown>, prompt: prepared.prompt, answered: raw != null });
       const output = JSON.stringify(raw ?? { relation: 'new', confidence: 0.1, steps: [] });
       return json(validate(prepared, output));
     }
@@ -197,14 +214,50 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
   });
   startAlwaysOn();
 
+  const store = () => useVoiceCommand.getState();
+
+  // Catálogo de ejemplos (VOICE_EXAMPLES=archivo.jsonl, lo usa scripts/voice-examples.mjs): cada
+  // frase dicha, en qué pantalla e idioma, si pasó por la IA y lo que respondió la voz (lo último
+  // que mostró la tarjeta antes de la frase siguiente).
+  const examplesFile = process.env.VOICE_EXAMPLES;
+  const examples: ExampleRecord[] = [];
+  const cardNow = () => {
+    const c = store().card;
+    return c ? { title: c.title ?? '', message: c.message ?? '', choices: (c.choices ?? []).map((x) => x.label), awaiting: store().awaiting ?? null } : null;
+  };
+  const updateLastReply = () => {
+    const last = examples[examples.length - 1];
+    if (last) last.reply = cardNow();
+  };
+  const flushExamples = () => {
+    if (!examplesFile || !examples.length) return;
+    updateLastReply();
+    appendFileSync(examplesFile, examples.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    examples.length = 0;
+  };
+
   const say = async (text: string) => {
     const rec = FakeRecognition.active();
     if (!rec) throw new Error('El micrófono permanente no está escuchando');
+    if (examplesFile) updateLastReply();
+    const aiBefore = aiCalls.length;
+    const routeBefore = (globalThis as unknown as { location: { pathname: string } }).location.pathname.replace(/^\/(es-ES|es|en)(?=\/|$)/, '') || '/';
     rec.deliver(text);
     await settle();
+    if (examplesFile) {
+      const info = (() => { try { return pwTest.info(); } catch { return null; } })();
+      examples.push({
+        file: info ? info.file.split('/').pop() ?? '' : '',
+        titlePath: info ? info.titlePath.slice(1) : [],
+        locale,
+        route: routeBefore,
+        said: text,
+        ai: aiCalls.slice(aiBefore).some((c) => c.answered),
+        reply: cardNow(),
+      });
+    }
   };
 
-  const store = () => useVoiceCommand.getState();
   return {
     cal,
     rail,
@@ -240,6 +293,7 @@ export async function createVoiceSim({ locale = 'es', customMode = true, route =
     route: () => (globalThis as unknown as { location: { pathname: string } }).location.pathname.replace(/^\/(es-ES|es|en)(?=\/|$)/, '') || '/',
     domains: () => activeVoiceDomains(),
     dispose: () => {
+      flushExamples();
       setRoute('es', '/appointments');
       cancelVoice();
       stopAlwaysOn();

@@ -39,6 +39,7 @@
     "db:sync": "./db-manager.sh sync",
     "test:voice": "playwright test -c playwright.voice.config.ts",
     "test:voice:catalog": "node scripts/voice-tests-catalog.mjs",
+    "test:voice:examples": "node scripts/voice-examples.mjs",
     "test:voice:live": "playwright test -c playwright.voice-live.config.ts",
     "n8n:deploy:voice": "node scripts/n8n/deploy-workflow.mjs help-voice-interpret.json 7yTmcJ03YYw3RL6J",
     "test:voice:matrix:report": "node scripts/voice-live-report.mjs"
