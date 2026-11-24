@@ -432,6 +432,21 @@ export function usePrintDocument() {
     }
   }
 
-  return { renderDocumentPdf, printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printClinicHistory, printCajaApertura, printCajaCierre, printCajaSesion };
+  /**
+   * Imprime la orden tal como está guardada. Vuelve a pedirla al backend en vez
+   * de imprimir lo que el panel tenga en memoria: entre que se abrió el detalle
+   * y se toca Imprimir, la clínica puede haber agendado o anulado algo, y el
+   * papel que se lleva el paciente no puede estar desactualizado.
+   */
+  async function printStudyOrder(orderId: string): Promise<void> {
+    const [order] = await Promise.all([getStudyOrder(orderId), fetchClinicInfo()]);
+    if (!order) throw new Error('no_data');
+    activate('study_order', { order, emittedAt: new Date().toISOString() });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  return { renderDocumentPdf, printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printClinicHistory, printStudyOrder, printCajaApertura, printCajaCierre, printCajaSesion };
 
 }

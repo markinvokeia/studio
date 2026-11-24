@@ -45,6 +45,27 @@ perms AS (
        AND p.code LIKE 'STUDY_ORDERS_%'
 )`;
 
+/**
+ * PERMS_CTE más el acceso a la ficha del paciente (PATIENTS_VIEW_DETAIL): con él se ven las órdenes
+ * de un paciente (lista con scope=patient y detalle). Sólo lo usan LIST_SQL y DETAIL_SQL.
+ */
+const PERMS_WITH_PATIENT_CTE = `
+perms AS (
+    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,
+           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,
+           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,
+           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,
+           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule,
+           -- Acceso a la ficha del paciente: alcanza para ver sus órdenes (tab Órdenes de estudio).
+           bool_or(p.code = 'PATIENTS_VIEW_DETAIL') AS can_view_patient
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND (p.code LIKE 'STUDY_ORDERS_%' OR p.code = 'PATIENTS_VIEW_DETAIL')
+)`;
+
 export const OPTIONS_SQL = `
 -- Catálogo del formulario. Las secciones son las categorías sembradas por
 -- scripts/sql/catalogo-clinica-imagen.sql y los servicios, sus 69 hijos.
@@ -103,6 +124,7 @@ const INBOX_ARGS = `
            NULLIF(f ->> 'sede_id', '')                          AS sede_id,
            coalesce(f ->> 'source', '')                         AS source,
            NULLIF(f ->> 'patient_id', '')                       AS patient_id,
+           NULLIF(f ->> 'doctor_id', '')                        AS doctor_id,
            coalesce(f ->> 'assigned', '')                       AS assigned,
            coalesce((f ->> 'sla_hours')::numeric, 48)           AS sla_hours,
            NULLIF(f ->> 'date_from', '')                        AS date_from,
@@ -182,6 +204,8 @@ base AS (
        AND (a.source = '' OR so.source = a.source)
        -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
        AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
+       -- Órdenes de un doctor concreto: tab Órdenes de Config > Doctores.
+       AND (a.doctor_id IS NULL OR b.doctor_id = a.doctor_id::uuid)
        -- Responsable: asignadas a quien consulta, sin asignar o a un usuario concreto.
        AND CASE a.assigned
              WHEN ''     THEN true
@@ -288,7 +312,7 @@ SELECT coalesce(json_agg(json_build_object(
 
 export const DETAIL_SQL = `
 -- $1 userId (del token)  $2 id de la orden
-WITH ${PERMS_CTE}
+WITH ${PERMS_WITH_PATIENT_CTE}
 SELECT row_to_json(o) AS data
   FROM (
     SELECT so.id::text, so.order_number, so.doctor_id::text, d.name AS doctor_name,
@@ -448,7 +472,10 @@ SELECT row_to_json(o) AS data
       LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
      WHERE so.id = $2::uuid
        -- Pertenencia explícita: sin VIEW_ALL sólo se abre lo propio.
-       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)
+            -- Quien accede a la ficha del paciente puede abrir sus órdenes (en sólo lectura en
+            -- el front; las mutaciones siguen exigiendo sus propios permisos). Borradores no.
+            OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'))
   ) o;`;
 
 export const UPSERT_SQL = `

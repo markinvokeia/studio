@@ -198,7 +198,9 @@ const sort = SORTS.includes(q.sort) ? q.sort : 'submitted_at:desc';
 
 // Un solo objeto de filtros: el SQL los lee por nombre.
 const filters = {
-  scope: q.scope === 'clinic' ? 'clinic' : 'mine',
+  // 'patient': todas las órdenes de un paciente para quien tiene acceso a su ficha
+  // (PATIENTS_VIEW_DETAIL). Sin patient_id o sin el permiso, el SQL cae a 'mine'.
+  scope: ['clinic', 'patient'].includes(q.scope) ? q.scope : 'mine',
   board_status: q.board_status || 'all',
   search: (q.q || '').trim(),
   sede_id: q.sede_id || '',
