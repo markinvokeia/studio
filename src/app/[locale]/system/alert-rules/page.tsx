@@ -28,12 +28,13 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AlertCategory, AlertRule, AlertSourceColumn, AlertSourceMeta } from '@/lib/types';
 import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import { Separator } from '@/components/ui/separator';
@@ -47,13 +48,15 @@ import { RowSelectionState } from '@tanstack/react-table';
 
 const ruleFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
-    category_id: z.string().min(1, t('categoryRequired')),
-    code: z.string().min(1, t('codeRequired')),
-    name: z.string().min(1, t('nameRequired')),
+    // `required_error` cubre el campo `undefined` (el reset de alta no lo trae):
+    // sin él zod responde el "Required" en inglés.
+    category_id: z.string({ required_error: t('categoryRequired') }).min(1, t('categoryRequired')),
+    code: z.string({ required_error: t('codeRequired') }).min(1, t('codeRequired')),
+    name: z.string({ required_error: t('nameRequired') }).min(1, t('nameRequired')),
     description: z.string().optional(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-    source_table: z.string().min(1, t('sourceTableRequired')),
-    table_id_field: z.string().min(1, t('tableIdFieldRequired')),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], { errorMap: () => ({ message: t('priorityRequired') }) }),
+    source_table: z.string({ required_error: t('sourceTableRequired') }).min(1, t('sourceTableRequired')),
+    table_id_field: z.string({ required_error: t('tableIdFieldRequired') }).min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     event_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
@@ -88,7 +91,8 @@ async function getRules(signal?: AbortSignal): Promise<{ data: AlertRule[], tota
             limit: 100
         };
     } catch (error) {
-        console.error('Error fetching rules:', error);
+        // Leaving the page (or React's dev double mount) cancels the load: that is not an error
+        if (!isAbortError(error)) console.error('Error fetching rules:', error);
         // Rethrown: a failed load must show an error, not "no rules".
         throw error;
     }
@@ -158,6 +162,9 @@ async function getWhatsAppTemplates(): Promise<any[]> {
     }
 }
 
+/** A rule owned by another module: it is configured there and the backend refuses edits and deletes. */
+const isManagedRule = (rule: AlertRule) => !!rule.condition_config?.managed_by;
+
 export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
@@ -182,6 +189,7 @@ export default function AlertRulesPage() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
     });
@@ -379,6 +387,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -411,6 +421,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -531,13 +543,29 @@ export default function AlertRulesPage() {
         setSubmissionError(null);
     };
 
+    const managedLabel = (rule: AlertRule) =>
+        rule.condition_config?.managed_by === 'lab_stages' ? t('managed.labStages') : t('managed.generic');
+    const renderManagedBadge = (rule: AlertRule) => (
+        <Badge data-help-id="system.alert-rules.badge.managed" variant="outline" className="text-[10px] font-normal whitespace-nowrap flex-none" title={t('managed.hint')}>
+            {managedLabel(rule)}
+        </Badge>
+    );
+
     const handleBack = () => {
         setSelectedRule(null);
         setRowSelection({});
     };
 
     const columns: ColumnDef<AlertRule>[] = [
-        { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
+        {
+            accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+            cell: ({ row }) => (
+                <span className="inline-flex items-center gap-2">
+                    {row.original.name}
+                    {isManagedRule(row.original) && renderManagedBadge(row.original)}
+                </span>
+            ),
+        },
         {
             accessorKey: 'category_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
             cell: ({ row }) => categories.find(c => String(c.id) === String(row.original.category_id))?.name || 'N/A'
@@ -565,23 +593,25 @@ export default function AlertRulesPage() {
             id: 'actions',
             cell: ({ row }) => {
                 const rule = row.original;
+                // Rules owned by another module (e.g. lab stage alerts) are configured there.
+                if (isManagedRule(rule)) return null;
                 return (
                     // The menu is portaled but still a React child of the row: without this, clicks on
                     // the trigger or its items bubble up and also toggle the row selection.
                     <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" aria-busy={testRule.isPending(String(rule.id)) || undefined}>
+                            <Button data-help-id="system.alert-rules.btn.row-actions" variant="ghost" className="h-8 w-8 p-0" aria-busy={testRule.isPending(String(rule.id)) || undefined}>
                                 <span className="sr-only">{t('columns.actions')}</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
-                            {canCreate && <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
-                            {canUpdate && <DropdownMenuItem onClick={() => handleTest(rule)} disabled={testRule.isPending(String(rule.id))}>{t('columns.test')}</DropdownMenuItem>}
-                            {canDelete && <DropdownMenuItem onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-edit" onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canCreate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-duplicate" onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-test" onClick={() => handleTest(rule)} disabled={testRule.isPending(String(rule.id))}>{t('columns.test')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-delete" onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -617,7 +647,7 @@ export default function AlertRulesPage() {
                         renderCard={(row: AlertRule, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.name}
-                                subtitle={row.code}
+                                subtitle={isManagedRule(row) ? `${row.code} · ${managedLabel(row)}` : row.code}
                                 badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
                                 showArrow
                             />
@@ -638,22 +668,23 @@ export default function AlertRulesPage() {
 
     const rightPanel = selectedRule ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.alert-rules.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><BotMessageSquare className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedRule?.name}</CardTitle>
                         <p className="text-xs text-muted-foreground truncate">{selectedRule?.code}</p>
                     </div>
-                    {selectedRule && (
+                    {selectedRule && isManagedRule(selectedRule) && renderManagedBadge(selectedRule)}
+                    {selectedRule && !isManagedRule(selectedRule) && (
                         <div className="flex gap-1 flex-none">
                             {canUpdate && (
-                                <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                                <Button data-help-id="system.alert-rules.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
                                     <Pencil className="h-4 w-4 mr-1" />{t('columns.edit')}
                                 </Button>
                             )}
                             {canDelete && (
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
+                                <Button data-help-id="system.alert-rules.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -737,7 +768,7 @@ export default function AlertRulesPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form id="alert-rule-form" onSubmit={form.handleSubmit(save.run)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
+                        <form id="alert-rule-form" onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
                             {/* Native fieldset disables every control while the request is in flight */}
                             <fieldset disabled={save.isPending} className="min-w-0 space-y-5">
                             {submissionError && (
@@ -1000,7 +1031,7 @@ export default function AlertRulesPage() {
                                 )} />
                             </div>
 
-                            <div className="space-y-4">
+                            <div data-help-id="system.alert-rules.section.conditions" className="space-y-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <Label>{t('dialog.conditions')}</Label>
                                     <Button

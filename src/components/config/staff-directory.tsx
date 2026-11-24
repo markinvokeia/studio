@@ -33,6 +33,7 @@ import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/per
 import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Calendar, Sede, User, UserRole } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
@@ -48,6 +49,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './staff-directory-columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
@@ -208,7 +210,7 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
       renderCard={(row: any, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={row.name || ''}
-          subtitle={row.email || row.phone_number || ''}
+          subtitle={row.email || formatPhoneNumber(row.phone_number)}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => onRowSelectionChange([row])}
@@ -349,6 +351,7 @@ export function StaffDirectory({ config }: { config: StaffDirectoryConfig }) {
     }).catch(() => setSedes([]));
   }, []);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema(tp)),
     defaultValues: {
@@ -698,7 +701,7 @@ export function StaffDirectory({ config }: { config: StaffDirectoryConfig }) {
                 <div className="flex-1 overflow-auto px-4 py-4">
                   {activeTab === 'details' && (
                     <Form {...detailForm}>
-                      <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                      <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-4">
                         {detailError && (
                           <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -714,7 +717,7 @@ export function StaffDirectory({ config }: { config: StaffDirectoryConfig }) {
                         )} />
                         <FormField control={detailForm.control} name="phone" render={({ field }) => (
                           <FormItem><FormLabel>{tp('createDialog.phone')}</FormLabel><FormControl>
-                            <PhoneInput {...field} defaultCountry="UY" placeholder={tp('createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                            <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                           </FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
@@ -813,7 +816,7 @@ export function StaffDirectory({ config }: { config: StaffDirectoryConfig }) {
             <DialogDescription>{tp('createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -858,7 +861,6 @@ export function StaffDirectory({ config }: { config: StaffDirectoryConfig }) {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={tp('createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

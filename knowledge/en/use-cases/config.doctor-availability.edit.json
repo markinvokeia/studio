@@ -1,0 +1,68 @@
+{
+  "id": "config.doctor-availability.edit",
+  "title": "Edit the availability rule",
+  "summary": "Change the details of an existing availability rule.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit availability rule",
+    "modify availability rule",
+    "change availability rule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Doctor Availability",
+      "details": "When each doctor sees patients: days and hours, from and until when. The calendar only offers slots within this availability."
+    },
+    {
+      "id": "search",
+      "title": "Find the availability rule"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the availability rule",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "user_id",
+      "title": "Doctor"
+    },
+    {
+      "id": "recurrence",
+      "title": "Recurrence",
+      "details": "Weekly, biweekly or monthly."
+    },
+    {
+      "id": "days_of_week",
+      "title": "Days"
+    },
+    {
+      "id": "start_time",
+      "title": "From"
+    },
+    {
+      "id": "end_time",
+      "title": "Until"
+    },
+    {
+      "id": "start_date",
+      "title": "Valid from"
+    },
+    {
+      "id": "end_date",
+      "title": "Valid until",
+      "details": "Optional."
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

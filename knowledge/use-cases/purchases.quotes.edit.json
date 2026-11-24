@@ -1,0 +1,70 @@
+{
+  "id": "purchases.quotes.edit",
+  "title": "Editar un presupuesto en borrador",
+  "module": "Compras",
+  "summary": "Cambiar ítems, precios o datos de un presupuesto que todavía no se confirmó.",
+  "screens": [
+    "purchases.quotes"
+  ],
+  "inputs": {
+    "query": "Número o proveedor"
+  },
+  "keywords": [
+    "editar presupuesto",
+    "modificar presupuesto",
+    "corregir presupuesto",
+    "cambiar precio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/quotes",
+      "title": "Menú → Compras → Presupuestos de Compra",
+      "details": "La cotización de un proveedor: qué productos o servicios, a qué precio. Confirmada, se factura al recibirla."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.quotes.filter.search",
+      "title": "Buscá el presupuesto",
+      "details": "Por número o por proveedor.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.quotes.section.first-row",
+      "title": "Abrí el presupuesto",
+      "details": "Tocá el presupuesto en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "purchases.quotes.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "purchases.quotes.btn.edit",
+      "title": "Editar",
+      "details": "Sólo los borradores se editan; un presupuesto confirmado ya no cambia.",
+      "until": "purchases.quotes.field.user_id",
+      "skipIfMissing": true
+    },
+    {
+      "id": "items",
+      "action": "highlight",
+      "target": "purchases.quotes.section.quote-items",
+      "title": "Ítems",
+      "details": "Agregá, quitá o cambiá cantidades y precios.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.quotes.btn.submit",
+      "title": "Guardar cambios",
+      "skipIfMissing": true
+    }
+  ]
+}

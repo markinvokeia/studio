@@ -30,6 +30,10 @@ export type User = {
   is_dependent?: boolean;
   responsible_contact_id?: string;
   responsible_contact_name?: string;
+  /** Teléfono del tutor (propio o alternativo); lo trae la búsqueda de `/users`. */
+  responsible_phone_number?: string;
+  /** La búsqueda lo encontró solo por los datos de su tutor, no por los suyos. */
+  matched_by_responsible?: boolean;
   calendar_source_id?: string;
   /** Default doctor assigned to this patient. Nullable. */
   doctor_id?: string | null;
@@ -413,6 +417,8 @@ export type Payment = {
   payment_method_code?: string;
   transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
   transaction_id: string | null;
+  /** The `payments.id` behind this row. On an allocation, `transaction_id` is the allocation's own id. */
+  source_payment_id?: string;
   reference_doc_id?: string;
   notes?: string;
   status: 'pending' | 'completed' | 'failed';
@@ -498,6 +504,10 @@ export type Service = {
    * cirugía existe como servicio pero no es algo que un paciente reserve solo.
    */
   bookable_online?: boolean;
+  /** Trabajo de laboratorio: se puede pedir en una orden de laboratorio (script 167). */
+  is_lab?: boolean;
+  /** Categoría de laboratorio que hace este trabajo (opcional, script 170). */
+  lab_category_id?: string | null;
   /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
   image_updated_at?: string | null;
 };
@@ -609,6 +619,41 @@ export type GoogleCalendarSyncMode = 'none' | 'from_google' | 'to_google' | 'bot
 export interface ClinicAutomationSettings {
   alert_email_auto_send_enabled: boolean;
   google_calendar_sync_mode: GoogleCalendarSyncMode;
+  /** `help_mascot_visible`: la mascota del asistente se ve en pantalla (por defecto sí). */
+  help_mascot_visible: boolean;
+  /** `appointment_schedule_export` (json): formato del Excel de la agenda (por defecto básico). */
+  appointment_schedule_export: ScheduleExportSettings;
+}
+
+/**
+ * Formato de "Exportar agenda a Excel".
+ * - `basic`: un calendario; Horario · Nombre · Teléfono, con una fila de fecha antes de cada día.
+ * - `extended`: varios calendarios/sedes, con las columnas elegidas y filtros.
+ */
+export type ScheduleExportMode = 'basic' | 'extended';
+
+/** Columnas que puede llevar el Excel extendido (todas salen de `/users_appointments`). */
+export type ScheduleExportColumn =
+  | 'sede'
+  | 'calendar'
+  | 'date'
+  | 'time'
+  | 'end_time'
+  | 'patient_name'
+  | 'phone'
+  | 'email'
+  | 'doctor'
+  | 'service'
+  | 'status'
+  | 'notes';
+
+/** `system_configurations.appointment_schedule_export` (json). */
+export interface ScheduleExportSettings {
+  mode: ScheduleExportMode;
+  /** Extendido: una hoja por sede (la columna Sede se omite, la dice el nombre de la hoja). */
+  split_by_sede: boolean;
+  /** Extendido: columnas en el orden en que salen. Nunca vacío. */
+  columns: ScheduleExportColumn[];
 }
 
 export type AuditLog = {
@@ -712,6 +757,342 @@ export type CalendarColorSettings = CalendarColorSources & {
   highlight: CalendarViewHighlight;
 };
 
+// ── Órdenes de laboratorio ─────────────────────────────────────────────────────
+
+/** initial: exactamente una activa (ahí entra toda orden nueva) · final: al menos una (ya no está pendiente). */
+export type LabStageKind = 'initial' | 'intermediate' | 'final';
+
+/**
+ * Disparador de una alerta de etapa: al entrar a la etapa o por atraso ('dwell': más de
+ * overdue_days o, en la etapa donde se fijó la fecha de entrega, pasada esa fecha). 'due' ya no se
+ * configura (script 177): queda como texto del aviso de atraso por la fecha de entrega.
+ */
+export type LabStageAlertTrigger = 'enter' | 'dwell' | 'due';
+
+/** Alerta de una etapa (tabla `lab_stage_alerts`, script 150). */
+export interface LabStageAlertConfig {
+  /** Permanencia y entrega vencida: repetir cada N días mientras siga igual. null = una sola vez. */
+  repeat_every_days: number | null;
+  recipient_role_ids: number[];
+  recipient_user_ids: string[];
+  notify_order_doctor: boolean;
+  notify_order_creator: boolean;
+  channel_in_app: boolean;
+  channel_email: boolean;
+  channel_whatsapp: boolean;
+  /** Plantilla EMAIL; sin ella se manda un texto por defecto. */
+  email_template_id: number | null;
+  /** Plantilla WHATSAPP aprobada en Meta/YCloud (obligatoria para el canal). */
+  whatsapp_template_id: number | null;
+}
+
+export interface LabStageAlerts {
+  enter: LabStageAlertConfig | null;
+  /** Atraso: días en la etapa o, en la etapa donde se fijó la fecha de entrega, esa fecha (script 177). */
+  dwell: LabStageAlertConfig | null;
+}
+
+/** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
+export interface LabStage {
+  id: number;
+  /** Lo escribe la clínica: no se traduce. */
+  name: string;
+  color: string;
+  sort_order: number;
+  kind: LabStageKind;
+  /** Días en la etapa a partir de los cuales la orden está atrasada. null = sin umbral (siempre null en finales). */
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Órdenes que están hoy en esta etapa. */
+  orders_count: number;
+  /** Tiene órdenes o aparece en el historial: no se puede borrar, solo desactivar. */
+  in_use: boolean;
+  alerts: LabStageAlerts;
+}
+
+/** Una etapa tal como se manda a guardar (POST /lab-stages/save), en el orden de la pantalla. */
+export interface LabStageSaveItem {
+  /** null = etapa nueva. */
+  id: number | null;
+  name: string;
+  color: string;
+  kind: LabStageKind;
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Al desactivar una etapa con órdenes: etapa activa a la que pasan. */
+  move_orders_to?: number | null;
+  /** Alertas de la etapa (se reemplazan las tres). */
+  alerts: LabStageAlerts;
+}
+
+/** Un servicio (trabajo de laboratorio) de la orden (lab_order_items, script 167). */
+export interface LabOrderItem {
+  id: number;
+  service_id: number;
+  /** Nombre del servicio al guardar la orden. */
+  service_name: string;
+  quantity: number;
+  /** Piezas dentales (FDI) de este servicio. */
+  teeth: number[];
+  notes: string | null;
+  /** Categoría de laboratorio del servicio (script 170). */
+  lab_category_id: string | null;
+}
+
+/** Orden de laboratorio tal como la devuelve v_lab_orders (scripts 148 y 167). */
+export interface LabOrder {
+  id: number;
+  patient_id: string;
+  patient_name: string;
+  doctor_id: string | null;
+  doctor_name: string | null;
+  /** Proveedor que hace el trabajo. */
+  laboratory_id: string | null;
+  laboratory_name: string | null;
+  /** Descripción libre. Opcional si la orden tiene servicios. */
+  work_description: string | null;
+  /** Servicios de laboratorio de la orden. */
+  items: LabOrderItem[];
+  /** Texto corto del trabajo: los servicios ("Corona ×2, Férula") o, sin ellos, la descripción. */
+  work_summary: string | null;
+  /** Piezas dentales (FDI). Con servicios, la unión de las de cada uno. */
+  teeth: number[];
+  /** Fecha de entrega prometida ('YYYY-MM-DD'). Es el plazo de la etapa en la que se fijó (due_stage_id). */
+  due_date: string | null;
+  /** Etapa en la que se fijó la fecha de entrega (script 177). */
+  due_stage_id: number | null;
+  /** La orden está en esa etapa: el atraso es la fecha de entrega y no los días de la etapa. */
+  due_applies: boolean;
+  notes: string | null;
+  current_stage_id: number;
+  stage_name: string;
+  stage_color: string;
+  stage_kind: LabStageKind;
+  stage_overdue_days: number | null;
+  /** ISO UTC. */
+  stage_entered_at: string;
+  days_in_stage: number;
+  /** La etapa actual no es final. */
+  is_pending: boolean;
+  /** Atrasada: is_stage_overdue o is_past_due. Nunca en etapa final. */
+  is_overdue: boolean;
+  /** Lleva más de stage_overdue_days en la etapa (fuera de la etapa de la fecha de entrega). */
+  is_stage_overdue: boolean;
+  /** La fecha de entrega ya pasó (desde el día siguiente) y la orden sigue en la etapa donde se fijó. */
+  is_past_due: boolean;
+  /** Días desde la fecha de entrega cuando is_past_due; 0 si no. */
+  days_past_due: number;
+  /** ISO UTC. */
+  created_at: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  /** Categorías de laboratorio de los servicios de la orden (script 170). */
+  lab_category_ids: string[];
+  /** Urgente: mientras está pendiente sale primero en la lista, el tablero y la ficha (script 173). */
+  is_urgent: boolean;
+  /** Archivos adjuntos (fotos, PDF, escaneos) de la orden (script 173). */
+  attachments_count: number;
+}
+
+/** Adjunto de una orden (tabla `attachments`, source_name 'lab_order', script 173). */
+export interface LabOrderAttachment {
+  id: number;
+  file_name: string;
+  mime_type: string | null;
+  /** Vista en Google Drive (se abre con permisos de la cuenta de la clínica). */
+  web_view_link: string | null;
+  thumbnail_link: string | null;
+  /** ISO UTC. */
+  created_at: string;
+}
+
+/** Categoría de laboratorio: un grupo de proveedores marcado como tal (script 170). */
+export interface LabCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  laboratories_count: number;
+}
+
+/** Laboratorio: proveedor que pertenece a alguna categoría de laboratorio. */
+export interface Laboratory {
+  id: string;
+  name: string;
+  phone_number: string | null;
+  email: string | null;
+  categories: { id: string; name: string }[];
+}
+
+export interface LabOrderHistoryEntry {
+  id: number;
+  /** null = alta de la orden. */
+  from_stage_id: number | null;
+  from_stage_name: string | null;
+  from_stage_color: string | null;
+  to_stage_id: number;
+  to_stage_name: string;
+  to_stage_color: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  /** ISO UTC. Cuándo se registró el movimiento. */
+  changed_at: string;
+  /**
+   * ISO UTC. Cuándo pasó (script 176): igual a `changed_at` salvo que se registrara después
+   * ("se envió ayer"). Sin el script, el servicio lo completa con `changed_at`.
+   */
+  effective_at: string;
+  /** 'stage_deactivated' cuando la movió la configuración de etapas. */
+  note: string | null;
+}
+
+/** Un servicio tal como quedó en la auditoría (lista completa antes y después de un guardado). */
+export interface LabOrderChangeItem {
+  service_name: string;
+  quantity: number;
+  teeth: number[];
+  notes: string | null;
+}
+
+/**
+ * Un dato cambiado en una edición. `field` es la columna de lab_orders ('laboratory_id',
+ * 'due_date', 'is_urgent', …) o 'items'. Doctor, laboratorio y paciente llegan con el nombre;
+ * 'items' llega como LabOrderChangeItem[].
+ */
+export interface LabOrderChangeField {
+  field: string;
+  old: unknown;
+  new: unknown;
+}
+
+/** Una edición de la orden: lo que cambió en un mismo guardado (audit_log, script 175). */
+export interface LabOrderChange {
+  id: number;
+  /** ISO UTC. Igual al de un movimiento de etapa si se guardó en ese movimiento. */
+  changed_at: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  fields: LabOrderChangeField[];
+}
+
+/** Laboratorio asignado, con sus datos de contacto (ficha del proveedor). Solo en el detalle (script 172). */
+export interface LabOrderLaboratoryInfo extends Laboratory {
+  alternative_phone: string | null;
+  address: string | null;
+  rut: string | null;
+}
+
+export interface LabOrderDetail extends LabOrder {
+  history: LabOrderHistoryEntry[];
+  /** Ediciones de la orden y sus servicios, de la más nueva a la más vieja. Vacío sin el script 175. */
+  changes: LabOrderChange[];
+  /** null sin laboratorio, o si el backend todavía no tiene el script 172 (solo se ve el nombre). */
+  laboratory: LabOrderLaboratoryInfo | null;
+  /** Adjuntos de la orden, del más viejo al más nuevo (script 173). */
+  attachments: LabOrderAttachment[];
+}
+
+export type LabOrderSort = 'created_desc' | 'created_asc' | 'days_desc' | 'days_asc';
+
+/** Filtros de POST /lab-orders/search. */
+export interface LabOrderFilters {
+  stage_ids?: number[];
+  laboratory_id?: string;
+  doctor_id?: string;
+  patient_id?: string;
+  /** Órdenes que incluyen este servicio. */
+  service_id?: number;
+  search?: string;
+  /** 'YYYY-MM-DD', inclusive (fecha de alta). */
+  date_from?: string;
+  date_to?: string;
+  /** Default true: solo órdenes que no están en etapa final. Se ignora si se filtra por etapa. */
+  pending_only?: boolean;
+  overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
+  /** Solo las que entraron a su etapa actual en los últimos N días ("Cargar más" de una columna final). */
+  entered_within_days?: number;
+  sort?: LabOrderSort;
+  limit?: number;
+  offset?: number;
+}
+
+/** Filtros de POST /lab-orders/board. */
+export interface LabOrderBoardFilters {
+  search?: string;
+  laboratory_id?: string;
+  doctor_id?: string;
+  service_id?: number;
+  overdue_only?: boolean;
+  /** 'YYYY-MM-DD', inclusive: solo pendientes con entrega en ese rango (script 171). */
+  due_from?: string;
+  due_to?: string;
+  /** Solo pendientes sin laboratorio (script 171). */
+  without_laboratory?: boolean;
+  /** Solo urgentes pendientes (script 173). */
+  urgent_only?: boolean;
+  /** Tarjetas por columna (default 30). */
+  per_column?: number;
+  /** Las columnas finales muestran solo lo que llegó en los últimos N días (default 30). */
+  final_days?: number;
+}
+
+/** Una columna del tablero: la etapa (activa) con su total y las primeras tarjetas. */
+export interface LabOrderBoardColumn {
+  stage_id: number;
+  total: number;
+  items: LabOrder[];
+}
+
+/** Alta (sin id) o edición. La etapa no se cambia acá: ver changeLabOrderStage. */
+export interface LabOrderSavePayload {
+  id?: number;
+  patient_id: string;
+  doctor_id: string | null;
+  laboratory_id: string | null;
+  work_description: string | null;
+  /** Piezas de la orden. Con servicios las calcula el backend (unión de las de cada servicio). */
+  teeth: number[];
+  /**
+   * Solo en la edición de una orden ya enviada (script 172): sin la clave, el backend deja la
+   * guardada. En el alta se ignora: la fecha se fija al enviar (changeLabOrderStage).
+   */
+  due_date?: string | null;
+  notes: string | null;
+  /** Urgente (script 173). En la edición, sin la clave queda como estaba. */
+  is_urgent?: boolean;
+  /** Reemplaza los servicios de la orden. */
+  items: LabOrderItemInput[];
+}
+
+export interface LabOrderItemInput {
+  service_id: number;
+  quantity: number;
+  teeth: number[];
+  notes: string | null;
+}
+
+/** Códigos de error de las funciones de órdenes (script 148). */
+export type LabOrdersErrorCode =
+  | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
+  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'INVALID_SERVICE' | 'INVALID_QUANTITY'
+  | 'LABORATORY_REQUIRED' | 'INVALID_LABORATORY' | 'DUE_DATE_REQUIRED' | 'INVALID_DUE_DATE'
+  | 'INVALID_EFFECTIVE_DATE' | 'EFFECTIVE_DATE_BEFORE_STAGE'
+  | 'NO_FILES' | 'TOO_MANY_FILES' | 'INVALID_FILE_TYPE' | 'FILE_TOO_LARGE' | 'UPLOAD_FAILED' | 'DELETE_FAILED'
+  | 'UNKNOWN';
+
+/** Códigos de error de lab_stages_save (script 147). */
+export type LabStagesSaveErrorCode =
+  | 'NO_INITIAL' | 'MANY_INITIAL' | 'NO_FINAL' | 'EMPTY_NAME' | 'DUPLICATE_NAME' | 'INVALID_KIND'
+  | 'INVALID_OVERDUE' | 'INITIAL_INACTIVE' | 'UNKNOWN_STAGE' | 'STAGE_IN_USE' | 'STAGE_HAS_ORDERS'
+  | 'INVALID_MOVE_TARGET' | 'DWELL_WITHOUT_THRESHOLD' | 'NO_RECIPIENTS' | 'NO_CHANNEL'
+  | 'WHATSAPP_TEMPLATE_REQUIRED' | 'UNKNOWN';
+
 /** `calendar_id: null` es la configuración general de la clínica. */
 export type CalendarColorSourceRow = CalendarColorSettings & {
   calendar_id: string | null;
@@ -749,6 +1130,20 @@ export type ResponsibleContact = {
   phone_number?: string | null;
   address?: string | null;
 };
+
+/** Paciente a cargo de un tutor, tal como lo lista `/users/dependents`. */
+export interface PatientDependent {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  identity_document?: string | null;
+  identity_document_type?: string | null;
+  birth_date?: string | null;
+  is_active: boolean;
+  /** Sin teléfono propio: alertas y recordatorios le escriben al tutor. */
+  uses_responsible_phone: boolean;
+}
 
 export type Appointment = {
   id: string; // appointmentId in backend
@@ -1047,6 +1442,24 @@ export type StudyOrderMessageNotification = {
   source?: string | null;
 };
 
+/** Aviso de una alerta de etapa de laboratorio (notifications.type 'lab_order_alert', script 150). */
+export type LabOrderAlertNotification = {
+  id: string;
+  type: 'lab_order_alert';
+  createdAt: string;
+  seen?: boolean;
+  trigger: LabStageAlertTrigger;
+  labOrderId: number;
+  patientName: string;
+  workDescription: string;
+  laboratoryName: string;
+  stageName: string;
+  stageColor: string;
+  daysInStage: number;
+  /** Solo 'due': días de atraso de la entrega al crearse el aviso. */
+  daysPastDue: number;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -1059,7 +1472,8 @@ export type UnifiedNotification =
   | StudyOrderSubmittedNotification
   | StudyOrderStatusChangedNotification
   | StudyOrderAssignedNotification
-  | StudyOrderMessageNotification;
+  | StudyOrderMessageNotification
+  | LabOrderAlertNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1313,6 +1727,15 @@ export type CalendarSettings = {
    *  change the date range fetched, only which day columns are rendered.
    *  Default []. */
   hidden_weekdays?: number[];
+  /** Hours shown on the day/week grid: 'full' (whole day), 'custom'
+   *  (`visible_hours_start`..`visible_hours_end`) or 'clinic' (the clinic's
+   *  working hours for the days on screen). Purely visual. Default 'full'.
+   *  See VISIBLE_HOURS_MODES. */
+  visible_hours_mode?: string;
+  /** Last custom range ("HH:mm"; end may be "24:00"). Kept while another mode
+   *  is selected so switching back to 'custom' restores it. */
+  visible_hours_start?: string | null;
+  visible_hours_end?: string | null;
 };
 
 export type Sede = {
@@ -1885,6 +2308,8 @@ export type ProviderGroup = {
   name: string;
   description?: string;
   is_active: boolean;
+  /** Es una categoría de laboratorio: sus proveedores son laboratorios (script 170). */
+  is_lab_category?: boolean;
   external_id?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -1944,6 +2369,9 @@ export type AlertRule = {
   is_active: boolean;
   display_config?: AlertDisplayField[];
   ui_display_config?: { fields: AlertDisplayField[] };
+  /** Raw condition_config. `managed_by` marks a rule owned by another module (e.g. 'lab_stages'):
+   *  the backend rejects edits and deletes, only activation can change. */
+  condition_config?: { managed_by?: string; generator?: string; [key: string]: unknown };
 };
 
 export interface AlertSourceColumn {
@@ -1984,7 +2412,8 @@ export type AlertInstance = {
 };
 
 /** Business entity a WHATSAPP template's variables are resolved from — see docs/whatsapp-templates-alerts-design.md */
-export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice';
+/** 'lab_order': avisos de etapas de laboratorio al equipo (script 150, flujo Lab Orders). */
+export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice' | 'lab_order';
 
 /** Maps each variable name as it appears in the Meta/YCloud template to a resolver field key (e.g. "patient.name", "invoice.due_date_formatted") */
 export type WhatsAppVariablesSchema = Record<string, string>;
@@ -2162,6 +2591,8 @@ export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
   finance_view?: PatientFinanceView;
   toast_position?: ToastPosition;
+  /** Mostrar la mascota animada del asistente (por defecto true). */
+  show_mascot?: boolean;
 };
 
 export type UserPreferencesResponse = {
@@ -2261,48 +2692,6 @@ export type QuoteClinicSession = {
   doctor_nombre: string | null;
 };
 
-// ──── Dental Record (Expediente Médico) ────
-
-export type ToothConditionType =
-  | 'healthy' | 'caries' | 'filling' | 'crown' | 'missing'
-  | 'implant' | 'root_canal' | 'bridge' | 'impacted' | 'extracted';
-
-export type ToothCondition = {
-  toothId: string;
-  condition: ToothConditionType;
-  surfaces?: ('occlusal' | 'mesial' | 'distal' | 'buccal' | 'lingual')[];
-  color?: string;
-  notes?: string;
-};
-
-export type SixPointMeasure = { MB: number; B: number; DB: number; ML: number; L: number; DL: number };
-export type SixPointBool = { MB: boolean; B: boolean; DB: boolean; ML: boolean; L: boolean; DL: boolean };
-
-export type ToothPerioData = {
-  toothId: string;
-  missing?: boolean;
-  implant?: boolean;
-  probing: SixPointMeasure;
-  recession: SixPointMeasure;
-  bleeding: SixPointBool;
-  suppuration: SixPointBool;
-  mobility: 0 | 1 | 2 | 3;
-  furcation: 0 | 1 | 2 | 3;
-};
-
-export type DentalRecordSession = {
-  id: string;
-  patient_id: string;
-  date: string;
-  label?: string;
-  doctor_id?: string;
-  doctor_name?: string;
-  odontogram: ToothCondition[];
-  periodontogram: ToothPerioData[];
-  notes?: string;
-  created_at: string;
-};
-
 // ──── Odontogram (interactive, session-based) ────
 
 /**
@@ -2369,6 +2758,39 @@ export type OdontogramToothState = {
   overlays?: OdontogramCondition[];
   /** Free-text clinical notes for this tooth */
   notes?: string;
+  /**
+   * Optional details of each mark, keyed by surface (`top`…`center`) or by `t:<condition>` for
+   * tooth-level marks. Older sessions have none: their status comes from the condition id.
+   */
+  meta?: Record<string, OdontogramMarkMeta>;
+  /** Marks inherited from an earlier session that were voided in this one (kept for the audit trail) */
+  voided?: OdontogramVoidedMark[];
+};
+
+/** Hallazgo / indicado · existente · realizado hoy */
+export type OdontogramMarkStatus = 'indicated' | 'existing' | 'done';
+
+/** Where a mark came from: the chart, dictation in the odontogram, or the doctor agent */
+export type OdontogramMarkSource = 'manual' | 'voice' | 'agent';
+
+export type OdontogramMarkMeta = {
+  st?: OdontogramMarkStatus;
+  /** ISO datetime the mark was recorded */
+  at?: string;
+  /** User id that recorded it */
+  by?: string;
+  src?: OdontogramMarkSource;
+  /** Groups the teeth of one bridge */
+  range?: string;
+};
+
+export type OdontogramVoidedMark = {
+  /** Surface or `t:<condition>`, same as the `meta` key */
+  slot: string;
+  condition: OdontogramCondition;
+  reason: string;
+  at: string;
+  by?: string;
 };
 
 /** Keyed by FDI tooth ID string (e.g. "16", "48") */
@@ -2396,6 +2818,503 @@ export type OdontogramSnapshot = {
   fechaProximaCita?: string;
   archivosAdjuntos?: OdontogramAttachment[];
 };
+
+// ──── Aesthetic record (face map) ────
+
+/** Region of the body a map view belongs to */
+export type AestheticMapRegion = 'face' | 'body';
+
+/**
+ * Template shown on the map. Face views keep their original ids (`front`, `left`, `right`);
+ * profiles are named after the patient's visible side.
+ */
+export type AestheticMapView = 'front' | 'left' | 'right' | 'bodyFront' | 'bodyBack';
+
+export type AestheticBodyFigure = 'female' | 'male';
+
+/** Patient's side (not the viewer's) */
+export type AestheticSide = 'left' | 'right';
+
+/** Zones drawn on the face templates */
+export type AestheticFaceZone =
+  | 'forehead'
+  | 'glabella'
+  | 'temple'
+  | 'crowsFeet'
+  | 'tearTrough'
+  | 'cheek'
+  | 'nose'
+  | 'nasolabial'
+  | 'upperLip'
+  | 'lowerLip'
+  | 'marionette'
+  | 'masseter'
+  | 'jawline'
+  | 'chin'
+  | 'neck';
+
+/** Muscle panels of the body map (Open Muscle Map `muscleId`s) */
+export type AestheticBodyMuscle =
+  | 'sternocleidomastoid'
+  | 'trapezius'
+  | 'anterior_deltoid'
+  | 'lateral_deltoid'
+  | 'posterior_deltoid'
+  | 'pectoralis_major'
+  | 'biceps_brachii'
+  | 'brachialis'
+  | 'serratus_anterior'
+  | 'rectus_abdominis'
+  | 'external_oblique'
+  | 'forearm_flexors'
+  | 'tensor_fasciae_latae'
+  | 'iliopsoas'
+  | 'hip_adductors'
+  | 'sartorius'
+  | 'rectus_femoris'
+  | 'vastus_lateralis'
+  | 'vastus_medialis'
+  | 'patella_region'
+  | 'tibialis_anterior'
+  | 'gastrocnemius'
+  | 'fibularis_group'
+  | 'soleus'
+  | 'posterior_rotator_cuff'
+  | 'triceps_brachii'
+  | 'latissimus_dorsi'
+  | 'erector_spinae'
+  | 'forearm_extensors'
+  | 'gluteus_medius'
+  | 'gluteus_maximus'
+  | 'iliotibial_tract'
+  | 'biceps_femoris'
+  | 'medial_hamstrings'
+  | 'popliteal_region'
+  | 'achilles_tendon'
+  | 'patellar_tendon_region';
+
+export type AestheticZoneBase = AestheticFaceZone | AestheticBodyMuscle;
+
+/** Midline zones are bare (`chin`); bilateral ones carry the patient's side (`crowsFeet.left`) */
+export type AestheticZoneId = AestheticZoneBase | `${AestheticZoneBase}.${AestheticSide}`;
+
+export type AestheticDepth = 'intradermal' | 'subcutaneous' | 'supraperiosteal' | 'intramuscular';
+
+export type AestheticTechnique = 'bolus' | 'linearRetrograde' | 'fanning' | 'microdroplets' | 'cannula';
+
+/** `point`: one click; `area`: a polygon drawn over the template; `line`: two ends (threads), snapped to vertical/horizontal */
+export type AestheticMarkKind = 'point' | 'area' | 'line';
+
+/** Dose unit of the catalog (`measurement_units`) */
+export interface MeasurementUnit {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  /** Step of the quantity field (1 for whole units, 0.05 for ml…) */
+  step: number;
+  isActive: boolean;
+  sortOrder: number;
+  /** Used by a service or a session: it can only be deactivated */
+  inUse: boolean;
+}
+
+/** How a service is marked on the aesthetic record */
+export interface ServiceAestheticConfig {
+  serviceId: string;
+  serviceName: string;
+  serviceColor: string | null;
+  isActive: boolean;
+  unitId: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  /** Quantity a new mark starts with */
+  defaultQuantity: number | null;
+  defaultDepth?: AestheticDepth;
+  defaultTechnique?: AestheticTechnique;
+  /** List price of the service, for the suggested charge at closing */
+  price: number | null;
+  /** Most that should be applied in one session; going over warns, it doesn't block */
+  maxPerSession: number | null;
+  /** Days that should pass between two applications on the same zone */
+  minIntervalDays: number | null;
+  /** Follow-up visit proposed at closing, `followUpDays` after the session */
+  followUpDays: number | null;
+  followUpLabel: string | null;
+  /** Aftercare instructions sent to the patient at closing */
+  aftercare: string | null;
+}
+
+/** Set once on the layer for all its marks; a mark that sets one overrides the layer's */
+export interface AestheticSharedAttributes {
+  lot?: string;
+  /** yyyy-MM-dd */
+  lotExpiry?: string;
+  depth?: AestheticDepth;
+  technique?: AestheticTechnique;
+  notes?: string;
+}
+
+export interface AestheticMark extends AestheticSharedAttributes {
+  id: string;
+  /** Product used on this mark; empty: the layer's */
+  productName?: string;
+  kind: AestheticMarkKind;
+  view: AestheticMapView;
+  /** Point: its position. Area/line: where its number sits (centroid/midpoint). Relative to the template (0..1), so it survives any render size */
+  x: number;
+  y: number;
+  /** Area outline or the line's two ends, `[x, y]` pairs relative to the template */
+  polygon?: [number, number][];
+  /** Zone under the mark; null when it was placed outside every zone */
+  zone: AestheticZoneId | null;
+  /** In an area, the total applied over it */
+  quantity: number | null;
+  /** When and by whom it was placed (activity log) */
+  createdAt?: string;
+  createdBy?: string;
+}
+
+/** One service applied in the session, with the marks where it went */
+export interface AestheticLayer extends AestheticSharedAttributes {
+  id: string;
+  serviceId?: string;
+  serviceName: string;
+  /** Color of the service in the catalog */
+  color?: string | null;
+  /** Brand or product, free text */
+  productName: string;
+  /** Copied from the service when the layer is created, so later config changes don't rewrite old sessions */
+  unitId?: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  marks: AestheticMark[];
+}
+
+export type AestheticPhotoKind = 'before' | 'after';
+
+/** How a photo got into the session */
+export type AestheticPhotoSource = 'camera' | 'upload' | 'qr';
+
+/** Placement of a photo under the map template of its view */
+export interface AestheticPhotoAlignment {
+  /** Photo centre, as a fraction (0–1) of the template width and height */
+  x: number;
+  y: number;
+  /** Size relative to the photo fitted inside the template (1 = fully contained) */
+  scale: number;
+  /** Degrees, clockwise */
+  rotation: number;
+  /** Flipped horizontally (front cameras mirror the picture) */
+  mirrored: boolean;
+}
+
+export interface AestheticPhoto {
+  id: string;
+  kind: AestheticPhotoKind;
+  view: AestheticMapView;
+  fileName: string;
+  mimeType: string;
+  createdAt: string;
+  source?: AestheticPhotoSource;
+  takenAt?: string;
+  /** Set once the photo was aligned to be shown behind the map */
+  alignment?: AestheticPhotoAlignment;
+}
+
+/** Consent text of a service; its `{{variables}}` are filled in when the patient signs */
+export interface ServiceConsentTemplate {
+  serviceId: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+}
+
+/** Drawn on the pad, or a previous signature of the same patient used again */
+export type AestheticSignatureSource = 'drawn' | 'reused';
+
+/** Signed consent of one service of the session */
+export interface AestheticServiceConsent {
+  serviceId: string;
+  serviceName: string;
+  title: string;
+  /** Rendered consent text, frozen at signing time */
+  text: string;
+  /** Version of the service's template it was rendered from; absent for the generic text */
+  templateUpdatedAt?: string;
+  /** One signature can cover several services of the session */
+  signatureId: string;
+  signatureFileId: string;
+  signatureSource: AestheticSignatureSource;
+  /** For a reused signature, the drawn one it comes from */
+  reusedFromSignatureId?: string;
+  signerName: string;
+  signedAt: string;
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  /** SHA-256 of the title and text as signed */
+  contentSha256?: string;
+}
+
+/** Photo permissions of the session: those given with its last signature */
+export interface AestheticPhotoConsent {
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  signerName: string;
+  signedAt: string;
+}
+
+/**
+ * Computed on the server from what the session holds, never picked:
+ * draft → consented → in_treatment → ready_to_close → closed (or void before closing)
+ */
+// ──── Periodontograma (database/scripts/163) ────
+
+/** v: vestibular · i: palatino/lingual */
+export type PerioSide = 'v' | 'i';
+export type PerioToothStatus = 'present' | 'missing' | 'pontic' | 'implant';
+export type PerioExamType = 'initial' | 'reevaluation' | 'maintenance' | 'screening' | 'implants';
+/** PSR/BPE code of a sextant; X: excluded (fewer than two teeth) */
+export type PerioPsrCode = '0' | '1' | '2' | '3' | '4' | 'X';
+export type PerioSextant = '1' | '2' | '3' | '4' | '5' | '6';
+
+export interface PerioScreening {
+  codes: Partial<Record<PerioSextant, PerioPsrCode>>;
+  /** Sextants with * (furcation, mobility, mucogingival problem or recession ≥ 3.5 mm) */
+  star?: PerioSextant[];
+}
+export type PerioImplantStatus = 'health' | 'mucositis' | 'periimplantitis';
+/** Calculated by the database: probing → probed → closed (void: cancelled) */
+export type PerioExamStatus = 'probing' | 'probed' | 'diagnosed' | 'closed' | 'void';
+/** manual · same: "igual que antes" (guide exam value) · dictation */
+export type PerioSiteSource = 'manual' | 'same' | 'dictation';
+/** Furcation entries: v vestibular, mp mesiopalatine, dp distopalatine (upper), l lingual (lower) */
+export type PerioFurcationEntry = 'v' | 'mp' | 'dp' | 'l';
+
+export interface PerioSite {
+  /** Probing depth (mm) */
+  pd: number | null;
+  /** Gingival margin (mm): recession positive, enlargement negative */
+  gm: number | null;
+  bop: boolean;
+  sup: boolean;
+  plaque: boolean;
+  source: PerioSiteSource;
+}
+
+export interface PerioTooth {
+  tooth: number;
+  status: PerioToothStatus;
+  mobility: number | null;
+  furcation: Partial<Record<PerioFurcationEntry, number>>;
+  note: string;
+  /** Three sites per side, in anatomical order: distal, center, mesial */
+  sites: Record<PerioSide, PerioSite[]>;
+}
+
+/** Indices of the natural teeth, calculated by perio_exam_recompute() */
+export interface PerioStats {
+  sites: number;
+  bopPct: number;
+  plaquePct: number;
+  meanPd: number | null;
+  meanCal: number | null;
+  n4: number;
+  n5: number;
+  n6: number;
+  b4: number;
+  b5: number;
+  teeth5: number;
+  maxInterproximalCal: number | null;
+}
+
+export interface PerioExam {
+  id: string;
+  patientId: string;
+  doctorId?: string;
+  doctorName?: string;
+  appointmentId?: string;
+  date: string;
+  examType: PerioExamType;
+  guideExamId?: string;
+  title: string;
+  notes: string;
+  status: PerioExamStatus;
+  completeness: number;
+  stats: PerioStats | null;
+  closedAt?: string;
+  closedByName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  teeth: PerioTooth[];
+  /** Confirmed (or in progress) diagnosis and plan; null until the Diagnosis step is opened */
+  diagnosis: PerioDiagnosis | null;
+  /** Patient's date of birth (YYYY-MM-DD), for the grade (bone loss / age) */
+  patientBirthday?: string;
+  /** Patient's phone and email, for the report */
+  patientPhone?: string;
+  patientEmail?: string;
+  /** Sales invoice of the exam (same shape as the aesthetic session's) */
+  invoice: AestheticSessionInvoice | null;
+  closing: PerioClosing | null;
+  /** Amendments added after closing, oldest first */
+  amendments: PerioAmendment[];
+  /** PSR/BPE screening (screening exams) */
+  screening: PerioScreening | null;
+}
+
+/** What the closing step resolves before signing */
+export interface PerioClosing {
+  /** Nothing is charged today (resolves the billing without an invoice) */
+  noCharge?: boolean;
+  nextVisit?: {
+    /** booked: appointment made · later: "agendar después" */
+    mode: 'booked' | 'later';
+    /** Suggested or booked date (YYYY-MM-DD) */
+    date?: string;
+    /** Booked time (HH:mm) */
+    time?: string;
+    /** What it is for: maintenance or reinstrumentation */
+    kind?: 'maintenance' | 'reinstrumentation' | 'other';
+    appointmentId?: string;
+  };
+  reportSentAt?: string;
+}
+
+export interface PerioAmendment {
+  id: string;
+  body: string;
+  createdAt: string;
+  createdByName?: string;
+}
+
+export type PerioStability = 'stable' | 'gingivitis' | 'unstable';
+export type PerioStage = 'I' | 'II' | 'III' | 'IV';
+export type PerioGrade = 'A' | 'B' | 'C';
+export type PerioExtent = 'localized' | 'generalized' | 'molarIncisor';
+export type PerioRisk = 'low' | 'moderate' | 'high';
+export type PerioDiabetes = 'no' | 'controlled' | 'uncontrolled';
+export type PerioPlanKind = 'hygiene' | 'scaling' | 'fullChart' | 'reinstrumentation' | 'surgery' | 'implantRx' | 'periImplant' | 'maintenance';
+
+/** One step of the EFP plan, built from today's probing */
+export interface PerioPlanItem {
+  id: string;
+  kind: PerioPlanKind;
+  tooth?: number;
+  /** Sites that justify it, e.g. "V distal 6 mm con sangrado" (already written for the record) */
+  detail?: string;
+  include: boolean;
+  /** Done today (to the bill) or later (pending plan) */
+  today: boolean;
+}
+
+/**
+ * Diagnosis of the exam (AAP/EFP 2017 and Lang & Tonetti risk). Inputs that do not come from the
+ * probing are typed by the professional; the classification starts as the suggestion and is what
+ * the professional confirms.
+ */
+export interface PerioDiagnosis {
+  teethLost: number | null;
+  boneLossPct: number | null;
+  age: number | null;
+  cigarettes: number;
+  diabetes: PerioDiabetes;
+  isCase: boolean;
+  stability: PerioStability;
+  stage: PerioStage | null;
+  extent: PerioExtent | null;
+  grade: PerioGrade | null;
+  risk: PerioRisk;
+  maintenanceMonths: number;
+  plan: PerioPlanItem[];
+  /** Screening: highest PSR/BPE code (the classification does not apply) */
+  psrMax?: number | null;
+  /** Implants-only exam: status of each implant */
+  implants?: { tooth: number; status: PerioImplantStatus }[];
+  /** Values the professional changed by hand; the rest follow the suggestion until confirmed */
+  manual?: Partial<Record<'isCase' | 'stability' | 'stage' | 'extent' | 'grade' | 'risk' | 'maintenanceMonths' | 'implants', boolean>>;
+  confirmedAt: string | null;
+}
+
+export type AestheticSessionStatus = 'draft' | 'consented' | 'in_treatment' | 'ready_to_close' | 'closed' | 'void';
+
+/** Timestamped note of the session; once closed only amendments are added, nothing is erased */
+export interface AestheticSessionNote {
+  id: string;
+  body: string;
+  kind: 'note' | 'amendment';
+  createdAt: string;
+  createdByName?: string;
+}
+
+export type AestheticSessionEventType =
+  | 'created'
+  | 'consent_signed'
+  | 'photo_added'
+  | 'photo_removed'
+  | 'note_added'
+  | 'amendment_added'
+  | 'closed'
+  | 'voided';
+
+/** Activity log entry */
+export interface AestheticSessionEvent {
+  id: string;
+  type: AestheticSessionEventType;
+  payload: Record<string, unknown>;
+  at: string;
+  actorName?: string;
+}
+
+export interface AestheticSessionInvoice {
+  id: string;
+  docNo: string;
+  total: number;
+  paidAmount: number;
+  currency: string;
+  status: string;
+  /** unpaid | partially_paid | paid */
+  paymentState: string;
+  createdAt: string;
+  /** Services it bills, to warn about the ones added afterwards */
+  serviceIds: string[];
+}
+
+export interface AestheticSession {
+  id: string;
+  patientId: string;
+  /** yyyy-MM-dd */
+  date: string;
+  title: string;
+  doctorId?: string;
+  doctorName?: string;
+  appointmentId?: string;
+  notes: string;
+  layers: AestheticLayer[];
+  photos: AestheticPhoto[];
+  /** One per service of the session that was signed */
+  consents: AestheticServiceConsent[];
+  photoConsent: AestheticPhotoConsent | null;
+  /** Body figure the body points were placed on (their coordinates depend on it) */
+  bodyFigure?: AestheticBodyFigure;
+  status: AestheticSessionStatus;
+  /** 0–100, a quarter per completed step */
+  completeness: number;
+  /** 1: recorded before the guided flow (no consent-first rule) */
+  flowVersion: number;
+  closedAt?: string;
+  closedByName?: string;
+  voidedAt?: string;
+  voidReason?: string;
+  /** Its sales invoice, with the amounts as they are now. At most one per session */
+  invoice?: AestheticSessionInvoice | null;
+  sessionNotes: AestheticSessionNote[];
+  events: AestheticSessionEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
 
@@ -3275,6 +4194,10 @@ export type PublicClinicInfo = {
    * `null` ⇒ la cita se crea sin servicio y con la duración genérica.
    */
   default_service: BookableService | null;
+  /** Unidad de la ventana de reserva. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  /** Tamaño de la ventana de reserva, en `booking_window_unit`. */
+  booking_window_value: number;
   /** Horarios de atención de la clínica, si no están cargados por sede. */
   schedules?: PublicClinicSchedule[];
 };
@@ -3402,6 +4325,13 @@ export type ClinicPreferences = {
   /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
   identity_document_required: boolean;
   /**
+   * Estados de cita que exigen que el paciente tenga documento de identidad:
+   * sin él, `update_status` rechaza el cambio (`identity_document_missing`).
+   * Vacío ⇒ sin restricción. Nunca incluye `cancelled`. Independiente de
+   * `identity_document_required`.
+   */
+  identity_document_warn_statuses: AppointmentStatus[];
+  /**
    * TRUE ⇒ un paciente puede compartir teléfono con otro: el alta solo
    * advierte de quién lo tiene y pide confirmación. FALSE ⇒ se bloquea. El
    * correo siempre es único.
@@ -3417,16 +4347,33 @@ export interface DuplicateContactOwner {
   /** Documento de identidad (o RUT) para distinguir homónimos y familiares. */
   document?: string | null;
   birth_date?: string | null;
+  phone_number?: string | null;
+  is_dependent?: boolean;
+  /** Tutor, si la ficha es de un dependiente. */
+  responsible_name?: string | null;
+  /** Tiene el rol paciente: solo esas fichas se pueden elegir para una cita. `undefined` = el backend no lo informó. */
+  is_patient?: boolean;
+  /**
+   * Puede pasar a depender de quien se está guardando, cediéndole este contacto: es paciente,
+   * no es dependiente ni tiene dependientes y no entra al portal. `undefined` = el backend no lo informó.
+   */
+  adoptable?: boolean;
 }
 
+/** Campo por el que una ficha existente coincide con el alta en curso. */
+export type PatientMatchField = 'identity_document' | 'phone' | 'email';
+
 /** Dueños del contacto repetido, por campo. */
-export type DuplicateContactOwners = Partial<Record<'email' | 'phone', DuplicateContactOwner[]>>;
+export type DuplicateContactOwners = Partial<Record<PatientMatchField, DuplicateContactOwner[]>>;
 
 /** `unique_conflict` de `/users/upsert`: campos que no se pueden repetir y, si se sabe, quién los tiene. */
 export interface UniqueConflict {
   conflictedFields: string[];
   owners: DuplicateContactOwners;
 }
+
+/** `days`: desde hoy. `months`: meses calendario, el actual cuenta como el primero. */
+export type PatientBookingWindowUnit = 'days' | 'months';
 
 /** Ajustes de Configuración → Portal del Paciente. */
 export type PatientPortalConfig = {
@@ -3442,6 +4389,9 @@ export type PatientPortalConfig = {
   default_service_id: string;
   /** Muestra precios y duraciones en el portal. Sólo presentación. */
   show_pricing: boolean;
+  /** Hasta qué fecha puede reservar el paciente. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  booking_window_value: number;
   welcome_video_url: string;
   welcome_message: string;
 };
@@ -4035,4 +4985,485 @@ export interface PatientStudyOrder {
     sede_name?: string | null;
     calendar_name?: string | null;
   }>;
+}
+
+// ─── Asistente guiado / base de conocimiento ────────────────────────────────
+// Catálogo generado por scripts/knowledge/build-catalog.mjs en
+// src/generated/help-catalog.json. Ver docs/onboarding-asistente.md.
+
+/** Tipo de elemento indexado. Es el segundo segmento del help id: `<scope>.<kind>.<name>`. */
+export type HelpElementKind = 'field' | 'btn' | 'tab' | 'filter' | 'nav' | 'section';
+
+export interface HelpCatalogElement {
+  /** Help id estable (`config.sedes.field.name`). Lo usan el asistente, los tests y la documentación. */
+  id: string;
+  kind: HelpElementKind;
+  /** Etiqueta visible (resuelta desde es.json cuando el extractor la encuentra). */
+  label?: string;
+  description?: string;
+  /** Archivo donde el extractor lo encontró. */
+  source?: string;
+}
+
+export interface HelpCatalogScreen {
+  /** Scope de la pantalla, derivado de la ruta (`/config/sedes` → `config.sedes`). */
+  id: string;
+  route: string;
+  title: string;
+  module?: string;
+  permissions: string[];
+  summary?: string;
+  purpose?: string;
+  prerequisites?: string[];
+  tips?: string[];
+  useCases?: string[];
+  /** `draft` = generado/redactado por IA; `validated` = revisado por soporte/QA. */
+  status: 'auto' | 'draft' | 'validated';
+  inMenu: boolean;
+  elements: HelpCatalogElement[];
+}
+
+/**
+ * Paso de una guía. El motor (src/lib/help/guide-engine.ts) nunca hace clic
+ * solo en un paso `confirm`: lo resalta y espera a que la persona lo pulse.
+ */
+export type HelpGuideStepAction =
+  | 'navigate'
+  | 'click'
+  | 'highlight'
+  | 'fill'
+  | 'confirm'
+  | 'wait';
+
+/** Dato dictado que completa un campo (los días de la semana van como lista). */
+export type HelpValue = string | number | boolean | Array<string | number>;
+
+export interface HelpGuideStep {
+  id: string;
+  action: HelpGuideStepAction;
+  title: string;
+  description?: string;
+  /** Help id del elemento (todas las acciones menos `navigate`). */
+  target?: string;
+  /** Ruta sin locale (`/config/sedes`) para `navigate`. */
+  route?: string;
+  /** Valor para `fill`. Admite `{{values.campo}}`, que se resuelve con los datos dictados. */
+  value?: string | number | boolean;
+  /** Si el paso es opcional, sin valor para `fill` se salta en vez de esperar. */
+  optional?: boolean;
+  /**
+   * Lo que se ve junto a la manito: para qué sirve, qué cambia según lo que se
+   * elija. Si la guía no lo trae, el extractor copia la descripción del
+   * elemento desde su ficha.
+   */
+  details?: string;
+  /** Recorridos de pantalla: si el elemento no está a la vista, el paso se salta. */
+  skipIfMissing?: boolean;
+  /**
+   * `highlight`: el paso se da por hecho cuando aparece alguno de estos help ids
+   * (p. ej. la persona hizo clic derecho en el turno y se abrió su menú). Sirve para
+   * gestos que la guía no puede hacer por la persona: clic derecho, arrastrar.
+   */
+  until?: string | string[];
+  /**
+   * `highlight` sobre una opción de menú: el paso se da por hecho cuando el elemento
+   * desaparece (la persona eligió una opción y el menú se cerró), aunque haya
+   * elegido otra opción distinta de la señalada.
+   */
+  doneOnClose?: boolean;
+  /**
+   * La persona tiene que hacerlo (elegir un registro real, abrir su menú…): "Siguiente",
+   * "Saltar" e "Ir al final" quedan deshabilitados hasta que lo haga. Los pasos con
+   * `until` lo son siempre.
+   */
+  blocking?: boolean;
+  /**
+   * `fill` opcional que igual se muestra sin dato dictado (preferencias: se explica cada
+   * opción y la persona decide si la cambia). Sin `ask`, un opcional sin dato se salta.
+   */
+  ask?: boolean;
+  /**
+   * `highlight` con `until`: si la guía corre con datos dictados (pruebas, videos demo),
+   * la guía pulsa el elemento sola; con una persona, espera a que lo haga.
+   */
+  autoClick?: boolean;
+  /**
+   * El paso sólo corre si se cumple (si no, se salta). Un estado que registra la app
+   * (`cash-session-open`, `cash-session-closed`) o un help id que tiene que estar en pantalla.
+   * Con `@start`, el estado de cuando arrancó la guía. Así una guía cubre los dos casos:
+   * "abrir la caja" con la caja ya abierta empieza por cerrarla.
+   */
+  onlyIf?: string;
+  /** Lo contrario de `onlyIf`: el paso se salta si se cumple. */
+  unless?: string;
+}
+
+export interface HelpUseCase {
+  id: string;
+  title: string;
+  summary?: string;
+  module?: string;
+  /** Pantallas involucradas (scopes). */
+  screens: string[];
+  /** Agrupa las guías de una pantalla con muchas funciones (p. ej. la pestaña de la ficha). */
+  group?: string;
+  /** Datos que la guía puede completar con lo dictado: nombre → descripción. */
+  inputs?: Record<string, string>;
+  steps: HelpGuideStep[];
+  /** Fase 3: id del video demo generado desde el test E2E de este caso. */
+  videoId?: string;
+  keywords?: string[];
+}
+
+export interface HelpJourneyStep {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  useCaseId?: string;
+  required: boolean;
+}
+
+export interface HelpPermissionDoc {
+  code: string;
+  constant: string;
+  description?: string;
+}
+
+export interface HelpCatalog {
+  /** Hash del contenido: cambia sólo cuando cambia el catálogo. */
+  version: string;
+  screens: HelpCatalogScreen[];
+  useCases: HelpUseCase[];
+  journey: HelpJourneyStep[];
+  permissions: HelpPermissionDoc[];
+}
+
+export type OnboardingStepStatus = 'done' | 'pending' | 'skipped';
+
+export interface OnboardingStepState {
+  step_id: string;
+  status: OnboardingStepStatus;
+  /** Cuántos registros encontró el chequeo (sedes, consultorios…). */
+  count?: number;
+  completed_at?: string | null;
+  notes?: string | null;
+}
+
+/** Respuesta de GET /help/onboarding/status. Qué pasos son obligatorios lo dice el journey del catálogo. */
+export interface OnboardingStatusResponse {
+  steps: OnboardingStepState[];
+}
+
+/** Elemento visible en pantalla que el frontend le manda al asistente como contexto. */
+export interface HelpVisibleTarget {
+  id: string;
+  kind: HelpElementKind;
+  label?: string;
+}
+
+export interface HelpAssistantLink {
+  route: string;
+  label: string;
+}
+
+/** Respuesta de POST /help/assistant/chat (ya validada por el workflow contra el catálogo). */
+/**
+ * Video grabado de una guía (help_videos). `useCaseId` es el id de la guía, o
+ * `tour.<pantalla>` para "Guiarme por esta pantalla". `url`: el mp4 publicado o el
+ * archivo en Google Drive (ver src/lib/help/video-source.ts).
+ */
+export interface HelpVideo {
+  useCaseId: string;
+  url: string;
+  title: string;
+  durationSeconds?: number | null;
+  locale?: string;
+}
+
+export interface HelpAssistantReply {
+  answer: string;
+  confidence?: number;
+  links?: HelpAssistantLink[];
+  /** La guía del catálogo más parecida al pedido (la primera de `useCaseIds`). */
+  useCaseId?: string | null;
+  /** Hasta 3 guías predefinidas, de la más parecida a la menos. Nunca se arman guías al vuelo. */
+  useCaseIds?: string[];
+  /** Valores extraídos de lo dictado para `{{values.x}}`. */
+  values?: Record<string, HelpValue>;
+  /** true cuando la persona pidió "guiame": la guía arranca sola. */
+  autoStart?: boolean;
+  /** Video de `useCaseId` (compatibilidad: `videos` trae los de todas las guías propuestas). */
+  videoUrl?: string | null;
+  /** Videos publicados (help_videos) de las guías propuestas y de la pantalla actual. */
+  videos?: HelpVideo[];
+  questionId?: string | null;
+  escalated?: boolean;
+  /** Ticket de soporte abierto al escalar. */
+  ticketId?: string | null;
+}
+
+export interface HelpInsightsTotals {
+  total: number;
+  resolved: number;
+  escalated: number;
+  positive: number;
+  negative: number;
+  avg_confidence: number | null;
+  /** Escaladas en fin de semana (la meta es sólo incidentes críticos). */
+  weekend_human: number;
+}
+
+export interface HelpInsightsOpenQuestion {
+  id: string;
+  question: string;
+  answer: string | null;
+  confidence: number | null;
+  rating: number | null;
+  route: string | null;
+  screen_id: string | null;
+  created_at: string;
+  user_name: string | null;
+}
+
+export type HelpTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface HelpInsightsTicket {
+  id: number;
+  subject: string;
+  route: string | null;
+  status: HelpTicketStatus;
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  channel: string;
+  created_at: string;
+  user_name: string | null;
+}
+
+/** Respuesta de GET /help/insights. */
+export interface HelpInsights {
+  totals: HelpInsightsTotals;
+  by_week: { week: string; total: number; escalated: number }[];
+  by_screen: { screen_id: string; total: number; unresolved: number }[];
+  open_questions: HelpInsightsOpenQuestion[];
+  tickets: HelpInsightsTicket[];
+  onboarding: { step_id: string; status: OnboardingStepStatus; completed_at: string | null }[];
+  videos: { ready: number; stale: number; requests_open: number; requests_failed: number } | null;
+  catalog: { version: string | null; synced_at: string | null; screens: number; validated: number; tables: number } | null;
+}
+
+// ── Comandos de voz ─────────────────────────────────────────────────────────────
+
+/** En qué está la sesión de voz: escucha, piensa, habla, espera una respuesta o ejecuta. */
+export type VoicePhase = 'idle' | 'listening' | 'thinking' | 'speaking' | 'waiting' | 'running';
+
+export interface VoiceCardRow {
+  label: string;
+  value: string;
+  tone?: 'default' | 'warning' | 'danger';
+}
+
+export interface VoiceChoice {
+  label: string;
+  detail?: string;
+}
+
+/** Tarjeta que acompaña al comando: qué entendió, qué va a hacer y qué pregunta. */
+export interface VoiceCard {
+  title: string;
+  subtitle?: string;
+  rows?: VoiceCardRow[];
+  /** Lo que el asistente pregunta o informa (lo mismo que dice en voz alta). */
+  message?: string;
+  /** confirm: espera "sí/no"; danger: lo mismo pero cancela o retrocede; success/error: resultado. */
+  tone?: 'info' | 'confirm' | 'danger' | 'success' | 'error';
+  /** Opciones para elegir diciendo "el dos" o el nombre (o tocándolas). */
+  choices?: VoiceChoice[];
+  link?: { label: string; href: string };
+}
+
+/** Lo que un comando de voz puede hacer mientras corre. Todo se corta con `signal` (Escape, otro comando). */
+export interface VoiceCommandContext {
+  locale: string;
+  signal: AbortSignal;
+  /** Traductor desde la raíz de los mensajes ('VoiceCommands.x', 'LabOrdersPage.errors.y'). */
+  t: (key: string, values?: Record<string, string | number>) => string;
+  hasPermission: (code: string) => boolean;
+  /** Ruta sin locale (p. ej. '/lab-orders?order=45'). */
+  navigate: (route: string) => void;
+  /** Muestra la tarjeta mientras trabaja (buscando la orden…). */
+  show: (card: VoiceCard) => void;
+  /**
+   * Cambia el contenido de la tarjeta sin tocar lo que espera (la pregunta sigue abierta): por
+   * ejemplo, el resumen de una orden que se editó a mano mientras se preguntaba.
+   */
+  update: (card: VoiceCard) => void;
+  /**
+   * Pregunta en voz alta y espera la respuesta dicha (el micrófono se abre solo). Con
+   * `awaiting: 'confirm'` la tarjeta muestra Sí/No pero devuelve el texto tal cual (para
+   * aceptar también otra respuesta, como una corrección).
+   */
+  ask: (card: VoiceCard, speech: string, awaiting?: 'answer' | 'confirm') => Promise<string>;
+  /** Pregunta entre opciones; devuelve el índice elegido. */
+  choose: (card: VoiceCard, speech: string) => Promise<number>;
+  /** "¿Confirmo?": true con "sí", false con "no". */
+  confirm: (card: VoiceCard, speech: string) => Promise<boolean>;
+  /** Resultado final (éxito, aviso o error) en la tarjeta y en voz alta. */
+  finish: (card: VoiceCard, speech: string) => Promise<void>;
+}
+
+/**
+ * Un módulo de voz (órdenes de laboratorio, periodontograma…): agrupa sus comandos y sabe cómo
+ * preguntarle a la IA. Cada pantalla monta el host con los módulos que tiene activos, así los
+ * comandos y el contexto que va a la IA son solo los de esa pantalla.
+ */
+export interface VoiceDomain<R = unknown> {
+  /** Id que viaja a POST voice/interpret ('lab_orders'): el servidor elige su prompt con esto. */
+  id: string;
+  /**
+   * Cuando el intérprete local no entiende la frase se le pregunta a la IA. `context` arma lo que
+   * la IA necesita saber (nunca datos de pacientes; sin él, lo pasa quien pregunta, como el dictado
+   * del periodontograma con la posición de la sonda) y `sanitize` revalida la respuesta contra ese
+   * mismo contexto: lo que no cierra queda en null.
+   */
+  ai?: {
+    context?: (ctx: VoiceCommandContext) => Promise<Record<string, unknown>>;
+    sanitize: (raw: unknown, context: Record<string, unknown>) => R;
+  };
+}
+
+/** Respuesta de POST voice/interpret, ya revalidada por el módulo. */
+export interface VoiceInterpretation<R = unknown> {
+  domain: string;
+  /** 0–1: qué tan segura está la IA. Por debajo del mínimo de la sesión se dice que no se entendió. */
+  confidence: number;
+  result: R;
+}
+
+/** Un comando de voz: reconoce su frase sin IA y la ejecuta conversando con la persona. */
+export interface VoiceCommand<P = unknown, R = any> {
+  id: string;
+  /** Módulo al que pertenece (VoiceDomain.id): solo corre en las pantallas que lo activan. */
+  domain: string;
+  /** Más alto se prueba antes (default 0): los comandos específicos le ganan a los generales. */
+  priority?: number;
+  /** Lo entendido de la frase (normalizada con normalizeSpeech), o null si no es para este comando. */
+  match: (normalized: string, raw: string) => P | null;
+  run: (parsed: P, ctx: VoiceCommandContext) => Promise<void>;
+  /** Convierte lo que interpretó la IA (el `result` de su módulo) en lo que espera `run`. */
+  ai?: {
+    from: (result: R, raw: string) => P | null;
+  };
+}
+
+/** Contexto del módulo lab_orders para la IA (POST voice/interpret). */
+export interface VoiceAiContext {
+  stages: Array<{ id: number; name: string; kind: string }>;
+  laboratories: Array<{ id: string; name: string }>;
+  /**
+   * Orden abierta en el asistente por voz (alta o edición): la frase es una corrección.
+   * Sin el paciente: solo trabajos, laboratorio, entrega y envío.
+   */
+  draft?: VoiceAiDraftContext;
+}
+
+export interface VoiceAiDraftContext {
+  /** 'create': orden nueva (sin número); 'edit': la orden `order_id`, que ya existe. Sin el campo, alta. */
+  mode?: 'create' | 'edit';
+  order_id?: number | null;
+  /** Edición: etapa en la que está (la entrega solo se cambia si ya se envió). */
+  stage?: string | null;
+  items: VoiceAiItem[];
+  /** Piezas de la orden cuando no hay trabajos del catálogo. */
+  teeth: number[];
+  work_description: string | null;
+  laboratory: string | null;
+  send: boolean;
+  due_date: string | null;
+  is_urgent: boolean;
+  notes: string | null;
+}
+
+/** lab_order.draft_edit: qué cambiar de la orden en creación. Lo que no se pidió, en null o vacío. */
+export interface VoiceAiDraftEdit {
+  /** Otro paciente (el nombre tal como se dijo). */
+  patient: string | null;
+  add_items: VoiceAiItem[];
+  /** Trabajos a quitar, como se nombraron. */
+  remove_items: string[];
+  /** Cantidad o piezas de un trabajo ya cargado (service null: el único, o las piezas de la orden). */
+  update_items: Array<{ service: string | null; quantity: number | null; teeth: number[] | null }>;
+  work_description: string | null;
+  laboratory_id: string | null;
+  clear_laboratory: boolean;
+  /** true: enviarla al crearla; false: no enviarla. En la edición no se usa (se envía moviéndola de etapa). */
+  send: boolean | null;
+  due_date: string | null;
+  urgent: boolean | null;
+  /** Texto a agregar a las notas. */
+  note_add: string | null;
+}
+
+export type VoiceAiIntent =
+  | 'lab_order.move' | 'lab_order.create' | 'lab_order.open'
+  /** Cambiar entrega, urgente o agregar una nota a una orden existente. */
+  | 'lab_order.update'
+  /** "¿En qué etapa está la 45?": se responde, no se cambia nada. */
+  | 'lab_order.status'
+  /** "Mostrame las atrasadas": filtra la pantalla de órdenes. */
+  | 'lab_order.list'
+  /** Corrección a la orden abierta por voz, nueva o en edición ("que sea urgente", "agregá un perno"). */
+  | 'lab_order.draft_edit'
+  /**
+   * Editar una orden existente (con número) en el asistente: "editá la 45", "a la 45 agregale un
+   * perno", "la 45 es para María López". Lo que se pide cambiar viene en `draft_edit`.
+   */
+  | 'lab_order.edit'
+  | 'unknown';
+
+/** Filtros pedidos con lab_order.list. */
+export interface VoiceAiListFilter {
+  overdue: boolean;
+  urgent: boolean;
+  due_today: boolean;
+  view: 'list' | 'board' | null;
+  /** Quitar los filtros que había. */
+  clear: boolean;
+  /** Se preguntó "¿cuántas…?": además de mostrarlas se dice el número. */
+  count: boolean;
+}
+
+export interface VoiceAiItem {
+  /** Cómo se nombró el trabajo ("corona de zirconio"): se busca en los servicios de laboratorio. */
+  service: string;
+  quantity: number;
+  teeth: number[];
+}
+
+/** `result` de voice/interpret para el módulo lab_orders, validado (todo lo que no cierra viene en null). */
+export interface VoiceAiResult {
+  intent: VoiceAiIntent;
+  order_id: number | null;
+  stage_id: number | null;
+  move_kind: 'send' | 'received' | 'complete' | 'cancel' | 'next' | null;
+  /** Cuándo pasó ('YYYY-MM-DD'): "se envió ayer". */
+  effective_date: string | null;
+  due_date: string | null;
+  laboratory_id: string | null;
+  /** Nombre del paciente tal como se dijo. */
+  patient: string | null;
+  items: VoiceAiItem[];
+  work_description: string | null;
+  teeth: number[];
+  is_urgent: boolean;
+  send: boolean;
+  notes: string | null;
+  /** lab_order.update: true = marcar urgente, false = quitarlo, null = no se habló de eso. */
+  urgent_change: boolean | null;
+  /** lab_order.update: nota a agregar. */
+  note_add: string | null;
+  /** lab_order.list. Paciente y laboratorio van en `patient` y `laboratory_id`. */
+  filter: VoiceAiListFilter | null;
+  /** lab_order.draft_edit y lab_order.edit (en este, vacío si solo se pidió abrirla para editar). */
+  draft_edit: VoiceAiDraftEdit | null;
+  confidence: number;
 }

@@ -1,0 +1,116 @@
+{
+  "id": "patients.perio-screening",
+  "title": "Hacer un cribado PSR/BPE",
+  "module": "Pacientes",
+  "summary": "Un código por sextante en lugar del sondaje completo, y qué sugiere.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "cribado",
+    "PSR",
+    "BPE",
+    "sextantes",
+    "screening",
+    "implantes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado con sondaje queda como guía (un cribado no es guía).",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "perio-session.field.exam-type",
+      "title": "Elegí «Cribado PSR/BPE»",
+      "details": "Cambiá el tipo de examen. (Con «Solo implantes», la sonda recorre solo los implantes.)",
+      "until": "perio-session.section.sextants",
+      "blocking": true
+    },
+    {
+      "id": "sextants",
+      "action": "highlight",
+      "target": "perio-session.section.sextants",
+      "title": "Sextantes",
+      "details": "En cada sextante, el código del peor sitio: 0 sano, 1 sangra, 2 sarro, 3 bolsa de 3,5 a 5,5 mm, 4 más profunda, X excluido. El asterisco marca furca, movilidad o recesión."
+    },
+    {
+      "id": "legend",
+      "action": "highlight",
+      "target": "perio-session.section.psr-legend",
+      "title": "Qué significa cada código",
+      "details": "Con el teclado: 0–4 o X codifican el sextante marcado y pasan al siguiente."
+    },
+    {
+      "id": "dx",
+      "action": "click",
+      "target": "perio-session.btn.step-diagnosis",
+      "title": "Diagnóstico",
+      "details": "El cribado no se clasifica: se interpreta el código más alto."
+    },
+    {
+      "id": "result",
+      "action": "highlight",
+      "target": "perio-session.section.dx-screening",
+      "title": "Resultado del cribado",
+      "details": "Qué significa el código más alto, qué hacer y en qué sextantes hace falta un periodontograma completo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "plan",
+      "action": "highlight",
+      "target": "perio-session.section.dx-plan",
+      "title": "Plan",
+      "details": "Higiene, limpieza profesional o periodontograma completo según los códigos.",
+      "skipIfMissing": true
+    }
+  ]
+}

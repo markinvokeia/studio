@@ -1,0 +1,107 @@
+{
+  "id": "patients.aesthetic-close",
+  "title": "Close, charge or void an aesthetic session",
+  "summary": "Review what was applied, charge, send aftercare, schedule the follow-up and close; afterwards, amendments or voiding.",
+  "module": "Patients",
+  "group": "Aesthetic record",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "close aesthetic session",
+    "charge aesthetics",
+    "invoice session",
+    "aftercare",
+    "schedule follow-up",
+    "next appointment",
+    "void session",
+    "amendment",
+    "correct closed session",
+    "lot usage"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "tab",
+      "title": "Timeline"
+    },
+    {
+      "id": "session",
+      "title": "Tap the aesthetic session",
+      "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session."
+    },
+    {
+      "id": "open",
+      "title": "Continue session",
+      "details": "Resumes at the first step still missing. A closed or void session opens read-only."
+    },
+    {
+      "id": "close-step",
+      "title": "Closing",
+      "details": "Step 4."
+    },
+    {
+      "id": "missing",
+      "title": "What is missing",
+      "details": "Tap each notice to go to the step that solves it."
+    },
+    {
+      "id": "applied",
+      "title": "Treatment applied",
+      "details": "Each service with its zones, total, lots used and today's photos. An expired lot shows in red."
+    },
+    {
+      "id": "summary",
+      "title": "Session summary",
+      "details": "Free text kept on the patient's timeline, along with the notes taken during the session."
+    },
+    {
+      "id": "billing",
+      "title": "Charge",
+      "details": "\"Charge\" opens billing with the session's services already filled in. The invoice stays linked: its total, amount paid, balance and payments show here and can be printed. Charging is not required to close."
+    },
+    {
+      "id": "follow-up",
+      "title": "Aftercare and next appointment",
+      "details": "Sends each service's aftercare by WhatsApp and schedules the follow-up on the suggested date. Both are set in the service's Aesthetics tab."
+    },
+    {
+      "id": "activity",
+      "title": "Activity",
+      "details": "Who signed, uploaded photos, added notes or closed, and when."
+    },
+    {
+      "id": "void",
+      "title": "Void session",
+      "details": "Asks for a reason and leaves the session read-only. Nothing is deleted. Only an open session can be deleted, from the timeline."
+    },
+    {
+      "id": "amendments",
+      "title": "Amendments",
+      "details": "In a closed session, corrections are added as an amendment, without erasing the original."
+    },
+    {
+      "id": "close",
+      "title": "Close session",
+      "details": "Asks for confirmation. It requires everything signed, a photo (unless not applicable) and each service with at least one mark with a quantity."
+    }
+  ]
+}

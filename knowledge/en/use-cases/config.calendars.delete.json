@@ -1,0 +1,39 @@
+{
+  "id": "config.calendars.delete",
+  "title": "Delete the calendar",
+  "summary": "Delete a calendar (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete calendar",
+    "remove calendar",
+    "clear calendar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Calendars",
+      "details": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there."
+    },
+    {
+      "id": "search",
+      "title": "Find the calendar"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the calendar",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

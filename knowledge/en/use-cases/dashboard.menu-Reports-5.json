@@ -1,0 +1,48 @@
+{
+  "id": "dashboard.menu-Reports-5",
+  "title": "Get to know Reports: Income Statement, Clinic KPIs and Monthly Balance",
+  "summary": "Tour of Income Statement, Clinic KPIs and Monthly Balance: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "reports",
+    "what's in reports",
+    "income statement",
+    "clinic kpis",
+    "monthly balance"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "Reports",
+      "details": "We'll go through Income Statement, Clinic KPIs and Monthly Balance."
+    },
+    {
+      "id": "go-reports.estado-resultados",
+      "title": "Menu → Reports → Income Statement"
+    },
+    {
+      "id": "page-reports.estado-resultados",
+      "title": "Income Statement",
+      "details": "Income minus expenses for the period: the clinic's financial result. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-reports.kpis",
+      "title": "Menu → Reports → Clinic KPIs"
+    },
+    {
+      "id": "page-reports.kpis",
+      "title": "Clinic KPIs",
+      "details": "The clinic's main numbers on one board. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-reports.balance-mensual",
+      "title": "Menu → Reports → Monthly Balance"
+    },
+    {
+      "id": "page-reports.balance-mensual",
+      "title": "Monthly Balance",
+      "details": "Produced, collected and pending for each month. It has 1 guide in «Guide me on this screen»."
+    }
+  ]
+}

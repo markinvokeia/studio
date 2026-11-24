@@ -1,0 +1,52 @@
+{
+  "id": "system.access.overview",
+  "title": "Consultar Registro de Acceso",
+  "module": "Sistema",
+  "summary": "Quién entró al sistema, cuándo y desde dónde.",
+  "screens": [
+    "system.access"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "accesos",
+    "quién entró",
+    "inicios de sesión"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/access",
+      "title": "Menú → Sistema → Registro de Acceso",
+      "details": "Quién entró al sistema, cuándo y desde dónde."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.access.filter.search",
+      "title": "Buscar",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.access.section.first-row",
+      "title": "El más reciente",
+      "details": "Tocalo para ver el detalle.",
+      "until": "system.access.section.detail",
+      "autoClick": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.access.section.detail",
+      "title": "Detalle",
+      "skipIfMissing": true
+    }
+  ]
+}

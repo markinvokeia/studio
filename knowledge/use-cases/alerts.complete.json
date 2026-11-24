@@ -1,0 +1,42 @@
+{
+  "id": "alerts.complete",
+  "title": "Marcar alertas como resueltas",
+  "module": "Centro de Alertas",
+  "summary": "Dar por completadas una o varias alertas ya trabajadas.",
+  "screens": [
+    "alerts"
+  ],
+  "keywords": [
+    "completar",
+    "resuelta",
+    "resolver",
+    "marcar como hecha",
+    "cerrar alerta",
+    "listo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "select",
+      "action": "highlight",
+      "target": "alerts.field.select-alert",
+      "title": "Marcá las alertas",
+      "until": "alerts.section.bulk-bar",
+      "autoClick": true,
+      "details": "Marcá el check de cada alerta resuelta, o el de la categoría para marcar todas. Abajo aparece la barra de acciones."
+    },
+    {
+      "id": "complete",
+      "action": "confirm",
+      "target": "alerts.btn.bulk-complete",
+      "title": "Marcar como completadas",
+      "details": "Pasan a Completada y salen de las pendientes."
+    }
+  ]
+}

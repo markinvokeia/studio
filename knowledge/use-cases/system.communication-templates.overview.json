@@ -1,0 +1,63 @@
+{
+  "id": "system.communication-templates.overview",
+  "title": "Recorrer Plantillas de Alertas",
+  "module": "Sistema",
+  "summary": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+  "screens": [
+    "system.communication-templates"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "plantillas de alertas",
+    "plantilla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/communication-templates",
+      "title": "Menú → Sistema → Plantillas de Alertas",
+      "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.communication-templates.filter.search",
+      "title": "Buscá la plantilla",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.communication-templates.section.first-row",
+      "title": "Elegí la plantilla",
+      "until": "system.communication-templates.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.communication-templates.section.detail",
+      "title": "Detalle"
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "system.communication-templates.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "system.communication-templates.btn.delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación.",
+      "skipIfMissing": true
+    }
+  ]
+}

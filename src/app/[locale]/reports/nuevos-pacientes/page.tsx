@@ -10,6 +10,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportNuevosPxResponse, ReportNuevosPxRow } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { formatDate } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
@@ -58,7 +59,7 @@ export default function NuevosPacientesPage() {
   const columns: ColumnDef<ReportNuevosPxRow>[] = [
     { accessorKey: 'name', header: t('col_nombre') },
     { accessorKey: 'email', header: t('col_email') },
-    { accessorKey: 'phone_number', header: t('col_telefono') },
+    { accessorKey: 'phone_number', header: t('col_telefono'), cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     {
       accessorKey: 'registration_date',
       header: t('col_registro'),
@@ -169,7 +170,7 @@ export default function NuevosPacientesPage() {
                     <div key={r.id} className="flex items-center justify-between text-sm gap-2">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{r.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{r.phone_number}</p>
+                        <p className="text-xs text-muted-foreground truncate">{formatPhoneNumber(r.phone_number)}</p>
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {formatDate(r.registration_date)}

@@ -1,0 +1,83 @@
+{
+  "id": "appointments.missing-identity-document",
+  "title": "Cargar el documento que falta para cambiar el estado de una cita",
+  "module": "Agenda",
+  "summary": "Si la clínica exige documento para ese estado, el cambio se bloquea: «Entendido» abre los datos del paciente para cargarlo y volver a intentar.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "identity_document": "Documento de identidad"
+  },
+  "keywords": [
+    "falta el documento",
+    "no puedo completar la cita",
+    "documento de identidad",
+    "cédula",
+    "bloqueo de estado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas"
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Clic derecho sobre la cita",
+      "details": "Se abre el menú de la cita.",
+      "blocking": true,
+      "until": [
+        "appointments.btn.status-confirmed",
+        "appointments.btn.change-status"
+      ]
+    },
+    {
+      "id": "status-menu",
+      "action": "highlight",
+      "target": "appointments.btn.change-status",
+      "title": "Cambiar estado",
+      "skipIfMissing": true,
+      "until": "appointments.btn.status-confirmed"
+    },
+    {
+      "id": "status",
+      "action": "highlight",
+      "target": "appointments.btn.status-completed",
+      "title": "Elegí el estado",
+      "details": "Si el paciente no tiene documento y la clínica lo exige para ese estado, el cambio no se hace y aparece el aviso.",
+      "skipIfMissing": true,
+      "until": "appointments.btn.missing-document-open"
+    },
+    {
+      "id": "notice",
+      "action": "click",
+      "target": "appointments.btn.missing-document-open",
+      "title": "Entendido",
+      "details": "Abre los datos del paciente (el mismo lápiz de la cita). «Cerrar» sólo descarta el aviso.",
+      "skipIfMissing": true,
+      "until": "appointments.field.identity_document"
+    },
+    {
+      "id": "document",
+      "action": "fill",
+      "target": "appointments.field.identity_document",
+      "value": "{{values.identity_document}}",
+      "ask": true,
+      "skipIfMissing": true,
+      "title": "Documento de identidad",
+      "details": "Cargá el documento del paciente."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.submit",
+      "title": "Guardar los datos del paciente",
+      "details": "Después volvé a cambiar el estado de la cita: ya no se bloquea.",
+      "skipIfMissing": true
+    }
+  ]
+}

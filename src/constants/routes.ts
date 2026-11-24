@@ -42,6 +42,8 @@ export const API_ROUTES = {
      * escritor de esa columna: `/catalogoservicios/upsert` no la toca.
      */
     SERVICE_BOOKABLE_ONLINE: '/services/bookable-online',
+    /** Único escritor de service_catalog.is_lab (trabajo de laboratorio, script 167). */
+    SERVICE_LAB_WORK: '/services/lab-work',
     SERVICE_IMAGE: '/services/image',
     SERVICE_IMAGE_UPLOAD: '/services/image/upload',
     SERVICE_IMAGE_DELETE: '/services/image/delete',
@@ -273,6 +275,33 @@ export const API_ROUTES = {
         UPSERT: '/calendar_color_source/upsert',
         DELETE: '/calendar_color_source/delete',
     },
+    /**
+     * Configuración → Etapas de laboratorio. LIST trae todas (activas primero, con
+     * orders_count / in_use); SAVE guarda la configuración completa en una
+     * transacción (lab_stages_save, script 147).
+     */
+    /** Órdenes de laboratorio (flujo n8n "Lab Orders", script 148). */
+    LAB_ORDERS: {
+        SEARCH: '/lab-orders/search',
+        BOARD: '/lab-orders/board',
+        DETAIL: '/lab-orders/detail',
+        SAVE: '/lab-orders/save',
+        CHANGE_STAGE: '/lab-orders/change-stage',
+        DELETE: '/lab-orders/delete',
+        /** GET ?search=&category_id=&limit= — solo proveedores en una categoría de laboratorio. */
+        LABORATORIES: '/lab-orders/laboratories',
+        LAB_CATEGORIES: '/lab-orders/lab-categories',
+        /** Adjuntos (script 173): POST multipart order_id + archivos → [{ attachments, order_id }]. */
+        ATTACHMENTS_UPLOAD: '/lab-orders/attachments/upload',
+        /** POST { order_id, attachment_id } → [{ attachments, order_id }]. */
+        ATTACHMENTS_DELETE: '/lab-orders/attachments/delete',
+        /** GET ?order_id=&id= → el archivo (binario). */
+        ATTACHMENT: '/lab-orders/attachment',
+    },
+    LAB_STAGES: {
+        LIST: '/lab-stages',
+        SAVE: '/lab-stages/save',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',
@@ -446,6 +475,10 @@ export const API_ROUTES = {
     },
     ORDER_INVOICE: '/order/invoice',
     USER_DEPENDANT: '/user_dependant',
+    /** Pacientes a cargo de un tutor (`?user_id=` del tutor). */
+    USERS_DEPENDENTS: '/users/dependents',
+    /** Vincula/desvincula un dependiente: solo toca `is_dependant` y `responsible_contact_id`. */
+    USERS_RESPONSIBLE: '/users/responsible',
     USERS_UPSERT: '/users/upsert',
     USER_NOTES: '/user/notes',
     USERS_ACTIVATE: '/users/activate',
@@ -610,5 +643,78 @@ export const API_ROUTES = {
     SUBSCRIPTIONS: {
         LIST:   '/subscriptions',
         CREATE: '/subscriptions',
+    },
+    /** Comandos de voz (workflow "Voz - Interpretar", generado por scripts/n8n/generate-help-workflows.mjs). */
+    VOICE: {
+        /**
+         * Frase que el intérprete local de un módulo no entendió: { domain, text, context } →
+         * { domain, confidence, result } validado (OpenAI, no lee ni escribe la base).
+         */
+        INTERPRET: '/voice/interpret',
+    },
+    /**
+     * Asistente guiado (workflows generados por scripts/n8n/generate-help-workflows.mjs).
+     * Ver docs/onboarding-asistente.md.
+     */
+    HELP: {
+        /** Estado de cada paso, derivado de los datos reales (`help_onboarding_status()`). */
+        ONBOARDING_STATUS:   '/help/onboarding/status',
+        /** Omitir / reactivar un paso o guardar una nota de implementador. */
+        ONBOARDING_PROGRESS: '/help/onboarding/progress',
+        /** RAG sobre el catálogo + OpenAI. Devuelve respuesta, links y guía validados. */
+        ASSISTANT_CHAT:      '/help/assistant/chat',
+        /** 👍/👎 de una respuesta: alimenta la cola de preguntas sin resolver. */
+        ASSISTANT_FEEDBACK:  '/help/assistant/feedback',
+        /** Versión del catálogo publicado en la BD del cliente. */
+        CATALOG_VERSION:     '/help/catalog/version',
+        /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */
+        CATALOG_SYNC:        '/help/catalog/sync',
+        /** Pide el video de un caso de uso (lo genera el worker de scripts/videos). */
+        VIDEO_REQUEST:       '/help/videos/request',
+        /** Videos publicados, uno por guía, en el idioma pedido (o el español). */
+        VIDEOS:              '/help/videos',
+        /** Panel de métricas del asistente (HELP_INSIGHTS_VIEW). */
+        INSIGHTS:            '/help/insights',
+        /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */
+        SUPPORT_UPDATE:      '/help/support/update',
+        /** Ajustes del asistente que fija la clínica (mascota visible). */
+        SETTINGS:            '/help/settings',
+    },
+    // Periodontograma — flujo n8n "Perio Record" (database/scripts/163)
+    PERIO_RECORD: {
+        EXAMS:        '/perio/exams',
+        EXAM_SAVE:    '/perio/exams/save',
+        EXAM_CLOSE:   '/perio/exams/close',
+        EXAM_DELETE:  '/perio/exams/delete',
+        EXAM_LINK_INVOICE: '/perio/exams/link-invoice',
+        EXAM_AMEND:   '/perio/exams/amend',
+    },
+    // Ficha estética — flujo n8n "Aesthetic Record" (database/scripts/151)
+    AESTHETIC_RECORD: {
+        SESSIONS:         '/aesthetic/sessions',
+        SESSION_SAVE:     '/aesthetic/sessions/save',
+        SESSION_DELETE:   '/aesthetic/sessions/delete',
+        SESSION_CLOSE:    '/aesthetic/sessions/close',
+        SESSION_VOID:     '/aesthetic/sessions/void',
+        SESSION_LINK_INVOICE: '/aesthetic/sessions/link_invoice',
+        NOTE_ADD:         '/aesthetic/notes/add',
+        PHOTO_UPLOAD:     '/aesthetic/photos/upload',
+        PHOTO_DELETE:     '/aesthetic/photos/delete',
+        PHOTO_ALIGNMENT:  '/aesthetic/photos/alignment',
+        CONSENTS_SIGN:    '/aesthetic/consents/sign',
+        CONSENTS_REUSE:   '/aesthetic/consents/reuse',
+        FILE:             '/aesthetic/file',
+        SERVICE_CONFIGS:  '/services/aesthetic-config',
+        SERVICE_CONFIG_SAVE: '/services/aesthetic-config/save',
+        CONSENT_TEMPLATES:   '/services/consent-templates',
+        CONSENT_TEMPLATE_SAVE: '/services/consent-templates/save',
+    },
+    MEASUREMENT_UNITS: {
+        LIST:   '/measurement-units',
+        SAVE:   '/measurement-units/save',
+        DELETE: '/measurement-units/delete',
+        /** Unit of each service (service_catalog.unit_id) */
+        SERVICE_UNITS: '/services/units',
+        SERVICE_UNIT_SAVE: '/services/unit/save',
     },
 };

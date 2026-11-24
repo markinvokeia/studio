@@ -1,0 +1,86 @@
+{
+  "id": "config.mutual-societies.edit",
+  "title": "Editar la sociedad mutual",
+  "module": "Configuración de Negocio",
+  "summary": "Cambiar los datos de una sociedad mutual existente.",
+  "screens": [
+    "config.mutual-societies"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar sociedad mutual",
+    "modificar sociedad mutual",
+    "cambiar sociedad mutual"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/mutual-societies",
+      "title": "Menú → Configuración de Negocio → Sociedades Mutuales",
+      "details": "Mutualistas, seguros o convenios a los que pertenecen los pacientes (se elige en la ficha del paciente)."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.mutual-societies.filter.search",
+      "title": "Buscá la sociedad mutual",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.mutual-societies.section.first-row",
+      "title": "Elegí la sociedad mutual",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.mutual-societies.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "config.mutual-societies.btn.edit",
+      "title": "Editar",
+      "until": "config.mutual-societies.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.name",
+      "title": "Nombre"
+    },
+    {
+      "id": "code",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.code",
+      "title": "Código",
+      "skipIfMissing": true
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.mutual-societies.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

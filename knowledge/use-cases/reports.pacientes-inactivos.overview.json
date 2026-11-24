@@ -1,0 +1,90 @@
+{
+  "id": "reports.pacientes-inactivos.overview",
+  "title": "Usar el reporte Pacientes Inactivos",
+  "module": "Reportes",
+  "summary": "Pacientes que no vienen hace tiempo, para campañas de recaptación.",
+  "screens": [
+    "reports.pacientes-inactivos"
+  ],
+  "keywords": [
+    "pacientes inactivos",
+    "recaptación",
+    "pacientes que no vienen"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/pacientes-inactivos",
+      "title": "Menú → Reportes → Pacientes Inactivos",
+      "details": "Pacientes que no vienen hace tiempo, para campañas de recaptación."
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.section.filters",
+      "title": "Filtros",
+      "details": "«Sin actividad hace más de» (meses) y «Sólo alta médica»."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.pacientes-inactivos.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.pacientes-inactivos.section.results",
+        "reports.pacientes-inactivos.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.pacientes-inactivos.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.section.kpi",
+      "title": "Indicadores",
+      "details": "Total inactivos, cuántos por alta médica, cuántos por inactividad y cuántos con deuda.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.section.results",
+      "title": "Resultados",
+      "details": "Cada paciente con su última visita; desde acá se los puede contactar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.pacientes-inactivos.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

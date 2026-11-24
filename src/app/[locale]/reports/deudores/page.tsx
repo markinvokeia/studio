@@ -12,6 +12,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportAgingResponse, ReportAgingRow } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn, fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -63,7 +64,7 @@ export default function DeudoresPage() {
 
   const columns: ColumnDef<ReportAgingRow>[] = [
     { accessorKey: 'patient_name', header: t('col_paciente') },
-    { accessorKey: 'phone_number', header: t('col_telefono'), size: 90 },
+    { accessorKey: 'phone_number', header: t('col_telefono'), size: 90, cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     {
       accessorKey: 'total_debt',
       header: t('col_total'),
@@ -190,7 +191,7 @@ export default function DeudoresPage() {
                         {Number(r.bucket_61_90)  > 0 && <div className="bg-orange-500"  style={{ flex: r.bucket_61_90 }} />}
                         {Number(r.bucket_90_plus) > 0 && <div className="bg-red-600"    style={{ flex: r.bucket_90_plus }} />}
                       </div>
-                      <p className="text-xs text-muted-foreground">{r.phone_number}</p>
+                      <p className="text-xs text-muted-foreground">{formatPhoneNumber(r.phone_number)}</p>
                     </div>
                   ))}
                 </div>

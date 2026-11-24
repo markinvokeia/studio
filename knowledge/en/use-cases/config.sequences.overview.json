@@ -1,0 +1,46 @@
+{
+  "id": "config.sequences.overview",
+  "title": "Tour Sequences",
+  "summary": "The numbering of invoices, quotes, orders and payments: a pattern with variables and how often the counter resets.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "sequences",
+    "sequence",
+    "view sequence",
+    "what is sequence"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Sequences",
+      "details": "The numbering of invoices, quotes, orders and payments: a pattern with variables and how often the counter resets."
+    },
+    {
+      "id": "pick",
+      "title": "Choose the sequence",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "detail",
+      "title": "Details",
+      "details": "The details of the chosen record."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Adds a new sequence."
+    }
+  ]
+}

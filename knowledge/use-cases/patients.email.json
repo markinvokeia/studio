@@ -1,0 +1,92 @@
+{
+  "id": "patients.email",
+  "title": "Enviar un email al paciente",
+  "module": "Pacientes",
+  "summary": "Más acciones → Enviar email: para, asunto y mensaje.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Agenda y comunicación",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "subject": "Asunto"
+  },
+  "keywords": [
+    "email",
+    "correo",
+    "mandar mail",
+    "escribir al paciente"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.more-menu",
+      "title": "Más acciones",
+      "details": "Comunicación, estado del paciente y preferencias.",
+      "until": "patients.btn.email"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.email",
+      "title": "Enviar email",
+      "details": "Sólo aparece si el paciente (o su responsable) tiene correo.",
+      "until": "patients.field.email-subject",
+      "skipIfMissing": true
+    },
+    {
+      "id": "to",
+      "action": "highlight",
+      "target": "patients.field.email-to",
+      "title": "Para"
+    },
+    {
+      "id": "subject",
+      "action": "fill",
+      "target": "patients.field.email-subject",
+      "title": "Asunto",
+      "value": "{{values.subject}}",
+      "optional": true
+    },
+    {
+      "id": "body",
+      "action": "highlight",
+      "target": "patients.field.email-body",
+      "title": "Mensaje"
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "patients.btn.email-send",
+      "title": "Enviar",
+      "details": "Queda en el historial de comunicaciones."
+    }
+  ]
+}

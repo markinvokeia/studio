@@ -8,10 +8,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3040,
-        -128
+        -5232,
+        7152
       ],
-      "id": "ec4b79c8-21d9-4ac5-8d23-7f96f60200fd",
+      "id": "5fc1de35-15e8-47ce-a9ee-008c3d6d1560",
       "name": "Code"
     },
     {
@@ -25,10 +25,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        -128
+        -5424,
+        7152
       ],
-      "id": "b3378c97-72bf-4e7b-9f5c-d2c53209182e",
+      "id": "59bc64aa-2389-4663-9953-a235f09cd09f",
       "name": "Select USERS",
       "alwaysOutputData": false,
       "credentials": {
@@ -47,10 +47,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        48
+        -5424,
+        7328
       ],
-      "id": "2e377acf-5cd9-4243-98a0-7c474c5fd17b",
+      "id": "965872c2-ba9b-4d0e-8ef9-9798e9d3cd41",
       "name": "Select Roles of User",
       "credentials": {
         "postgres": {
@@ -70,10 +70,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        224
+        -5424,
+        7504
       ],
-      "id": "5f73c2eb-6d82-467f-adf1-44892754358a",
+      "id": "a8d40135-27c6-458c-a17b-a26f57f715ac",
       "name": "Select Services of User",
       "credentials": {
         "postgres": {
@@ -90,11 +90,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -3520,
-        -208
+        -5712,
+        7072
       ],
       "typeVersion": 1,
-      "id": "afc3f433-d4f8-4aa4-9827-9c2cf6ae424b",
+      "id": "760284db-fb06-471b-879e-bdadac6e88f3",
       "name": "Sticky Note"
     },
     {
@@ -108,10 +108,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        544
+        -5424,
+        7824
       ],
-      "id": "621d568f-e56c-4028-84df-85f7e9fc7a90",
+      "id": "7bd025a5-09c8-409e-83d9-8c3c83bef902",
       "name": "Select Quotes of User",
       "credentials": {
         "postgres": {
@@ -129,10 +129,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        704
+        -5424,
+        7984
       ],
-      "id": "c5f4613c-53fb-428d-9864-022007b1aaf8",
+      "id": "ef029580-9933-4f07-98a2-a95c68850a5d",
       "name": "Select Access logs of User",
       "credentials": {
         "postgres": {
@@ -684,10 +684,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3040,
-        -1168
+        -6544,
+        5840
       ],
-      "id": "25c8eea2-40d6-4b77-b94c-e699f90c16c7",
+      "id": "cffc976f-7f03-4e8c-ae6d-8a4b8c205dfc",
       "name": "Update rows in a table",
       "alwaysOutputData": true,
       "credentials": {
@@ -711,10 +711,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3456,
-        -1168
+        -6960,
+        5840
       ],
-      "id": "b6de3c1f-0350-4fce-9d25-19773f180b48",
+      "id": "98ed192c-66be-45a6-b7da-a36bfc7624c8",
       "name": "/users/activate",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -741,10 +741,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2832,
-        -1072
+        -6336,
+        5936
       ],
-      "id": "665a5506-8d5b-432a-82e1-40fb388d53ac",
+      "id": "c90fc858-e3bc-4177-bd10-0c4f64bb470f",
       "name": "Error"
     },
     {
@@ -770,10 +770,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2832,
-        -1232
+        -6336,
+        5776
       ],
-      "id": "57791a39-756d-4884-89a4-4116901cf812",
+      "id": "f0be1383-a724-4079-9c20-a6af25015d97",
       "name": "Success"
     },
     {
@@ -783,7 +783,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -793,10 +793,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2304,
-        -864
+        -5200,
+        6128
       ],
-      "id": "8f4fe3fc-c87e-484e-a43a-18d62c4e78d8",
+      "id": "00b2a747-b4ed-404d-bf06-0e80c9c7bd7b",
       "name": "Error2"
     },
     {
@@ -822,10 +822,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2304,
-        -1024
+        -4992,
+        5760
       ],
-      "id": "3386af6b-f1e8-4c11-b1f9-67141f47bc1e",
+      "id": "13a2c98c-fc87-4847-8466-9df2659fe51e",
       "name": "Success2"
     },
     {
@@ -841,10 +841,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3472,
-        -688
+        -7024,
+        6320
       ],
-      "id": "0d4bc9c4-2e9a-48f5-a7c9-023860e2ad4e",
+      "id": "d54a9435-b68e-469b-bb04-9b47d4af6938",
       "name": "/users/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -861,7 +861,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -871,10 +871,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2384,
-        -416
+        -5168,
+        6736
       ],
-      "id": "7f040283-c478-4555-8fc3-8a36d5c73cb2",
+      "id": "f6ab9825-8ca0-4612-99ca-8097501bc8b7",
       "name": "Error3"
     },
     {
@@ -896,7 +896,7 @@
             {
               "id": "be0b52da-ff70-4694-9a23-9fe73b3eeb50",
               "name": "data",
-              "value": "={{ $('Insert user').first().json }}",
+              "value": "={{ { id: $('Insert user').first().json.id, name: $('Insert user').first().json.name, email: $('Insert user').first().json.email, phone_number: $('Insert user').first().json.phone_number, doctor_id: $('Insert user').first().json.doctor_id, is_dependant: $('Insert user').first().json.is_dependant, responsible_contact_id: $('Insert user').first().json.responsible_contact_id } }}",
               "type": "object"
             }
           ]
@@ -906,10 +906,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1728,
-        -720
+        -3920,
+        6624
       ],
-      "id": "2e8a7a6a-1151-4a7b-8486-f5fad6a22e0e",
+      "id": "d4ee7e06-3375-4670-9df1-d83f38e035d2",
       "name": "Success3"
     },
     {
@@ -929,10 +929,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -416,
-        -784
+        -2608,
+        6496
       ],
-      "id": "f37b2551-d9e8-47be-86a1-d82251cc488e",
+      "id": "05b205f9-536e-4462-9a4b-395e54c62535",
       "name": "Error4"
     },
     {
@@ -958,10 +958,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -416,
-        -976
+        -2608,
+        6304
       ],
-      "id": "d8c11f4e-a3ad-40a7-ba28-97d8196cebf3",
+      "id": "304c71d8-4130-46bd-b410-0e67c0d57824",
       "name": "Success4"
     },
     {
@@ -976,10 +976,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1344,
-        -1216
+        -3536,
+        6064
       ],
-      "id": "78be7795-9d66-4b0c-b38f-0ba1907bdb92",
+      "id": "4b8cb7af-d1ec-4421-b158-6d01c50fb2b1",
       "name": "roles/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -996,10 +996,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -960,
-        -1216
+        -3152,
+        6064
       ],
-      "id": "eb0617ca-90fd-4ef5-92e2-a79287137d0f",
+      "id": "b8b548b1-4a1d-4280-884b-5c524bcec048",
       "name": "Code in JavaScript"
     },
     {
@@ -1013,10 +1013,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1136,
-        -1008
+        -3328,
+        6272
       ],
-      "id": "05acbac0-ceeb-4abe-a63b-3e2bc01bd4f6",
+      "id": "e31b1b5f-5179-4023-bc37-428c4ae257cb",
       "name": "Execute a SQL query",
       "alwaysOutputData": true,
       "credentials": {
@@ -1040,10 +1040,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1344,
-        -1008
+        -3536,
+        6272
       ],
-      "id": "f1c6c9a5-8b93-4537-8b45-9b4037313d55",
+      "id": "fc9406fd-6fbe-40f4-8a95-77a62d53d96e",
       "name": "roles/user_roles",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1131,10 +1131,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -784,
-        -1216
+        -2976,
+        6064
       ],
-      "id": "bbf1fecc-88b7-46db-a9e0-c9c1fa6b9f7e",
+      "id": "1f516ac4-3465-409e-98ca-cbd0016a9c2c",
       "name": "Insert rows in a table1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1173,10 +1173,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1136,
-        -1216
+        -3328,
+        6064
       ],
-      "id": "4e3b5b99-249e-4a07-9595-fa4560d714fd",
+      "id": "c0689863-bb11-4da6-8783-562d82694041",
       "name": "Delete table or rows1",
       "credentials": {
         "postgres": {
@@ -1202,10 +1202,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -416,
-        208
+        -2608,
+        7488
       ],
-      "id": "c91be98d-d51a-4372-b41b-b0965127a7ea",
+      "id": "76ff512e-68f5-4df4-9fdd-80c2c8b78467",
       "name": "Error5"
     },
     {
@@ -1231,10 +1231,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -416,
-        32
+        -2608,
+        7312
       ],
-      "id": "2ac79849-1d51-4a5c-980e-d4927809e28d",
+      "id": "f5ef67a3-c517-4a75-b3f5-e62355473bb8",
       "name": "Success5"
     },
     {
@@ -1244,10 +1244,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1040,
-        -80
+        -3232,
+        7200
       ],
-      "id": "259fa5cb-d3c1-4fad-b43c-7b499933c048",
+      "id": "c5ec04be-f2c0-4ede-b09a-fd01a282e963",
       "name": "Code in JavaScript1",
       "alwaysOutputData": true
     },
@@ -1332,10 +1332,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -656,
-        -128
+        -2848,
+        7152
       ],
-      "id": "dfd5216a-2feb-4370-be15-8985d95f5c26",
+      "id": "372130ff-6083-4216-9e1a-9ee74ba7d016",
       "name": "Insert rows in a table2",
       "alwaysOutputData": true,
       "credentials": {
@@ -1374,10 +1374,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1232,
-        -80
+        -3424,
+        7200
       ],
-      "id": "30cef5b7-59ec-4280-8c90-a7349dfed63d",
+      "id": "e28c620b-1d09-4a13-9357-9cf645258741",
       "name": "Delete table or rows",
       "credentials": {
         "postgres": {
@@ -1399,10 +1399,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1408,
-        -80
+        -3600,
+        7200
       ],
-      "id": "e7eef5d1-e2e3-40c5-be93-2cb854bae969",
+      "id": "5e782efc-8e42-4ebc-864a-dbb6e32ecdc5",
       "name": "services/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1415,18 +1415,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n),\nme AS (\n  SELECT lower(email) AS email,\n         regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') AS phone\n  FROM public.users WHERE id = $4::uuid\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n     AND lower($1) IS DISTINCT FROM (SELECT email FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n     AND regexp_replace($2, '\\D', '', 'g') IS DISTINCT FROM (SELECT phone FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g') AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $5\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3 AND id <> $4::uuid)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3 AND id <> $4::uuid)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists;",
+        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n),\nme AS (\n  SELECT lower(email) AS email,\n         name,\n         regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') AS phone\n  FROM public.users WHERE id = $4::uuid\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n  (SELECT name FROM me) AS current_name,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n     AND lower($1) IS DISTINCT FROM (SELECT email FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n     AND regexp_replace($2, '\\D', '', 'g') IS DISTINCT FROM (SELECT phone FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g') AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $5\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3 AND id <> $4::uuid)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3 AND id <> $4::uuid)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $5 THEN u.identity_document = $3 ELSE u.rut = $3 END) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente y este paciente no\n  -- puede pasar a dependiente si ya tiene dependientes a su cargo.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($6, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent,\n  EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = $4::uuid AND c.is_dependant IS TRUE) AS has_dependents,\n\n  -- Fichas que el frontend pidió poner a cargo de quien se guarda (adopt_dependent_ids).\n  -- El teléfono se compara normalizado (Uruguay) y no solo por dígitos: '099123456' y\n  -- '+59899123456' son el mismo número para WhatsApp.\n  COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id,\n             'eligible', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente')),\n             'phone_match', ((CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace($2, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace($2, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce($2, ''), '\\D', '', 'g') END)),\n             'email_match', (COALESCE($1, '') <> '' AND lower(u.email) = lower($1))\n           ))\n    FROM public.users u\n    WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($7::jsonb)) AND u.id <> $4::uuid\n  ), '[]'::json) AS adopt_candidates;",
         "options": {
-          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $('/users/upsert').first().json.body.id, $json.body.is_sales] }}"
+          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $('/users/upsert').first().json.body.id, $json.body.is_sales, $json.body.responsible_contact_id || null, JSON.stringify($json.body.adopt_dependent_ids || [])] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3104,
-        -816
+        -6608,
+        6192
       ],
-      "id": "fa32da73-17ea-4182-8235-7d6819930bcc",
+      "id": "3e68dc9b-17a8-48a4-b532-e60d1b74145c",
       "name": "Execute a SQL query2",
       "credentials": {
         "postgres": {
@@ -1437,15 +1437,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\nconst emailOwners = res.email_owners || [];\nconst phoneOwners = res.phone_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) conflictedFields.push('identity_document');\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false } }];"
+        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\n// Fichas que pasan a depender de quien se guarda: su teléfono/correo repetido se le pasa a\n// esta ficha, así que dejan de contar como dueñas. Las que no cumplen las reglas siguen\n// contando y se responde el conflicto de siempre.\nconst adoptIds = (body.filter_type === 'PACIENTE' && body.is_dependent !== true\n  ? (res.adopt_candidates || []).filter((c) => c.eligible === true && (c.phone_match === true || c.email_match === true))\n  : []).map((c) => String(c.id));\nconst isAdopted = (owner) => adoptIds.includes(String(owner.id));\nconst emailOwners = (res.email_owners || []).filter((o) => !isAdopted(o));\nconst phoneOwners = (res.phone_owners || []).filter((o) => !isAdopted(o));\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\n// Al editar solo se valida si el nombre cambió: una ficha vieja con el documento\n// en el nombre no debe bloquear, por ejemplo, un cambio de teléfono.\nif (isPatient && body.name !== undefined && normalizeName(body.name) !== normalizeName(res.current_name) && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false, adopt_ids: adoptIds } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2928,
-        -816
+        -6432,
+        6192
       ],
-      "id": "433915fd-a47b-4ad8-b9b4-ef048b57fc0d",
+      "id": "7fbeb37a-ccb0-4f53-abe2-d56902b2784c",
       "name": "Code in JavaScript2"
     },
     {
@@ -1455,7 +1455,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={{ JSON.stringify({ error: true, code: $json.code, conflictedFields: $json.conflictedFields, owners: $json.owners }) }}",
+              "value": "={{ JSON.stringify({ error: true, code: $json.code, conflictedFields: $json.conflictedFields, owners: $json.owners, message: $json.message }) }}",
               "type": "object"
             },
             {
@@ -1471,10 +1471,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2592,
-        -784
+        -6048,
+        6272
       ],
-      "id": "5461142d-2afe-484e-83fa-f413406fc254",
+      "id": "eee7b8a0-8774-4c5b-968b-e8732d8f967f",
       "name": "Error8"
     },
     {
@@ -1516,27 +1516,27 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3280,
-        -688
+        -6832,
+        6320
       ],
-      "id": "f1d00ab9-670e-494b-8c05-39a0c168c2f1",
+      "id": "7dd45016-2b6f-447c-8c07-0db65c27d350",
       "name": "If2"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g')\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $4\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists;",
+        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g')\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $4\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $4 THEN u.identity_document = $3 ELSE u.rut = $3 END)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($5, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent,\n\n  -- Fichas que el frontend pidió poner a cargo de quien se guarda (adopt_dependent_ids).\n  -- El teléfono se compara normalizado (Uruguay) y no solo por dígitos: '099123456' y\n  -- '+59899123456' son el mismo número para WhatsApp.\n  COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id,\n             'eligible', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente')),\n             'phone_match', ((CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace($2, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace($2, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce($2, ''), '\\D', '', 'g') END)),\n             'email_match', (COALESCE($1, '') <> '' AND lower(u.email) = lower($1))\n           ))\n    FROM public.users u\n    WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($6::jsonb))\n  ), '[]'::json) AS adopt_candidates;",
         "options": {
-          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $json.body.is_sales] }}"
+          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $json.body.is_sales, $json.body.responsible_contact_id || null, JSON.stringify($json.body.adopt_dependent_ids || [])] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3104,
-        -576
+        -6608,
+        6624
       ],
-      "id": "2be268c7-1320-42db-b7c7-3a99e3d217ca",
+      "id": "0b9aacf2-5b4f-45b4-9f07-07095f9ae825",
       "name": "Execute a SQL query3",
       "credentials": {
         "postgres": {
@@ -1547,15 +1547,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\nconst emailOwners = res.email_owners || [];\nconst phoneOwners = res.phone_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) conflictedFields.push('identity_document');\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false } }];"
+        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\n// Fichas que pasan a depender de quien se guarda: su teléfono/correo repetido se le pasa a\n// esta ficha, así que dejan de contar como dueñas. Las que no cumplen las reglas siguen\n// contando y se responde el conflicto de siempre.\nconst adoptIds = (body.filter_type === 'PACIENTE' && body.is_dependent !== true\n  ? (res.adopt_candidates || []).filter((c) => c.eligible === true && (c.phone_match === true || c.email_match === true))\n  : []).map((c) => String(c.id));\nconst isAdopted = (owner) => adoptIds.includes(String(owner.id));\nconst emailOwners = (res.email_owners || []).filter((o) => !isAdopted(o));\nconst phoneOwners = (res.phone_owners || []).filter((o) => !isAdopted(o));\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\nif (isPatient && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false, adopt_ids: adoptIds } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2944,
-        -576
+        -6448,
+        6624
       ],
-      "id": "66e32282-5501-4c8f-86b1-a25eeaedc8f8",
+      "id": "1db6bf57-2be6-45db-a47a-0c8c94aba325",
       "name": "Code in JavaScript3"
     },
     {
@@ -1586,10 +1586,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2784,
-        -576
+        -6288,
+        6624
       ],
-      "id": "98e3262d-bf6b-478a-8369-70a6b6d80838",
+      "id": "d548185d-b056-49ba-9461-1580a72d31db",
       "name": "If"
     },
     {
@@ -1599,7 +1599,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={{ JSON.stringify({ error: true, code: $json.code, conflictedFields: $json.conflictedFields, owners: $json.owners }) }}",
+              "value": "={{ JSON.stringify({ error: true, code: $json.code, conflictedFields: $json.conflictedFields, owners: $json.owners, message: $json.message }) }}",
               "type": "object"
             }
           ]
@@ -1609,10 +1609,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2592,
-        -416
+        -5888,
+        6624
       ],
-      "id": "2b4c5e4a-354f-4c59-8e7d-d24a5a36d435",
+      "id": "1f3bd73f-3eb6-4b14-b955-32ed3fe8ad64",
       "name": "Error9"
     },
     {
@@ -1626,10 +1626,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1200,
-        192
+        -3392,
+        7472
       ],
-      "id": "0ab58bb4-7346-431a-b79e-02c83ba2b1c7",
+      "id": "6381c8c9-5e1f-48ad-a46b-07d8d25d3fa7",
       "name": "Execute a SQL query1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1653,10 +1653,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1408,
-        192
+        -3600,
+        7472
       ],
-      "id": "6acd928f-6399-4b54-9bc6-b9ba501db518",
+      "id": "c500fa98-d5b6-435b-9a91-0b2f3e0b00e6",
       "name": "services/user_services",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1669,16 +1669,16 @@
     {
       "parameters": {
         "content": "## CRUD  Users\n",
-        "height": 1088,
-        "width": 2016
+        "height": 1504,
+        "width": 3392
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -3520,
-        -1328
+        -7088,
+        5536
       ],
-      "id": "deede505-4767-4792-a350-de14bb2d9f6e",
+      "id": "707db007-2169-4a05-8bf2-69e8023e2e92",
       "name": "Sticky Note14"
     },
     {
@@ -1690,10 +1690,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1472,
-        -1328
+        -3664,
+        5952
       ],
-      "id": "27d9fbab-2ef0-45d0-848c-7ee4f9d6bde5",
+      "id": "98928961-f1eb-44f7-8caf-00a04591e872",
       "name": "Sticky Note15"
     },
     {
@@ -1724,10 +1724,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2752,
-        -816
+        -6256,
+        6192
       ],
-      "id": "e7d70287-580e-4a40-8218-88994ad407f7",
+      "id": "41fe1e52-2f1a-4f44-803a-b305fe776278",
       "name": "If3"
     },
     {
@@ -1739,10 +1739,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1472,
-        -208
+        -3664,
+        7072
       ],
-      "id": "4d98566e-6248-4110-99ce-92a205814aa5",
+      "id": "3cc5d6db-2819-4a08-bd72-48c779e0f6bf",
       "name": "Sticky Note16"
     },
     {
@@ -1758,10 +1758,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1344,
-        -816
+        -3536,
+        6464
       ],
-      "id": "e6ea6961-425e-4e3c-8b43-0b899d56379c",
+      "id": "55e622b7-e7b4-4825-b91c-6457b38664aa",
       "name": "users/doctors",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1782,10 +1782,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1136,
-        -816
+        -3328,
+        6464
       ],
-      "id": "897df72a-3f36-4a00-bef9-4a7203ec1da9",
+      "id": "c5323031-1bbd-42b1-a5c0-aa5952801d98",
       "name": "Get Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -1809,10 +1809,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1344,
-        -512
+        -3536,
+        6768
       ],
-      "id": "d2f7f0a7-5a0d-4edb-a9c0-dbc1a71437ed",
+      "id": "ecc3d125-df18-4aad-ae19-437086a72e7c",
       "name": "users/patients",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1831,10 +1831,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1136,
-        -624
+        -3328,
+        6656
       ],
-      "id": "21294ee3-e9f7-43c3-8ee3-6bd2f5a574d3",
+      "id": "1d168eb7-badb-4bc1-9192-79a7e3e7147e",
       "name": "Get Patients",
       "alwaysOutputData": true,
       "credentials": {
@@ -1859,7 +1859,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "PACIENTE",
                     "operator": {
                       "type": "string",
@@ -1882,7 +1882,7 @@
                 "conditions": [
                   {
                     "id": "24696343-2c75-4aea-b334-f4d08d458a28",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "DOCTOR",
                     "operator": {
                       "type": "string",
@@ -1905,7 +1905,7 @@
                 "conditions": [
                   {
                     "id": "182a7173-70b5-471b-b5ab-7fa675b90f3f",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "PROVEEDOR",
                     "operator": {
                       "type": "string",
@@ -1928,7 +1928,7 @@
                 "conditions": [
                   {
                     "id": "e0cc1304-bdb6-490b-b337-0f90a4102615",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "OPERADOR",
                     "operator": {
                       "type": "string",
@@ -1949,10 +1949,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        -2384,
-        -640
+        -4576,
+        6688
       ],
-      "id": "810a3d64-feb9-4746-9669-36e0c5fa577c",
+      "id": "4a1b81b5-1816-4e50-9f68-65b14bd7c80e",
       "name": "Switch"
     },
     {
@@ -1971,7 +1971,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "user_id": "={{ $('Insert user').item.json.id }}",
+            "user_id": "={{ $('Insert user').first().json.id }}",
             "role_id": "={{ $json.role_id }}"
           },
           "matchingColumns": [
@@ -2036,12 +2036,11 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1968,
-        -624
+        -4128,
+        6720
       ],
-      "id": "737604a8-c002-441b-9562-4d3cfb0ea8b6",
+      "id": "75647e13-ecf6-4ba9-8b94-53bf7b7b871e",
       "name": "Insert rows in users_role",
-      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -2057,7 +2056,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -2067,10 +2066,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1728,
-        -528
+        -3920,
+        6816
       ],
-      "id": "b5a97029-b341-43ca-8224-47c6d3d069a4",
+      "id": "d8335d93-385b-4c7a-83db-47abe1740e8b",
       "name": "Error6"
     },
     {
@@ -2090,10 +2089,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2160,
-        -768
+        -4352,
+        6560
       ],
-      "id": "3424a2d2-a173-44bc-8cd6-5fb8c8cd2899",
+      "id": "f60a32b4-4155-4fd6-93b8-d83747b929f6",
       "name": "Asignar role paciente"
     },
     {
@@ -2113,10 +2112,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2160,
-        -624
+        -4352,
+        6720
       ],
-      "id": "c076f6bc-3199-435b-a780-9ef8d91dcdac",
+      "id": "8f9aa832-bf27-440a-853e-d00cf3320829",
       "name": "Asignar role medico"
     },
     {
@@ -2133,10 +2132,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        880
+        -5632,
+        8160
       ],
-      "id": "9a431b5e-a06d-4ce4-97e1-f6847fa3359c",
+      "id": "ef1a2eec-fe6d-4f3b-b661-02098cac6cad",
       "name": "user_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2157,10 +2156,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        880
+        -5424,
+        8160
       ],
-      "id": "1d8f80cd-26d5-4d05-b319-602a213438ae",
+      "id": "5e1d809b-d578-4d09-8d56-195c166e4697",
       "name": "Select Invoices of User",
       "credentials": {
         "postgres": {
@@ -2183,10 +2182,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        1040
+        -5632,
+        8320
       ],
-      "id": "3a125ab3-2d10-4c76-810b-e9a636160bed",
+      "id": "a10dbfdf-eba1-4334-bd7b-3a4a17093730",
       "name": "user_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2199,7 +2198,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id,\n        p.doctor_id\n    FROM public.payments p\n    INNER JOIN public.users u ON p.user_id = u.id\n    LEFT JOIN public.invoices i ON p.invoice_id = i.id\n    LEFT JOIN public.payment_methods pm ON p.payment_method_id = pm.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE PAGOS (Remanentes aplicados a otras facturas)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS doc_no, \n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM public.payment_allocations pa\n    JOIN public.payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN public.invoices i ON pa.invoice_id = i.id\n    LEFT JOIN public.users u ON orig_p.user_id = u.id\n    LEFT JOIN public.payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE orig_p.user_id = $1\n      AND (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        target_i.is_sales,\n        CONCAT(nc.doc_no, '-A', ia.id) AS doc_no, \n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM public.invoice_allocations ia\n    JOIN public.invoices nc ON ia.source_id = nc.id\n    JOIN public.invoices target_i ON ia.target_id = target_i.id\n    JOIN public.users u ON target_i.user_id = u.id\n    WHERE target_i.user_id = $1\n)\nSELECT * FROM all_transactions\nORDER BY created_at DESC, transaction_id DESC;",
+        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id,\n        p.doctor_id,\n        COALESCE(i.currency, p.currency) AS invoice_currency,\n        p.id AS payment_id\n    FROM public.payments p\n    INNER JOIN public.users u ON p.user_id = u.id\n    LEFT JOIN public.invoices i ON p.invoice_id = i.id\n    LEFT JOIN public.payment_methods pm ON p.payment_method_id = pm.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE PAGOS (Remanentes aplicados a otras facturas)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS doc_no, \n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id,\n        COALESCE(i.currency, orig_p.currency) AS invoice_currency,\n        pa.payment_id AS payment_id\n    FROM public.payment_allocations pa\n    JOIN public.payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN public.invoices i ON pa.invoice_id = i.id\n    LEFT JOIN public.users u ON orig_p.user_id = u.id\n    LEFT JOIN public.payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE orig_p.user_id = $1\n      AND (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        target_i.is_sales,\n        CONCAT(nc.doc_no, '-A', ia.id) AS doc_no, \n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id,\n        target_i.currency AS invoice_currency,\n        NULL::integer AS payment_id\n    FROM public.invoice_allocations ia\n    JOIN public.invoices nc ON ia.source_id = nc.id\n    JOIN public.invoices target_i ON ia.target_id = target_i.id\n    JOIN public.users u ON target_i.user_id = u.id\n    WHERE target_i.user_id = $1\n)\nSELECT * FROM all_transactions\nORDER BY created_at DESC, transaction_id DESC;",
         "options": {
           "queryReplacement": "={{ $json.query.user_id }}"
         }
@@ -2207,10 +2206,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        1040
+        -5424,
+        8320
       ],
-      "id": "a09761a3-d0a6-433f-a254-cfa102c9f5aa",
+      "id": "e05114cd-f3a3-4900-9456-2e559336c314",
       "name": "Select Payments of User",
       "credentials": {
         "postgres": {
@@ -2232,10 +2231,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        -128
+        -5632,
+        7152
       ],
-      "id": "efae7f51-1b12-4723-b083-fd60a6bd2d63",
+      "id": "d18508e9-43d0-44e2-8b61-b2df1a97956c",
       "name": "users",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2259,10 +2258,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        48
+        -5632,
+        7328
       ],
-      "id": "75af48a9-fb12-4d0c-b43b-a367d9eb0660",
+      "id": "e7fb4260-4163-4350-924a-d9dc565f239e",
       "name": "user_roles",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2286,10 +2285,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        224
+        -5632,
+        7504
       ],
-      "id": "d629ef19-575b-4323-a553-9edf8b5b4d35",
+      "id": "27143743-e23f-4724-9cb5-ad0167420847",
       "name": "user_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2313,10 +2312,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        544
+        -5632,
+        7824
       ],
-      "id": "643956a4-6fa8-45a3-8f30-0672a1af8304",
+      "id": "9c286084-04a8-43a3-8ce0-ecf57401d38d",
       "name": "user_quotes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2340,10 +2339,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        704
+        -5632,
+        7984
       ],
-      "id": "7e1acf4c-5948-4b5a-b393-c148b3c8e5aa",
+      "id": "8d456a14-6cb9-4072-a174-c0d54fb9be6d",
       "name": "user_logs",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2367,10 +2366,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        1200
+        -5632,
+        8480
       ],
-      "id": "1564b57f-4364-4a42-b8d2-efa562d59433",
+      "id": "0445e3f6-eb30-45f3-88ef-b5ff6d4238aa",
       "name": "user_orders",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2391,10 +2390,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        1200
+        -5424,
+        8480
       ],
-      "id": "93411654-39b8-42fa-8922-bb0c8318711f",
+      "id": "c592f95a-801f-41ef-b25d-c4e82e0509ec",
       "name": "Select Orders of User",
       "credentials": {
         "postgres": {
@@ -2416,10 +2415,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        1392
+        -5632,
+        8672
       ],
-      "id": "5cfc2573-cdaf-4cbb-8da0-dd0dc520c954",
+      "id": "486a9ef3-f106-4975-996b-67773d5aa8c9",
       "name": "debtors",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2438,10 +2437,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        1392
+        -5424,
+        8672
       ],
-      "id": "d7df849d-021a-4057-8e97-156cc7a28c4b",
+      "id": "bf0f901f-5dd2-4983-83b8-1fe7a2ea1541",
       "name": "Select Debtors",
       "alwaysOutputData": true,
       "credentials": {
@@ -2469,10 +2468,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -3024,
-        1392
+        -5216,
+        8672
       ],
-      "id": "384f10a2-a8e1-48f5-9c71-448a955696bb",
+      "id": "7690e7ce-2744-4ee4-b9a0-a76eda9c507c",
       "name": "OK: List of debtors"
     },
     {
@@ -2532,10 +2531,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -3248,
-        -1168
+        -6752,
+        5840
       ],
-      "id": "4aa5d29c-c555-4c13-8d5a-4075450c9007",
+      "id": "eba2697a-15e9-4e83-90e4-53b7477a34b5",
       "name": "Call 'Check security'"
     },
     {
@@ -2566,10 +2565,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -848,
-        -80
+        -3040,
+        7200
       ],
-      "id": "dddcd7ad-eca0-4e9e-bddb-a22dbceaa8e3",
+      "id": "49df4aa4-9039-4774-908c-584a2f701497",
       "name": "If1"
     },
     {
@@ -2580,11 +2579,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1472,
-        400
+        -3664,
+        7680
       ],
       "typeVersion": 1,
-      "id": "b0c252b8-9c1c-44a8-ac94-bf037c1e48cc",
+      "id": "621491b1-c9e9-40c6-82d6-2eeb824db3e2",
       "name": "Sticky Note1"
     },
     {
@@ -2601,10 +2600,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1392,
-        512
+        -3584,
+        7792
       ],
-      "id": "2c1c4c0d-68b2-4f27-8c0b-52b6dd9790da",
+      "id": "ede3f0d0-0192-40bb-ba4c-183652ff5ca1",
       "name": "POST /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2901,10 +2900,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1184,
-        512
+        -3376,
+        7792
       ],
-      "id": "db37b7a3-4da5-4c55-a3ef-0b13980035d8",
+      "id": "64e22243-df34-4670-a9ca-fde82b92f06a",
       "name": "Update appointment field",
       "credentials": {
         "postgres": {
@@ -2931,10 +2930,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -960,
-        608
+        -3152,
+        7888
       ],
-      "id": "154092be-2922-4b6a-8799-4b064acfc844",
+      "id": "f1cf8ffb-e306-45ca-8de4-e5f608061700",
       "name": "OK"
     },
     {
@@ -2954,10 +2953,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -960,
-        784
+        -3152,
+        8064
       ],
-      "id": "4be8d7b5-27ff-4692-acad-155eb8c07cb5",
+      "id": "2a9e84c8-2f5e-4244-b3d9-bbb8478120d8",
       "name": "Error1"
     },
     {
@@ -3242,10 +3241,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1184,
-        704
+        -3376,
+        7984
       ],
-      "id": "399c3f68-1064-444b-a31b-12de856cf7a5",
+      "id": "4c9efb12-cf7e-4318-bfc2-dfebce877259",
       "name": "Update appointment field1",
       "credentials": {
         "postgres": {
@@ -3269,10 +3268,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1392,
-        704
+        -3584,
+        7984
       ],
-      "id": "3981d85c-cf52-48d6-8317-a03985cf7b1b",
+      "id": "e754a1c0-6c81-45b5-972d-f468e4c20592",
       "name": "POST /patient/discharge/cancel",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3295,10 +3294,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1392,
-        896
+        -3584,
+        8176
       ],
-      "id": "a24d873d-aa0c-4d4c-8511-c7bae716aa70",
+      "id": "829175a3-4ff6-4431-861c-8fb9ed7e0794",
       "name": "GET /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3319,10 +3318,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1184,
-        896
+        -3376,
+        8176
       ],
-      "id": "bcc3acf8-4c7f-433a-82d0-57b9fd7d96dd",
+      "id": "a2007226-166b-451d-9c79-fd8694e1323d",
       "name": "Get appointment field",
       "credentials": {
         "postgres": {
@@ -3340,11 +3339,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -2784,
-        624
+        -4976,
+        7904
       ],
       "typeVersion": 1,
-      "id": "cd45af22-12bb-4db3-91e1-2e401b18a64b",
+      "id": "60c645f7-1d4e-4138-8eee-b9f005754b10",
       "name": "Sticky Note2"
     },
     {
@@ -3360,10 +3359,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2720,
-        992
+        -4912,
+        8272
       ],
-      "id": "9201a114-5bef-4da8-9eb2-481511142410",
+      "id": "8a0994bd-c319-4d85-91c2-78e8362a21fb",
       "name": "GET /user/financial-summary/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3377,7 +3376,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.currency, p.created_at, 'payment' AS document_type, p.doc_no, -p.amount AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
+        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT\n        -- Un pago directo a una factura en otra moneda se muestra en la moneda de la factura, por lo convertido.\n        p.user_id, COALESCE(pay_inv.currency, p.currency) AS currency, p.created_at, 'payment' AS document_type, p.doc_no,\n        -CASE WHEN pay_inv.currency <> p.currency THEN COALESCE(p.converted_amount, p.amount) ELSE p.amount END AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n    LEFT JOIN public.invoices pay_inv ON pay_inv.id = p.invoice_id\n\n    UNION ALL\n\n    -- Aplicación de un pago a una factura en otra moneda: sale del saldo de la moneda del pago...\n    SELECT\n        p.user_id, p.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), ABS(pa.amount) AS amount,\n        jsonb_build_object('label', 'Aplicación de pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n\n    UNION ALL\n\n    -- ...y entra como pago en la moneda de la factura.\n    SELECT\n        p.user_id, pa_inv.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), -ABS(pa.target_amount) AS amount,\n        jsonb_build_object('label', 'Pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
         "options": {
           "queryReplacement": "={{ [$json.query.user_id, $json.query.from, $json.query.to] }}"
         }
@@ -3385,10 +3384,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2512,
-        992
+        -4704,
+        8272
       ],
-      "id": "8c0dc3ed-a485-488f-a348-d3b871547fbf",
+      "id": "19a5f9b8-6b88-4df2-93a4-4cb2931cdc48",
       "name": "Get user financial summary",
       "credentials": {
         "postgres": {
@@ -3444,10 +3443,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2304,
-        992
+        -4496,
+        8272
       ],
-      "id": "aa8a2b55-71f0-49bc-9dad-f7a43a3cc9ed",
+      "id": "0426abb8-0fe4-4051-9960-61f79ede7bef",
       "name": "Call 'Build PDF'",
       "disabled": true
     },
@@ -3479,10 +3478,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2096,
-        992
+        -4288,
+        8272
       ],
-      "id": "77d9e586-b741-4a95-90a5-71877fe0ba84",
+      "id": "238c7df0-10d3-4253-a4f6-a216f95dbdb4",
       "name": "If4",
       "disabled": true
     },
@@ -3496,10 +3495,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1888,
-        896
+        -4080,
+        8176
       ],
-      "id": "d95897c8-9f70-4328-b5cc-99738992183c",
+      "id": "efdb5f6b-4291-417c-9709-bd40be4666c4",
       "name": "OK: File",
       "disabled": true
     },
@@ -3512,17 +3511,17 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1888,
-        1088
+        -4080,
+        8368
       ],
-      "id": "a7d8de56-8ba8-4c52-abf5-1decca1172b1",
+      "id": "ddff30d9-6670-4a32-bf5c-b97dfcb8c16c",
       "name": "Error7",
       "disabled": true
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH all_movements AS (\n    -- 1. FACTURAS\n    SELECT \n        i.user_id, i.currency, 'invoice' AS type,\n        CASE WHEN u.is_sales THEN i.total ELSE -i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'invoice' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 2. NOTAS DE CRÉDITO\n    SELECT \n        i.user_id, i.currency, 'credit_note' AS type,\n        CASE WHEN u.is_sales THEN -i.total ELSE i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'credit_note' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 3. PAGOS (El ingreso bruto de dinero)\n    SELECT \n        p.user_id, p.currency, 'payment' AS type,\n        -p.amount AS amount\n    FROM public.payments p\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 4. COMPENSACIÓN: Pagos con invoice_id directo\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        p.amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.invoice_currency AS currency, 'compensation' AS type,\n        -p.converted_amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    -- 5. COMPENSACIÓN: Tabla payment_allocations\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        pa.amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        p.user_id, i.currency AS currency, 'compensation' AS type,\n        -pa.target_amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 6. COMPENSACIÓN: Tabla invoice_allocations (NC aplicadas a Facturas)\n    SELECT \n        i.user_id, i.currency AS currency, 'compensation' AS type,\n        ia.amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.source_id = i.id\n    WHERE i.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        i_target.user_id, i_target.currency AS currency, 'compensation' AS type,\n        -ia.target_amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i_target ON ia.target_id = i_target.id\n    WHERE i_target.user_id = $1\n),\nfinancial_summary AS (\n    SELECT \n        user_id,\n        currency,\n        SUM(CASE WHEN type = 'invoice' THEN ABS(amount) ELSE 0 END) AS total_invoiced,\n        SUM(CASE WHEN type = 'credit_note' THEN ABS(amount) ELSE 0 END) AS total_credit_notes,\n        SUM(CASE WHEN type = 'payment' THEN -amount ELSE 0 END) AS total_paid,\n        SUM(amount) AS net_balance\n    FROM all_movements\n    GROUP BY user_id, currency\n)\nSELECT \n    u.id AS user_id,\n    u.is_sales,\n    jsonb_object_agg(\n        fs.currency, \n        jsonb_build_object(\n            'total_invoiced', fs.total_invoiced,\n            'total_credit_notes', fs.total_credit_notes,\n            'total_paid', fs.total_paid,\n            'current_debt', CASE \n                WHEN u.is_sales THEN GREATEST(fs.net_balance, 0)\n                ELSE ABS(LEAST(fs.net_balance, 0))\n            END,\n            'available_balance', CASE \n                WHEN u.is_sales THEN ABS(LEAST(fs.net_balance, 0))\n                ELSE GREATEST(fs.net_balance, 0)\n            END,\n            'account_status', fs.net_balance\n        )\n    ) AS financial_data\nFROM public.users u\nJOIN financial_summary fs ON u.id = fs.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.is_sales;",
+        "query": "WITH all_movements AS (\n    -- 1. FACTURAS\n    SELECT \n        i.user_id, i.currency, 'invoice' AS type,\n        CASE WHEN u.is_sales THEN i.total ELSE -i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'invoice' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 2. NOTAS DE CRÉDITO\n    SELECT \n        i.user_id, i.currency, 'credit_note' AS type,\n        CASE WHEN u.is_sales THEN -i.total ELSE i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'credit_note' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 3. PAGOS (El ingreso bruto de dinero)\n    SELECT \n        p.user_id, p.currency, 'payment' AS type,\n        -p.amount AS amount\n    FROM public.payments p\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 4. COMPENSACIÓN: Pagos con invoice_id directo\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        p.amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.invoice_currency AS currency, 'compensation' AS type,\n        -p.converted_amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    -- 5. COMPENSACIÓN: Tabla payment_allocations (un pago con invoice_id ya se compensó en el punto 4)\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        pa.amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1 AND p.invoice_id IS NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, i.currency AS currency, 'compensation' AS type,\n        -pa.target_amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1 AND p.invoice_id IS NULL\n\n    UNION ALL\n\n    -- 6. COMPENSACIÓN: Tabla invoice_allocations (NC aplicadas a Facturas)\n    SELECT \n        i.user_id, i.currency AS currency, 'compensation' AS type,\n        ia.amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.source_id = i.id\n    WHERE i.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        i_target.user_id, i_target.currency AS currency, 'compensation' AS type,\n        -ia.target_amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i_target ON ia.target_id = i_target.id\n    WHERE i_target.user_id = $1\n),\nfinancial_summary AS (\n    SELECT \n        user_id,\n        currency,\n        SUM(CASE WHEN type = 'invoice' THEN ABS(amount) ELSE 0 END) AS total_invoiced,\n        SUM(CASE WHEN type = 'credit_note' THEN ABS(amount) ELSE 0 END) AS total_credit_notes,\n        SUM(CASE WHEN type = 'payment' THEN -amount ELSE 0 END) AS total_paid,\n        SUM(amount) AS net_balance\n    FROM all_movements\n    GROUP BY user_id, currency\n)\nSELECT \n    u.id AS user_id,\n    u.is_sales,\n    jsonb_object_agg(\n        fs.currency, \n        jsonb_build_object(\n            'total_invoiced', fs.total_invoiced,\n            'total_credit_notes', fs.total_credit_notes,\n            'total_paid', fs.total_paid,\n            'current_debt', CASE \n                WHEN u.is_sales THEN GREATEST(fs.net_balance, 0)\n                ELSE ABS(LEAST(fs.net_balance, 0))\n            END,\n            'available_balance', CASE \n                WHEN u.is_sales THEN ABS(LEAST(fs.net_balance, 0))\n                ELSE GREATEST(fs.net_balance, 0)\n            END,\n            'account_status', fs.net_balance\n        )\n    ) AS financial_data\nFROM public.users u\nJOIN financial_summary fs ON u.id = fs.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.is_sales;",
         "options": {
           "queryReplacement": "={{ $json.query.user_id }}"
         }
@@ -3530,10 +3529,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2512,
-        768
+        -4704,
+        8048
       ],
-      "id": "4c064c51-8331-41ef-b566-f8fb7eb4087f",
+      "id": "1b3c16f3-6190-49d5-a32b-2ce45e45a7c1",
       "name": "Get user financial summary1",
       "credentials": {
         "postgres": {
@@ -3556,10 +3555,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2720,
-        768
+        -4912,
+        8048
       ],
-      "id": "b25c59bb-e191-4405-be6e-d637be3c9197",
+      "id": "f438d60d-be0a-46ef-b4ed-e91f39b1b260",
       "name": "user_financial",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3587,10 +3586,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2304,
-        672
+        -4496,
+        7952
       ],
-      "id": "3540ae2a-91b8-4eb3-8a7f-c28dc38f9eae",
+      "id": "704d1158-8fbf-4452-8e74-f313ff6d5dff",
       "name": "OK1"
     },
     {
@@ -3610,10 +3609,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2304,
-        864
+        -4496,
+        8144
       ],
-      "id": "03f95099-4654-47d3-8f28-fe7e13e4ec5e",
+      "id": "9d8a02ec-441f-41a0-94e0-113c2f49a59d",
       "name": "Error10"
     },
     {
@@ -3630,10 +3629,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3440,
-        384
+        -5632,
+        7664
       ],
-      "id": "8cfcd800-2f58-466b-bdb4-27bec3554dc1",
+      "id": "952efb1d-a8d5-4f65-a2ca-af3585f2a4c1",
       "name": "users_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3654,10 +3653,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        384
+        -5424,
+        7664
       ],
-      "id": "352b170d-370e-43d3-9c9f-734db817ec4f",
+      "id": "03f39195-0b16-4763-89a9-006cf266531f",
       "name": "Select Services of users",
       "credentials": {
         "postgres": {
@@ -3678,10 +3677,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1360,
-        -656
+        -3552,
+        6624
       ],
-      "id": "7a85cb01-b1d2-4283-ae89-920496adadef",
+      "id": "aadb176d-91b8-48da-bc01-994868490d5e",
       "name": "users/doctors_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3697,10 +3696,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1248,
-        -384
+        -3440,
+        6896
       ],
-      "id": "105141e8-406f-4e1c-8e1e-8607678f180b",
+      "id": "fa21dbee-7302-44ff-9b75-f840159c6a97",
       "name": "users/patients_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3712,11 +3711,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -2784,
-        288
+        -4976,
+        7568
       ],
       "typeVersion": 1,
-      "id": "6e9c4c4d-0c71-4987-9111-35e2a2435c1a",
+      "id": "d29883cf-2d8b-40ac-be3e-9a4f3db03ecd",
       "name": "Sticky Note4"
     },
     {
@@ -3733,10 +3732,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2720,
-        400
+        -4912,
+        7680
       ],
-      "id": "1cad682b-65a9-4155-8c24-e0d8fbd992b1",
+      "id": "6e1f9f07-eb0d-4f1b-83cd-f9e10e538346",
       "name": "user_dependant",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3757,10 +3756,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2512,
-        400
+        -4704,
+        7680
       ],
-      "id": "a541be1a-ae0a-43c5-9023-5a98d92e2ed5",
+      "id": "f567529a-cfb3-4deb-99c3-0acf053d0628",
       "name": "Select dependant contact",
       "credentials": {
         "postgres": {
@@ -3777,11 +3776,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -3040,
-        1584
+        -5216,
+        8864
       ],
       "typeVersion": 1,
-      "id": "5b62c948-aefa-4299-93b9-a6d009ec6d79",
+      "id": "76977365-eb33-4af7-9590-b65294eba900",
       "name": "Doctors"
     },
     {
@@ -3798,10 +3797,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2992,
-        1728
+        -5168,
+        9008
       ],
-      "id": "66d2c110-bb0e-4acb-b4f5-b22146743acb",
+      "id": "402989a9-f62c-4204-af3c-585a981a372c",
       "name": "ai/doctor/query",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3823,10 +3822,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -2368,
-        1728
+        -4544,
+        9008
       ],
-      "id": "de85afbf-a5af-418a-a19f-de50ca1269ea",
+      "id": "ef3a019c-4a1b-4bc1-986a-c2ea31f9888c",
       "name": "Manager",
       "retryOnFail": true,
       "maxTries": 2,
@@ -3850,10 +3849,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1712,
-        1664
+        -3888,
+        8944
       ],
-      "id": "6f9371e2-1ad2-497c-9fa5-b8142b61ec64",
+      "id": "dfeafc55-d604-464e-ac31-626074250d97",
       "name": "OK2"
     },
     {
@@ -3873,10 +3872,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1712,
-        1808
+        -3888,
+        9088
       ],
-      "id": "84eaaab5-22e1-4294-a520-d4acce8984b6",
+      "id": "8daf76ab-1327-40ab-b6ff-56d36597f0ee",
       "name": "Error11"
     },
     {
@@ -3923,10 +3922,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2784,
-        1728
+        -4960,
+        9008
       ],
-      "id": "f3a32a0a-d91e-4228-9ad0-4ee70bce4de3",
+      "id": "934c2feb-3455-434e-a55c-8470fe2f5ddd",
       "name": "Get User Data"
     },
     {
@@ -3937,10 +3936,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        -2496,
-        2016
+        -4672,
+        9296
       ],
-      "id": "bad98d40-b824-4b37-b6c4-ff4f545782ad",
+      "id": "8df11011-967d-400e-8d15-185a19ab91ae",
       "name": "Postgres Chat Memory",
       "credentials": {
         "postgres": {
@@ -3960,10 +3959,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        -2400,
-        2176
+        -4576,
+        9456
       ],
-      "id": "d617341b-bc61-41a7-b334-42e000f90e6b",
+      "id": "558226a8-0bd6-465e-bc90-e956b466d7d1",
       "name": "Patient anamnesis",
       "credentials": {
         "postgres": {
@@ -3983,10 +3982,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        -2304,
-        2016
+        -4480,
+        9296
       ],
-      "id": "c3d9a83b-421d-424b-9819-a3bad21435db",
+      "id": "19d9bf23-db0a-4441-9a82-13753658f9a9",
       "name": "Patient clinic sessions",
       "credentials": {
         "postgres": {
@@ -4006,10 +4005,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        -2208,
-        2176
+        -4384,
+        9456
       ],
-      "id": "7e3cb1ac-f972-4096-8ea6-2f831d3728f6",
+      "id": "2aa29266-e144-46db-9965-ad69053bebdc",
       "name": "Patient personal information",
       "credentials": {
         "postgres": {
@@ -4029,10 +4028,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        -2112,
-        2016
+        -4288,
+        9296
       ],
-      "id": "907eeb2f-86fb-427c-b63e-1dbe03e4a1b1",
+      "id": "ff728c80-4cb6-4649-a782-2ac196c97765",
       "name": "Patient appointment",
       "credentials": {
         "postgres": {
@@ -4052,10 +4051,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        -2016,
-        2176
+        -4192,
+        9456
       ],
-      "id": "bcff2961-55f6-4101-93ab-ae9565aa44fc",
+      "id": "36839a62-e54d-4dad-b314-b380902e15e3",
       "name": "Patient treatment plans",
       "credentials": {
         "postgres": {
@@ -4071,10 +4070,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2576,
-        1728
+        -4752,
+        9008
       ],
-      "id": "21cd433f-b722-4b1d-a8de-05aead6c8895",
+      "id": "727abb1b-3c9a-4b4e-ba28-851513f80a92",
       "name": "Format data"
     },
     {
@@ -4084,10 +4083,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1936,
-        1664
+        -4112,
+        8944
       ],
-      "id": "796e653b-14b4-4011-aeea-3234382c8a3b",
+      "id": "f9b7fb9c-1278-4180-b4d8-c3639b4bfe04",
       "name": "Format output"
     },
     {
@@ -4098,11 +4097,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1472,
-        1088
+        -3664,
+        8368
       ],
       "typeVersion": 1,
-      "id": "41bb1758-b07b-4e59-88c0-01b4f32ae0b3",
+      "id": "039aea32-b167-4e2f-b678-7b953e200302",
       "name": "Sticky Note5"
     },
     {
@@ -4119,10 +4118,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1392,
-        1200
+        -3584,
+        8480
       ],
-      "id": "212cf40f-9408-46a6-a242-ceaea065265f",
+      "id": "c3a00dcd-9397-417c-a4b7-16b3ca378025",
       "name": "POST /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4143,10 +4142,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1184,
-        1200
+        -3376,
+        8480
       ],
-      "id": "b2424080-5aa4-43e8-92ed-4dbadad0d59e",
+      "id": "1a76b7d0-3eff-4b40-9f3c-c7bce08237c7",
       "name": "Update user preferences",
       "credentials": {
         "postgres": {
@@ -4173,10 +4172,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -976,
-        1184
+        -3168,
+        8464
       ],
-      "id": "65ab3409-f7d7-4b9c-9610-873f4646532a",
+      "id": "497ebb4f-edfe-4b22-8711-9451d41f614f",
       "name": "OK3"
     },
     {
@@ -4196,10 +4195,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -976,
-        1392
+        -3168,
+        8672
       ],
-      "id": "6ce249a9-aa6a-48aa-abb5-910410a0f7bb",
+      "id": "dec29f08-f848-4e9c-a956-57cac32ebb53",
       "name": "Error12"
     },
     {
@@ -4215,10 +4214,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1392,
-        1376
+        -3584,
+        8656
       ],
-      "id": "6387c0c5-9a96-45c6-bc32-d41c6c1f63b2",
+      "id": "a5083b27-b928-4551-adbe-8d2fa2e1d120",
       "name": "GET /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4239,10 +4238,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1184,
-        1376
+        -3376,
+        8656
       ],
-      "id": "61ac34ad-07bb-4192-a614-bd64e042df6c",
+      "id": "4aace42e-1da5-4b67-8f32-431ba1b4603a",
       "name": "Get user preferences",
       "alwaysOutputData": true,
       "credentials": {
@@ -4821,10 +4820,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2592,
-        -592
+        -5680,
+        6528
       ],
-      "id": "1aa77e61-f2a1-49df-89e7-08e1ef32bbc7",
+      "id": "bf27db0b-483d-4e24-ba5b-ed8f2b3497c0",
       "name": "Insert user",
       "credentials": {
         "postgres": {
@@ -5402,12 +5401,11 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2592,
-        -944
+        -5616,
+        5936
       ],
-      "id": "9cd9e0e8-0cbd-4ca1-a809-c4a54eae2288",
+      "id": "33f60578-2965-467c-8383-1c8d6aa7ed2b",
       "name": "Update user",
-      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -5424,11 +5422,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -3040,
-        2384
+        -5216,
+        9664
       ],
       "typeVersion": 1,
-      "id": "13f00c06-a68c-4655-8aab-869a416ef294",
+      "id": "108e662a-f7c6-423a-9995-78d5e4bf22c3",
       "name": "Doctors1"
     },
     {
@@ -5442,10 +5440,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2800,
-        2528
+        -4976,
+        9808
       ],
-      "id": "df3ab734-3e29-4a44-9b05-2073c2f790b2",
+      "id": "77bc7e0b-0bc1-4725-a0f0-3dbec6020c54",
       "name": "Get user by ID",
       "credentials": {
         "postgres": {
@@ -5467,10 +5465,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3008,
-        2528
+        -5184,
+        9808
       ],
-      "id": "b3c2a443-8fdc-4896-afd9-9473a0a02cf2",
+      "id": "8b79edde-4179-487d-a5cc-e7fa7f389c93",
       "name": "GET user",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5493,10 +5491,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2736,
-        1312
+        -4928,
+        8592
       ],
-      "id": "7071dfc8-33cb-4834-a28c-fe7ae1de1d78",
+      "id": "bf3342e8-1ca7-43cc-9e73-9ec6a3a15c54",
       "name": "GET /user/financial-summary/print1",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5509,7 +5507,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.currency, p.created_at, 'payment' AS document_type, p.doc_no, -p.amount AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
+        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT\n        -- Un pago directo a una factura en otra moneda se muestra en la moneda de la factura, por lo convertido.\n        p.user_id, COALESCE(pay_inv.currency, p.currency) AS currency, p.created_at, 'payment' AS document_type, p.doc_no,\n        -CASE WHEN pay_inv.currency <> p.currency THEN COALESCE(p.converted_amount, p.amount) ELSE p.amount END AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n    LEFT JOIN public.invoices pay_inv ON pay_inv.id = p.invoice_id\n\n    UNION ALL\n\n    -- Aplicación de un pago a una factura en otra moneda: sale del saldo de la moneda del pago...\n    SELECT\n        p.user_id, p.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), ABS(pa.amount) AS amount,\n        jsonb_build_object('label', 'Aplicación de pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n\n    UNION ALL\n\n    -- ...y entra como pago en la moneda de la factura.\n    SELECT\n        p.user_id, pa_inv.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), -ABS(pa.target_amount) AS amount,\n        jsonb_build_object('label', 'Pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
         "options": {
           "queryReplacement": "={{ [$json.query.user_id, $json.query.from, $json.query.to] }}"
         }
@@ -5517,10 +5515,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2528,
-        1312
+        -4720,
+        8592
       ],
-      "id": "1f872162-73d5-4705-b054-35e32b15abb0",
+      "id": "7072c35b-f7ad-4684-ba40-235298b74a26",
       "name": "Get user financial summary2",
       "credentials": {
         "postgres": {
@@ -5539,10 +5537,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2304,
-        1408
+        -4496,
+        8688
       ],
-      "id": "08943810-c136-43ec-af4f-1e701b997fbc",
+      "id": "bf39ee64-f447-41e5-a7e5-40d6a3a37236",
       "name": "Error13"
     },
     {
@@ -5554,10 +5552,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2304,
-        1232
+        -4496,
+        8512
       ],
-      "id": "da69f4a2-c7fc-4750-ba36-9a179c64b882",
+      "id": "733fdf6a-d60b-4ed2-a178-eb45efed734f",
       "name": "OK4"
     },
     {
@@ -5568,11 +5566,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1472,
-        1744
+        -3664,
+        8864
       ],
       "typeVersion": 1,
-      "id": "dccb215f-b749-4296-b952-9e90f631eb8c",
+      "id": "c9f93c87-54f3-4237-a11a-8d3083930646",
       "name": "Sticky Note6"
     },
     {
@@ -5586,10 +5584,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1216,
-        2032
+        -3408,
+        9152
       ],
-      "id": "e1f3b79c-ff39-460d-bce0-0d7f71e0ecc2",
+      "id": "b5b2c904-f743-4150-80f8-b2e321062386",
       "name": "Get user email",
       "alwaysOutputData": true,
       "credentials": {
@@ -5610,10 +5608,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        -784,
-        1840
+        -2976,
+        8960
       ],
-      "id": "7711c2a9-1bf8-4ad5-8f4f-722d34bbfd91",
+      "id": "78d14ccb-9997-4327-96bd-286357d4f441",
       "name": "Send Email",
       "webhookId": "55042c48-fb23-4de2-b8d5-71a4ec30cbfc",
       "credentials": {
@@ -5640,10 +5638,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -576,
-        1840
+        -2768,
+        8960
       ],
-      "id": "8f93938d-7e42-4959-b366-37c8d48c45ea",
+      "id": "54bdbe27-a670-4cc1-a76f-6b1f8cbcc477",
       "name": "OK5"
     },
     {
@@ -5674,10 +5672,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -1008,
-        1936
+        -3200,
+        9056
       ],
-      "id": "eb931bb8-b442-4e26-afff-3f299beba6bd",
+      "id": "799bfefd-117e-477c-a0c8-d8bb35e23452",
       "name": "Has email?"
     },
     {
@@ -5697,10 +5695,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -784,
-        2032
+        -2976,
+        9152
       ],
-      "id": "a2a40c3a-be8e-446b-8387-8192c05d4ab9",
+      "id": "4e317b0d-524c-47a8-bc5d-feaa496218aa",
       "name": "Error14"
     },
     {
@@ -5717,10 +5715,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1424,
-        2032
+        -3616,
+        9152
       ],
-      "id": "803bf0a4-8f9e-4126-921b-0896becb22cd",
+      "id": "6497fbf4-1780-43fa-bd62-013fbe52afe0",
       "name": "POST /users/send_email",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5738,11 +5736,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -2784,
-        -208
+        -4976,
+        7072
       ],
       "typeVersion": 1,
-      "id": "5d434c8a-b489-4c6c-8754-049d3c06e1bb",
+      "id": "66059cad-1aa6-4afa-8604-fbd5fa4b7ede",
       "name": "User Quotes/Invoices"
     },
     {
@@ -5756,10 +5754,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2512,
-        -112
+        -4704,
+        7168
       ],
-      "id": "73865152-4033-4173-8be9-303f6ddc6a8f",
+      "id": "e9870f8a-837f-410f-ab17-fe5314ae2ad8",
       "name": "Select Quotes of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5782,10 +5780,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2736,
-        -16
+        -4928,
+        7264
       ],
-      "id": "a7ebe5ff-2e8b-4aa3-85a7-81fc53327934",
+      "id": "0ada8b18-38e9-4c1a-ad6c-c7b41d830ad1",
       "name": "GET user_quotes_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5806,10 +5804,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2512,
-        80
+        -4704,
+        7360
       ],
-      "id": "0150067b-6770-4522-890e-16f56657fb4e",
+      "id": "556e7f0a-18d1-4d0d-b09e-c47d67fba5c3",
       "name": "Select Invoices of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5828,10 +5826,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -2048,
-        -16
+        -4240,
+        7264
       ],
-      "id": "d5a0636c-7978-4db0-8f8b-e2c5e2b12b2c",
+      "id": "941a844b-5938-4b07-8ead-8ce82cde8d2b",
       "name": "Merge"
     },
     {
@@ -5841,10 +5839,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2288,
-        -112
+        -4480,
+        7168
       ],
-      "id": "6fba3ece-e452-4d7d-a961-0f41babbac88",
+      "id": "69d1b884-14e1-4642-9147-9d5590d8d61e",
       "name": "Code in JavaScript4"
     },
     {
@@ -5854,10 +5852,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2288,
-        80
+        -4480,
+        7360
       ],
-      "id": "eec9461d-d3b3-47d7-b872-612164f3d5a3",
+      "id": "861866d7-1227-4ca1-95c8-96cd565fe004",
       "name": "Code in JavaScript5"
     },
     {
@@ -5877,16 +5875,16 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1824,
-        -16
+        -4016,
+        7264
       ],
-      "id": "a93d5b87-1232-4f2a-bc15-98c7b15fcac9",
+      "id": "63b26b3b-b628-4475-93c7-41fdae6a4550",
       "name": "Respond to Webhook"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT u.id, u.email, u.phone_number, u.alternative_phone,\n       COALESCE(\n         NULLIF(u.phone_number, ''),\n         NULLIF(u.alternative_phone, ''),\n         CASE WHEN u.is_dependant THEN NULLIF(r.phone_number, '') END,\n         CASE WHEN u.is_dependant THEN NULLIF(r.alternative_phone, '') END\n       ) AS effective_phone,\n       (COALESCE(NULLIF(u.phone_number, ''), NULLIF(u.alternative_phone, '')) IS NULL\n        AND u.is_dependant\n        AND COALESCE(NULLIF(r.phone_number, ''), NULLIF(r.alternative_phone, '')) IS NOT NULL) AS phone_from_responsible\nFROM public.users u\nLEFT JOIN public.users r ON r.id = u.responsible_contact_id\nWHERE u.id = ANY($1::uuid[]);",
+        "query": "SELECT u.id, u.email, u.phone_number, u.alternative_phone,\n       -- alternative_phone es el teléfono fijo: no recibe WhatsApp, nunca es el teléfono de envío.\n       COALESCE(\n         NULLIF(u.phone_number, ''),\n         CASE WHEN u.is_dependant THEN NULLIF(r.phone_number, '') END\n       ) AS effective_phone,\n       (NULLIF(u.phone_number, '') IS NULL\n        AND u.is_dependant\n        AND NULLIF(r.phone_number, '') IS NOT NULL) AS phone_from_responsible\nFROM public.users u\nLEFT JOIN public.users r ON r.id = u.responsible_contact_id\nWHERE u.id = ANY($1::uuid[]);",
         "options": {
           "queryReplacement": "={{ [$json.body.ids] }}"
         }
@@ -5894,10 +5892,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3248,
-        1632
+        -5440,
+        8912
       ],
-      "id": "b3d3eb35-6ce9-4db5-aff0-587908121e69",
+      "id": "9fb50872-ecef-41db-a28a-65b605d7cc9a",
       "name": "Select contact info of users",
       "alwaysOutputData": true,
       "credentials": {
@@ -5922,10 +5920,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3456,
-        1632
+        -5648,
+        8912
       ],
-      "id": "c04c27da-2bd5-4042-8562-23bdf0647772",
+      "id": "8f60aec9-f4f3-4bb8-b1d4-28d046109f19",
       "name": "POST /user_contact",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5950,10 +5948,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3456,
-        1824
+        -5648,
+        9104
       ],
-      "id": "06379d3d-09da-4a3e-bbbc-f01925e0fff2",
+      "id": "f5a662b4-e32d-4fb3-af7d-9e46d23dbb62",
       "name": "POST /user/notes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5974,10 +5972,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3248,
-        1824
+        -5440,
+        9104
       ],
-      "id": "532f103f-093b-4ca8-bb55-0198bb2c83e7",
+      "id": "08a29231-e31b-4c16-ad60-dd9c733a30d6",
       "name": "Update user notes",
       "alwaysOutputData": true,
       "credentials": {
@@ -6001,10 +5999,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        -2368,
-        1904
+        -4544,
+        9184
       ],
-      "id": "d5c549dd-c4a3-499d-bd0c-fa792c574521",
+      "id": "d85b3e17-5e52-47c8-9490-46f71d629552",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -6030,10 +6028,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2160,
-        -448
+        -4352,
+        6880
       ],
-      "id": "5ae4dc6b-ce45-40a3-9299-5210aefd1543",
+      "id": "78a71cd2-bb42-46b5-8e35-665f941c4092",
       "name": "Asignar role operador"
     },
     {
@@ -6047,17 +6045,579 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2416,
-        -704
+        -4816,
+        6736
       ],
-      "id": "1ab371e2-8ae5-47b3-bd2f-fe81a4d2a7c7",
+      "id": "97893c2e-5e62-473b-95a6-4d2db553494d",
       "name": "Insert default preferences",
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "path": "users/dependents",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5664,
+        9552
+      ],
+      "id": "2c4e3c69-bc2a-4b78-b394-4031956af5e4",
+      "name": "GET /users/dependents",
+      "webhookId": "76246297-c8e5-4cc8-9f95-fc21eafb009b",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
       }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Pacientes a cargo de un tutor (users.responsible_contact_id = $1).\n-- Siempre devuelve UNA fila con `data` (array, vacío si no hay): un Postgres con 0\n-- filas no le deja nada al nodo de respuesta.\nSELECT COALESCE(json_agg(json_build_object(\n         'id', d.id,\n         'name', d.name,\n         'email', d.email,\n         'phone_number', d.phone_number,\n         'identity_document', d.identity_document,\n         'identity_document_type', d.identity_document_type,\n         'birth_date', d.birthday,\n         'is_active', d.is_active,\n         -- Sin celular propio: alertas y recordatorios le escriben al tutor (el fijo no recibe WhatsApp).\n         'uses_responsible_phone', (NULLIF(d.phone_number, '') IS NULL)\n       ) ORDER BY d.is_active DESC, d.name), '[]'::json) AS data\nFROM public.users d\nWHERE d.responsible_contact_id = $1::uuid\n  AND d.is_dependant IS TRUE;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.user_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5456,
+        9552
+      ],
+      "id": "129232cc-18d3-4a71-b756-20ee644c4882",
+      "name": "Select dependents",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "users/responsible",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5664,
+        9376
+      ],
+      "id": "208e9357-cb5f-460b-8423-cc563baa8abe",
+      "name": "POST /users/responsible",
+      "webhookId": "579f87f3-2207-4f6e-a445-4a68a65f0cf1",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Vincula ($2 = tutor) o desvincula ($2 = null) a un paciente dependiente. Solo toca\n-- is_dependant y responsible_contact_id: /users/upsert reescribe la ficha entera y,\n-- desde la pestaña del tutor, no se tiene la ficha completa del dependiente.\n-- Reglas (las mismas que valida /users/upsert):\n--   - nadie es tutor de sí mismo;\n--   - el tutor no puede ser a su vez dependiente;\n--   - quien tiene dependientes no puede pasar a ser dependiente (sin cadenas).\nWITH input AS (\n  SELECT $1::uuid AS user_id,\n         NULLIF($2, '')::uuid AS responsible_id,\n         NULLIF($3, '')::uuid AS actor_id\n),\ncheck_rules AS (\n  SELECT CASE\n    WHEN NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = i.user_id) THEN 'user_not_found'\n    WHEN i.responsible_id IS NULL THEN NULL\n    WHEN i.responsible_id = i.user_id THEN 'self_responsible'\n    WHEN NOT EXISTS (SELECT 1 FROM public.users g WHERE g.id = i.responsible_id) THEN 'responsible_not_found'\n    WHEN EXISTS (SELECT 1 FROM public.users g WHERE g.id = i.responsible_id AND g.is_dependant IS TRUE) THEN 'responsible_is_dependent'\n    WHEN EXISTS (SELECT 1 FROM public.users c WHERE c.responsible_contact_id = i.user_id AND c.is_dependant IS TRUE) THEN 'guardian_has_dependents'\n  END AS code\n  FROM input i\n),\nupd AS (\n  UPDATE public.users u\n  SET is_dependant = (i.responsible_id IS NOT NULL),\n      responsible_contact_id = i.responsible_id,\n      updated_at = NOW(),\n      updated_by = COALESCE(i.actor_id, u.updated_by)\n  FROM input i, check_rules c\n  WHERE u.id = i.user_id AND c.code IS NULL\n  RETURNING u.id\n)\nSELECT\n  (SELECT code FROM check_rules) IS NULL AND EXISTS (SELECT 1 FROM upd) AS success,\n  CASE WHEN (SELECT code FROM check_rules) IS NOT NULL\n    THEN json_build_object('error', true, 'code', (SELECT code FROM check_rules))\n  END AS error;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.user_id, $json.body.responsible_contact_id || null, $json.jwtPayload?.userId || null] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5456,
+        9376
+      ],
+      "id": "5bd408c7-f118-41ff-a387-590fec6bd7d9",
+      "name": "Set responsible contact",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Responsible",
+        "height": 464,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5728,
+        9264
+      ],
+      "typeVersion": 1,
+      "id": "6c9d0ec2-d3cf-43a4-8de4-1622c6a41491",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1b25a24d-eedf-4f68-80e8-b62c335d58ae",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8a02c63-3362-4220-abec-9dc106c134fa",
+      "name": "Adopt? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6080,
+        6528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Saca de las fichas adoptadas el teléfono/correo que pasa a quien se guarda. Va ANTES de\n-- guardar porque el correo es único en la tabla. Devuelve lo que tenían para poder\n-- restaurarlo si el guardado falla (n8n no da una transacción entre nodos).\nWITH input AS (\n  SELECT $2::text AS phone, $3::text AS email, NULLIF($4, '')::uuid AS actor_id\n),\ntarget AS (\n  SELECT u.id, u.phone_number, u.email\n  FROM public.users u\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = CASE WHEN (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(i.phone, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(i.phone, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') END) THEN NULL ELSE u.phone_number END,\n      email = CASE WHEN COALESCE(i.email, '') <> '' AND lower(u.email) = lower(i.email) THEN NULL ELSE u.email END,\n      updated_at = NOW(),\n      updated_by = COALESCE(i.actor_id, u.updated_by)\n  FROM input i, target t\n  WHERE u.id = t.id\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT json_agg(t) FROM target t), '[]'::json) AS released,\n       (SELECT count(*) FROM upd)::int AS released_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "ef090257-cbf6-4fd3-a9dc-19e19d42c42a",
+      "name": "Release contact (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5888,
+        6432
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a2ab4adf-8357-4e60-8719-878ec50bafc5",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ba3770a4-e44b-4e4a-a949-62da4c4e0b19",
+      "name": "Adopted? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5408,
+        6432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las fichas adoptadas quedan a cargo de quien se acaba de guardar. Devuelve `id` porque el\n-- nodo siguiente del alta (\"Insert default preferences\") lo lee de su entrada.\nWITH upd AS (\n  UPDATE public.users u\n  SET is_dependant = true,\n      responsible_contact_id = $2::uuid,\n      updated_at = NOW(),\n      updated_by = COALESCE(NULLIF($3, '')::uuid, u.updated_by)\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n  RETURNING u.id\n)\nSELECT $2::uuid::text AS id, (SELECT count(*) FROM upd)::int AS linked_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('Insert user').first().json.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "b775d0ef-790e-4172-949e-4e2a12176dcb",
+      "name": "Link dependents (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5232,
+        6432
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- No se pudo vincular a los dependientes: se deshace el alta recién creada (todavía no tiene\n-- rol ni preferencias) para no dejar una ficha a medias.\nDELETE FROM public.users WHERE id = $1::uuid\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$('Insert user').first().json.id] }}"
+        }
+      },
+      "id": "bf5d14b8-fd96-4b2b-8203-fb00c07e2377",
+      "name": "Undo create",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5024,
+        6432
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8ea52277-313a-40cf-8aba-0b77ffe7ca42",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bda3eae6-0e34-4959-acb7-5ee6a479fd71",
+      "name": "Adopted on error? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5408,
+        6624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El guardado falló: las fichas adoptadas recuperan el teléfono/correo que se les sacó.\nWITH data AS (\n  SELECT * FROM json_to_recordset($1::json) AS x(id uuid, phone_number text, email text)\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = d.phone_number, email = d.email, updated_at = NOW()\n  FROM data d\n  WHERE u.id = d.id\n  RETURNING u.id\n)\nSELECT (SELECT count(*) FROM upd)::int AS restored_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Release contact (create)').first().json.released)] }}"
+        }
+      },
+      "id": "5f7abbe6-f401-4dda-9a8e-e8d1d257407e",
+      "name": "Restore contact (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4816,
+        6432
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74da1c16-b2b2-41e8-8faf-8dc063de6364",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_save_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "2991af26-51f3-4f0f-a470-982f3ed1a524",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "acdd8abd-5ea1-43fa-9d37-24c05907c55e",
+      "name": "Error adopt (create)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4608,
+        6432
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "344399f0-cd85-44f6-bc55-99da48474506",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1d881f35-6d43-402c-87f1-cb67c516aa05",
+      "name": "Adopt? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6048,
+        5936
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Saca de las fichas adoptadas el teléfono/correo que pasa a quien se guarda. Va ANTES de\n-- guardar porque el correo es único en la tabla. Devuelve lo que tenían para poder\n-- restaurarlo si el guardado falla (n8n no da una transacción entre nodos).\nWITH input AS (\n  SELECT $2::text AS phone, $3::text AS email, NULLIF($4, '')::uuid AS actor_id\n),\ntarget AS (\n  SELECT u.id, u.phone_number, u.email\n  FROM public.users u\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = CASE WHEN (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(i.phone, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(i.phone, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') END) THEN NULL ELSE u.phone_number END,\n      email = CASE WHEN COALESCE(i.email, '') <> '' AND lower(u.email) = lower(i.email) THEN NULL ELSE u.email END,\n      updated_at = NOW(),\n      updated_by = COALESCE(i.actor_id, u.updated_by)\n  FROM input i, target t\n  WHERE u.id = t.id\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT json_agg(t) FROM target t), '[]'::json) AS released,\n       (SELECT count(*) FROM upd)::int AS released_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "a9113aa2-ff79-44ca-ba6e-ca856a7b1167",
+      "name": "Release contact (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5824,
+        5840
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "358be59b-4685-497a-b418-5a010e7e3e2f",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8d15ad70-300b-437b-a07d-96c3fffa4f71",
+      "name": "Adopted? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5408,
+        5760
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las fichas adoptadas quedan a cargo de quien se acaba de guardar. Devuelve `id` porque el\n-- nodo siguiente del alta (\"Insert default preferences\") lo lee de su entrada.\nWITH upd AS (\n  UPDATE public.users u\n  SET is_dependant = true,\n      responsible_contact_id = $2::uuid,\n      updated_at = NOW(),\n      updated_by = COALESCE(NULLIF($3, '')::uuid, u.updated_by)\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n  RETURNING u.id\n)\nSELECT $2::uuid::text AS id, (SELECT count(*) FROM upd)::int AS linked_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "3c11b0f6-8649-47b4-ada3-f641e0d7065f",
+      "name": "Link dependents (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5200,
+        5664
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02cd8212-9524-4f15-94db-cca2cbe5f4be",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_link_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "010b09c3-8c33-4a02-923e-9c12a0e33c84",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "add77d68-05c0-46bb-aabf-31ab255b23cf",
+      "name": "Error adopt link (update)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4992,
+        5568
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b3def58f-d595-43a4-a854-0a8de910c024",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2cbee3f9-393c-420d-acbe-fe47a27d1b61",
+      "name": "Adopted on error? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5408,
+        6032
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El guardado falló: las fichas adoptadas recuperan el teléfono/correo que se les sacó.\nWITH data AS (\n  SELECT * FROM json_to_recordset($1::json) AS x(id uuid, phone_number text, email text)\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = d.phone_number, email = d.email, updated_at = NOW()\n  FROM data d\n  WHERE u.id = d.id\n  RETURNING u.id\n)\nSELECT (SELECT count(*) FROM upd)::int AS restored_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Release contact (update)').first().json.released)] }}"
+        }
+      },
+      "id": "9b3ee50c-15d5-4653-8bd5-5fb67929b4f4",
+      "name": "Restore contact (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -5200,
+        5936
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "83f0adb7-fbe7-476b-9a21-8259d41f0738",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_save_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "82a65af0-e54b-4d51-af91-5540a52f4bf8",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "31ad6317-beb2-4b95-b10d-e5dbcffb5260",
+      "name": "Error adopt (update)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4992,
+        5936
+      ]
     }
   ],
   "pinData": {
@@ -10364,7 +10924,7 @@
       "main": [
         [
           {
-            "node": "Insert user",
+            "node": "Adopt? (create)",
             "type": "main",
             "index": 0
           }
@@ -10405,7 +10965,7 @@
       "main": [
         [
           {
-            "node": "Update user",
+            "node": "Adopt? (update)",
             "type": "main",
             "index": 0
           }
@@ -11084,19 +11644,14 @@
       "main": [
         [
           {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Insert default preferences",
+            "node": "Adopted? (create)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Error3",
+            "node": "Adopted on error? (create)",
             "type": "main",
             "index": 0
           }
@@ -11107,14 +11662,14 @@
       "main": [
         [
           {
-            "node": "Success2",
+            "node": "Adopted? (update)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Error2",
+            "node": "Adopted on error? (update)",
             "type": "main",
             "index": 0
           }
@@ -11333,6 +11888,238 @@
           }
         ]
       ]
+    },
+    "GET /users/dependents": {
+      "main": [
+        [
+          {
+            "node": "Select dependents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /users/responsible": {
+      "main": [
+        [
+          {
+            "node": "Set responsible contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopt? (create)": {
+      "main": [
+        [
+          {
+            "node": "Release contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release contact (create)": {
+      "main": [
+        [
+          {
+            "node": "Insert user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted? (create)": {
+      "main": [
+        [
+          {
+            "node": "Link dependents (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert default preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link dependents (create)": {
+      "main": [
+        [
+          {
+            "node": "Insert default preferences",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Undo create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Undo create": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted on error? (create)": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore contact (create)": {
+      "main": [
+        [
+          {
+            "node": "Error adopt (create)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopt? (update)": {
+      "main": [
+        [
+          {
+            "node": "Release contact (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release contact (update)": {
+      "main": [
+        [
+          {
+            "node": "Update user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted? (update)": {
+      "main": [
+        [
+          {
+            "node": "Link dependents (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link dependents (update)": {
+      "main": [
+        [
+          {
+            "node": "Success2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error adopt link (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted on error? (update)": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore contact (update)": {
+      "main": [
+        [
+          {
+            "node": "Error adopt (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert default preferences": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -11341,7 +12128,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "ef717652-e249-474c-94f0-c803fad2dd24",
+  "versionId": "8b270e20-f70c-4666-9483-1ad8a11dbef8",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

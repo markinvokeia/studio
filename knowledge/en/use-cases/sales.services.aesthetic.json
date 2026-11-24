@@ -1,0 +1,95 @@
+{
+  "id": "sales.services.aesthetic",
+  "title": "Set up an aesthetic service",
+  "summary": "Unit of measure, how it is marked on the map, initial dose, limits, next appointment and aftercare.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "aesthetic service",
+    "aesthetic record",
+    "marking tool",
+    "default dose",
+    "maximum per session",
+    "minimum interval",
+    "suggested next appointment",
+    "aftercare",
+    "service unit"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Services",
+      "details": "A service appears on the aesthetic record only if it is marked as an aesthetic service."
+    },
+    {
+      "id": "search",
+      "title": "Find the service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the service",
+      "details": "Tap it to open its record."
+    },
+    {
+      "id": "details",
+      "title": "Details"
+    },
+    {
+      "id": "unit",
+      "title": "Unit of measure",
+      "details": "What the applied amount is measured in (U, ml, mg…). It is required for an aesthetic service. Units are created in Clinic Catalog → Measurement Units."
+    },
+    {
+      "id": "flag",
+      "title": "Aesthetic service",
+      "details": "Adds it to the aesthetic record and enables the Aesthetics tab. If you turn it off, it stops appearing for new sessions; those already recorded don't change."
+    },
+    {
+      "id": "save-service",
+      "title": "Save the service",
+      "details": "Saves the unit and the aesthetic flag. The Aesthetics tab settings are saved separately."
+    },
+    {
+      "id": "tab",
+      "title": "Aesthetics",
+      "details": "How this service is recorded on the aesthetic record."
+    },
+    {
+      "id": "tool",
+      "title": "Marked with",
+      "details": "Points (each tap is one application: toxin, lips), areas (outline of the zone: mesotherapy) or line (two ends: thread lifts)."
+    },
+    {
+      "id": "qty",
+      "title": "Initial quantity per mark",
+      "details": "What each new mark starts with; it can be adjusted later."
+    },
+    {
+      "id": "max",
+      "title": "Maximum per session",
+      "details": "Warns when it's exceeded during marking; it doesn't block."
+    },
+    {
+      "id": "interval",
+      "title": "Minimum interval on a zone",
+      "details": "Days that should pass between applications on the same zone. This one only warns too."
+    },
+    {
+      "id": "follow",
+      "title": "Suggested next appointment",
+      "details": "How many days out the follow-up is offered when closing the session; it can be given a name."
+    },
+    {
+      "id": "aftercare",
+      "title": "Aftercare",
+      "details": "What can be sent to the patient by WhatsApp when closing the session."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Appears when there are changes. Until it's saved for the first time, the service doesn't show on the aesthetic record."
+    }
+  ]
+}

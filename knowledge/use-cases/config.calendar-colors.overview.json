@@ -1,0 +1,46 @@
+{
+  "id": "config.calendar-colors.overview",
+  "title": "Configurar Colores de Calendario",
+  "module": "Configuración de Negocio",
+  "summary": "Los colores de las citas por estado, en general o por calendario.",
+  "screens": [
+    "config.calendar-colors"
+  ],
+  "keywords": [
+    "colores",
+    "colores de la agenda",
+    "color por estado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/calendar-colors",
+      "title": "Menú → Configuración de Negocio → Colores de Calendario",
+      "details": "Los colores de las citas por estado, en general o por calendario."
+    },
+    {
+      "id": "scopes",
+      "action": "highlight",
+      "target": "config.calendar-colors.section.scopes",
+      "title": "General o por calendario",
+      "details": "«General» aplica a toda la agenda; cada calendario puede tener los suyos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "restore",
+      "action": "highlight",
+      "target": "config.calendar-colors.btn.restore-defaults",
+      "title": "Restaurar",
+      "details": "Vuelve a los colores de fábrica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.calendar-colors.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

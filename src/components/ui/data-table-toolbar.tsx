@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { Table } from '@tanstack/react-table';
 import { Filter, PlusCircle, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -69,6 +71,7 @@ export function DataTableToolbar<TData>({
   const compact = useCompactWidth(rootRef);
   const createIconOnly = createButtonIconOnly || compact;
   const filterActive = !!filterValue && filterValue !== 'all';
+  const helpScope = useHelpScope();
   return (
     <DataTableToolbarCompactProvider value={compact}>
     <div ref={rootRef} className="flex flex-col gap-2">
@@ -80,6 +83,7 @@ export function DataTableToolbar<TData>({
           <div className="relative flex items-center flex-1 min-w-[12rem]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              data-help-id={composeHelpId(helpScope, 'filter', 'search')}
               placeholder={filterPlaceholder}
               value={
                 useGlobalFilter
@@ -130,6 +134,7 @@ export function DataTableToolbar<TData>({
                         !createIconOnly && "w-auto px-3 gap-1.5"
                       )}
                       onClick={onCreate}
+                      data-help-id={composeHelpId(helpScope, 'btn', 'new')}
                       aria-label={createButtonLabel || t('create')}
                     >
                       <PlusCircle className="h-4 w-4" />
@@ -198,6 +203,7 @@ export function DataTableToolbar<TData>({
               size="icon"
               className="h-9 w-9 shrink-0"
               onClick={onRefresh}
+              data-help-id={composeHelpId(helpScope, 'btn', 'refresh')}
               disabled={isRefreshing}
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />

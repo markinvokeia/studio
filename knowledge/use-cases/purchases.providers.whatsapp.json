@@ -1,0 +1,68 @@
+{
+  "id": "purchases.providers.whatsapp",
+  "title": "Escribirle por WhatsApp al proveedor",
+  "module": "Compras",
+  "summary": "Botón WhatsApp de la ficha.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Comunicación y estado",
+  "inputs": {
+    "query": "Nombre, correo o RUT",
+    "message": "Mensaje"
+  },
+  "keywords": [
+    "whatsapp proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "wa",
+      "action": "click",
+      "target": "purchases.providers.btn.whatsapp",
+      "title": "WhatsApp",
+      "until": "purchases.providers.field.whatsapp-message",
+      "skipIfMissing": true
+    },
+    {
+      "id": "msg",
+      "action": "fill",
+      "target": "purchases.providers.field.whatsapp-message",
+      "title": "Mensaje",
+      "value": "{{values.message}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "open",
+      "action": "confirm",
+      "target": "purchases.providers.btn.whatsapp-open",
+      "title": "Abrir WhatsApp",
+      "skipIfMissing": true
+    }
+  ]
+}

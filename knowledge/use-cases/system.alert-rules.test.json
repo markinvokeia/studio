@@ -1,0 +1,50 @@
+{
+  "id": "system.alert-rules.test",
+  "title": "Probar o duplicar una regla de alertas",
+  "module": "Sistema",
+  "summary": "Desde las acciones de la fila: «Probar» corre la regla ahora y muestra cuántos casos encuentra; «Duplicar» crea una copia para ajustar.",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "keywords": [
+    "probar regla",
+    "duplicar regla",
+    "ver si la regla funciona"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+      "id": "actions",
+      "action": "highlight",
+      "target": "system.alert-rules.btn.row-actions",
+      "title": "Acciones de la fila",
+      "until": [
+        "system.alert-rules.btn.row-test",
+        "system.alert-rules.btn.row-duplicate"
+      ],
+      "autoClick": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "duplicate",
+      "action": "highlight",
+      "target": "system.alert-rules.btn.row-duplicate",
+      "title": "Duplicar",
+      "details": "Abre el alta con los datos de esta regla.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "test",
+      "action": "confirm",
+      "target": "system.alert-rules.btn.row-test",
+      "title": "Probar",
+      "details": "Corre la regla al tocarlo: puede generar alertas reales.",
+      "skipIfMissing": true
+    }
+  ]
+}

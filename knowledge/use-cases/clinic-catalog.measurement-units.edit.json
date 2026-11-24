@@ -1,0 +1,68 @@
+{
+  "id": "clinic-catalog.measurement-units.edit",
+  "title": "Editar una unidad de medida",
+  "module": "Catálogo de la Clínica",
+  "summary": "Cambiar sus datos o desactivarla.",
+  "screens": [
+    "clinic-catalog.measurement-units"
+  ],
+  "inputs": {},
+  "keywords": [
+    "editar unidad",
+    "cambiar símbolo",
+    "desactivar unidad"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/measurement-units",
+      "title": "Menú → Catálogo de la Clínica → Unidades de medida",
+      "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…)."
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.btn.edit",
+      "title": "Editar",
+      "details": "Tocá el lápiz de la unidad que querés cambiar.",
+      "until": "clinic-catalog.measurement-units.field.name",
+      "autoClick": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.field.name",
+      "title": "Nombre",
+      "skipIfMissing": true
+    },
+    {
+      "id": "symbol",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.field.symbol",
+      "title": "Símbolo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "step",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.field.step",
+      "title": "Paso de la cantidad",
+      "skipIfMissing": true
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.field.isActive",
+      "title": "Activa",
+      "details": "Inactiva deja de ofrecerse sin afectar lo ya registrado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "clinic-catalog.measurement-units.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

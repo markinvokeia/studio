@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Plus, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -44,6 +45,8 @@ interface StepQuoteItemsProps {
   selectedInvoiceIds?: Set<string>;
   onToggleInvoice?: (id: string) => void;
 }
+
+const TRANSLATED_QUOTE_STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed'];
 
 function fmtCurrency(amount: number, currency?: string) {
   return formatMoney(amount, currency ?? getClinicCurrency());
@@ -108,6 +111,8 @@ export function StepQuoteItems({
   selectedInvoiceIds,
   onToggleInvoice,
 }: StepQuoteItemsProps) {
+  const t = useTranslations('BillingWizard');
+  const tQuoteStatus = useTranslations('PrintTemplates.quoteStatus');
   const currency = quote?.currency || getClinicCurrency();
   const [isFetchingInvoiced, setIsFetchingInvoiced] = React.useState(false);
   // Stores the last computed per-item invoiced amounts so restoreLine can use correct values
@@ -254,7 +259,7 @@ export function StepQuoteItems({
         {patientName && <p className="text-sm font-semibold">{patientName}</p>}
         {quote && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Presupuesto #{quote.doc_no || quote.id}</span>
+            <span>{t('quote.docLabel', { doc: quote.doc_no || quote.id })}</span>
             {quote.status && (
               <Badge
                 variant="outline"
@@ -267,7 +272,7 @@ export function StepQuoteItems({
                   ),
                 })}
               >
-                {quote.status}
+                {TRANSLATED_QUOTE_STATUSES.includes(quote.status.toLowerCase()) ? tQuoteStatus(quote.status.toLowerCase()) : quote.status}
               </Badge>
             )}
           </div>
@@ -290,7 +295,7 @@ export function StepQuoteItems({
       {(() => {
         const allFullyInvoiced = lines.length > 0 && lines.every((l) => l.pendingAmount <= 0);
         const hasPendingServices = lines.some((l) => l.pendingAmount > 0);
-        const sectionTitle = allFullyInvoiced ? 'Servicios Facturados' : 'Servicios a facturar';
+        const sectionTitle = allFullyInvoiced ? t('quote.servicesInvoiced') : t('quote.servicesToInvoice');
 
         return (
           <div className="space-y-1.5">
@@ -313,7 +318,7 @@ export function StepQuoteItems({
                         : 'bg-amber-100 text-amber-700',
                     )}
                   >
-                    {allFullyInvoiced ? 'Completamente facturado' : 'Con servicios pendientes'}
+                    {allFullyInvoiced ? t('quote.fullyInvoiced') : t('quote.withPending')}
                   </span>
                 )}
               </div>
@@ -321,7 +326,7 @@ export function StepQuoteItems({
                 {isFetchingInvoiced && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Calculando...
+                    {t('quote.calculating')}
                   </span>
                 )}
                 {servicesExpanded
@@ -335,10 +340,10 @@ export function StepQuoteItems({
             {!servicesExpanded && !isFetchingInvoiced && (
               <p className={cn('text-xs px-0.5 italic', allFullyInvoiced ? 'text-emerald-700' : 'text-amber-700')}>
                 {allFullyInvoiced
-                  ? 'Este presupuesto ha sido completamente facturado.'
+                  ? t('quote.messageFullyInvoiced')
                   : hasPendingServices
-                    ? 'Este presupuesto no ha sido completamente facturado.'
-                    : 'Este presupuesto no tiene servicios facturados aún.'}
+                    ? t('quote.messagePartiallyInvoiced')
+                    : t('quote.messageNotInvoiced')}
               </p>
             )}
 
@@ -347,7 +352,7 @@ export function StepQuoteItems({
               <>
                 {lines.length === 0 ? (
                   <p className="py-3 text-center text-sm text-muted-foreground italic">
-                    No hay servicios en el presupuesto.
+                    {t('quote.empty')}
                   </p>
                 ) : (
                   <div className="divide-y rounded-lg border overflow-hidden">
@@ -375,29 +380,29 @@ export function StepQuoteItems({
                                 <span className="text-sm truncate">{line.serviceName}</span>
                                 {line.toothNumber && (
                                   <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                    D.{line.toothNumber}
+                                    {t('toothAbbr', { tooth: line.toothNumber })}
                                   </span>
                                 )}
                                 {fullyInvoiced && (
                                   <span className="shrink-0 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                                    Facturado
+                                    {t('quote.invoicedBadge')}
                                   </span>
                                 )}
                               </div>
                               {!isFetchingInvoiced && (
                                 <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                                  <span>Presup. {fmtCurrency(line.originalTotal, currency)}</span>
+                                  <span>{t('quote.lineQuoted', { amount: fmtCurrency(line.originalTotal, currency) })}</span>
                                   {line.alreadyInvoiced > 0 && (
                                     <>
                                       <span>·</span>
-                                      <span>Fact. {fmtCurrency(line.alreadyInvoiced, currency)}</span>
+                                      <span>{t('quote.lineInvoiced', { amount: fmtCurrency(line.alreadyInvoiced, currency) })}</span>
                                     </>
                                   )}
                                   {!fullyInvoiced && (
                                     <>
                                       <span>·</span>
                                       <span className="font-medium">
-                                        Pend. {fmtCurrency(line.pendingAmount, currency)}
+                                        {t('quote.linePending', { amount: fmtCurrency(line.pendingAmount, currency) })}
                                       </span>
                                     </>
                                   )}
@@ -421,14 +426,14 @@ export function StepQuoteItems({
                                     type="button"
                                     onClick={() => removeLine(line.quoteItemId)}
                                     className="text-muted-foreground hover:text-destructive transition-colors"
-                                    title="Quitar línea"
+                                    title={t('quote.removeLine')}
                                   >
                                     <X className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                                 {line.selected && line.pendingAmount > 0 && (
                                   <span className="text-[10px] tabular-nums text-muted-foreground">
-                                    Máx. {fmtCurrency(line.pendingAmount, currency)}
+                                    {t('quote.max', { amount: fmtCurrency(line.pendingAmount, currency) })}
                                   </span>
                                 )}
                               </div>
@@ -443,7 +448,7 @@ export function StepQuoteItems({
                 {/* Restore removed lines */}
                 {removedQuoteItems.length > 0 && (
                   <div className="pt-1 space-y-1">
-                    <p className="text-xs text-muted-foreground">Líneas quitadas (click para restaurar):</p>
+                    <p className="text-xs text-muted-foreground">{t('quote.removedLines')}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {removedQuoteItems.map((qi) => (
                         <button
@@ -454,7 +459,7 @@ export function StepQuoteItems({
                         >
                           <Plus className="h-3 w-3" />
                           {qi.service_name}
-                          {qi.tooth_number ? ` (D.${qi.tooth_number})` : ''}
+                          {qi.tooth_number ? ` (${t('toothAbbr', { tooth: qi.tooth_number })})` : ''}
                         </button>
                       ))}
                     </div>
@@ -465,27 +470,27 @@ export function StepQuoteItems({
                 {financialSummary && (
                   <div className="rounded-lg border bg-muted/30 divide-y text-sm">
                     <div className="flex justify-between px-4 py-2">
-                      <span className="text-muted-foreground">Total presupuesto</span>
+                      <span className="text-muted-foreground">{t('quote.totalQuote')}</span>
                       <span className="tabular-nums">
                         {fmtCurrency(Number(quote?.total || 0), currency)}
                       </span>
                     </div>
                     {financialSummary.amount_invoiced > 0 && (
                       <div className="flex justify-between px-4 py-2">
-                        <span className="text-muted-foreground">Ya facturado</span>
+                        <span className="text-muted-foreground">{t('quote.alreadyInvoiced')}</span>
                         <span className="tabular-nums text-muted-foreground">
                           {fmtCurrency(financialSummary.amount_invoiced, currency)}
                         </span>
                       </div>
                     )}
                     <div className="flex justify-between px-4 py-2">
-                      <span className="text-muted-foreground">Pendiente de facturar</span>
+                      <span className="text-muted-foreground">{t('quote.pendingToInvoice')}</span>
                       <span className="tabular-nums">
                         {fmtCurrency(financialSummary.amount_pending_invoice, currency)}
                       </span>
                     </div>
                     <div className="flex justify-between px-4 py-2 font-semibold">
-                      <span>A facturar ahora</span>
+                      <span>{t('quote.invoiceNow')}</span>
                       <span className="tabular-nums text-primary">{fmtCurrency(totalToInvoice, currency)}</span>
                     </div>
                   </div>

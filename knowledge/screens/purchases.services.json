@@ -1,0 +1,54 @@
+{
+  "id": "purchases.services",
+  "status": "draft",
+  "summary": "Productos y servicios de proveedores.",
+  "purpose": "Catálogo de lo que se compra a cada proveedor, con su precio, para armar presupuestos y facturas de compra.",
+  "prerequisites": [
+    "purchases.providers"
+  ],
+  "useCases": [
+    "purchases.services.overview",
+    "purchases.services.create",
+    "purchases.services.edit",
+    "purchases.services.delete"
+  ],
+  "elements": {
+    "purchases.services.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "purchases.services.section.row": {
+      "label": "Registro"
+    },
+    "purchases.services.section.detail": {
+      "label": "Ficha"
+    },
+    "purchases.services.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "purchases.services.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "purchases.services.field.name": {
+      "label": "Nombre"
+    },
+    "purchases.services.field.category_id": {
+      "label": "Categoría"
+    },
+    "purchases.services.field.price": {
+      "label": "Precio de referencia"
+    },
+    "purchases.services.field.currency": {
+      "label": "Moneda"
+    },
+    "purchases.services.field.color": {
+      "label": "Color"
+    },
+    "purchases.services.field.description": {
+      "label": "Descripción"
+    },
+    "purchases.services.field.is_active": {
+      "label": "Activo"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "appointments.block-slot",
+  "title": "Block hours from the calendar",
+  "module": "Calendar",
+  "summary": "Right-click an open time → Block hours: closes that range for that day only, for the whole branch, as an exception schedule.",
+  "inputs": {
+    "start_time": "From (HH:MM)",
+    "end_time": "To (HH:MM)",
+    "notes": "Reason"
+  },
+  "keywords": [
+    "block hours",
+    "close hours",
+    "close for a while",
+    "not available",
+    "meeting",
+    "exception",
+    "closure"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "In the calendar, what shows in white is open for booking."
+    },
+    {
+      "id": "slot",
+      "title": "Right-click an open time",
+      "details": "On a free time, not on an appointment. The option doesn't show up on a closed band or in a doctor column."
+    },
+    {
+      "id": "block",
+      "title": "Block hours…",
+      "details": "It suggests one hour from where you clicked."
+    },
+    {
+      "id": "start",
+      "title": "From",
+      "details": "Time the block starts."
+    },
+    {
+      "id": "end",
+      "title": "To",
+      "details": "It must be after \"From\". Below you can see the appointments within the range and the resulting hours for the day."
+    },
+    {
+      "id": "notes",
+      "title": "Reason",
+      "details": "Optional. Shown on the calendar's red band (e.g. team meeting)."
+    },
+    {
+      "id": "save",
+      "title": "Block",
+      "details": "It closes the whole branch for that range that day, for the WhatsApp agent too. Existing appointments aren't touched. Undo it with right-click → Enable hours."
+    }
+  ]
+}

@@ -22,3 +22,20 @@ export function extractCreatedUserId(response: unknown): string | null {
 export async function sendFirstTimePasswordToken(userId: string, options?: ApiRequestOptions): Promise<void> {
   await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: userId }, undefined, undefined, options);
 }
+
+export interface PatientMatch {
+  id: string;
+  name: string;
+  phone_number: string;
+}
+
+/** Pacientes que coinciden con un nombre (mismo endpoint que el selector de pacientes). */
+export async function searchPatients(search: string, options?: ApiRequestOptions): Promise<PatientMatch[]> {
+  const data = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE', search: search.trim() }, undefined, options);
+  const first = Array.isArray(data) ? data[0] : null;
+  const rows: unknown[] = first ? first.json?.data ?? first.data ?? [] : data?.data ?? [];
+  return rows.flatMap((row) => {
+    const u = row as { id?: string | number; name?: string; phone_number?: string };
+    return u?.id != null && u.name ? [{ id: String(u.id), name: u.name, phone_number: u.phone_number ?? '' }] : [];
+  });
+}

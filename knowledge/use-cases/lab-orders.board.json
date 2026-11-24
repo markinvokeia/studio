@@ -1,0 +1,46 @@
+{
+  "id": "lab-orders.board",
+  "title": "Usar el tablero de órdenes",
+  "module": "Historia Clínica",
+  "summary": "Ver las órdenes en columnas por etapa, moverlas arrastrando y elegir qué tarjetas se ven primero.",
+  "screens": [
+    "lab-orders"
+  ],
+  "keywords": [
+    "tablero",
+    "kanban",
+    "arrastrar orden",
+    "columnas por etapa",
+    "mover tarjeta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "board",
+      "action": "click",
+      "target": "lab-orders.btn.view-board",
+      "title": "Tablero",
+      "until": "lab-orders.section.board"
+    },
+    {
+      "id": "columns",
+      "action": "highlight",
+      "target": "lab-orders.section.board",
+      "title": "Arrastrá la tarjeta",
+      "details": "Soltala en otra columna para cambiarle la etapa. Si esa etapa pide laboratorio o fecha de entrega, se abre una ventana con la fecha ya propuesta. En el celular, usá Mover a, en el menú de la tarjeta."
+    },
+    {
+      "id": "sort",
+      "action": "highlight",
+      "target": "lab-orders.field.sort",
+      "title": "Ordenar por",
+      "details": "Decide qué tarjetas se ven primero en cada columna. Al bajar en una columna se cargan las siguientes solas."
+    }
+  ]
+}

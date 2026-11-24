@@ -1,0 +1,38 @@
+{
+  "id": "tv-display.overview",
+  "title": "Tour the TV display",
+  "summary": "Settings, preview and controls of the waiting room screen.",
+  "module": "TV Display",
+  "keywords": [
+    "tv display",
+    "waiting room",
+    "patient caller"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → TV Display",
+      "details": "The waiting room screen: shows who's being called in each room, promotional videos and music."
+    },
+    {
+      "id": "settings",
+      "title": "Settings",
+      "details": "Theme, rooms shown, intervals, videos and music."
+    },
+    {
+      "id": "preview",
+      "title": "Preview",
+      "details": "How the screen looks now, with the day's appointments."
+    },
+    {
+      "id": "controls",
+      "title": "Controls",
+      "details": "Open the screen, turn it on or off, pause it, show the promo and refresh the appointments."
+    },
+    {
+      "id": "rooms",
+      "title": "Quick actions",
+      "details": "«Next» per room: calls the next patient."
+    }
+  ]
+}

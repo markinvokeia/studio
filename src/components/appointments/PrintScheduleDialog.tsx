@@ -10,9 +10,10 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { CalendarRange, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
@@ -31,19 +32,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+
 import { useToast } from '@/hooks/use-toast';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn } from '@/lib/utils';
 import { exportScheduleToExcel } from '@/services/appointment-schedule-export';
+import { fetchScheduleExportSettings, SCHEDULE_EXPORT_COLUMNS } from '@/services/system-config';
+
+import type { AppointmentStatus, ScheduleExportColumn, ScheduleExportSettings } from '@/lib/types';
 
 type RangePreset = 'day' | 'week' | 'month' | 'custom';
+
+export interface PrintScheduleCalendar {
+  id: string;
+  name: string;
+  /** Sede del calendario (para agrupar y para la columna Sede del extendido). */
+  sedeId?: string;
+  sedeName?: string;
+}
 
 interface PrintScheduleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  calendars: { id: string; name: string }[];
+  calendars: PrintScheduleCalendar[];
   /** Calendario preseleccionado: el que la agenda está mostrando al abrir el diálogo. */
   defaultCalendarId?: string | null;
 }
+
+interface CalendarGroup {
+  key: string;
+  name: string;
+  calendars: PrintScheduleCalendar[];
+}
+
+const NO_SEDE_KEY = '__no_sede__';
 
 function computeRange(preset: RangePreset, anchorIso: string): { from: Date; to: Date } | null {
   if (preset === 'custom') return null;
@@ -58,6 +81,25 @@ function computeRange(preset: RangePreset, anchorIso: string): { from: Date; to:
   return { from: startOfMonth(anchor), to: endOfMonth(anchor) };
 }
 
+/** Calendarios agrupados por sede, en el orden en que llegan; los sin sede al final. */
+function groupBySede(calendars: PrintScheduleCalendar[], noSedeName: string): CalendarGroup[] {
+  const groups = new Map<string, CalendarGroup>();
+  const orphans: PrintScheduleCalendar[] = [];
+  for (const cal of calendars) {
+    if (!cal.sedeId) {
+      orphans.push(cal);
+      continue;
+    }
+    if (!groups.has(cal.sedeId)) {
+      groups.set(cal.sedeId, { key: cal.sedeId, name: cal.sedeName || cal.sedeId, calendars: [] });
+    }
+    groups.get(cal.sedeId)!.calendars.push(cal);
+  }
+  const result = Array.from(groups.values());
+  if (orphans.length) result.push({ key: NO_SEDE_KEY, name: noSedeName, calendars: orphans });
+  return result;
+}
+
 export function PrintScheduleDialog({
   open,
   onOpenChange,
@@ -65,11 +107,17 @@ export function PrintScheduleDialog({
   defaultCalendarId,
 }: PrintScheduleDialogProps) {
   const t = useTranslations('PrintScheduleDialog');
+  const tStatus = useTranslations('AppointmentStatus');
+  const locale = useLocale();
   const { toast } = useToast();
 
   const todayIso = format(new Date(), 'yyyy-MM-dd');
 
+  // Formato que eligió la clínica en Preferencias de Clínica; `null` mientras se lee.
+  const [settings, setSettings] = React.useState<ScheduleExportSettings | null>(null);
+  const mode = settings?.mode ?? null;
   const [calendarId, setCalendarId] = React.useState<string>('');
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [preset, setPreset] = React.useState<RangePreset>('day');
   const [anchor, setAnchor] = React.useState<string>(todayIso);
   const [customFrom, setCustomFrom] = React.useState<string>(todayIso);
@@ -85,12 +133,26 @@ export function PrintScheduleDialog({
         ? defaultCalendarId
         : calendars[0]?.id ?? '';
     setCalendarId(preferred);
+    setSelectedIds(preferred ? [preferred] : []);
     setPreset('day');
     setAnchor(todayIso);
     setCustomFrom(todayIso);
     setCustomTo(todayIso);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Se relee en cada apertura: un cambio en Preferencias de Clínica se ve sin recargar.
+  React.useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    setSettings(null);
+    fetchScheduleExportSettings({ signal: controller.signal })
+      .then(setSettings)
+      .catch(() => { /* abortado al cerrar */ });
+    return () => controller.abort();
+  }, [open]);
+
+  const groups = React.useMemo(() => groupBySede(calendars, t('no_sede')), [calendars, t]);
 
   const resolved = React.useMemo(() => {
     if (preset === 'custom') {
@@ -103,21 +165,45 @@ export function PrintScheduleDialog({
     return computeRange(preset, anchor);
   }, [preset, anchor, customFrom, customTo]);
 
-  const selectedCalendar = calendars.find((c) => c.id === calendarId);
-  const canExport = !!selectedCalendar && !!resolved && !isExporting;
+  const isExtended = mode === 'extended';
+  const exportCalendars = React.useMemo(() => {
+    if (isExtended) {
+      const ids = new Set(selectedIds);
+      return calendars.filter((c) => ids.has(c.id));
+    }
+    const cal = calendars.find((c) => c.id === calendarId);
+    return cal ? [cal] : [];
+  }, [isExtended, selectedIds, calendarId, calendars]);
+
+  const canExport = mode !== null && exportCalendars.length > 0 && !!resolved && !isExporting;
+
+  const toggleIds = (ids: string[], checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (checked ? next.add(id) : next.delete(id)));
+      // Orden canónico (el de la lista), para que el Excel no dependa del orden de clic.
+      return calendars.filter((c) => next.has(c.id)).map((c) => c.id);
+    });
+  };
 
   const handleExport = async () => {
-    if (!selectedCalendar || !resolved) return;
+    if (!settings || !exportCalendars.length || !resolved) return;
     setIsExporting(true);
     try {
       const { count } = await exportScheduleToExcel({
-        calendar: selectedCalendar,
+        settings,
+        calendars: exportCalendars.map((c) => ({ id: c.id, name: c.name, sedeName: c.sedeName })),
         from: resolved.from,
         to: resolved.to,
-        columns: {
-          time: t('col_time'),
-          name: t('col_name'),
-          phone: t('col_phone'),
+        dateLocale: getDateFnsLocale(locale),
+        labels: {
+          basic: { time: t('col_time'), name: t('col_name'), phone: t('col_phone') },
+          columns: Object.fromEntries(
+            SCHEDULE_EXPORT_COLUMNS.map((c) => [c, t(`columns.${c}`)]),
+          ) as Record<ScheduleExportColumn, string>,
+          status: (status: AppointmentStatus) => tStatus(status),
+          noSede: t('no_sede'),
+          multiCalendarFile: t('file_name_multi'),
         },
       });
       if (count === 0) {
@@ -137,39 +223,118 @@ export function PrintScheduleDialog({
     }
   };
 
+  // Mientras se genera el archivo el diálogo no se cierra (Esc / clic afuera).
+  const handleOpenChange = (next: boolean) => {
+    if (!next && isExporting) return;
+    onOpenChange(next);
+  };
+
   const presets: RangePreset[] = ['day', 'week', 'month', 'custom'];
+  const allSelected = calendars.length > 0 && selectedIds.length === calendars.length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent maxWidth="md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 shrink-0" />
             {t('title')}
           </DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+          <DialogDescription>{isExtended ? t('description_extended') : t('description')}</DialogDescription>
         </DialogHeader>
 
         <DialogBody className="space-y-5 px-6 py-5">
-          {/* Calendario */}
-          <div className="space-y-1.5">
-            <Label htmlFor="print-schedule-calendar">{t('field_calendar')}</Label>
-            <Select value={calendarId} onValueChange={setCalendarId} disabled={!calendars.length}>
-              <SelectTrigger id="print-schedule-calendar">
-                <SelectValue placeholder={t('field_calendar_placeholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {calendars.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!calendars.length && (
-              <p className="text-xs text-muted-foreground">{t('no_calendars')}</p>
-            )}
-          </div>
+          {/* Calendario(s) */}
+          {mode === null ? (
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : isExtended ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label>{t('field_calendars')}</Label>
+                {calendars.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleIds(calendars.map((c) => c.id), !allSelected)}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {allSelected ? t('select_none') : t('select_all')}
+                  </button>
+                )}
+              </div>
+              {calendars.length ? (
+                <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border p-3">
+                  {groups.map((group) => {
+                    const ids = group.calendars.map((c) => c.id);
+                    const selectedCount = ids.filter((id) => selectedIds.includes(id)).length;
+                    const groupState =
+                      selectedCount === 0 ? false : selectedCount === ids.length ? true : 'indeterminate';
+                    const groupId = `print-schedule-sede-${group.key}`;
+                    return (
+                      <div key={group.key} className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={groupId}
+                            checked={groupState}
+                            onCheckedChange={(v) => toggleIds(ids, v === true)}
+                          />
+                          <Label
+                            htmlFor={groupId}
+                            className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                          >
+                            {group.name}
+                          </Label>
+                        </div>
+                        <div className="space-y-1.5 pl-6">
+                          {group.calendars.map((cal) => {
+                            const id = `print-schedule-cal-${cal.id}`;
+                            return (
+                              <div key={cal.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  id={id}
+                                  checked={selectedIds.includes(cal.id)}
+                                  onCheckedChange={(v) => toggleIds([cal.id], v === true)}
+                                />
+                                <Label htmlFor={id} className="truncate text-sm font-normal">
+                                  {cal.name}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('no_calendars')}</p>
+              )}
+              {calendars.length > 0 && selectedIds.length === 0 && (
+                <p className="text-xs text-muted-foreground">{t('select_at_least_one')}</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="print-schedule-calendar">{t('field_calendar')}</Label>
+              <Select value={calendarId} onValueChange={setCalendarId} disabled={!calendars.length}>
+                <SelectTrigger id="print-schedule-calendar">
+                  <SelectValue placeholder={t('field_calendar_placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {calendars.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!calendars.length && (
+                <p className="text-xs text-muted-foreground">{t('no_calendars')}</p>
+              )}
+            </div>
+          )}
 
           {/* Rango */}
           <div className="space-y-1.5">
@@ -228,6 +393,8 @@ export function PrintScheduleDialog({
                       from: format(resolved.from, 'dd/MM/yyyy'),
                       to: format(resolved.to, 'dd/MM/yyyy'),
                     })}
+                {isExtended && exportCalendars.length > 1 && ` · ${t('summary_calendars', { count: exportCalendars.length })}`}
+                {isExtended && settings?.split_by_sede && ` · ${t('summary_split_by_sede')}`}
               </span>
             </div>
           )}

@@ -34,6 +34,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import {
@@ -44,6 +45,7 @@ import {
   isDiscountWithinLimit,
   roundCurrency,
 } from '@/lib/discounts';
+import { composeHelpId } from '@/lib/help/help-id';
 import type { DiscountMode } from '@/lib/types';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
@@ -74,6 +76,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { useHelpScope } from '@/components/help/help-scope';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
@@ -131,8 +134,10 @@ const getColumns = (
   onSendEmail?: (invoice: Invoice) => void,
   onAddPayment?: (invoice: Invoice, isHistorical?: boolean) => void,
   onConfirm?: (invoice: Invoice) => void,
-  onEdit?: (invoice: Invoice) => void
+  onEdit?: (invoice: Invoice) => void,
+  helpScope = 'app'
 ): ColumnDef<Invoice>[] => {
+  const hid = (name: string) => composeHelpId(helpScope, 'btn', name);
   const isPaymentActionVisible = (invoice: Invoice) => {
     const status = invoice.status.toLowerCase();
     const paymentStatus = invoice.payment_status?.toLowerCase();
@@ -287,7 +292,7 @@ const getColumns = (
           <div onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button data-help-id={hid('row-actions')} variant="ghost" className="h-8 w-8 p-0">
                   <span className="sr-only">{t('actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -295,28 +300,28 @@ const getColumns = (
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
                 {onAddPayment && isPaymentActionVisible(invoice) && (
-                  <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
+                  <DropdownMenuItem data-help-id={hid('row-add-payment')} onClick={() => onAddPayment(invoice)}>
                     {t('paymentDialog.add')}
                   </DropdownMenuItem>
                 )}
                 {onConfirm && invoice.status.toLowerCase() === 'draft' && (
-                  <DropdownMenuItem onClick={() => onConfirm(invoice)}>
+                  <DropdownMenuItem data-help-id={hid('row-confirm')} onClick={() => onConfirm(invoice)}>
                     {t('confirmInvoice')}
                   </DropdownMenuItem>
                 )}
                 {onEdit && invoice.status.toLowerCase() === 'draft' && (
-                  <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                  <DropdownMenuItem data-help-id={hid('row-edit')} onClick={() => onEdit(invoice)}>
                     {t('actions.edit') || 'Edit'}
                   </DropdownMenuItem>
                 )}
                 {onPrint && (
-                  <DropdownMenuItem onClick={() => onPrint(invoice)}>
+                  <DropdownMenuItem data-help-id={hid('row-print')} onClick={() => onPrint(invoice)}>
                     <Printer className="mr-2 h-4 w-4" />
                     <span>{t('actions.print')}</span>
                   </DropdownMenuItem>
                 )}
                 {onSendEmail && (
-                  <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
+                  <DropdownMenuItem data-help-id={hid('row-email')} onClick={() => onSendEmail(invoice)}>
                     <Send className="mr-2 h-4 w-4" />
                     <span>{t('actions.sendEmail')}</span>
                   </DropdownMenuItem>
@@ -332,6 +337,7 @@ const getColumns = (
 
 
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport, manualPagination, pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange }: InvoicesTableProps) {
+  const helpScope = useHelpScope();
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -413,8 +419,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     (invoice) => {
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
-    }
-  ), [t, tStatus, tMethods, mergedColumnTranslations, invoices, onPrint, onSendEmail, handleAddPaymentClick]);
+    },
+    helpScope
+  ), [t, tStatus, tMethods, mergedColumnTranslations, invoices, onPrint, onSendEmail, handleAddPaymentClick, helpScope]);
 
   return (
     <>
@@ -503,12 +510,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 extraButtons={
                   <>
                     {onImport && (
-                      <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
+                      <Button data-help-id={composeHelpId(helpScope, 'btn', 'import')} variant="outline" size="sm" className="h-9" onClick={onImport}>
                         <FileUp className="mr-2 h-4 w-4" /> {t('import')}
                       </Button>
                     )}
                     {onExport && hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_EXPORT : PURCHASES_PERMISSIONS.INVOICES_EXPORT) && (
-                      <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
+                      <Button data-help-id={composeHelpId(helpScope, 'btn', 'export')} variant="outline" size="sm" className="h-9" onClick={onExport}>
                         <Download className="mr-2 h-4 w-4" /> {t('export')}
                       </Button>
                     )}
@@ -603,6 +610,7 @@ interface InvoiceFormDialogProps {
 }
 
 export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser, initialItems }: InvoiceFormDialogProps) {
+  const helpScope = useHelpScope();
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
   const { activeSede } = useAuth();
@@ -655,6 +663,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     }
   }, [userSearchOpen, isSales, users.length]);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
@@ -1078,7 +1087,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
             <DialogHeader>
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">
@@ -1333,7 +1342,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <div className="flex justify-between items-center">
                     <CardTitle>{t('items.title')}</CardTitle>
                     {invoiceType !== 'credit_note' && (
-                      <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                      <Button data-help-id={composeHelpId(helpScope, 'btn', 'add-item')} type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
                     )}
                   </div>
                 </CardHeader>

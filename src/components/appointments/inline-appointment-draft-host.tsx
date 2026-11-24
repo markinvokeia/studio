@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { addMinutes, format, parseISO } from 'date-fns';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { addMinutes, differenceInMinutes, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -15,7 +16,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { CalendarInlineDraftOverlay } from '@/components/calendar/inline-draft-overlay';
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 
@@ -23,6 +23,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { useToast } from '@/hooks/use-toast';
 import { toLocalISOString } from '@/lib/utils';
+import { sumServicesDuration, withServiceDurations } from '@/lib/appointment-duration';
 import api from '@/services/api';
 import { fetchAppointmentCalendars, fetchAppointmentDoctors } from '@/services/appointments';
 
@@ -63,6 +64,22 @@ interface InlineAppointmentDraftHostProps {
 }
 
 const colorHexById = new Map(GOOGLE_CALENDAR_COLORS.map((c) => [c.id, c.hex]));
+const colorIdByHex = new Map(GOOGLE_CALENDAR_COLORS.map((c) => [c.hex.toLowerCase(), c.id]));
+
+/**
+ * Color propio de la cita como id de paleta. El calendario ya lo resuelve en `colorId`
+ * (`''` = sin color propio; ahí `color` es el heredado de servicio/doctor/agenda y no
+ * sirve). Las demás pantallas (línea de tiempo de la ficha, Pacientes) arman la cita
+ * desde `/users_appointments` y solo traen `color` crudo, que la BD guarda como id de
+ * paleta o como hex: se traduce igual que en el calendario.
+ */
+function resolveOwnColorId(appointment: Appointment): string | undefined {
+  if (appointment.colorId !== undefined) return appointment.colorId || undefined;
+  const raw = (appointment.color ?? '').trim();
+  if (!raw) return undefined;
+  if (colorHexById.has(raw)) return raw;
+  return colorIdByHex.get(raw.toLowerCase());
+}
 
 /**
  * Monta la tarjeta inline de cita —la misma del calendario— fuera del calendario,
@@ -159,9 +176,26 @@ export function InlineAppointmentDraftHost({
         doctor: doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null,
         calendar: calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null,
         notes: appointment.notes ?? '',
-        color: appointment.colorId ?? undefined,
+        color: resolveOwnColorId(appointment),
         editing: appointment,
       });
+      // El listado de citas no siempre trae la duración de los servicios: sin ella,
+      // agregar o quitar uno recalcularía el total como si los demás duraran 0.
+      const initialServices = appointment.services ?? [];
+      if (initialServices.some((s) => !s.duration_minutes)) {
+        withServiceDurations(initialServices).then((enriched) => {
+          const durations = new Map(enriched.map((s) => [String(s.id), s.duration_minutes]));
+          setDraft((d) => (d && d.editing?.id === appointment.id
+            ? {
+              ...d,
+              services: d.services.map((s) => {
+                const duration = durations.get(String(s.id));
+                return !s.duration_minutes && duration ? { ...s, duration_minutes: duration } : s;
+              }),
+            }
+            : d));
+        });
+      }
       return;
     }
 
@@ -275,7 +309,34 @@ export function InlineAppointmentDraftHost({
 
   return (
     <>
-      <CalendarInlineDraftOverlay>
+      {/*
+        Dialog de Radix, no el `CalendarInlineDraftOverlay` (portal plano) del calendario: este
+        host se monta dentro de sheets modales (ficha del paciente). Un portal plano quedaba
+        fuera de las capas de Radix: heredaba el `pointer-events: none` que el sheet pone en el
+        body (no respondía a clics), el foco volvía al sheet y Esc cerraba el sheet entero.
+        Como Dialog es una capa más arriba del sheet. El calendario sigue con el overlay plano
+        porque su manejador de Esc se apaga si hay un `[role="dialog"]` abierto.
+      */}
+      <DialogPrimitive.Root open onOpenChange={(o) => { if (!o) requestClose(); }}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/55 backdrop-blur-[1px] dark:bg-background/70" />
+          <DialogPrimitive.Content
+            data-testid="inline-appointment-draft-dialog"
+            aria-describedby={undefined}
+            className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[340px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto focus:outline-none sm:w-[520px]"
+            // Igual que el overlay del calendario: el fondo no cierra la tarjeta, solo sus
+            // acciones o Esc (que pasa por el cierre con confirmación).
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => {
+              e.preventDefault();
+              // Diferido: que el AlertDialog de descarte no reciba esta misma pulsación de Esc.
+              if (!isSaving) window.setTimeout(requestClose, 0);
+            }}
+          >
+            <DialogPrimitive.Title className="sr-only">
+              {isEditing ? tInline('editTitle') : tInline('title')}
+            </DialogPrimitive.Title>
         <InlineAppointmentDraft
           variant="custom"
           date={draft.date}
@@ -304,7 +365,17 @@ export function InlineAppointmentDraftHost({
           services={draft.services}
           onServicesChange={(s) => setDraft((d) => {
             if (!d) return d;
-            const total = s.reduce((acc, svc) => acc + ((svc as { duration_minutes?: number }).duration_minutes || 0), 0);
+            // Sin servicios vuelve a la duración de partida (la guardada al editar);
+            // con servicios de duración desconocida se mantiene la actual.
+            if (s.length === 0) {
+              const startStr = d.editing?.start?.dateTime;
+              const endStr = d.editing?.end?.dateTime;
+              const original = startStr && endStr
+                ? differenceInMinutes(parseISO(endStr.replace(/Z$/, '')), parseISO(startStr.replace(/Z$/, '')))
+                : 0;
+              return { ...d, services: s, durationMin: original > 0 ? original : DEFAULT_DURATION_MINUTES };
+            }
+            const total = sumServicesDuration(s);
             return { ...d, services: s, durationMin: total > 0 ? total : d.durationMin };
           })}
           notes={draft.notes}
@@ -317,7 +388,9 @@ export function InlineAppointmentDraftHost({
           title={isEditing ? tColumns('edit') : undefined}
           saveLabel={isEditing ? tInline('update') : undefined}
         />
-      </CalendarInlineDraftOverlay>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       <AlertDialog open={isDiscardOpen} onOpenChange={setIsDiscardOpen}>
         <AlertDialogContent>

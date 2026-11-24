@@ -1,0 +1,168 @@
+{
+  "id": "patients.aesthetic-treatment",
+  "title": "Marcar el tratamiento en el mapa de estética",
+  "module": "Pacientes",
+  "summary": "Puntos, áreas y líneas sobre rostro o cuerpo, con dosis, lote, notas e historial por zona.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha estética",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "mapa facial",
+    "mapa corporal",
+    "marcar puntos",
+    "puntos de aplicación",
+    "área",
+    "línea",
+    "hilos",
+    "dosis",
+    "unidades",
+    "lote",
+    "vencimiento",
+    "simetría",
+    "espejo",
+    "historial por zona",
+    "deshacer"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.clinical-history"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.clinical-history",
+      "title": "Línea de tiempo",
+      "until": "patients.section.timeline"
+    },
+    {
+      "id": "session",
+      "action": "highlight",
+      "target": "patients.section.timeline",
+      "title": "Tocá la sesión de estética",
+      "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+      "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "patients.btn.timeline-open-aesthetic",
+      "title": "Continuar sesión",
+      "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+      "until": "aesthetic-session.section.header"
+    },
+    {
+      "id": "treatment",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-treatment",
+      "title": "Tratamiento",
+      "details": "Queda con candado hasta que haya al menos un consentimiento firmado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "views",
+      "action": "highlight",
+      "target": "aesthetic-session.section.views",
+      "title": "Región, vista y fondo",
+      "details": "Rostro o cuerpo, la vista, y qué se ve detrás: el modelo (con su tono de piel) o la foto de hoy.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "layers",
+      "action": "highlight",
+      "target": "aesthetic-session.section.layers",
+      "title": "Servicio activo",
+      "details": "Lo que marques va a este servicio; el ojo lo oculta o lo muestra. Los que no están firmados aparecen con candado y no se pueden marcar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tools",
+      "action": "highlight",
+      "target": "aesthetic-session.section.tools",
+      "title": "Herramientas",
+      "details": "Seleccionar y mover, punto, área y línea, deshacer y rehacer (Ctrl+Z), ver las zonas y ver las marcas de la sesión anterior. Cada servicio arranca con la herramienta que tiene configurada.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "map",
+      "action": "highlight",
+      "target": "aesthetic-session.section.map",
+      "title": "Mapa",
+      "details": "Un punto: un toque. Un área: tocá los vértices y cerrá en el primero o con Enter. Una línea: tocá el inicio y el final. La zona se detecta sola. Tocar una zona vacía con Seleccionar muestra su historial.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "editor",
+      "action": "highlight",
+      "target": "aesthetic-session.section.mark-editor",
+      "title": "Datos de la marca",
+      "details": "Aparece al seleccionar una marca: cantidad, zona, profundidad, técnica y nota. «Espejo» la duplica del otro lado y «Cambiar en esta marca» usa otro producto o lote. Avisa si se pasa del máximo, si no se respetó el intervalo o si el lote venció, pero no bloquea.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "summary",
+      "action": "click",
+      "target": "aesthetic-session.tab.summary",
+      "title": "Resumen",
+      "details": "Cada servicio con su total y sus marcas. Tocá uno para cargar producto, lote y vencimiento una sola vez para todas sus marcas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "click",
+      "target": "aesthetic-session.tab.notes",
+      "title": "Notas",
+      "details": "Notas con hora mientras trabajás, con dictado por voz y frases frecuentes.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "history",
+      "action": "click",
+      "target": "aesthetic-session.tab.history",
+      "title": "Historial",
+      "details": "Lo aplicado en cada zona en sesiones anteriores (últimos 12 meses).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "to-close",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.to-close",
+      "title": "Ir al cierre",
+      "details": "Cuando terminaste de marcar.",
+      "skipIfMissing": true
+    }
+  ]
+}

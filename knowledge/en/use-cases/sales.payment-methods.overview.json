@@ -1,0 +1,41 @@
+{
+  "id": "sales.payment-methods.overview",
+  "title": "Tour payment methods",
+  "summary": "List of methods to collect and pay and which ones count as cash in the cash register.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "payment methods",
+    "payment methods",
+    "ways to pay"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Payment Methods",
+      "details": "Cash, cards, transfers… used to collect and pay. Cash equivalents add to the cash count."
+    },
+    {
+      "id": "search",
+      "title": "Find the method"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the method"
+    },
+    {
+      "id": "detail",
+      "title": "Details"
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    }
+  ]
+}

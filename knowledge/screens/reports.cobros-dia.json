@@ -1,0 +1,67 @@
+{
+  "id": "reports.cobros-dia",
+  "status": "draft",
+  "summary": "Cobros del día.",
+  "purpose": "Todo lo cobrado en el período por medio de pago, profesional y sede: para controlar la caja del día.",
+  "useCases": [
+    "reports.cobros-dia.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.cobros-dia.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.cobros-dia.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.cobros-dia.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.cobros-dia.section.kpi": {
+      "label": "Indicadores",
+      "description": "Cantidad de cobros y total cobrado."
+    },
+    "reports.cobros-dia.section.results": {
+      "label": "Resultados",
+      "description": "Gráficos por medio de pago y por hora, y el detalle de cada cobro."
+    },
+    "reports.cobros-dia.section.table": {
+      "label": "Detalle"
+    },
+    "reports.cobros-dia.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.cobros-dia.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.cobros-dia.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.cobros-dia.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.cobros-dia.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.cobros-dia.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.cobros-dia.filter.period": {
+      "label": "Período"
+    },
+    "reports.cobros-dia.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.cobros-dia.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.cobros-dia.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

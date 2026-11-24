@@ -1,0 +1,115 @@
+{
+  "id": "lab-orders.overview",
+  "title": "Recorrer Órdenes de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Qué muestra la pantalla: las órdenes pendientes, los filtros rápidos, el detalle de una orden y el tablero.",
+  "screens": [
+    "lab-orders"
+  ],
+  "keywords": [
+    "ordenes de laboratorio",
+    "trabajos de laboratorio",
+    "protesis",
+    "coronas",
+    "en que etapa esta",
+    "seguimiento laboratorio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "view",
+      "action": "highlight",
+      "target": "lab-orders.section.view",
+      "title": "Lista o tablero",
+      "details": "La lista muestra solo las órdenes pendientes. El tablero tiene una columna por etapa."
+    },
+    {
+      "id": "search",
+      "action": "highlight",
+      "target": "lab-orders.filter.search",
+      "title": "Búsqueda",
+      "details": "Buscá por paciente, trabajo, laboratorio o número de orden."
+    },
+    {
+      "id": "overdue",
+      "action": "highlight",
+      "target": "lab-orders.field.overdue-only",
+      "title": "Solo atrasadas",
+      "details": "El número dice cuántas hay. Una orden se atrasa si pasa los días de su etapa, o si se vence la entrega."
+    },
+    {
+      "id": "urgent",
+      "action": "highlight",
+      "target": "lab-orders.field.urgent-only",
+      "title": "Urgentes",
+      "details": "Las urgentes pendientes. También salen primero en la lista.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "due-today",
+      "action": "highlight",
+      "target": "lab-orders.field.due-today",
+      "title": "Entregas de hoy",
+      "details": "Lo que los laboratorios tienen que entregar hoy. Sirve para llamar a primera hora.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "lab-orders.btn.filters",
+      "title": "Más filtros",
+      "details": "Etapa, laboratorio, doctor, paciente y fechas. Para ver también las terminadas, elegí la etapa Todas."
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Una orden",
+      "details": "Paciente, laboratorio, trabajo y doctor. La columna Estado junta la etapa, los días que lleva ahí y la entrega. Lo atrasado se ve en rojo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "board",
+      "action": "click",
+      "target": "lab-orders.btn.view-board",
+      "title": "Tablero",
+      "until": "lab-orders.section.board"
+    },
+    {
+      "id": "columns",
+      "action": "highlight",
+      "target": "lab-orders.section.board",
+      "title": "Una columna por etapa",
+      "details": "Arrastrá una tarjeta a otra columna para cambiarle la etapa."
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "lab-orders.btn.new",
+      "title": "Nueva orden",
+      "details": "Registra un trabajo nuevo, que entra en la primera etapa.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "setup",
+      "action": "highlight",
+      "target": "lab-orders.btn.setup-menu",
+      "title": "Configurar",
+      "details": "Para sumar laboratorios, marcar qué servicios son trabajos de laboratorio y ajustar las etapas.",
+      "skipIfMissing": true
+    }
+  ]
+}

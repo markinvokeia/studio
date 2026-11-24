@@ -1,0 +1,66 @@
+{
+  "id": "dashboard.menu-Reports-5",
+  "title": "Conocer Reportes: Estado de Resultados, KPIs Clínica y Balance Mensual",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Estado de Resultados, KPIs Clínica y Balance Mensual: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "reportes",
+    "qué hay en reportes",
+    "estado de resultados",
+    "kpis clínica",
+    "balance mensual"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.Reports",
+      "title": "Reportes",
+      "details": "Recorremos Estado de Resultados, KPIs Clínica y Balance Mensual.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-reports.estado-resultados",
+      "action": "navigate",
+      "route": "/reports/estado-resultados",
+      "title": "Menú → Reportes → Estado de Resultados"
+    },
+    {
+      "id": "page-reports.estado-resultados",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Estado de Resultados",
+      "details": "Ingresos menos gastos del período: el resultado económico de la clínica. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.kpis",
+      "action": "navigate",
+      "route": "/reports/kpis",
+      "title": "Menú → Reportes → KPIs Clínica"
+    },
+    {
+      "id": "page-reports.kpis",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "KPIs Clínica",
+      "details": "Los números principales de la clínica en un tablero. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.balance-mensual",
+      "action": "navigate",
+      "route": "/reports/balance-mensual",
+      "title": "Menú → Reportes → Balance Mensual"
+    },
+    {
+      "id": "page-reports.balance-mensual",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Balance Mensual",
+      "details": "Producido, cobrado y pendiente de cada mes. Tiene 1 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

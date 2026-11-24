@@ -1,0 +1,50 @@
+{
+  "id": "config.availability-exceptions.overview",
+  "title": "Tour Availability Exceptions",
+  "summary": "Specific days when a doctor doesn't see patients (leave, conference) or works outside their regular availability.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "availability exceptions",
+    "exception",
+    "view exception",
+    "what is exception"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Availability Exceptions",
+      "details": "Specific days when a doctor doesn't see patients (leave, conference) or works outside their regular availability."
+    },
+    {
+      "id": "search",
+      "title": "Find the exception"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the exception",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "detail",
+      "title": "Details",
+      "details": "The details of the chosen record."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Adds a new exception."
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "id": "dashboard.menu-Reports-3",
+  "title": "Conocer Reportes: Nuevos Pacientes, Pacientes Inactivos y más",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Nuevos Pacientes, Pacientes Inactivos, Tratamientos en Curso, Ocupación de Agenda y Cancelaciones: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "reportes",
+    "qué hay en reportes",
+    "nuevos pacientes",
+    "pacientes inactivos",
+    "tratamientos en curso",
+    "ocupación de agenda",
+    "cancelaciones"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.Reports",
+      "title": "Reportes",
+      "details": "Recorremos Nuevos Pacientes, Pacientes Inactivos, Tratamientos en Curso, Ocupación de Agenda y Cancelaciones.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-reports.nuevos-pacientes",
+      "action": "navigate",
+      "route": "/reports/nuevos-pacientes",
+      "title": "Menú → Reportes → Nuevos Pacientes"
+    },
+    {
+      "id": "page-reports.nuevos-pacientes",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Nuevos Pacientes",
+      "details": "Pacientes registrados en el período y si ya tuvieron su primera cita. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.pacientes-inactivos",
+      "action": "navigate",
+      "route": "/reports/pacientes-inactivos",
+      "title": "Menú → Reportes → Pacientes Inactivos"
+    },
+    {
+      "id": "page-reports.pacientes-inactivos",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Pacientes Inactivos",
+      "details": "Pacientes que no vienen hace tiempo, para campañas de recaptación. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.tratamientos-en-curso",
+      "action": "navigate",
+      "route": "/reports/tratamientos-en-curso",
+      "title": "Menú → Reportes → Tratamientos en Curso"
+    },
+    {
+      "id": "page-reports.tratamientos-en-curso",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Tratamientos en Curso",
+      "details": "Tratamientos de varias etapas que todavía no terminaron, para hacerles seguimiento. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.ocupacion-agenda",
+      "action": "navigate",
+      "route": "/reports/ocupacion-agenda",
+      "title": "Menú → Reportes → Ocupación de Agenda"
+    },
+    {
+      "id": "page-reports.ocupacion-agenda",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Ocupación de Agenda",
+      "details": "Análisis de las citas: cuántas se completaron, cancelaron o no asistieron, y cuántas terminaron en presupuesto o sesión. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.cancelaciones",
+      "action": "navigate",
+      "route": "/reports/cancelaciones",
+      "title": "Menú → Reportes → Cancelaciones"
+    },
+    {
+      "id": "page-reports.cancelaciones",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Cancelaciones",
+      "details": "Citas canceladas o con ausencia en el período, con motivo, profesional y paciente. Tiene 1 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

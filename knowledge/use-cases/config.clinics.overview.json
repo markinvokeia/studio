@@ -1,0 +1,70 @@
+{
+  "id": "config.clinics.overview",
+  "title": "Revisar los datos de la clínica",
+  "module": "Configuración de Negocio",
+  "summary": "Nombre, logo, RUT, contacto y monedas; y las sedes.",
+  "screens": [
+    "config.clinics"
+  ],
+  "keywords": [
+    "datos de la clínica",
+    "logo",
+    "rut",
+    "moneda de la clínica"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/clinics",
+      "title": "Menú → Configuración de Negocio → Detalles de la Clínica",
+      "details": "Lo que sale en presupuestos, facturas, recibos y el portal."
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-name",
+      "title": "Nombre"
+    },
+    {
+      "id": "logo",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-logo",
+      "title": "Logo",
+      "details": "Va en los documentos impresos y en el portal."
+    },
+    {
+      "id": "rut",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-rut",
+      "title": "RUT"
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-currency",
+      "title": "Moneda principal"
+    },
+    {
+      "id": "second",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-secondary-currency",
+      "title": "Moneda secundaria",
+      "details": "Habilita trabajar en dos monedas con tipo de cambio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "sede",
+      "action": "highlight",
+      "target": "config.clinics.btn.add-sede",
+      "title": "Agregar sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.clinics.btn.save",
+      "title": "Guardar"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "workspace.aesthetic-session",
+  "title": "Registrar una sesión de estética desde la cita",
+  "module": "Mi Consultorio",
+  "summary": "Abrir el flujo guiado desde Mi Consultorio: la sesión queda vinculada a la cita y al profesional.",
+  "screens": [
+    "workspace"
+  ],
+  "inputs": {},
+  "keywords": [
+    "estética",
+    "sesión estética",
+    "ficha estética",
+    "botox",
+    "toxina",
+    "relleno",
+    "consentimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/workspace",
+      "title": "Menú → Mi Consultorio",
+      "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende."
+    },
+    {
+      "id": "select",
+      "action": "highlight",
+      "target": "workspace.section.appointment",
+      "title": "Elegí la cita del paciente",
+      "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+      "until": "workspace.section.focus",
+      "autoClick": true
+    },
+    {
+      "id": "open",
+      "action": "highlight",
+      "target": "workspace.btn.aesthetic",
+      "title": "Sesión estética",
+      "details": "Abre el flujo con la cita y el profesional ya cargados. Si está deshabilitado, la cita no permite editar sesiones (por ejemplo, es de otro día).",
+      "until": "aesthetic-session.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "services",
+      "action": "highlight",
+      "target": "aesthetic-session.section.services",
+      "title": "Servicios de hoy",
+      "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior."
+    },
+    {
+      "id": "sign-area",
+      "action": "highlight",
+      "target": "aesthetic-session.section.signature",
+      "title": "Firmar el consentimiento",
+      "details": "Sin firma no se puede marcar ese servicio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "steps",
+      "action": "highlight",
+      "target": "aesthetic-session.section.header",
+      "title": "Los cuatro pasos",
+      "details": "Consentimiento, Fotos de hoy, Tratamiento y Cierre. Todo se guarda solo y la sesión queda en la línea de tiempo del paciente. Las guías de Pacientes explican cada paso."
+    }
+  ]
+}

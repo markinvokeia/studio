@@ -39,6 +39,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException, User } from '@/lib/types';
@@ -98,6 +99,7 @@ export default function AvailabilityExceptionsPage() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedException, setSelectedException] = React.useState<AvailabilityException | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<AvailabilityExceptionFormValues>({
         resolver: zodResolver(availabilityExceptionFormSchema(tValidation)),
         defaultValues: emptyAvailabilityExceptionForm(),
@@ -276,7 +278,7 @@ export default function AvailabilityExceptionsPage() {
 
     const rightPanel = selectedException ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.availability-exceptions.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><UserX className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -284,10 +286,10 @@ export default function AvailabilityExceptionsPage() {
                         <p className="text-xs text-muted-foreground truncate">{multiDateLabel(selectedException.dates, selectedException.exception_date)}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
+                        <Button data-help-id="config.availability-exceptions.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
                             <Pencil className="h-4 w-4 mr-1" />Editar
                         </Button>
-                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedException)}>
+                        <Button data-help-id="config.availability-exceptions.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedException)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -347,7 +349,7 @@ export default function AvailabilityExceptionsPage() {
                         <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">

@@ -1,0 +1,110 @@
+{
+  "id": "sales.services.consent-template",
+  "title": "Escribir el consentimiento de un servicio de estética",
+  "module": "Ventas",
+  "summary": "Texto propio del consentimiento, con variables del paciente, profesional y servicio, y vista previa.",
+  "screens": [
+    "sales.services"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "plantilla de consentimiento",
+    "texto del consentimiento",
+    "consentimiento del servicio",
+    "variables",
+    "vista previa consentimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/services",
+      "title": "Menú → Ventas → Servicios",
+      "details": "Cada servicio de estética puede tener su propio consentimiento."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.services.filter.search",
+      "title": "Buscá el servicio",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.services.section.first-row",
+      "title": "Elegí el servicio",
+      "details": "Tocalo para abrir su ficha.",
+      "until": "sales.services.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "sales.services.tab.aesthetic",
+      "title": "Estética",
+      "details": "Si no está, primero marcá el servicio como servicio de estética en Datos.",
+      "until": "sales.services.section.consent-template",
+      "skipIfMissing": true
+    },
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "sales.services.section.consent-template",
+      "title": "Consentimiento",
+      "details": "Sin texto propio se usa el genérico. Cambiarlo sólo afecta a las firmas nuevas: lo ya firmado queda como estaba.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "title",
+      "action": "highlight",
+      "target": "sales.services.field.consent-title",
+      "title": "Título del documento",
+      "skipIfMissing": true
+    },
+    {
+      "id": "generic",
+      "action": "highlight",
+      "target": "sales.services.btn.consent-from-generic",
+      "title": "Partir del genérico",
+      "details": "Carga el texto genérico para editarlo. Sólo aparece con el texto vacío.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "body",
+      "action": "highlight",
+      "target": "sales.services.field.consent-body",
+      "title": "Texto",
+      "details": "Lo que se le muestra al paciente antes de firmar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "variables",
+      "action": "highlight",
+      "target": "sales.services.section.consent-variables",
+      "title": "Variables",
+      "details": "Se reemplazan al firmar: paciente, profesional, servicio, producto y fecha. Una variable desconocida no deja guardar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "preview",
+      "action": "highlight",
+      "target": "sales.services.btn.consent-preview",
+      "title": "Vista previa",
+      "details": "Cómo queda con datos de ejemplo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.services.btn.consent-save",
+      "title": "Guardar",
+      "details": "Aparece al haber cambios.",
+      "skipIfMissing": true
+    }
+  ]
+}

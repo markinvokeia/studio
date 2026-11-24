@@ -1,0 +1,64 @@
+{
+  "id": "reports.cancelaciones",
+  "summary": "Cancellations report.",
+  "purpose": "Appointments canceled or no-shows in the period, with reason, doctor and patient.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own.",
+    "Helps spot time slots with many no-shows and step up reminders."
+  ],
+  "elements": {
+    "reports.cancelaciones.section.filters": {
+      "label": "Filters",
+      "description": "Doctor, reason and type (cancellation or no-show)."
+    },
+    "reports.cancelaciones.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.cancelaciones.section.empty": {
+      "label": "No data"
+    },
+    "reports.cancelaciones.section.kpi": {
+      "label": "Indicators",
+      "description": "Total cancellations, main reason, most affected doctor and most frequent patient."
+    },
+    "reports.cancelaciones.section.results": {
+      "label": "Results",
+      "description": "Charts by reason, day and hour, and the details of each cancellation."
+    },
+    "reports.cancelaciones.section.table": {
+      "label": "Details"
+    },
+    "reports.cancelaciones.section.export": {
+      "label": "Export and print"
+    },
+    "reports.cancelaciones.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.cancelaciones.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.cancelaciones.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.cancelaciones.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.cancelaciones.btn.print": {
+      "label": "Print"
+    },
+    "reports.cancelaciones.filter.period": {
+      "label": "Period"
+    },
+    "reports.cancelaciones.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.cancelaciones.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.cancelaciones.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

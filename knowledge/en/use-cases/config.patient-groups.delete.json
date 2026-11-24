@@ -1,0 +1,39 @@
+{
+  "id": "config.patient-groups.delete",
+  "title": "Delete the patient group",
+  "summary": "Delete a patient group (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete patient group",
+    "remove patient group",
+    "clear patient group"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Patient Groups",
+      "details": "Groupings of patients (Orthodontics, Agreement X) with their services, to report what's produced and collected per group."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient group"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the patient group",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

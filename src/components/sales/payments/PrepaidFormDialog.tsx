@@ -11,13 +11,16 @@ import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useHelpScope } from '@/components/help/help-scope';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PaymentMethod, User } from '@/lib/types';
 import { cn, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
+import { composeHelpId } from '@/lib/help/help-id';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -63,6 +66,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
     const t = useTranslations('PaymentsPage');
     const tValidation = useTranslations('InvoicesPage');
     const { toast } = useToast();
+    const helpScope = useHelpScope();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const clinicInfo = useClinicInfo();
@@ -73,6 +77,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
     const [pendingData, setPendingData] = React.useState<PrepaidFormValues | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -170,7 +175,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -306,7 +311,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('prepaidDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirm}>{t('prepaidDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id={composeHelpId(helpScope, 'btn', 'prepaid-confirm')} onClick={handleConfirm}>{t('prepaidDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

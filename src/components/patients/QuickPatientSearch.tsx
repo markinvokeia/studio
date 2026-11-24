@@ -17,9 +17,11 @@ import { PatientCreateDialog } from '@/components/patients/patient-create-dialog
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { usePatientView } from '@/stores/patient-view-store';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 /** Title-cases the typed query so the new patient is prefilled with capitalized words. */
 function toTitleCase(value: string): string {
@@ -36,6 +38,10 @@ interface QuickPatientResult {
   name: string;
   phone_number: string;
   email: string;
+  is_dependent: boolean;
+  responsible_contact_name?: string;
+  responsible_phone_number?: string;
+  matched_by_responsible: boolean;
 }
 
 /**
@@ -78,6 +84,10 @@ export function QuickPatientSearch() {
           name: u.name || 'Sin nombre',
           phone_number: u.phone_number || '',
           email: u.email || '',
+          is_dependent: u.is_dependent ?? u.is_dependant ?? false,
+          responsible_contact_name: u.responsible_contact_name || undefined,
+          responsible_phone_number: u.responsible_phone_number || undefined,
+          matched_by_responsible: u.matched_by_responsible === true,
         })));
       } catch {
         setResults([]);
@@ -103,7 +113,7 @@ export function QuickPatientSearch() {
     <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button data-help-id="rail.btn.patient"
           variant="ghost"
           size="icon"
           className="rounded-xl h-10 w-10 bg-muted/60 text-muted-foreground hover:bg-muted"
@@ -113,7 +123,7 @@ export function QuickPatientSearch() {
           <UserSearch className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
+      <PopoverContent data-help-id="rail.section.patient-search"
         side="left"
         align="start"
         sideOffset={8}
@@ -165,9 +175,10 @@ export function QuickPatientSearch() {
                       <span className="truncate text-sm font-medium">{patient.name}</span>
                       {(patient.phone_number || patient.email) && (
                         <span className={cn('truncate text-xs text-muted-foreground')}>
-                          {patient.phone_number || patient.email}
+                          {formatPhoneNumber(patient.phone_number) || patient.email}
                         </span>
                       )}
+                      <ResponsibleMatchHint user={patient} />
                     </span>
                   </CommandItem>
                 ))}

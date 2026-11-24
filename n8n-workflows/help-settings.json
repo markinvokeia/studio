@@ -1,0 +1,149 @@
+{
+  "name": "Help - Ajustes",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "help/settings",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "id": "node-auth",
+      "name": "Extraer User ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nreturn [{ json: { user_id: String(userId) } }];"
+      },
+      "position": [
+        330,
+        300
+      ]
+    },
+    {
+      "id": "node-pg-settings",
+      "name": "Leer Ajustes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT (SELECT value FROM public.system_configurations WHERE key = 'help_mascot_visible' LIMIT 1) AS mascot_visible;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const row = $input.first()?.json || {};\nif (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));\n// Sin la clave (script 142 sin aplicar) la mascota se ve, como hasta ahora.\nconst raw = row.mascot_visible;\nconst mascot_visible = raw === null || raw === undefined ? true : String(raw).trim().toLowerCase() !== 'false';\nreturn [{ json: { body: { mascot_visible } } }];"
+      },
+      "position": [
+        790,
+        300
+      ]
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "position": [
+        1020,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extraer User ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer User ID": {
+      "main": [
+        [
+          {
+            "node": "Leer Ajustes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Ajustes": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN:\n1. Credenciales ya asignadas: \"JWT Auth account\" en el Webhook y \"Postgres account\" en los nodos Postgres.\n2. Activar el workflow.\n\nGENERADO por scripts/n8n/generate-help-workflows.mjs — no editar a mano.\nTablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql\n\nRUTA: GET /webhook/help/settings (Authorization: Bearer <JWT>)\nRESPUESTA: { mascot_visible: boolean }\nAjustes del asistente que fija la clínica (Configuración → Preferencias de Clínica).\nLos lee cualquier usuario con el asistente: system_configurations no está a su alcance.\nClave: system_configurations.help_mascot_visible (database/scripts/142), default true."
+  }
+}

@@ -17,6 +17,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Ailment } from '@/lib/types';
@@ -95,6 +96,7 @@ export default function AilmentsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingAilment, setDeletingAilment] = React.useState<Ailment | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<AilmentFormValues>({
         resolver: zodResolver(ailmentFormSchema(t)),
         defaultValues: { nombre: '', categoria: '', nivel_alerta: '' },
@@ -228,7 +230,7 @@ export default function AilmentsPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="clinic-catalog.ailments.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><HeartPulse className="h-5 w-5" /></div>
@@ -238,13 +240,13 @@ export default function AilmentsPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedAilment && !isEditing && canUpdate && (
-                            <Button aria-label={tColumns('edit')} variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="clinic-catalog.ailments.btn.edit" aria-label={tColumns('edit')} variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{tColumns('edit')}</span>
                             </Button>
                         )}
                         {selectedAilment && !isEditing && canDelete && (
-                            <Button aria-label={tColumns('delete')} variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingAilment(selectedAilment); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="clinic-catalog.ailments.btn.delete" aria-label={tColumns('delete')} variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingAilment(selectedAilment); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -254,7 +256,7 @@ export default function AilmentsPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -329,7 +331,7 @@ export default function AilmentsPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="clinic-catalog.ailments.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -350,7 +352,7 @@ export default function AilmentsPage() {
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

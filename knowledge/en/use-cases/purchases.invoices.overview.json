@@ -1,0 +1,77 @@
+{
+  "id": "purchases.invoices.overview",
+  "title": "Tour purchase invoices",
+  "summary": "List with a filter by type (invoice or credit note), details with status, payment and due date, actions and tabs.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Invoice number"
+  },
+  "keywords": [
+    "purchase invoices",
+    "provider invoices",
+    "debt with providers"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Invoices",
+      "details": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly."
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "details": "By document number."
+    },
+    {
+      "id": "filters",
+      "title": "Filter by type",
+      "details": "Invoices or credit notes."
+    },
+    {
+      "id": "type",
+      "title": "Document type",
+      "details": "All, invoices only or credit notes only."
+    },
+    {
+      "id": "import",
+      "title": "Import",
+      "details": "Enters provider invoices from a file."
+    },
+    {
+      "id": "export",
+      "title": "Export"
+    },
+    {
+      "id": "pick",
+      "title": "Open an invoice"
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "details": "Status (draft or confirmed), payment status, total, provider, source quote, due date and date."
+    },
+    {
+      "id": "actions",
+      "title": "Actions",
+      "details": "Draft: confirm. Confirmed with a balance: add payment. Always: print and send."
+    },
+    {
+      "id": "items",
+      "title": "Items"
+    },
+    {
+      "id": "payments",
+      "title": "Payments",
+      "details": "The payments applied to this invoice."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "credit",
+      "title": "Credit notes",
+      "details": "The credit notes deducted from this invoice."
+    }
+  ]
+}

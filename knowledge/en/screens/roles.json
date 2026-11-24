@@ -1,0 +1,42 @@
+{
+  "id": "roles",
+  "summary": "Roles and their permissions.",
+  "purpose": "A role groups permissions (Receptionist, Administrator, Doctor…). Each user gets one or more roles.",
+  "tips": [
+    "Changing a role's permissions affects every user who has it."
+  ],
+  "elements": {
+    "roles.section.first-row": {
+      "label": "First in the list"
+    },
+    "roles.section.row": {
+      "label": "Record"
+    },
+    "roles.section.detail": {
+      "label": "Record"
+    },
+    "roles.detail.field.name": {
+      "label": "Name"
+    },
+    "roles.detail.btn.submit": {
+      "label": "Save"
+    },
+    "roles.detail.tab.details": {
+      "label": "Details"
+    },
+    "roles.detail.tab.users": {
+      "label": "Users",
+      "description": "Who has this role."
+    },
+    "roles.detail.tab.permissions": {
+      "label": "Permissions",
+      "description": "What someone with the role can see and do."
+    },
+    "roles.btn.row-delete": {
+      "label": "Delete"
+    },
+    "roles.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    }
+  }
+}

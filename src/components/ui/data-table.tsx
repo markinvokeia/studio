@@ -34,6 +34,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { getDefaultPageSize } from '@/lib/pagination';
 import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, RefreshCw } from 'lucide-react';
@@ -109,6 +111,8 @@ interface DataTableProps<TData, TValue> {
    * button calls `onRefresh`.
    */
   loadError?: string | null;
+  /** Replaces the generic "no results" text when there are no rows (e.g. a call to action). */
+  emptyState?: React.ReactNode;
   /**
    * Open on the last page, scrolled to the bottom, so the final row is in view — for lists
    * sorted oldest-first where the most recent entry is what the user wants to see. Applied
@@ -190,9 +194,11 @@ export function DataTable<TData, TValue>({
   initialPageSize,
   footerRow,
   loadError,
+  emptyState,
   startAtEnd = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
+  const helpScope = useHelpScope();
   // Resolve the page size once at mount: an explicit prop wins; otherwise
   // 10 on mobile and 25 on tablet/desktop.
   const [resolvedInitialPageSize] = React.useState(() => initialPageSize ?? getDefaultPageSize());
@@ -405,8 +411,8 @@ export function DataTable<TData, TValue>({
               <Skeleton key={i} className="h-16 w-full rounded-md" />
             ))
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <div key={row.id} data-testid="list-item" onClick={() => {
+            table.getRowModel().rows.map((row, rowIndex) => (
+              <div key={row.id} data-testid="list-item" data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')} onClick={() => {
                 if (enableSingleRowSelection) {
                   // Single selection: clicking the selected item deselects it,
                   // clicking another one replaces the selection. Row ids are
@@ -425,7 +431,7 @@ export function DataTable<TData, TValue>({
           ) : loadError && data.length === 0 ? (
             <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
           ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
+            emptyState ?? <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
           )}
         </div>
       ) : null}
@@ -471,9 +477,11 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
+                  // Guías: la primera fila (la más reciente o la primera del orden) y el resto.
+                  data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')}
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => {
                     if (enableSingleRowSelection) {
@@ -505,7 +513,7 @@ export function DataTable<TData, TValue>({
                 >
                   {loadError && data.length === 0
                     ? <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
-                    : t('noResults')}
+                    : emptyState ?? t('noResults')}
                 </TableCell>
               </TableRow>
             )}

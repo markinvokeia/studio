@@ -9,6 +9,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { createSelectColumn } from '@/components/ui/table-select-column';
 
 import { Clinic } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 interface ClinicsColumnsProps {
     t: ReturnType<typeof useTranslations>;
@@ -20,7 +21,7 @@ export const getClinicsColumns = ({ t }: ClinicsColumnsProps): ColumnDef<Clinic>
     { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
     { accessorKey: 'location', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.location')} /> },
     { accessorKey: 'contact_email', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} /> },
-    { accessorKey: 'phone_number', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} /> },
+    { accessorKey: 'phone_number', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />, cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     {
         id: 'actions',
         cell: () => (

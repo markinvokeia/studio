@@ -1,0 +1,48 @@
+{
+  "id": "workspace.aesthetic-session",
+  "title": "Record an aesthetic session from the appointment",
+  "summary": "Open the guided flow from My Workspace: the session is linked to the appointment and the doctor.",
+  "module": "My Workspace",
+  "inputs": {},
+  "keywords": [
+    "aesthetics",
+    "aesthetic session",
+    "aesthetic record",
+    "botox",
+    "toxin",
+    "filler",
+    "consent"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → My Workspace",
+      "details": "The doctor's view: their schedule and the clinical panel of the patient they're seeing."
+    },
+    {
+      "id": "select",
+      "title": "Choose the patient's appointment",
+      "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top."
+    },
+    {
+      "id": "open",
+      "title": "Aesthetic session",
+      "details": "Opens the flow with the appointment and doctor already filled in. If it's disabled, the appointment doesn't allow editing sessions (for example, it's on another day)."
+    },
+    {
+      "id": "services",
+      "title": "Today's services",
+      "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time."
+    },
+    {
+      "id": "sign-area",
+      "title": "Sign the consent",
+      "details": "Without a signature that service can't be marked."
+    },
+    {
+      "id": "steps",
+      "title": "The four steps",
+      "details": "Consent, Today's photos, Treatment and Closing. Everything saves on its own and the session stays on the patient's timeline. The Patients guides explain each step."
+    }
+  ]
+}

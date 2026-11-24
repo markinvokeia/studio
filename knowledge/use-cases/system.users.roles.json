@@ -1,0 +1,49 @@
+{
+  "id": "system.users.roles",
+  "title": "Asignar roles a un usuario",
+  "module": "Sistema",
+  "summary": "Pestaña Roles del usuario.",
+  "screens": [
+    "system.users"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "rol del usuario",
+    "dar acceso",
+    "cambiar permisos de un usuario"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/users",
+      "title": "Menú → Sistema → Usuarios"
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.users.filter.search",
+      "title": "Buscá el usuario",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.users.section.first-row",
+      "title": "Elegí el usuario",
+      "until": "system.users.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "system.users.detail.tab.roles",
+      "title": "Roles",
+      "details": "Agregá o quitá roles; cada uno suma permisos."
+    }
+  ]
+}

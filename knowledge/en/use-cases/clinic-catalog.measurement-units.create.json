@@ -1,0 +1,56 @@
+{
+  "id": "clinic-catalog.measurement-units.create",
+  "title": "Add a measurement unit",
+  "summary": "New entry in the measurement units catalog.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "name": "Name",
+    "symbol": "Symbol (e.g. ml, U)",
+    "code": "Unique code, no spaces",
+    "step": "Quantity step, as a number (1, 0.05)"
+  },
+  "keywords": [
+    "new measurement unit",
+    "add unit",
+    "create unit"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Measurement Units",
+      "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…)."
+    },
+    {
+      "id": "new",
+      "title": "New unit"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "symbol",
+      "title": "Symbol",
+      "details": "What shows next to each quantity."
+    },
+    {
+      "id": "code",
+      "title": "Code",
+      "details": "Unique identifier: letters, numbers, hyphen and underscore."
+    },
+    {
+      "id": "step",
+      "title": "Quantity step",
+      "details": "How much the + and − buttons change when marking: 1 for whole units, 0.05 for ml."
+    },
+    {
+      "id": "active",
+      "title": "Active",
+      "details": "Inactive ones aren't offered when setting up services."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

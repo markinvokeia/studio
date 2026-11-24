@@ -73,6 +73,7 @@ export function BulkReassignDoctorDialog({
                     <Popover open={doctorPopoverOpen} onOpenChange={setDoctorPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button
+                                data-help-id="appointments.field.bulk-doctor"
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={doctorPopoverOpen}
@@ -116,7 +117,7 @@ export function BulkReassignDoctorDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
                         {t('cancel')}
                     </Button>
-                    <Button onClick={handleConfirm} disabled={!selectedDoctorId || isLoading}>
+                    <Button data-help-id="appointments.btn.bulk-confirm" onClick={handleConfirm} disabled={!selectedDoctorId || isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('confirmReassign')}
                     </Button>

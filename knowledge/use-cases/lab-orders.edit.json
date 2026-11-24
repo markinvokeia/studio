@@ -1,0 +1,91 @@
+{
+  "id": "lab-orders.edit",
+  "title": "Editar una orden de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Cambiar servicios, doctor, laboratorio, fecha de entrega, notas o la marca de urgente de una orden.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "query": "Buscar",
+    "notes": "Notas"
+  },
+  "keywords": [
+    "editar orden de laboratorio",
+    "cambiar fecha de entrega",
+    "cambiar laboratorio",
+    "modificar orden"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "list",
+      "action": "click",
+      "target": "lab-orders.btn.view-list",
+      "title": "Vista de lista",
+      "skipIfMissing": true
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "lab-orders.filter.search",
+      "title": "Buscá la orden",
+      "details": "Buscá por paciente, trabajo, laboratorio o número de orden.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "lab-orders.section.first-row",
+      "title": "Abrí la orden",
+      "details": "Tocala en la lista. Su detalle se abre a la derecha.",
+      "until": "lab-orders.section.detail-stage",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "lab-orders.btn.edit",
+      "title": "Editar",
+      "until": "lab-orders.btn.submit"
+    },
+    {
+      "id": "review",
+      "action": "highlight",
+      "target": "lab-orders.section.review",
+      "title": "Revisá la orden",
+      "details": "Se abre en Revisar. Con Editar, en cada fila, cambiás el paciente, los servicios o el laboratorio."
+    },
+    {
+      "id": "due",
+      "action": "highlight",
+      "target": "lab-orders.field.due_date",
+      "title": "Fecha de entrega",
+      "details": "Aparece cuando la orden ya se envió. Si el laboratorio avisa otra fecha, se cambia acá.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "lab-orders.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "lab-orders.btn.submit",
+      "title": "Guardar cambios",
+      "details": "La etapa no se cambia desde acá. Para eso están los botones de etapa del detalle."
+    }
+  ]
+}

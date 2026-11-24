@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useHelpScope } from '@/components/help/help-scope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
+import { composeHelpId } from '@/lib/help/help-id';
 import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
 
 interface WhatsAppComposerDialogProps {
@@ -27,6 +29,10 @@ interface WhatsAppComposerDialogProps {
   phone: string;
   recipientName?: string;
   treatmentContext?: { serviceName: string; missedStep: string; missedDate?: string };
+  /** Message already written (e.g. the periodontal report); replaces the template */
+  initialMessage?: string;
+  /** WhatsApp was opened with the message */
+  onSent?: () => void;
 }
 
 export function WhatsAppComposerDialog({
@@ -35,8 +41,11 @@ export function WhatsAppComposerDialog({
   phone,
   recipientName,
   treatmentContext,
+  initialMessage,
+  onSent,
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
+  const helpScope = useHelpScope();
   const { toast } = useToast();
 
   const clinic = useClinicInfo();
@@ -58,14 +67,16 @@ export function WhatsAppComposerDialog({
       missed_step: treatmentContext?.missedStep || '',
       missed_date: treatmentContext?.missedDate || '',
     };
-    if (treatmentContext) {
+    if (initialMessage) {
+      setMessage(initialMessage);
+    } else if (treatmentContext) {
       const tpl = commTemplates['TREATMENT_INTERRUPTED_WHATSAPP'];
       setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_treatment_interrupted, vars));
     } else {
       const tpl = commTemplates['PATIENT_GENERAL_WHATSAPP'];
       setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_patient_general, vars));
     }
-  }, [open, clinic, commTemplates, recipientName, treatmentContext]);
+  }, [open, clinic, commTemplates, recipientName, treatmentContext, initialMessage]);
 
   const handleOpenWhatsApp = async () => {
     if (!normalizedPhone || isOpening) return;
@@ -75,6 +86,7 @@ export function WhatsAppComposerDialog({
     try {
       const url = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
       window.open(url, '_blank', 'noopener');
+      onSent?.();
       onOpenChange(false);
     } catch {
       toast({
@@ -101,13 +113,14 @@ export function WhatsAppComposerDialog({
 
         <div className="space-y-4 px-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="whatsapp-phone">{t('phone')}</Label>
+            <Label htmlFor="whatsapp-phone" data-help-id={composeHelpId(helpScope, 'field', 'whatsapp-phone')}>{t('phone')}</Label>
             <Input id="whatsapp-phone" value={phone} readOnly className="bg-muted/50" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="whatsapp-message">{t('message')}</Label>
             <Textarea
+              data-help-id={composeHelpId(helpScope, 'field', 'whatsapp-message')}
               id="whatsapp-message"
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -122,7 +135,7 @@ export function WhatsAppComposerDialog({
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </DialogCancelButton>
-          <Button onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
+          <Button data-help-id={composeHelpId(helpScope, 'btn', 'whatsapp-open')} onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
             <Send className="h-4 w-4 mr-1" />
             {isOpening ? t('opening') : t('open')}
           </Button>

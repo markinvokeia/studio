@@ -1,0 +1,39 @@
+{
+  "id": "sales.payment-methods",
+  "summary": "Payment methods available when charging.",
+  "purpose": "They're chosen on each payment. Cash equivalents count toward the cash count.",
+  "elements": {
+    "sales.payment-methods.field.is_cash_equivalent": {
+      "description": "Whether it adds to the physical cash register's cash."
+    },
+    "sales.payment-methods.section.first-row": {
+      "label": "First in the list"
+    },
+    "sales.payment-methods.section.row": {
+      "label": "Record"
+    },
+    "sales.payment-methods.section.detail": {
+      "label": "Details"
+    },
+    "sales.payment-methods.btn.edit": {
+      "label": "Edit"
+    },
+    "sales.payment-methods.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "sales.payment-methods.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    },
+    "sales.payment-methods.field.name": {
+      "label": "Name"
+    },
+    "sales.payment-methods.field.code": {
+      "label": "Code",
+      "description": "Short, for reports (CASH, CC, TRF)."
+    },
+    "sales.payment-methods.field.is_active": {
+      "label": "Active"
+    }
+  }
+}

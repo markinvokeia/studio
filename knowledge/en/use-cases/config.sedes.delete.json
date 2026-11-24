@@ -1,0 +1,39 @@
+{
+  "id": "config.sedes.delete",
+  "title": "Delete the branch",
+  "summary": "Delete a branch (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete branch",
+    "remove branch",
+    "clear branch"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Branches",
+      "details": "The physical locations where the clinic sees patients: each room, schedule and cash register belongs to a branch."
+    },
+    {
+      "id": "search",
+      "title": "Find the branch"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the branch",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

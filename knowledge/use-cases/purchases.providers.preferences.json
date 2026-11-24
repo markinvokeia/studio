@@ -1,0 +1,51 @@
+{
+  "id": "purchases.providers.preferences",
+  "title": "Preferencias de comunicación del proveedor",
+  "module": "Compras",
+  "summary": "Qué avisos le llegan y por qué canal. Se guardan al tocarlas.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Información",
+  "inputs": {
+    "query": "Nombre, correo o RUT"
+  },
+  "keywords": [
+    "preferencias del proveedor",
+    "avisos al proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "prefs",
+      "action": "highlight",
+      "target": "purchases.providers.btn.preferences",
+      "title": "Preferencias",
+      "details": "Abre las preferencias de comunicación; cada cambio se guarda solo."
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "id": "patients.perio-history",
+  "title": "Ver, continuar o comparar periodontogramas",
+  "module": "Pacientes",
+  "summary": "Encontrar los periodontogramas en la historia clínica, abrirlos y compararlos con hoy.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "historia clínica",
+    "periodontogramas anteriores",
+    "continuar periodontograma",
+    "comparar con hoy"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "details": "Sesiones, odontograma, periodontograma y documentos del paciente.",
+      "until": "patients.tab.clinical-history"
+    },
+    {
+      "id": "timeline",
+      "action": "click",
+      "target": "patients.tab.clinical-history",
+      "title": "Línea de tiempo",
+      "details": "Todas las sesiones, de la más reciente a la más vieja.",
+      "until": "patients.section.timeline"
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "patients.btn.timeline-filters",
+      "title": "Filtrar",
+      "details": "Con el filtro «Periodontograma» quedan solo esos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "card",
+      "action": "highlight",
+      "target": "patients.btn.timeline-row-perio",
+      "title": "Tocá un periodontograma",
+      "details": "Desplegalo: la vista previa de las dos arcadas (o los sextantes, si es un cribado), el tipo, el diagnóstico y los índices.",
+      "until": "patients.btn.timeline-open-perio"
+    },
+    {
+      "id": "compare",
+      "action": "highlight",
+      "target": "patients.btn.timeline-compare-perio",
+      "title": "Comparar con hoy",
+      "details": "En uno que no es el último: abre el más reciente en Evolución, comparado con ese.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "patients.btn.timeline-delete-perio",
+      "title": "Eliminar",
+      "details": "Solo si no está cerrado: uno cerrado es historia clínica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "patients.btn.timeline-open-perio",
+      "title": "Continuar o ver",
+      "details": "Abre el periodontograma: para seguir cargándolo o, si está cerrado, verlo y enmendarlo.",
+      "until": "perio-session.section.header"
+    }
+  ]
+}

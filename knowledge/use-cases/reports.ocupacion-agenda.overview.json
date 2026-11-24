@@ -1,0 +1,99 @@
+{
+  "id": "reports.ocupacion-agenda.overview",
+  "title": "Usar el reporte Ocupación de Agenda",
+  "module": "Reportes",
+  "summary": "Análisis de las citas: cuántas se completaron, cancelaron o no asistieron, y cuántas terminaron en presupuesto o sesión.",
+  "screens": [
+    "reports.ocupacion-agenda"
+  ],
+  "keywords": [
+    "ocupación de agenda",
+    "análisis de citas",
+    "no asistieron",
+    "tasa de cancelación"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/ocupacion-agenda",
+      "title": "Menú → Reportes → Ocupación de Agenda",
+      "details": "Análisis de las citas: cuántas se completaron, cancelaron o no asistieron, y cuántas terminaron en presupuesto o sesión."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.section.filters",
+      "title": "Filtros",
+      "details": "Profesional, calendario, sede, estado y servicio."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.ocupacion-agenda.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.ocupacion-agenda.section.results",
+        "reports.ocupacion-agenda.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.ocupacion-agenda.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.section.kpi",
+      "title": "Indicadores",
+      "details": "Total de citas, tasa de completadas y canceladas, no asistieron, con presupuesto, con sesión, duración promedio y sin atender.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.section.results",
+      "title": "Resultados",
+      "details": "Gráficos por estado, día, hora y profesional, y el detalle.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.ocupacion-agenda.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

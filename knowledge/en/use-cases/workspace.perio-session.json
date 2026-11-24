@@ -1,0 +1,55 @@
+{
+  "id": "workspace.perio-session",
+  "title": "Periodontal chart from the appointment",
+  "summary": "Open a periodontal chart for the appointment's patient in My Office.",
+  "module": "My Office",
+  "inputs": {},
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "appointment",
+    "my office",
+    "probing"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → My Office",
+      "details": "The doctor's appointments of the day."
+    },
+    {
+      "id": "appt",
+      "title": "Pick the patient's appointment",
+      "details": "The guide goes on when the appointment is open."
+    },
+    {
+      "id": "btn",
+      "title": "Periodontal chart",
+      "details": "Opens a new one, linked to this appointment and this doctor."
+    },
+    {
+      "id": "banner",
+      "title": "Exam bar",
+      "details": "Exam type, guide exam and dictation."
+    },
+    {
+      "id": "passes",
+      "title": "Passes",
+      "details": "Depth and bleeding, gingival margin, furcations and mobility."
+    },
+    {
+      "id": "chart",
+      "title": "Periodontal chart",
+      "details": "Type or dictate: the probe moves on by itself."
+    },
+    {
+      "id": "steps",
+      "title": "The four steps",
+      "details": "Probing, Progress, Diagnosis and Closing."
+    }
+  ]
+}

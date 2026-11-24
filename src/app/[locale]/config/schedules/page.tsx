@@ -19,6 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -123,6 +124,7 @@ export default function SchedulesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingSchedule, setDeletingSchedule] = React.useState<ClinicSchedule | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ScheduleFormValues>({
         resolver: zodResolver(scheduleFormSchema(tValidation)),
         defaultValues: EMPTY_SCHEDULE_FORM,
@@ -408,7 +410,7 @@ export default function SchedulesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.schedules.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarClock className="h-5 w-5" /></div>
@@ -428,13 +430,13 @@ export default function SchedulesPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedSchedule && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="config.schedules.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('columns.edit')}</span>
                             </Button>
                         )}
                         {selectedSchedule && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="config.schedules.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -444,7 +446,7 @@ export default function SchedulesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -515,7 +517,7 @@ export default function SchedulesPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

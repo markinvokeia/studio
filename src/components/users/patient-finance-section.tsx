@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
+import { HelpScopeProvider, useHelpScope } from '@/components/help/help-scope';
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav';
 import { PatientLedger, type VisibleLedger } from '@/components/users/patient-ledger';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
@@ -11,6 +12,7 @@ import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useBillingChangeVersion } from '@/stores/billing-wizard-store';
 import type { PatientFinanceView, Quote, UserFinancial } from '@/lib/types';
 
 type FinanceTabsSubTab = 'quotes' | 'invoices' | 'payments';
@@ -60,14 +62,24 @@ export function PatientFinanceSection({
   onViewStatement,
   onDataChange,
 }: PatientFinanceSectionProps) {
+  // The billing wizard (Cobro rápido) creates invoices and payments: when it saves for this
+  // patient, refresh every list and let the host refresh what it derives (patient list).
+  // The ledger listens on its own (it is also used outside this section).
+  const billingChangeVersion = useBillingChangeVersion(userId);
+  const onDataChangeRef = React.useRef(onDataChange);
+  React.useLayoutEffect(() => { onDataChangeRef.current = onDataChange; });
+  React.useEffect(() => {
+    if (billingChangeVersion > 0) onDataChangeRef.current?.();
+  }, [billingChangeVersion]);
+
   if (viewMode === 'tabs') {
     return (
       <FinanceTabsView
         userId={userId}
         isSales={isSales}
-        refreshQuotesTrigger={refreshQuotesTrigger}
-        refreshInvoicesTrigger={refreshInvoicesTrigger}
-        refreshPaymentsTrigger={refreshPaymentsTrigger}
+        refreshQuotesTrigger={refreshQuotesTrigger + billingChangeVersion}
+        refreshInvoicesTrigger={refreshInvoicesTrigger + billingChangeVersion}
+        refreshPaymentsTrigger={refreshPaymentsTrigger + billingChangeVersion}
         onPrintSummary={onPrintSummary}
         onViewStatement={onViewStatement}
         onDataChange={onDataChange}
@@ -103,6 +115,10 @@ function FinanceTabsView({
   onDataChange,
 }: Omit<PatientFinanceSectionProps, 'viewMode' | 'onCreateQuote' | 'onCreateTreatment' | 'onCreatePayment'>) {
   const t = useTranslations('UsersPage');
+  // Las tablas de cada pestaña llevan su propio scope (<pantalla>.detail): si no, sus filas y su
+  // «Crear» tendrían el mismo help id que el listado de la pantalla y la guía señalaría el equivocado.
+  const helpScope = useHelpScope();
+  const detailScope = helpScope.endsWith('.detail') ? helpScope : `${helpScope}.detail`;
   const [subTab, setSubTab] = React.useState<FinanceTabsSubTab>('quotes');
   const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [financialData, setFinancialData] = React.useState<UserFinancial | null>(null);
@@ -142,6 +158,7 @@ function FinanceTabsView({
         activeTab={subTab}
         onChange={(id) => setSubTab(id as FinanceTabsSubTab)}
       />
+      <HelpScopeProvider scope={detailScope}>
       {subTab === 'quotes' && (
         <UserQuotes
           userId={userId}
@@ -167,6 +184,7 @@ function FinanceTabsView({
           refreshTrigger={refreshPaymentsTrigger}
         />
       )}
+      </HelpScopeProvider>
     </div>
   );
 }

@@ -1,0 +1,103 @@
+{
+  "id": "patients.info-tab",
+  "title": "Recorrer la pestaña Información",
+  "module": "Pacientes",
+  "summary": "Datos, notas y preferencias del paciente, sub-pestaña por sub-pestaña.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Información",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "pestaña información",
+    "datos personales",
+    "qué hay en información"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.info",
+      "title": "Información",
+      "details": "Datos personales, notas internas y preferencias.",
+      "until": "patients.tab.details"
+    },
+    {
+      "id": "details",
+      "action": "click",
+      "target": "patients.tab.details",
+      "title": "Datos",
+      "details": "Formulario con nombre, contacto, documento, mutualista, doctor por defecto, dependiente y responsable. Se edita y se guarda acá.",
+      "until": "patients.field.name"
+    },
+    {
+      "id": "form",
+      "action": "highlight",
+      "target": "patients.field.name",
+      "title": "Datos del paciente",
+      "details": "Cambiá lo que necesites y guardá con «Guardar cambios»."
+    },
+    {
+      "id": "notes",
+      "action": "click",
+      "target": "patients.tab.notes",
+      "title": "Notas",
+      "details": "Notas internas para el equipo, no clínicas.",
+      "skipIfMissing": true,
+      "until": "patients.section.notes"
+    },
+    {
+      "id": "notes-body",
+      "action": "highlight",
+      "target": "patients.section.notes",
+      "title": "Notas del paciente",
+      "details": "«Editar» para escribir; se guardan con «Guardar».",
+      "skipIfMissing": true
+    },
+    {
+      "id": "prefs",
+      "action": "click",
+      "target": "patients.tab.preferences",
+      "title": "Preferencias",
+      "details": "Avisos que recibe, vista de finanzas y agenda.",
+      "skipIfMissing": true,
+      "until": "patients.section.finance-view"
+    },
+    {
+      "id": "prefs-body",
+      "action": "highlight",
+      "target": "patients.section.finance-view",
+      "title": "Vista de finanzas",
+      "details": "Normal o Personalizado. Se guarda al tocarla.",
+      "skipIfMissing": true
+    }
+  ]
+}

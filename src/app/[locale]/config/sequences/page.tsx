@@ -23,6 +23,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { getErrorMessage, handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import { Sequence } from '@/lib/types';
@@ -193,6 +194,7 @@ export default function SequencesPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedSequence, setSelectedSequence] = React.useState<Sequence | null>(null);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<SequenceFormValues>({
     resolver: zodResolver(sequenceFormSchema(tValidation)),
     defaultValues: {
@@ -466,7 +468,7 @@ export default function SequencesPage() {
 
                 {/* Buttons Section — action → pagination → refresh */}
                 <div className="flex items-center gap-2">
-                  <Button onClick={handleCreate} className="h-9">
+                  <Button data-help-id="config.sequences.btn.new" onClick={handleCreate} className="h-9">
                     <PlusCircle className="h-4 w-4" />
                     {t('createNew')}
                   </Button>
@@ -513,7 +515,7 @@ export default function SequencesPage() {
 
   const rightPanel = selectedSequence ? (
     <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-      <CardHeader className="flex-none p-4 pb-2 space-y-0">
+      <CardHeader data-help-id="config.sequences.section.detail" className="flex-none p-4 pb-2 space-y-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="header-icon-circle flex-none"><List className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">
@@ -521,10 +523,10 @@ export default function SequencesPage() {
             <p className="text-xs text-muted-foreground truncate">{selectedSequence.document_type}</p>
           </div>
           <div className="flex gap-1 flex-none">
-            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedSequence)}>
+            <Button data-help-id="config.sequences.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedSequence)}>
               <Pencil className="h-4 w-4 mr-1" />Editar
             </Button>
-            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedSequence)}>
+            <Button data-help-id="config.sequences.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedSequence)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -602,7 +604,7 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 py-4 px-6">
                 {submissionError && (
                   <Alert variant="destructive">

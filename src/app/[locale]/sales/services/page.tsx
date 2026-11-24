@@ -44,8 +44,22 @@ import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ServiceImageUploader, uploadPendingServiceImage } from '@/components/services/service-image-uploader';
+import { ServiceAestheticTab } from '@/components/services/service-aesthetic-config';
+import { useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
+import { MeasurementUnitSelect } from '@/components/ui/measurement-unit-select';
+import {
+  fetchMeasurementUnits,
+  fetchServiceAestheticConfigs,
+  fetchServiceUnits,
+  saveServiceAestheticConfig,
+  saveServiceUnit,
+  type ServiceAestheticConfigInput,
+} from '@/services/aesthetic-record';
+import type { LabCategory, MeasurementUnit } from '@/lib/types';
+import { fetchLabCategories } from '@/services/lab-orders';
+import { REQUEST_TIMEOUT_MS } from '@/services/api';
 
-import { setServiceBookableOnline } from '@/services/services';
+import { setServiceBookableOnline, setServiceIsLab } from '@/services/services';
 
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { currencySchema } from '@/lib/currency';
@@ -67,6 +81,10 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   color: z.string().optional(),
   is_active: z.boolean().default(true),
   bookable_online: z.boolean().default(false),
+  // Trabajo de laboratorio (script 167): como bookable_online, tiene su propio endpoint.
+  is_lab: z.boolean().default(false),
+  // Categoría de laboratorio (script 170), opcional; se guarda con is_lab.
+  lab_category_id: z.string().nullable().default(null),
   service_type: z.enum(['single', 'workflow']).default('single'),
   treatment_steps: z.array(z.object({
     position: z.number(),
@@ -75,7 +93,25 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
     duration_minutes: z.coerce.number().int().positive(),
     notes: z.string().optional(),
   })).optional(),
-});
+  // Neither goes in the service upsert: each one is saved with its own call after it
+  unit_id: z.string().nullable().default(null),
+  is_aesthetic: z.boolean().default(false),
+}).refine((v) => !v.is_aesthetic || !!v.unit_id, { path: ['unit_id'], message: t('unitRequiredForAesthetic') });
+
+/** Aesthetic configuration a service starts with when it is marked as aesthetic; the rest is set in its tab */
+const DEFAULT_AESTHETIC_CONFIG: Omit<ServiceAestheticConfigInput, 'unitId'> = {
+  enabled: true,
+  markingTool: 'point',
+  defaultQuantity: null,
+  maxPerSession: null,
+  minIntervalDays: null,
+  followUpDays: null,
+  followUpLabel: '',
+  aftercare: '',
+};
+
+/** Valor del Select para "sin categoría de laboratorio" (Radix no admite ''). */
+const NO_LAB_CATEGORY = '__none__';
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
@@ -101,8 +137,12 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   // Desmarcado a propósito: el catálogo entero no es auto-agendable. La clínica
   // publica caso por caso lo que un paciente puede reservar sin intermediarios.
   bookable_online: false,
+  is_lab: false,
+  lab_category_id: null,
   service_type: 'single',
   treatment_steps: [],
+  unit_id: null,
+  is_aesthetic: false,
 });
 
 /** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
@@ -131,6 +171,8 @@ async function getServices(params: { page: number; limit: number; search: string
       color: apiService.color || null,
       is_active: apiService.is_active,
       bookable_online: apiService.bookable_online === true,
+      is_lab: apiService.is_lab === true,
+      lab_category_id: apiService.lab_category_id ? String(apiService.lab_category_id) : null,
       image_updated_at: apiService.image_updated_at || null,
       service_type: apiService.service_type || 'single',
       treatment_steps: apiService.treatment_steps || [],
@@ -158,7 +200,9 @@ async function upsertService(serviceData: ServiceFormValues, categories: Miscell
   // `bookable_online` se excluye a propósito: lo escribe su propio endpoint
   // (ver setServiceBookableOnline). Mandarlo acá además crearía dos escritores
   // de la misma columna, y este upsert no lo persiste.
-  const { bookable_online: _bookableOnline, ...payload } = serviceData;
+  // unit_id e is_aesthetic tampoco: tienen sus propios endpoints (services/unit/save, aesthetic-config/save).
+  // is_lab igual que bookable_online (setServiceIsLab).
+  const { bookable_online: _bookableOnline, is_lab: _isLab, lab_category_id: _labCategoryId, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
   const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...payload, category, is_sales: true });
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -195,7 +239,27 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string; imageSlot?: React.ReactNode }) {
+function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, units, savedUnitId, aestheticSaved = false, labCategories = [] }: {
+  form: any;
+  /** Categorías de laboratorio (grupos de proveedores marcados como tales). */
+  labCategories?: LabCategory[];
+  categories: MiscellaneousCategory[];
+  onCategoryCreated: (category: MiscellaneousCategory) => void;
+  t: (key: string) => string;
+  imageSlot?: React.ReactNode;
+  units: MeasurementUnit[];
+  /** Unit stored for the service (kept in the list even if it was deactivated) */
+  savedUnitId?: string | null;
+  /** The service is aesthetic in the database: turning it off removes its configuration on save */
+  aestheticSaved?: boolean;
+}) {
+  const isAesthetic = form.watch('is_aesthetic');
+  const isLab = form.watch('is_lab');
+  const labCategoryId: string | null = form.watch('lab_category_id');
+  // Una categoría guardada que ya no está activa se sigue mostrando para no perderla al guardar.
+  const labCategoryOptions = labCategoryId && !labCategories.some((c) => c.id === labCategoryId)
+    ? [...labCategories, { id: labCategoryId, name: t('createDialog.labCategory.inactive'), description: null, laboratories_count: 0 }]
+    : labCategories;
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -225,6 +289,26 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }
             <FormControl><CurrencySelect value={field.value} onChange={(v) => { if (v) field.onChange(v); }} placeholder={t('createDialog.selectCurrency')} /></FormControl><FormMessage /></FormItem>
         )} />
       </div>
+      {/* Unidad de medida del servicio: no es sólo de estética, la usan otros módulos */}
+      <FormField control={form.control} name="unit_id" render={({ field }) => (
+        <FormItem>
+          <FormLabel>{t('unit.label')}</FormLabel>
+          <FormControl>
+            <MeasurementUnitSelect
+              units={units}
+              value={field.value}
+              onChange={field.onChange}
+              savedUnitId={savedUnitId}
+              placeholder={t('unit.placeholder')}
+              searchPlaceholder={t('unit.search')}
+              emptyText={t('unit.empty')}
+              clearLabel={isAesthetic ? undefined : t('unit.clear')}
+            />
+          </FormControl>
+          <p className="text-xs text-muted-foreground">{t('unit.help')}</p>
+          <FormMessage />
+        </FormItem>
+      )} />
       <FormField control={form.control} name="description" render={({ field }) => (
         <FormItem><FormLabel>{t('createDialog.descriptionLabel')}</FormLabel><FormControl><Textarea placeholder={t('createDialog.descriptionPlaceholder')} className="resize-none" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
       )} />
@@ -260,6 +344,36 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }
       {/* La imagen sólo se ve en las tarjetas del portal, así que acompaña al
           flag que las habilita. */}
       {imageSlot}
+      {/* Trabajo de laboratorio: aparece en el selector de servicios de las
+          órdenes de laboratorio. */}
+      <FormField control={form.control} name="is_lab" render={({ field }) => (
+        <FormItem data-help-id="sales.services.field.is-lab" className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <FormLabel className="text-sm">{t('createDialog.isLab.label')}</FormLabel>
+            <p className="text-xs text-muted-foreground">{t('createDialog.isLab.help')}</p>
+          </div>
+          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+        </FormItem>
+      )} />
+      {/* Qué tipo de laboratorio hace este trabajo: filtra los laboratorios al elegir
+          a dónde se envía la orden. Opcional. */}
+      {isLab && (
+        <FormField control={form.control} name="lab_category_id" render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('createDialog.labCategory.label')}</FormLabel>
+            <Select value={field.value ?? NO_LAB_CATEGORY} onValueChange={(v) => field.onChange(v === NO_LAB_CATEGORY ? null : v)}>
+              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+              <SelectContent>
+                <SelectItem value={NO_LAB_CATEGORY}>{t('createDialog.labCategory.none')}</SelectItem>
+                {labCategoryOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {labCategories.length > 0 ? t('createDialog.labCategory.help') : t('createDialog.labCategory.empty')}
+            </p>
+          </FormItem>
+        )} />
+      )}
       {/* Workflow service toggle */}
       <FormField control={form.control} name="service_type" render={({ field }) => (
         <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -276,6 +390,23 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }
               }}
             />
           </FormControl>
+        </FormItem>
+      )} />
+      {/* Servicio de estética: habilita su pestaña (cómo se marca en la ficha estética y su consentimiento) */}
+      <FormField control={form.control} name="is_aesthetic" render={({ field }) => (
+        <FormItem className="flex flex-col gap-2 rounded-lg border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <FormLabel className="text-sm">{t('aesthetic.label')}</FormLabel>
+              <p className="text-xs text-muted-foreground">{t('aesthetic.description')}</p>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={(v) => form.setValue('is_aesthetic', v, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })} />
+            </FormControl>
+          </div>
+          {aestheticSaved && !field.value && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">{t('aesthetic.turningOff')}</p>
+          )}
         </FormItem>
       )} />
     </>
@@ -587,7 +718,7 @@ function TreatmentStepsTab({ serviceId, t }: { serviceId: string; t: (key: strin
     <div className="space-y-0">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-muted-foreground">{t('serviceType.stepsTabDescription')}</p>
-        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={addNew}>
+        <Button data-help-id="sales.services.btn.add-step" type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={addNew}>
           <PlusCircle className="h-3.5 w-3.5 mr-1" />
           {t('serviceType.addStep')}
         </Button>
@@ -783,6 +914,13 @@ export default function ServicesPage() {
    * antes de guardar porque el endpoint necesita el id del servicio.
    */
   const [pendingImage, setPendingImage] = React.useState<File | null>(null);
+  // Unidad de medida y servicios estéticos: no vienen en el listado de servicios, se leen aparte
+  const [units, setUnits] = React.useState<MeasurementUnit[]>([]);
+  const [serviceUnits, setServiceUnits] = React.useState<Map<string, string>>(() => new Map());
+  const [aestheticIds, setAestheticIds] = React.useState<Set<string>>(() => new Set());
+  const describeAestheticError = useAestheticErrorMessage();
+  const [extrasLoaded, setExtrasLoaded] = React.useState(false);
+  const [labCategories, setLabCategories] = React.useState<LabCategory[]>([]);
 
   const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
   const canUpdate = hasPermission(SALES_PERMISSIONS.SERVICES_UPDATE);
@@ -840,7 +978,29 @@ export default function ServicesPage() {
   // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
     getMiscellaneousCategories().then(setCategories);
+    // Sin el script 170 el endpoint no existe: el campo queda sin opciones.
+    fetchLabCategories({ timeoutMs: REQUEST_TIMEOUT_MS.mutation }).then(setLabCategories).catch(() => setLabCategories([]));
   }, []);
+
+  // Units of measure, the unit of each service and which services are aesthetic
+  React.useEffect(() => {
+    let active = true;
+    Promise.allSettled([fetchMeasurementUnits(), fetchServiceUnits(), fetchServiceAestheticConfigs()]).then(([unitList, unitMap, configs]) => {
+      if (!active) return;
+      if (unitList.status === 'fulfilled') setUnits(unitList.value);
+      if (unitMap.status === 'fulfilled') setServiceUnits(unitMap.value);
+      if (configs.status === 'fulfilled') setAestheticIds(new Set(configs.value.map((c) => c.serviceId)));
+      setExtrasLoaded(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  // Selected before those loaded (deep link): fill in the two fields once they arrive
+  React.useEffect(() => {
+    if (!extrasLoaded || !selectedService) return;
+    if (!detailForm.getFieldState('unit_id').isDirty) detailForm.setValue('unit_id', serviceUnits.get(selectedService.id) ?? null);
+    if (!detailForm.getFieldState('is_aesthetic').isDirty) detailForm.setValue('is_aesthetic', aestheticIds.has(selectedService.id));
+  }, [extrasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCategoryCreated = React.useCallback((category: MiscellaneousCategory) => {
     setCategories(prev => [...prev, category]);
@@ -849,10 +1009,8 @@ export default function ServicesPage() {
   // Populate detail form when selection changes (categories already loaded from mount)
   React.useEffect(() => {
     if (!selectedService) return;
-    // Reset tab immediately for non-workflow services
-    if ((selectedService.service_type || 'single') !== 'workflow') {
-      setActiveTab('details');
-    }
+    // A new service opens on its details
+    setActiveTab('details');
     // Prefer category_id from API; fall back to matching by name in case the API omits the id field
     const categoryId = selectedService.category_id
       || categories.find(c => c.name === selectedService.category)?.id
@@ -869,8 +1027,12 @@ export default function ServicesPage() {
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
       bookable_online: selectedService.bookable_online ?? false,
+      is_lab: selectedService.is_lab ?? false,
+      lab_category_id: selectedService.lab_category_id ?? null,
       service_type: selectedService.service_type || 'single',
       treatment_steps: selectedService.treatment_steps || [],
+      unit_id: serviceUnits.get(selectedService.id) ?? null,
+      is_aesthetic: aestheticIds.has(selectedService.id),
     });
     setDetailError(null);
   }, [selectedService, categories]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -902,6 +1064,41 @@ export default function ServicesPage() {
     }
   };
 
+  /**
+   * Unit of measure and aesthetic flag of a saved service, each through its own endpoint. Turning
+   * aesthetic off goes first (a service can't lose its unit while it is aesthetic). Returns false
+   * when something didn't stick, after telling the user.
+   */
+  async function saveServiceExtras(serviceId: string, values: ServiceFormValues, before: { unitId: string | null; isAesthetic: boolean }): Promise<boolean> {
+    try {
+      if (before.isAesthetic && !values.is_aesthetic) {
+        await saveServiceAestheticConfig(serviceId, { ...DEFAULT_AESTHETIC_CONFIG, enabled: false });
+      }
+      if ((values.unit_id ?? null) !== before.unitId) {
+        await saveServiceUnit(serviceId, values.unit_id ?? null);
+      }
+      if (!before.isAesthetic && values.is_aesthetic) {
+        await saveServiceAestheticConfig(serviceId, { ...DEFAULT_AESTHETIC_CONFIG, unitId: values.unit_id ?? undefined });
+      }
+      setServiceUnits((prev) => {
+        const next = new Map(prev);
+        if (values.unit_id) next.set(serviceId, values.unit_id);
+        else next.delete(serviceId);
+        return next;
+      });
+      setAestheticIds((prev) => {
+        const next = new Set(prev);
+        if (values.is_aesthetic) next.add(serviceId);
+        else next.delete(serviceId);
+        return next;
+      });
+      return true;
+    } catch (error) {
+      toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: describeAestheticError(error) });
+      return false;
+    }
+  }
+
   const onCreateSubmit = async (values: ServiceFormValues) => {
     setCreateError(null);
     try {
@@ -925,6 +1122,18 @@ export default function ServicesPage() {
           title: t('toast.bookableOnlineFailedTitle'),
           description: t('toast.bookableOnlineFailedDescription'),
         });
+      }
+
+      // Trabajo de laboratorio: el default es false, así que solo se escribe si se marcó.
+      if (values.is_lab && !(newId && await setServiceIsLab(newId, true, values.lab_category_id ?? null))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
+      // Unidad de medida y estética también esperan al id
+      if (newId && (values.unit_id || values.is_aesthetic)) {
+        await saveServiceExtras(newId, values, { unitId: null, isAesthetic: false });
+      } else if (!newId && (values.unit_id || values.is_aesthetic)) {
+        toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: t('toast.extrasPendingDescription') });
       }
 
       // La imagen también espera al id. Si el backend no lo devolvió se avisa
@@ -967,6 +1176,20 @@ export default function ServicesPage() {
         });
       }
 
+      const labCategoryId = values.is_lab ? values.lab_category_id ?? null : null;
+      const isLabChanged = values.is_lab !== (selectedService?.is_lab ?? false)
+        || labCategoryId !== (selectedService?.lab_category_id ?? null);
+      if (isLabChanged && !(await setServiceIsLab(values.id ?? '', values.is_lab, labCategoryId))) {
+        toast({ variant: 'destructive', title: t('toast.isLabFailedTitle'), description: t('toast.isLabFailedDescription') });
+      }
+
+      if (values.id) {
+        await saveServiceExtras(values.id, values, {
+          unitId: serviceUnits.get(values.id) ?? null,
+          isAesthetic: aestheticIds.has(values.id),
+        });
+      }
+
       toast({ title: t('toast.editSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
       const categoryName = categories.find(cat => cat.id === values.category_id)?.name || selectedService!.category;
       const updatedService: Service = {
@@ -980,6 +1203,8 @@ export default function ServicesPage() {
         color: values.color || null,
         is_active: values.is_active,
         bookable_online: values.bookable_online,
+        is_lab: values.is_lab,
+        lab_category_id: values.is_lab ? values.lab_category_id ?? null : null,
         category_id: values.category_id,
         category: categoryName,
         service_type: values.service_type,
@@ -1013,9 +1238,15 @@ export default function ServicesPage() {
   const watchedServiceType = detailForm.watch('service_type');
   React.useEffect(() => {
     if (watchedServiceType !== 'workflow') {
-      setActiveTab('details');
+      setActiveTab((tab) => (tab === 'steps' ? 'details' : tab));
     }
   }, [watchedServiceType]);
+
+  // Same for the aesthetic tab when the service stops being aesthetic
+  const watchedAesthetic = detailForm.watch('is_aesthetic');
+  React.useEffect(() => {
+    if (!watchedAesthetic) setActiveTab((tab) => (tab === 'aesthetic' ? 'details' : tab));
+  }, [watchedAesthetic]);
 
   useDeepLink<Service>({
     tabMap: { 'Detalles': 'details' },
@@ -1076,7 +1307,7 @@ export default function ServicesPage() {
         rightPanel={
           selectedService && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex-none p-4 pb-2">
+              <CardHeader data-help-id="sales.services.section.detail" className="flex-none p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {selectedService.color
@@ -1090,7 +1321,7 @@ export default function ServicesPage() {
                   </div>
                   <div className="flex items-center gap-0.5 ml-2 flex-none">
                     {canDelete && (
-                      <button type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                      <button data-help-id="sales.services.btn.delete" type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -1108,6 +1339,9 @@ export default function ServicesPage() {
                         <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
                         {detailForm.watch('service_type') === 'workflow' && (
                           <TabsTrigger value="steps">{t('tabs.steps')}</TabsTrigger>
+                        )}
+                        {watchedAesthetic && (
+                          <TabsTrigger value="aesthetic">{t('tabs.aesthetic')}</TabsTrigger>
                         )}
                       </TabsList>
                       <div className="flex-1 overflow-auto mt-4">
@@ -1129,6 +1363,10 @@ export default function ServicesPage() {
                                 <ServiceImageUploader serviceId={selectedService.id} canManage={canUpdate} />
                               </div>
                             }
+                            units={units}
+                            labCategories={labCategories}
+                            savedUnitId={serviceUnits.get(selectedService.id) ?? null}
+                            aestheticSaved={aestheticIds.has(selectedService.id)}
                           />
                           {canUpdate && (
                             <div className="flex gap-2 pt-2">
@@ -1140,6 +1378,23 @@ export default function ServicesPage() {
                         </TabsContent>
                         <TabsContent value="steps" className="m-0 space-y-3">
                           <TreatmentStepsTab key={selectedService.id} serviceId={selectedService.id} t={t} />
+                        </TabsContent>
+                        {/* Se guarda con sus propias llamadas: el upsert del servicio no la lleva */}
+                        <TabsContent value="aesthetic" className="m-0 space-y-3">
+                          <ServiceAestheticTab
+                            key={selectedService.id}
+                            serviceId={selectedService.id}
+                            serviceName={selectedService.name}
+                            unitId={detailForm.watch('unit_id') ?? null}
+                            units={units}
+                            canManage={canUpdate}
+                            onSaved={() => {
+                              // Saving the tab makes it aesthetic (and stores the unit picked in Details)
+                              const unitId = detailForm.getValues('unit_id');
+                              setAestheticIds((prev) => new Set(prev).add(selectedService.id));
+                              if (unitId) setServiceUnits((prev) => new Map(prev).set(selectedService.id, unitId));
+                            }}
+                          />
                         </TabsContent>
                       </div>
                     </Tabs>
@@ -1170,6 +1425,7 @@ export default function ServicesPage() {
                 )}
                 <ServiceFormFields
                   form={createForm}
+                  labCategories={labCategories}
                   categories={categories}
                   onCategoryCreated={handleCategoryCreated}
                   t={t}
@@ -1184,6 +1440,7 @@ export default function ServicesPage() {
                       />
                     </div>
                   }
+                  units={units}
                 />
               </DialogBody>
               <DialogFooter>
@@ -1202,7 +1459,7 @@ export default function ServicesPage() {
             <AlertDialogDescription>{t('deleteDialog.description', { name: deletingService?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction data-help-id="sales.services.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

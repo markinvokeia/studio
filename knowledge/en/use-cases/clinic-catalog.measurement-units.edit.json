@@ -1,0 +1,45 @@
+{
+  "id": "clinic-catalog.measurement-units.edit",
+  "title": "Edit a measurement unit",
+  "summary": "Change its details or deactivate it.",
+  "module": "Clinic Catalog",
+  "inputs": {},
+  "keywords": [
+    "edit unit",
+    "change symbol",
+    "deactivate unit"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Measurement Units",
+      "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…)."
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "details": "Tap the pencil of the unit you want to change."
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "symbol",
+      "title": "Symbol"
+    },
+    {
+      "id": "step",
+      "title": "Quantity step"
+    },
+    {
+      "id": "active",
+      "title": "Active",
+      "details": "Inactive stops being offered without affecting what is already recorded."
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

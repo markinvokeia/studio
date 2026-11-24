@@ -1,0 +1,64 @@
+{
+  "id": "config.doctor-availability",
+  "status": "draft",
+  "summary": "Reglas de disponibilidad de cada profesional.",
+  "purpose": "Sin disponibilidad un profesional no ofrece huecos en la agenda ni en el portal de pacientes. Las excepciones (vacaciones, licencias) se cargan aparte.",
+  "prerequisites": [
+    "config.doctors",
+    "config.schedules"
+  ],
+  "tips": [
+    "Una regla puede cubrir varios días con el mismo horario.",
+    "Quincenal alterna semanas a partir de una fecha de referencia."
+  ],
+  "useCases": [
+    "onboarding.availability",
+    "config.doctor-availability.overview",
+    "config.doctor-availability.create",
+    "config.doctor-availability.edit",
+    "config.doctor-availability.delete"
+  ],
+  "elements": {
+    "config.doctor-availability.field.user_id": {
+      "description": "Profesional al que aplica la regla."
+    },
+    "config.doctor-availability.field.recurrence": {
+      "description": "Semanal, quincenal o mensual."
+    },
+    "config.doctor-availability.field.days_of_week": {
+      "description": "Días de la semana (lunes=1 … domingo=7)."
+    },
+    "config.doctor-availability.field.start_time": {
+      "description": "Desde qué hora atiende."
+    },
+    "config.doctor-availability.field.end_time": {
+      "description": "Hasta qué hora atiende."
+    },
+    "config.doctor-availability.field.start_date": {
+      "description": "Desde cuándo rige la regla."
+    },
+    "config.doctor-availability.field.end_date": {
+      "description": "Opcional: hasta cuándo rige."
+    },
+    "config.doctor-availability.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.doctor-availability.section.row": {
+      "label": "Registro"
+    },
+    "config.doctor-availability.section.detail": {
+      "label": "Detalle"
+    },
+    "config.doctor-availability.btn.edit": {
+      "label": "Editar"
+    },
+    "config.doctor-availability.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.doctor-availability.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    }
+  }
+}

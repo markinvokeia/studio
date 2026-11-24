@@ -1,0 +1,96 @@
+{
+  "id": "patients.perio-evolution",
+  "title": "Compare with earlier exams",
+  "summary": "See the patient's progress: slider, overlay, changes, map, animation and trends.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "progress",
+    "compare",
+    "before and after",
+    "slider",
+    "trends",
+    "attachment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is)."
+    },
+    {
+      "id": "step",
+      "title": "Progress",
+      "details": "Compares today with any earlier exam; by default, with the initial one."
+    },
+    {
+      "id": "empty",
+      "title": "First periodontal chart",
+      "details": "If it is the patient's first one, there is nothing to compare with yet."
+    },
+    {
+      "id": "controls",
+      "title": "How to compare",
+      "details": "Slider (before and after), Overlay (green bars where attachment was gained, red where lost) or Changes; arch; curves or map."
+    },
+    {
+      "id": "chart",
+      "title": "Comparison",
+      "details": "Drag the slider handle to show the patient the before and after."
+    },
+    {
+      "id": "play",
+      "title": "Play the progress",
+      "details": "Moves from one exam to the next to tell the story of the treatment."
+    },
+    {
+      "id": "with",
+      "title": "Compare today with…",
+      "details": "Tap another exam to change what today is compared with."
+    },
+    {
+      "id": "trends",
+      "title": "Trends",
+      "details": "Each index across all sessions: green when it improves, red when it gets worse."
+    },
+    {
+      "id": "worse",
+      "title": "Worse and better",
+      "details": "Only changes of 2 mm or more: 1 mm is within the error of a manual probe. Tap a site to see it."
+    },
+    {
+      "id": "next",
+      "title": "Go to diagnosis",
+      "details": "The next step."
+    }
+  ]
+}

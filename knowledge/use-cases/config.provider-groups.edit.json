@@ -1,0 +1,79 @@
+{
+  "id": "config.provider-groups.edit",
+  "title": "Editar el grupo de proveedores",
+  "module": "Configuración de Negocio",
+  "summary": "Cambiar los datos de un grupo de proveedores existente.",
+  "screens": [
+    "config.provider-groups"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar grupo de proveedores",
+    "modificar grupo de proveedores",
+    "cambiar grupo de proveedores"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/provider-groups",
+      "title": "Menú → Configuración de Negocio → Grupos de Proveedores",
+      "details": "Agrupaciones de proveedores para ordenar compras y reportes."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.provider-groups.filter.search",
+      "title": "Buscá el grupo de proveedores",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.provider-groups.section.first-row",
+      "title": "Elegí el grupo de proveedores",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.provider-groups.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "config.provider-groups.btn.edit",
+      "title": "Editar",
+      "until": "config.provider-groups.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "config.provider-groups.field.name",
+      "title": "Nombre"
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.provider-groups.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.provider-groups.field.is_active",
+      "title": "Activo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.provider-groups.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

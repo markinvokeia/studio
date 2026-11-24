@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { UserSelector } from '@/components/ui/user-selector';
+import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import {
     Dialog,
     DialogBody,
@@ -42,7 +43,8 @@ import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { getErrorMessage } from '@/lib/error-utils';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { useAsyncAction } from '@/hooks/use-async-action';
-import { fetchServicesByIds, getSalesServices } from '@/services/services';
+import { getSalesServices, fetchServicesByIds } from '@/services/services';
+import { sumServicesDuration, withServiceDurations } from '@/lib/appointment-duration';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
@@ -53,7 +55,7 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { usePermissions } from '@/hooks/usePermissions';
-import { BUSINESS_CONFIG_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -115,6 +117,11 @@ interface AppointmentFormDialogProps {
     onRequestRefresh?: () => void;
 }
 
+/** Firma de un conjunto de servicios (ids ordenados) para saber si cambió. */
+function getServicesSignature(services: Pick<Service, 'id'>[]): string {
+    return services.map(s => String(s.id)).sort().join(',');
+}
+
 export function AppointmentFormDialog({
     open,
     onOpenChange,
@@ -158,10 +165,18 @@ export function AppointmentFormDialog({
     // el mismo permiso que el alta desde el catálogo. Ocultar el botón es UX: quien manda
     // es el backend, que tiene que rechazar el upsert sin SALES_SERVICES_CREATE.
     const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
+    // Alta de paciente con el formulario completo (cédula incluida), que detecta fichas con la
+    // misma cédula/teléfono y deja elegir la existente. Sin el permiso queda el alta rápida.
+    const canCreatePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+    const [createPatient, setCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
     const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
+    // Al editar: servicios con los que se abrió la cita y si la hora de fin ya
+    // pasó a seguir a los servicios (ver el efecto de `calculatedEndTime`).
+    const editServicesBaselineRef = React.useRef('');
+    const followServicesDurationRef = React.useRef(false);
 
     // Outstanding-debt indicator for the selected patient (per currency).
     const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
@@ -220,6 +235,31 @@ export function AppointmentFormDialog({
     });
 
     const [errors, setErrors] = React.useState<string[]>([]);
+
+    /** Paciente elegido en el selector, creado o tomado de una ficha existente al darlo de alta. */
+    const applyPatient = (user: UserType) => {
+        setHasBeenEdited(true);
+        setAppointment(prev => {
+            const next = { ...prev, user };
+            // Patient's default doctor — only when no doctor was chosen yet,
+            // so it never overrides a manual selection.
+            if (!prev.doctor && user.doctor_id) {
+                const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
+                    ?? (user.doctor_name
+                        ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                        : null);
+                if (defaultDoctor) {
+                    next.doctor = defaultDoctor;
+                    if (!prev.calendar && defaultDoctor.calendar_source_id) {
+                        const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
+                        if (defaultCalendar) next.calendar = defaultCalendar;
+                    }
+                }
+            }
+            return next;
+        });
+        setErrors(prev => prev.filter(err => err !== 'user'));
+    };
 
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
 
@@ -449,6 +489,26 @@ export function AppointmentFormDialog({
                     foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
                 }
 
+                const initialServices = editingAppointment.services || [];
+                // La duración guardada se respeta hasta que el usuario cambie los
+                // servicios; desde ahí la hora de fin sigue a los servicios.
+                editServicesBaselineRef.current = getServicesSignature(initialServices);
+                followServicesDurationRef.current = false;
+                // El listado de citas no siempre trae la duración de cada servicio:
+                // sin ella, agregar o quitar uno calcularía mal el total.
+                if (initialServices.some(s => !s.duration_minutes)) {
+                    withServiceDurations(initialServices).then(enriched => {
+                        const durations = new Map(enriched.map(s => [String(s.id), s.duration_minutes]));
+                        setAppointment(prev => ({
+                            ...prev,
+                            services: prev.services.map(s => {
+                                const duration = durations.get(String(s.id));
+                                return !s.duration_minutes && duration ? { ...s, duration_minutes: duration } : s;
+                            }),
+                        }));
+                    });
+                }
+
                 setAppointment({
                     // Sin paciente asignado (típico de las citas importadas de Google) el
                     // selector tiene que verse vacío, no con el 'N/A' que deja el mapeo.
@@ -461,7 +521,7 @@ export function AppointmentFormDialog({
                             is_active: true, avatar: ''
                         }
                         : null,
-                    services: editingAppointment.services || [],
+                    services: initialServices,
                     doctor: editingAppointment.doctorId ? {
                         id: editingAppointment.doctorId,
                         name: editingAppointment.doctorName || '',
@@ -667,17 +727,8 @@ export function AppointmentFormDialog({
         if (endTime) {
             endDateTime = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
         } else {
-            let totalDuration = 0;
             const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && services.length > 0 && doctorServices && doctorServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
-            endDateTime = addMinutes(startDateTime, totalDuration);
+            endDateTime = addMinutes(startDateTime, sumServicesDuration(services, doctorServices));
         }
 
         const attendeeEmails = [];
@@ -745,16 +796,8 @@ export function AppointmentFormDialog({
             const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
             if (!isValid(startDateTime)) return null;
 
-            let totalDuration = 0;
             const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && doctor.id && services.length > 0 && doctorServices && doctorServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
+            let totalDuration = sumServicesDuration(services, doctorServices);
 
             if (editingAppointment && totalDuration === 0) {
                 const start = parseISO(editingAppointment.start.dateTime);
@@ -777,11 +820,17 @@ export function AppointmentFormDialog({
         }
     }, [appointment.date, appointment.time, appointment.doctor, appointment.services, doctorServiceMap, editingAppointment]);
 
+    // Al crear, la hora de fin sale siempre de los servicios. Al editar se respeta
+    // la guardada hasta que el usuario cambia los servicios; desde ese momento (y
+    // mientras el diálogo siga abierto) la sigue igual que al crear.
     React.useEffect(() => {
-        if (calculatedEndTime && !editingAppointment) {
-            setAppointment(prev => ({ ...prev, endTime: calculatedEndTime }));
+        if (!calculatedEndTime) return;
+        if (editingAppointment && !followServicesDurationRef.current) {
+            if (getServicesSignature(appointment.services) === editServicesBaselineRef.current) return;
+            followServicesDurationRef.current = true;
         }
-    }, [calculatedEndTime, editingAppointment]);
+        setAppointment(prev => (prev.endTime === calculatedEndTime ? prev : { ...prev, endTime: calculatedEndTime }));
+    }, [calculatedEndTime, editingAppointment, appointment.services]);
 
     // Current appointment duration in minutes (derived from start/end). Allows 0
     // (end == start); a save-time validation blocks zero-length appointments.
@@ -928,16 +977,8 @@ export function AppointmentFormDialog({
                 return;
             }
         } else {
-            let totalDuration = 0;
             const docServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
-            if (doctor && doctor.id && services.length > 0 && docServices && docServices.length > 0) {
-                totalDuration = services.reduce((acc, service) => {
-                    const ds = docServices.find(s => String(s.id) === String(service.id));
-                    return acc + (ds?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            } else {
-                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-            }
+            let totalDuration = sumServicesDuration(services, docServices);
             if (isEditing && totalDuration === 0) totalDuration = 30;
             endDateTime = addMinutes(startDateTime, totalDuration);
         }
@@ -1424,7 +1465,7 @@ export function AppointmentFormDialog({
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                             <div className="space-y-4">
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.patient">
                                     <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
                                     <UserSelector
                                         filterType="PACIENTE"
@@ -1432,30 +1473,11 @@ export function AppointmentFormDialog({
                                         value={appointment.user?.id}
                                         selectedUserName={appointment.user?.name}
                                         onValueChange={(_, user) => {
-                                            if (user) {
-                                                setHasBeenEdited(true);
-                                                setAppointment(prev => {
-                                                    const next = { ...prev, user };
-                                                    // Patient's default doctor — only when no doctor was chosen yet,
-                                                    // so it never overrides a manual selection.
-                                                    if (!prev.doctor && user.doctor_id) {
-                                                        const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
-                                                            ?? (user.doctor_name
-                                                                ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
-                                                                : null);
-                                                        if (defaultDoctor) {
-                                                            next.doctor = defaultDoctor;
-                                                            if (!prev.calendar && defaultDoctor.calendar_source_id) {
-                                                                const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
-                                                                if (defaultCalendar) next.calendar = defaultCalendar;
-                                                            }
-                                                        }
-                                                    }
-                                                    return next;
-                                                });
-                                                setErrors(prev => prev.filter(err => err !== 'user'));
-                                            }
+                                            if (user) applyPatient(user);
                                         }}
+                                        onRequestCreate={canCreatePatient
+                                            ? (name) => setCreatePatient({ open: true, initialName: name })
+                                            : undefined}
                                         disabled={readOnlyFields?.user || isLoadingQuotes || isStudyOrderLocked}
                                         triggerText={t('createDialog.selectUser')}
                                         placeholder={t('createDialog.searchUserPlaceholder')}
@@ -1628,7 +1650,7 @@ export function AppointmentFormDialog({
                                     disabled={isStudyOrderLocked || readOnlyFields?.services}
                                 />
 
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.services">
                                     <Label>{t('createDialog.serviceName')}</Label>
                                     <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
@@ -1750,7 +1772,7 @@ export function AppointmentFormDialog({
                                         </Alert>
                                     )}
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.doctor">
                                     <Label>{tColumns('doctor')}</Label>
                                     <Popover
                                         open={isDoctorLocked ? false : isDoctorSearchOpen}
@@ -1799,7 +1821,7 @@ export function AppointmentFormDialog({
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.calendar">
                                     <Label className={errors.includes('calendar') ? "text-destructive" : ""}>{t('createDialog.calendar')}</Label>
                                     <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
                                         <PopoverTrigger asChild>
@@ -1830,11 +1852,11 @@ export function AppointmentFormDialog({
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.date">
                                     <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
                                     <DatePickerInput value={appointment.date} onChange={value => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.time">
                                     <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
                                     <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                                 </div>
@@ -1857,7 +1879,7 @@ export function AppointmentFormDialog({
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
                                     <Input id="endTime" type="time" value={appointment.endTime} readOnly tabIndex={-1} className="bg-muted/50 text-muted-foreground cursor-default" />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-help-id="appointments.field.notes">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
@@ -1973,6 +1995,7 @@ export function AppointmentFormDialog({
                         <DialogCancelButton variant="outline" disabled={isSavingAppointment}>{t('createDialog.cancel')}</DialogCancelButton>
                         <Button
                             type="button"
+                            data-help-id="appointments.btn.save"
                             onClick={() => { void handleSave(); }}
                             loading={isSavingAppointment}
                             disabled={isSessionDialogOpen || isSavingAppointment}
@@ -2095,6 +2118,17 @@ export function AppointmentFormDialog({
                     onCancel={() => setFutureConfirm(null)}
                 />
             )}
+
+            <PatientCreateDialog
+                open={createPatient.open}
+                onOpenChange={(open) => setCreatePatient((s) => ({ ...s, open }))}
+                initialName={createPatient.initialName}
+                // Botón Cancelar + confirmación al cerrar (Escape, X) con datos cargados.
+                showCancelAction
+                withDependents
+                onCreated={applyPatient}
+                onSelectExisting={applyPatient}
+            />
         </>
     );
 }

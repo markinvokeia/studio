@@ -6,6 +6,7 @@ import { endOfMonth, startOfMonth } from 'date-fns';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { useClinicInfoStore } from '@/stores/clinic-info-store';
 import type { DashboardCurrency } from '@/lib/types';
 
 interface DashboardFiltersContextType {
@@ -16,6 +17,12 @@ interface DashboardFiltersContextType {
   setDateRange: (range: DateRange | undefined) => void;
   currency: DashboardCurrency;
   setCurrency: (currency: DashboardCurrency) => void;
+  /**
+   * Los filtros ya tienen su valor definitivo: llegó la moneda de la clínica y se leyeron
+   * los guardados. Antes de eso la moneda es la de respaldo (USD) y consultar con ella
+   * dispara una tanda entera de peticiones que se descarta un segundo después.
+   */
+  isReady: boolean;
 }
 
 const DashboardFiltersContext = createContext<DashboardFiltersContextType | undefined>(undefined);
@@ -50,9 +57,11 @@ export function DashboardFiltersProvider({ children }: { children: React.ReactNo
   const userId = user?.id;
 
   const { code: clinicCurrency, options: currencyOptions } = useCurrencySettings();
+  const isClinicLoaded = useClinicInfoStore((s) => s.isLoaded);
 
   const [sedeId, setSedeIdState] = useState<string | null>(null);
   const [currency, setCurrencyState] = useState<DashboardCurrency>(clinicCurrency);
+  const [isRestored, setIsRestored] = useState(false);
   // Se deja indefinido en el primer render y se completa al montar: construir la fecha
   // durante el render del servidor produce un desajuste de hidratación.
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -70,7 +79,11 @@ export function DashboardFiltersProvider({ children }: { children: React.ReactNo
     // dejaría el panel en una moneda con la que ya no se opera.
     const storedCurrency = readStored(userId, 'currency');
     setCurrencyState(storedCurrency && currencyOptions.includes(storedCurrency) ? storedCurrency : clinicCurrency);
-  }, [userId, clinicCurrency, currencyOptions]);
+    // Mientras no llegó la clínica, `clinicCurrency` es la de respaldo: se espera al valor real.
+    if (isClinicLoaded) setIsRestored(true);
+  }, [userId, clinicCurrency, currencyOptions, isClinicLoaded]);
+
+  const isReady = isRestored && !!dateRange;
 
   const setSedeId = useCallback(
     (next: string | null) => {
@@ -89,8 +102,8 @@ export function DashboardFiltersProvider({ children }: { children: React.ReactNo
   );
 
   const value = useMemo(
-    () => ({ sedeId, setSedeId, dateRange, setDateRange, currency, setCurrency }),
-    [sedeId, setSedeId, dateRange, currency, setCurrency],
+    () => ({ sedeId, setSedeId, dateRange, setDateRange, currency, setCurrency, isReady }),
+    [sedeId, setSedeId, dateRange, currency, setCurrency, isReady],
   );
 
   return <DashboardFiltersContext.Provider value={value}>{children}</DashboardFiltersContext.Provider>;

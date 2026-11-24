@@ -1,15 +1,25 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { PERSON_NAME_ISSUE_MESSAGES, resolveDependencyErrorCode } from '@/components/patients/patient-form-utils';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
+import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { extractCreatedUserId } from '@/services/users';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 
 interface UserSelectorProps {
@@ -22,6 +32,8 @@ interface UserSelectorProps {
     triggerText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
     openCreateToken?: number;
     /** When provided, "create new" delegates to this callback (e.g. to open a
      *  full patient form dialog) instead of the built-in inline mini-form.
@@ -39,14 +51,22 @@ export function UserSelector({
     value,
     selectedUserName,
     onValueChange,
-    placeholder = 'Buscar...',
-    triggerText = 'Seleccionar',
+    placeholder: placeholderProp,
+    triggerText: triggerTextProp,
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
     openCreateToken,
     onRequestCreate,
     showIdentityDocument = false,
 }: UserSelectorProps) {
+    const t = useTranslations();
+    const placeholder = placeholderProp ?? t('EntitySelectors.searchPlaceholder');
+    const triggerText = triggerTextProp ?? t('EntitySelectors.selectTrigger');
+    const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    // Poner a otra ficha a cargo del paciente nuevo la modifica; proveedores no aplica.
+    const canAdoptDependents = filterType === 'PACIENTE' && hasPermission(PATIENTS_PERMISSIONS.UPDATE);
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [users, setUsers] = React.useState<User[]>([]);
@@ -89,7 +109,7 @@ export function UserSelector({
 
     const handleOpenChange = (nextOpen: boolean) => {
         // La advertencia de contacto repetido se abre encima: no perder lo tecleado.
-        if (!nextOpen && (duplicateOwners || uniqueConflict)) return;
+        if (!nextOpen && (duplicateOwners || uniqueConflict || isSaving)) return;
         if (!nextOpen) {
             setIsCreating(false);
             setCreateName('');
@@ -116,7 +136,7 @@ export function UserSelector({
                 }
                 setUsers(usersData.map((u: any): User => ({
                     id: String(u.id),
-                    name: u.name || 'Sin nombre',
+                    name: u.name || t('EntitySelectors.noName'),
                     email: u.email || '',
                     phone_number: u.phone_number || '',
                     // El backend lo devuelve y hay pantallas que lo precargan al
@@ -126,6 +146,11 @@ export function UserSelector({
                     avatar: '',
                     doctor_id: u.doctor_id ? String(u.doctor_id) : null,
                     doctor_name: u.doctor_name || undefined,
+                    is_dependent: u.is_dependent ?? u.is_dependant ?? false,
+                    responsible_contact_id: u.responsible_contact_id ? String(u.responsible_contact_id) : undefined,
+                    responsible_contact_name: u.responsible_contact_name || undefined,
+                    responsible_phone_number: u.responsible_phone_number || undefined,
+                    matched_by_responsible: u.matched_by_responsible === true,
                 })));
             } catch {
                 setUsers([]);
@@ -134,7 +159,7 @@ export function UserSelector({
             }
         }, 300);
         return () => clearTimeout(handler);
-    }, [searchQuery, filterType]);
+    }, [searchQuery, filterType, t]);
 
     const fallbackSelectedUser = React.useMemo<User | undefined>(() => {
         if (!value || !selectedUserName) return undefined;
@@ -177,9 +202,15 @@ export function UserSelector({
         setIsCreating(true);
     };
 
-    const handleCreateUser = async (confirmDuplicates = false) => {
-        const name = createName.trim();
+    const handleCreateUser = async (confirmDuplicates = false, adoptDependentIds: string[] = []) => {
+        const name = normalizePersonName(createName);
         if (!name) return;
+        // Proveedores son empresas ("Dental 2000 S.A."): la regla de nombre es solo para pacientes.
+        const nameIssue = filterType === 'PACIENTE' ? getPersonNameIssue(name) : null;
+        if (nameIssue) {
+            setCreateError(t(PERSON_NAME_ISSUE_MESSAGES[nameIssue]));
+            return;
+        }
         setIsSaving(true);
         setCreateError(null);
         try {
@@ -196,7 +227,8 @@ export function UserSelector({
                 is_sales: isSales,
                 is_active: true,
                 ...(confirmDuplicates ? { confirm_duplicates: true } : {}),
-            });
+                ...(adoptDependentIds.length ? { adopt_dependent_ids: adoptDependentIds } : {}),
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
             const errPayload = responseData?.error;
             if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
@@ -207,9 +239,24 @@ export function UserSelector({
                 setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
                 return;
             }
-            if (errPayload) {
-                setCreateError('Revisá que la información ingresada sea válida.');
+            if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
                 return;
+            }
+            const dependencyError = resolveDependencyErrorCode(errPayload?.code, t);
+            if (dependencyError) {
+                setCreateError(dependencyError);
+                return;
+            }
+            if (errPayload) {
+                setCreateError(t('EntitySelectors.invalidData'));
+                return;
+            }
+            if (adoptDependentIds.length > 0) {
+                toast({
+                    title: t('DuplicateContact.adopt.successTitle'),
+                    description: t('DuplicateContact.adopt.successDescription', { count: adoptDependentIds.length }),
+                });
             }
 
             const params: Record<string, string> = { filter_type: filterType, search: name };
@@ -223,7 +270,7 @@ export function UserSelector({
             }
             const newUsers = usersData.map((u: any): User => ({
                 id: String(u.id),
-                name: u.name || 'Sin nombre',
+                name: u.name || t('EntitySelectors.noName'),
                 email: u.email || '',
                 phone_number: u.phone_number || '',
                 identity_document: u.identity_document || '',
@@ -234,7 +281,11 @@ export function UserSelector({
             }));
             setUsers(newUsers);
 
-            const created = newUsers.find((u: User) => u.name.toLowerCase() === name.toLowerCase()) || newUsers[0];
+            // Por id primero: con homónimos, el nombre podría seleccionar a otra persona.
+            const createdId = extractCreatedUserId(responseData);
+            const created = newUsers.find((u: User) => u.id === createdId)
+                || newUsers.find((u: User) => u.name.toLowerCase() === name.toLowerCase())
+                || newUsers[0];
             if (created) handleSelect(created);
         } catch (err: any) {
             const errPayload = err?.response?.error || err?.data?.error || err?.error;
@@ -242,15 +293,15 @@ export function UserSelector({
                 setDuplicateOwners(errPayload.owners);
             } else if (errPayload?.code === 'unique_conflict') {
                 setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
+            } else if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
             } else {
-                setCreateError('Revisá que la información ingresada sea válida.');
+                setCreateError(resolveDependencyErrorCode(errPayload?.code, t) ?? t('EntitySelectors.invalidData'));
             }
         } finally {
             setIsSaving(false);
         }
     };
-
-    const entityLabel = filterType === 'PROVEEDOR' ? 'proveedor' : 'paciente';
 
     return (
         <>
@@ -259,6 +310,7 @@ export function UserSelector({
                 <Button
                     variant="outline"
                     role="combobox"
+                    aria-invalid={ariaInvalid}
                     className={cn('w-full justify-between', !value && 'text-muted-foreground', className)}
                     disabled={disabled}
                 >
@@ -279,7 +331,7 @@ export function UserSelector({
                         {isLoading ? (
                             <div className="flex items-center justify-center p-4">
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                <span className="text-sm text-muted-foreground">Buscando...</span>
+                                <span className="text-sm text-muted-foreground">{t('EntitySelectors.searching')}</span>
                             </div>
                         ) : (
                             <>
@@ -295,31 +347,33 @@ export function UserSelector({
                                                 <div className="flex flex-col truncate">
                                                     <span className="truncate">{user.name}</span>
                                                     {user.phone_number && (
-                                                        <span className="text-xs text-muted-foreground truncate">{user.phone_number}</span>
+                                                        <span className="text-xs text-muted-foreground truncate">{formatPhoneNumber(user.phone_number)}</span>
                                                     )}
+                                                    <ResponsibleMatchHint user={user} />
                                                 </div>
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
                                 )}
 
-                                {users.length === 0 && (
+                                {users.length === 0 && !isCreating && (
                                     <p className="py-5 text-center text-sm text-muted-foreground">
-                                        No hay resultados.
+                                        {t('EntitySelectors.noResults')}
                                     </p>
                                 )}
 
-                                {(searchQuery.trim() || isCreating) && (
-                                    <div className={cn('border-t', users.length === 0 && 'border-t-0')}>
+                                {/* Crear: al buscar algo, o cuando no hay nadie para elegir aunque no se haya escrito nada. */}
+                                {(searchQuery.trim() || isCreating || users.length === 0) && (
+                                    <div className={cn('border-t', users.length === 0 && !isCreating && 'border-t-0')}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
                                                 <p className="text-xs text-muted-foreground px-1">
-                                                    Se creará un nuevo {entityLabel}
+                                                    {t(filterType === 'PROVEEDOR' ? 'EntitySelectors.newSupplier' : 'EntitySelectors.newPatient')}
                                                 </p>
                                                 <Input
                                                     value={createName}
                                                     onChange={e => { setCreateName(e.target.value); setCreateError(null); }}
-                                                    placeholder="Nombre *"
+                                                    placeholder={t('EntitySelectors.namePlaceholder')}
                                                     className="h-7 text-sm"
                                                     autoFocus
                                                 />
@@ -331,16 +385,20 @@ export function UserSelector({
                                                         className="h-7 text-sm"
                                                     />
                                                 )}
-                                                <Input
-                                                    value={createPhone}
-                                                    onChange={e => { setCreatePhone(e.target.value); setCreateError(null); }}
-                                                    placeholder="Teléfono"
-                                                    className="h-7 text-sm"
-                                                />
+                                                {/* El selector de país vive en un portal, pero sus teclas llegan por React al
+                                                    Command de afuera: sin cortarlas, Enter elegiría un paciente de la lista. */}
+                                                <div onKeyDown={e => e.stopPropagation()}>
+                                                    <PhoneInput
+                                                        value={createPhone}
+                                                        onChange={phone => { setCreatePhone(phone); setCreateError(null); }}
+                                                        aria-label={t('EntitySelectors.phonePlaceholder')}
+                                                        className="[&>div]:min-h-7 [&_[role=combobox]]:px-2 [&_input]:h-7"
+                                                    />
+                                                </div>
                                                 <Input
                                                     value={createEmail}
                                                     onChange={e => { setCreateEmail(e.target.value); setCreateError(null); }}
-                                                    placeholder="Email"
+                                                    placeholder={t('EntitySelectors.emailPlaceholder')}
                                                     className="h-7 text-sm"
                                                 />
                                                 {createError && (
@@ -355,7 +413,7 @@ export function UserSelector({
                                                         type="button"
                                                     >
                                                         {isSaving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                                                        Guardar
+                                                        {t('EntitySelectors.save')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -366,7 +424,11 @@ export function UserSelector({
                                                 type="button"
                                             >
                                                 <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">Crear "{searchQuery}"</span>
+                                                <span className="truncate">
+                                                    {searchQuery.trim()
+                                                        ? t('EntitySelectors.createNamed', { name: searchQuery.trim() })
+                                                        : t(filterType === 'PROVEEDOR' ? 'EntitySelectors.createSupplier' : 'EntitySelectors.createPatient')}
+                                                </span>
                                             </button>
                                         )}
                                     </div>
@@ -384,8 +446,20 @@ export function UserSelector({
                 setDuplicateOwners(null);
                 void handleCreateUser(true);
             }}
+            onAdopt={canAdoptDependents ? (ids) => {
+                setDuplicateOwners(null);
+                // Si otra ficha sigue compartiendo el teléfono, ya se la mostró: no se vuelve a preguntar.
+                void handleCreateUser(true, ids);
+            } : undefined}
         />
-        <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+        <UniqueConflictDialog
+            conflict={uniqueConflict}
+            onClose={() => setUniqueConflict(null)}
+            onAdopt={canAdoptDependents ? (ids) => {
+                setUniqueConflict(null);
+                void handleCreateUser(false, ids);
+            } : undefined}
+        />
         </>
     );
 }

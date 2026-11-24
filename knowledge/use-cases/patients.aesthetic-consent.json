@@ -1,0 +1,159 @@
+{
+  "id": "patients.aesthetic-consent",
+  "title": "Firmar o reutilizar el consentimiento de estética",
+  "module": "Pacientes",
+  "summary": "Elegir los servicios de hoy, marcar las autorizaciones de fotos y firmar, o usar una firma anterior.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha estética",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "consentimiento",
+    "consentimiento informado",
+    "firma",
+    "firmar",
+    "autorización de fotos",
+    "reutilizar firma",
+    "imprimir consentimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+      "until": "patients.btn.new-aesthetic"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-aesthetic",
+      "title": "Sesión estética",
+      "details": "Abre el flujo guiado de una sesión nueva. No se guarda nada hasta que elijas un servicio.",
+      "until": "aesthetic-session.section.header"
+    },
+    {
+      "id": "progress",
+      "action": "highlight",
+      "target": "aesthetic-session.section.progress",
+      "title": "Estado y avance",
+      "details": "El estado sale de los datos: Borrador, Consentida, En tratamiento, Por cerrar. Cada paso completo suma 25 %. Al lado dice qué falta y cuándo se guardó: todo se guarda solo."
+    },
+    {
+      "id": "data",
+      "action": "highlight",
+      "target": "aesthetic-session.section.session-data",
+      "title": "Fecha y profesional",
+      "details": "Fecha de la sesión (no puede ser futura) y quién la realiza. Desde Mi Consultorio ya vienen de la cita."
+    },
+    {
+      "id": "services",
+      "action": "highlight",
+      "target": "aesthetic-session.section.services",
+      "title": "Servicios de hoy",
+      "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior."
+    },
+    {
+      "id": "reuse",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.reuse",
+      "title": "Reutilizar una firma",
+      "details": "Si el paciente ya firmó este servicio, podés usar esa firma en lugar de pedirla otra vez. Nunca cambia una autorización que ya se dio en esta sesión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "text",
+      "action": "highlight",
+      "target": "aesthetic-session.section.consent-text",
+      "title": "Texto del consentimiento",
+      "details": "El del servicio, con los datos del paciente ya puestos; «Ver texto» muestra el de otro servicio. Si el servicio no tiene plantilla propia, se usa el texto genérico. Lo firmado queda guardado tal cual, con su huella SHA-256.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "risks",
+      "action": "highlight",
+      "target": "aesthetic-session.field.risksExplained",
+      "title": "Riesgos explicados",
+      "details": "Obligatorio. Las autorizaciones se marcan una sola vez para todos los consentimientos pendientes.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "clinical-photos",
+      "action": "highlight",
+      "target": "aesthetic-session.field.allowsClinicalPhotos",
+      "title": "Fotos para la historia clínica",
+      "details": "Sin esta autorización la cámara queda bloqueada y la sesión se puede cerrar sin fotos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "marketing-photos",
+      "action": "highlight",
+      "target": "aesthetic-session.field.allowsMarketingPhotos",
+      "title": "Fotos para difusión",
+      "details": "Opcional: autoriza usarlas con fines de difusión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "signer",
+      "action": "highlight",
+      "target": "aesthetic-session.field.signerName",
+      "title": "Quién firma",
+      "details": "Por defecto, el paciente; cambialo si firma un responsable.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "pad",
+      "action": "highlight",
+      "target": "aesthetic-session.section.signature-pad",
+      "title": "Firma",
+      "details": "Firmá con el dedo, lápiz o mouse.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "sign",
+      "action": "confirm",
+      "target": "aesthetic-session.btn.sign",
+      "title": "Firmar",
+      "details": "Firma todos los servicios pendientes de una vez. Lo firmado ya no se modifica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "continue",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.to-photos",
+      "title": "Continuar a fotos",
+      "details": "Se habilita con todos los servicios firmados. Si falta firmar alguno, «Marcar los firmados» lleva directo al tratamiento de los que ya están.",
+      "skipIfMissing": true
+    }
+  ]
+}

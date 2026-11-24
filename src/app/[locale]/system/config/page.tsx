@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -94,6 +95,7 @@ export default function SystemConfigPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingConfig, setDeletingConfig] = React.useState<SystemConfiguration | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ConfigFormValues>({
         resolver: zodResolver(configFormSchema(t)),
     });
@@ -261,7 +263,7 @@ export default function SystemConfigPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.config.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><Settings className="h-5 w-5" /></div>
@@ -271,7 +273,7 @@ export default function SystemConfigPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedConfig && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="system.config.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('columns.edit')}</span>
                             </Button>
@@ -279,6 +281,7 @@ export default function SystemConfigPage() {
                         {selectedConfig && !isEditing && canDelete && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                                 aria-label={t('deleteDialog.confirm')}
+                                data-help-id="system.config.btn.delete"
                                 onClick={() => { setDeletingConfig(selectedConfig); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
@@ -297,7 +300,7 @@ export default function SystemConfigPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />

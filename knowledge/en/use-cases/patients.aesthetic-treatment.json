@@ -1,0 +1,112 @@
+{
+  "id": "patients.aesthetic-treatment",
+  "title": "Mark the treatment on the aesthetic map",
+  "summary": "Points, areas and lines on the face or body, with dose, lot, notes and per-zone history.",
+  "module": "Patients",
+  "group": "Aesthetic record",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "face map",
+    "body map",
+    "mark points",
+    "injection points",
+    "area",
+    "line",
+    "threads",
+    "dose",
+    "units",
+    "lot",
+    "expiry",
+    "symmetry",
+    "mirror",
+    "zone history",
+    "undo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "tab",
+      "title": "Timeline"
+    },
+    {
+      "id": "session",
+      "title": "Tap the aesthetic session",
+      "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session."
+    },
+    {
+      "id": "open",
+      "title": "Continue session",
+      "details": "Resumes at the first step still missing. A closed or void session opens read-only."
+    },
+    {
+      "id": "treatment",
+      "title": "Treatment",
+      "details": "It stays locked until at least one consent is signed."
+    },
+    {
+      "id": "views",
+      "title": "Region, view and background",
+      "details": "Face or body, the view, and what's behind: the model (with its skin tone) or today's photo."
+    },
+    {
+      "id": "layers",
+      "title": "Active service",
+      "details": "What you mark goes to this service; the eye hides or shows it. Those not signed show a lock and can't be marked."
+    },
+    {
+      "id": "tools",
+      "title": "Tools",
+      "details": "Select and move, point, area and line, undo and redo (Ctrl+Z), show the zones and show the previous session's marks. Each service starts with its configured tool."
+    },
+    {
+      "id": "map",
+      "title": "Map",
+      "details": "A point: one tap. An area: tap the vertices and close on the first one or with Enter. A line: tap the start and the end. The zone is detected on its own. Tapping an empty zone with Select shows its history."
+    },
+    {
+      "id": "editor",
+      "title": "Mark details",
+      "details": "Appears when a mark is selected: quantity, zone, depth, technique and note. \"Mirror\" duplicates it on the other side and \"Change on this mark\" uses another product or lot. It warns if the maximum is exceeded, the interval was not respected or the lot expired, but it does not block."
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "details": "Each service with its total and marks. Tap one to enter product, lot and expiry just once for all its marks."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "Timestamped notes while you work, with voice dictation and frequent phrases."
+    },
+    {
+      "id": "history",
+      "title": "History",
+      "details": "What was applied to each zone in earlier sessions (last 12 months)."
+    },
+    {
+      "id": "to-close",
+      "title": "Go to closing",
+      "details": "When you have finished marking."
+    }
+  ]
+}

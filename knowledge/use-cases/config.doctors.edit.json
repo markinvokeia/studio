@@ -1,0 +1,67 @@
+{
+  "id": "config.doctors.edit",
+  "title": "Editar los datos de un profesional",
+  "module": "Configuración de Negocio",
+  "summary": "Pestaña Datos de la ficha.",
+  "screens": [
+    "config.doctors"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar profesional",
+    "cambiar correo",
+    "cambiar color"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/doctors",
+      "title": "Menú → Configuración de Negocio → Doctores"
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.doctors.filter.search",
+      "title": "Buscá",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.doctors.section.first-row",
+      "title": "Elegí al profesional",
+      "until": "config.doctors.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "config.doctors.tab.details",
+      "title": "Datos",
+      "until": "config.doctors.detail.field.name"
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "config.doctors.detail.field.name",
+      "title": "Nombre"
+    },
+    {
+      "id": "email",
+      "action": "highlight",
+      "target": "config.doctors.detail.field.email",
+      "title": "Correo"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.doctors.detail.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

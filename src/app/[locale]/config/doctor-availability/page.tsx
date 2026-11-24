@@ -40,6 +40,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
@@ -98,6 +99,7 @@ export default function DoctorAvailabilityPage() {
     const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<AvailabilityRuleFormValues>({
         resolver: zodResolver(availabilityRuleFormSchema(tValidation)),
         defaultValues: emptyAvailabilityRuleForm(),
@@ -285,7 +287,7 @@ export default function DoctorAvailabilityPage() {
 
     const rightPanel = selectedRule ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.doctor-availability.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><CalendarPlus className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -293,10 +295,10 @@ export default function DoctorAvailabilityPage() {
                         <p className="text-xs text-muted-foreground truncate">{formatDisplayDate(selectedRule.start_date)} → {selectedRule.end_date ? formatDisplayDate(selectedRule.end_date) : '∞'}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                        <Button data-help-id="config.doctor-availability.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
                             <Pencil className="h-4 w-4 mr-1" />{t('dialog.edit')}
                         </Button>
-                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedRule)}>
+                        <Button data-help-id="config.doctor-availability.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedRule)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -370,7 +372,7 @@ export default function DoctorAvailabilityPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">

@@ -20,6 +20,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { API_ROUTES } from '@/constants/routes';
 import { getErrorMessage } from '@/lib/error-utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { createDefaultPagination } from '@/lib/pagination';
@@ -229,7 +230,7 @@ export function ProviderGroupProvidersTab({ groupId, canManage }: ProviderGroupP
     const columns: ColumnDef<ProviderRow>[] = [
         { accessorKey: 'name', header: t('col_name') },
         { accessorKey: 'identity_document', header: t('col_document') },
-        { accessorKey: 'phone_number', header: t('col_phone') },
+        { accessorKey: 'phone_number', header: t('col_phone'), cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
         { accessorKey: 'email', header: t('col_email') },
         {
             id: 'actions',
@@ -343,7 +344,7 @@ export function ProviderGroupProvidersTab({ groupId, canManage }: ProviderGroupP
                 renderCard={(row: ProviderRow) => (
                     <DataCard
                         title={row.name}
-                        subtitle={[row.identity_document, row.phone_number].filter(Boolean).join(' · ')}
+                        subtitle={[row.identity_document, formatPhoneNumber(row.phone_number)].filter(Boolean).join(' · ')}
                         badge={<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? t('active') : t('inactive')}</Badge>}
                         actions={canManage ? (
                             <Button

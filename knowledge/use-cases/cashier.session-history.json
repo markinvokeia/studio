@@ -1,0 +1,50 @@
+{
+  "id": "cashier.session-history",
+  "title": "Ver el detalle de una sesión de caja",
+  "module": "Caja",
+  "summary": "Abrir una sesión cerrada (la más reciente) y ver su arqueo, diferencias, movimientos y conteos, e imprimir el cierre.",
+  "screens": [
+    "cashier.sessions"
+  ],
+  "keywords": [
+    "sesiones de caja",
+    "historial de caja",
+    "cierres anteriores",
+    "diferencia de caja",
+    "reimprimir cierre",
+    "arqueo anterior"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/cashier/sessions",
+      "title": "Menú → Caja → Sesiones de Caja",
+      "details": "Cada apertura y cierre, con su responsable y sus diferencias."
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "cashier.sessions.section.first-row",
+      "title": "La sesión más reciente",
+      "details": "Tocá la fila (o el ojo) para ver su detalle.",
+      "until": "cashier.sessions.section.details",
+      "autoClick": true
+    },
+    {
+      "id": "details",
+      "action": "highlight",
+      "target": "cashier.sessions.section.details",
+      "title": "Detalle de la sesión",
+      "details": "Usuario, caja, apertura y cierre; conteos de billetes de apertura y cierre; los movimientos; y la conciliación por medio de pago: sistema, declarado y diferencia."
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "cashier.sessions.btn.print-closing",
+      "title": "Imprimir cierre",
+      "details": "Reimprime el reporte de cierre.",
+      "skipIfMissing": true
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "onboarding.calendar",
+  "title": "Crear un consultorio",
+  "module": "Configuración del negocio",
+  "summary": "Cada consultorio (o sillón) es una columna de la agenda. Pertenece a una sede.",
+  "screens": [
+    "config.calendars"
+  ],
+  "inputs": {
+    "name": "Nombre del consultorio (ej. Consultorio 1)",
+    "sede": "Nombre de la sede a la que pertenece"
+  },
+  "keywords": [
+    "consultorio",
+    "calendario",
+    "sillón",
+    "box",
+    "agenda"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/calendars",
+      "title": "Abro Consultorios"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.calendars.btn.new",
+      "title": "Nuevo consultorio",
+      "details": "Abre el formulario de consultorio nuevo."
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.calendars.field.name",
+      "value": "{{values.name}}",
+      "title": "Nombre del consultorio",
+      "details": "Cada consultorio es una columna de la agenda. Un nombre corto (\"Consultorio 1\", \"Sillón A\") se lee mejor."
+    },
+    {
+      "id": "sede",
+      "action": "fill",
+      "target": "config.calendars.field.sede_id",
+      "value": "{{values.sede}}",
+      "title": "Sede",
+      "description": "Elegí en qué sede está este consultorio.",
+      "details": "Obligatorio: el consultorio sólo se ofrece en el horario de su sede."
+    },
+    {
+      "id": "color",
+      "action": "highlight",
+      "target": "config.calendars.field.color",
+      "title": "Color en la agenda",
+      "description": "Ayuda a distinguir los consultorios de un vistazo.",
+      "optional": true,
+      "details": "Sólo visual: ayuda a distinguir los consultorios en la agenda."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.calendars.btn.submit",
+      "title": "Crear el consultorio",
+      "details": "Crea el consultorio activo. Después podés elegir qué profesionales lo usan en la pestaña de acceso."
+    }
+  ]
+}

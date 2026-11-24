@@ -1,0 +1,58 @@
+{
+  "id": "dashboard.menu-ClinicCatalog",
+  "title": "Get to know Clinic Catalog",
+  "summary": "Tour of Ailments, Medications, Dental Conditions and Dental Surfaces: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "clinic catalog",
+    "what's in clinic catalog",
+    "ailments",
+    "medications",
+    "dental conditions",
+    "dental surfaces"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "Clinic Catalog",
+      "details": "This section has 4 screens; we'll go through them one by one."
+    },
+    {
+      "id": "go-clinic-catalog.ailments",
+      "title": "Menu → Clinic Catalog → Ailments"
+    },
+    {
+      "id": "page-clinic-catalog.ailments",
+      "title": "Ailments",
+      "details": "List of diagnoses and ailments chosen in the clinical history and the patient's medical background. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-clinic-catalog.medications",
+      "title": "Menu → Clinic Catalog → Medications"
+    },
+    {
+      "id": "page-clinic-catalog.medications",
+      "title": "Medications",
+      "details": "Medications chosen when prescribing treatments, recording the patient's medication and writing prescriptions. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-clinic-catalog.dental-conditions",
+      "title": "Menu → Clinic Catalog → Dental Conditions"
+    },
+    {
+      "id": "page-clinic-catalog.dental-conditions",
+      "title": "Dental Conditions",
+      "details": "Defines what can be marked on each tooth (cavity, filling, missing…) and how it looks on the odontogram. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-clinic-catalog.dental-surfaces",
+      "title": "Menu → Clinic Catalog → Dental Surfaces"
+    },
+    {
+      "id": "page-clinic-catalog.dental-surfaces",
+      "title": "Dental Surfaces",
+      "details": "Tooth surfaces (occlusal, mesial, distal…) on which findings and treatments are recorded. It has 4 guides in «Guide me on this screen»."
+    }
+  ]
+}

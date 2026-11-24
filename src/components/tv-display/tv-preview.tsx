@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Monitor, Phone, MapPin, Mail, Film } from 'lucide-react';
 import { useTVDisplay } from '@/context/tv-display-context';
 import type { TVRoomState } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 export function TVPreview() {
   const t = useTranslations('TVDisplayPage.preview');
@@ -107,7 +108,7 @@ export function TVPreview() {
                   <div className="flex flex-wrap gap-x-1.5 mt-px">
                     {settings.showClinicPhone && clinicInfo.phone && (
                       <span className="text-[5px] flex items-center gap-px" style={{ opacity: 0.5 }}>
-                        <Phone className="h-1.5 w-1.5 shrink-0" />{clinicInfo.phone}
+                        <Phone className="h-1.5 w-1.5 shrink-0" />{formatPhoneNumber(clinicInfo.phone)}
                       </span>
                     )}
                     {settings.showClinicAddress && clinicInfo.address && (

@@ -1,0 +1,162 @@
+{
+  "id": "patients.aesthetic-close",
+  "title": "Cerrar, cobrar o anular una sesión de estética",
+  "module": "Pacientes",
+  "summary": "Revisar lo aplicado, cobrar, enviar indicaciones, agendar el control y cerrar; después, enmiendas o anulación.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha estética",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "cerrar sesión estética",
+    "cobrar estética",
+    "facturar sesión",
+    "indicaciones posteriores",
+    "agendar control",
+    "próxima cita",
+    "anular sesión",
+    "enmienda",
+    "corregir sesión cerrada",
+    "consumo de lote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.clinical-history"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.clinical-history",
+      "title": "Línea de tiempo",
+      "until": "patients.section.timeline"
+    },
+    {
+      "id": "session",
+      "action": "highlight",
+      "target": "patients.section.timeline",
+      "title": "Tocá la sesión de estética",
+      "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+      "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "patients.btn.timeline-open-aesthetic",
+      "title": "Continuar sesión",
+      "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+      "until": "aesthetic-session.section.header"
+    },
+    {
+      "id": "close-step",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-close",
+      "title": "Cierre",
+      "details": "Paso 4."
+    },
+    {
+      "id": "missing",
+      "action": "highlight",
+      "target": "aesthetic-session.section.missing",
+      "title": "Lo que falta",
+      "details": "Tocá cada aviso para ir al paso que lo resuelve.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "applied",
+      "action": "highlight",
+      "target": "aesthetic-session.section.applied",
+      "title": "Tratamiento aplicado",
+      "details": "Cada servicio con sus zonas, el total, los lotes consumidos y las fotos de hoy. Un lote vencido se ve en rojo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "summary",
+      "action": "highlight",
+      "target": "aesthetic-session.section.session-summary",
+      "title": "Resumen de la sesión",
+      "details": "Texto libre que queda en la línea de tiempo del paciente, junto con las notas tomadas durante la sesión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "billing",
+      "action": "highlight",
+      "target": "aesthetic-session.section.billing",
+      "title": "Cobro",
+      "details": "«Cobrar» abre el cobro con los servicios de la sesión ya cargados. La factura queda vinculada: acá se ve su total, lo pagado, el saldo y los pagos, y se pueden imprimir. Cobrar no es obligatorio para cerrar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "follow-up",
+      "action": "highlight",
+      "target": "aesthetic-session.section.follow-up",
+      "title": "Indicaciones y próxima cita",
+      "details": "Envía por WhatsApp las indicaciones posteriores de cada servicio y agenda el control con la fecha sugerida. Ambos se configuran en la pestaña Estética del servicio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "activity",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.activity",
+      "title": "Actividad",
+      "details": "Quién y cuándo firmó, subió fotos, agregó notas o cerró.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "void",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.void",
+      "title": "Anular sesión",
+      "details": "Pide un motivo y deja la sesión en solo lectura. No se borra nada. Sólo una sesión abierta se puede eliminar, desde la línea de tiempo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "amendments",
+      "action": "highlight",
+      "target": "aesthetic-session.section.amendments",
+      "title": "Enmiendas",
+      "details": "En una sesión cerrada, las correcciones se agregan como enmienda, sin borrar lo original.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "close",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.close-session",
+      "title": "Cerrar sesión",
+      "details": "Pide confirmación. Requiere todo firmado, una foto (salvo que no aplique) y cada servicio con al menos una marca con cantidad.",
+      "skipIfMissing": true
+    }
+  ]
+}

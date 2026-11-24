@@ -1,0 +1,80 @@
+{
+  "id": "lab-orders.overview",
+  "title": "Tour Lab Orders",
+  "summary": "What the screen shows: pending orders, quick filters, an order’s details and the board.",
+  "module": "Clinic History",
+  "inputs": {},
+  "keywords": [
+    "lab orders",
+    "lab work",
+    "prosthesis",
+    "crowns",
+    "which stage",
+    "lab tracking"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "view",
+      "title": "List or board",
+      "details": "The list shows only pending orders. The board has one column per stage."
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "details": "Search by patient, job, lab or order number."
+    },
+    {
+      "id": "overdue",
+      "title": "Overdue only",
+      "details": "The number shows how many there are. An order is overdue when it goes past its stage’s days, or when the due date passes."
+    },
+    {
+      "id": "urgent",
+      "title": "Urgent",
+      "details": "Pending urgent orders. They also show first in the list."
+    },
+    {
+      "id": "due-today",
+      "title": "Due today",
+      "details": "What the labs have to deliver today. Useful for calling first thing in the morning."
+    },
+    {
+      "id": "filters",
+      "title": "More filters",
+      "details": "Stage, lab, doctor, patient and dates. To also see finished orders, pick the All stage."
+    },
+    {
+      "id": "row",
+      "title": "An order",
+      "details": "Patient, lab, job and doctor. The Status column brings together the stage, the days in it and the due date. Anything overdue shows in red."
+    },
+    {
+      "id": "board",
+      "title": "Board"
+    },
+    {
+      "id": "columns",
+      "title": "One column per stage",
+      "details": "Drag a card to another column to change its stage."
+    },
+    {
+      "id": "new",
+      "title": "New order",
+      "details": "Registers a new job, which starts in the first stage."
+    },
+    {
+      "id": "setup",
+      "title": "Set up",
+      "details": "To add labs, mark which services are lab jobs and adjust the stages."
+    }
+  ]
+}

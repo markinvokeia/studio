@@ -1,0 +1,83 @@
+{
+  "id": "clinic-catalog.measurement-units.create",
+  "title": "Agregar una unidad de medida",
+  "module": "Catálogo de la Clínica",
+  "summary": "Alta en el catálogo de unidades de medida.",
+  "screens": [
+    "clinic-catalog.measurement-units"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "symbol": "Símbolo (ej. ml, U)",
+    "code": "Código único, sin espacios",
+    "step": "Paso de la cantidad, como número (1, 0.05)"
+  },
+  "keywords": [
+    "nueva unidad de medida",
+    "agregar unidad",
+    "crear unidad"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/measurement-units",
+      "title": "Menú → Catálogo de la Clínica → Unidades de medida",
+      "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…)."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "clinic-catalog.measurement-units.btn.new",
+      "title": "Nueva unidad",
+      "until": "clinic-catalog.measurement-units.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "clinic-catalog.measurement-units.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "symbol",
+      "action": "fill",
+      "target": "clinic-catalog.measurement-units.field.symbol",
+      "title": "Símbolo",
+      "details": "Lo que se ve junto a cada cantidad.",
+      "value": "{{values.symbol}}"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "clinic-catalog.measurement-units.field.code",
+      "title": "Código",
+      "details": "Identificador único: letras, números, guion y guion bajo.",
+      "value": "{{values.code}}"
+    },
+    {
+      "id": "step",
+      "action": "fill",
+      "target": "clinic-catalog.measurement-units.field.step",
+      "title": "Paso de la cantidad",
+      "details": "Cuánto cambian los botones + y − al marcar: 1 para unidades enteras, 0,05 para ml.",
+      "value": "{{values.step}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.field.isActive",
+      "title": "Activa",
+      "details": "Las inactivas no se ofrecen al configurar servicios.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "clinic-catalog.measurement-units.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

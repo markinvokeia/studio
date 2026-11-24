@@ -1,0 +1,47 @@
+{
+  "id": "purchases.services",
+  "summary": "Provider products and services.",
+  "purpose": "Catalog of what is bought from each provider, with its price, to build purchase quotes and invoices.",
+  "elements": {
+    "purchases.services.section.first-row": {
+      "label": "First in the list"
+    },
+    "purchases.services.section.row": {
+      "label": "Record"
+    },
+    "purchases.services.section.detail": {
+      "label": "Record"
+    },
+    "purchases.services.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "purchases.services.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    },
+    "purchases.services.field.name": {
+      "label": "Name"
+    },
+    "purchases.services.field.category_id": {
+      "label": "Category"
+    },
+    "purchases.services.field.price": {
+      "label": "Reference price"
+    },
+    "purchases.services.field.currency": {
+      "label": "Currency"
+    },
+    "purchases.services.field.color": {
+      "label": "Color"
+    },
+    "purchases.services.field.description": {
+      "label": "Description"
+    },
+    "purchases.services.field.is_active": {
+      "label": "Active"
+    },
+    "purchases.services.tab.details": {
+      "label": "Details"
+    }
+  }
+}

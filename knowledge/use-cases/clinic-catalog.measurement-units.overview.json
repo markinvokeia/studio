@@ -1,0 +1,56 @@
+{
+  "id": "clinic-catalog.measurement-units.overview",
+  "title": "Recorrer Unidades de medida",
+  "module": "Catálogo de la Clínica",
+  "summary": "Las unidades en que se registran las dosis y cómo se usan.",
+  "screens": [
+    "clinic-catalog.measurement-units"
+  ],
+  "inputs": {},
+  "keywords": [
+    "unidades de medida",
+    "unidad",
+    "ml",
+    "mg",
+    "qué es el paso"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/measurement-units",
+      "title": "Menú → Catálogo de la Clínica → Unidades de medida",
+      "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…)."
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.section.table",
+      "title": "Unidades",
+      "details": "Nombre, símbolo (lo que se ve junto a cada cantidad), código, paso y estado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.btn.delete",
+      "title": "Eliminar",
+      "details": "Si está en uso, no se borra: queda inactiva.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "new",
+      "action": "highlight",
+      "target": "clinic-catalog.measurement-units.btn.new",
+      "title": "Nueva unidad",
+      "skipIfMissing": true
+    }
+  ]
+}

@@ -24,6 +24,7 @@ import { PatientLoginWizard } from '@/components/patient-portal/patient-login-wi
 import { WelcomeVideo } from '@/components/patient-portal/welcome-video';
 
 import type { PublicClinicInfo } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video-embed';
 import { DEFAULT_WELCOME_VIDEO_URL, fetchPublicClinicInfo } from '@/services/public-clinic';
@@ -250,7 +251,7 @@ export default function PatientLoginPage() {
                     className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground"
                   >
                     <Phone className="h-4 w-4" />
-                    {clinic.phone}
+                    {formatPhoneNumber(clinic.phone)}
                   </a>
                 )}
               </div>

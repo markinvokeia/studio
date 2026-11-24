@@ -1,0 +1,58 @@
+{
+  "id": "patients.discharge",
+  "title": "Discharge a patient",
+  "summary": "More actions → Discharge: choose until when (1, 3, 6 or 12 months or a date). Readmit removes the discharge.",
+  "module": "Patients",
+  "group": "Patient status",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "discharge",
+    "register",
+    "medical discharge",
+    "readmit",
+    "end of treatment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "More actions"
+    },
+    {
+      "id": "item",
+      "title": "Discharge / Readmit",
+      "details": "If the patient isn't discharged, it opens the dialog. If they already are, it says «Readmit» and removes it when tapped."
+    },
+    {
+      "id": "options",
+      "title": "Quick options",
+      "details": "Discharge for 1, 3, 6 or 12 months: fills in the date."
+    },
+    {
+      "id": "date",
+      "title": "Discharge date",
+      "details": "Or choose a date by hand."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "The patient stays discharged until that date; it shows in the record's header."
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "system.communication-templates.create",
+  "title": "Crear una plantilla",
+  "module": "Sistema",
+  "summary": "Alta de una plantilla.",
+  "screens": [
+    "system.communication-templates"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "code": "Código"
+  },
+  "keywords": [
+    "nueva plantilla",
+    "nuevo plantilla",
+    "crear plantilla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/communication-templates",
+      "title": "Menú → Sistema → Plantillas de Alertas",
+      "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.communication-templates.btn.new",
+      "title": "Crear",
+      "until": "system.communication-templates.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.communication-templates.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "system.communication-templates.field.code",
+      "title": "Código",
+      "value": "{{values.code}}"
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "system.communication-templates.field.type",
+      "title": "Tipo",
+      "details": "Correo, SMS o WhatsApp.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "category_id",
+      "action": "highlight",
+      "target": "system.communication-templates.field.category_id",
+      "title": "Categoría",
+      "skipIfMissing": true
+    },
+    {
+      "id": "subject",
+      "action": "highlight",
+      "target": "system.communication-templates.field.subject",
+      "title": "Asunto",
+      "details": "Sólo correo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "body_html",
+      "action": "highlight",
+      "target": "system.communication-templates.field.body_html",
+      "title": "Contenido",
+      "details": "Texto con variables que se completan al enviar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "default_sender",
+      "action": "highlight",
+      "target": "system.communication-templates.field.default_sender",
+      "title": "Remitente",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "system.communication-templates.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.communication-templates.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

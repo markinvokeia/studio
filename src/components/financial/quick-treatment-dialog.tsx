@@ -28,10 +28,14 @@ import { Input } from '@/components/ui/input';
 import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
+
+import { TeethPicker } from '@/components/dental/teeth-picker';
+
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit } from '@/lib/discounts';
 import type { Clinic, User } from '@/lib/types';
 import { preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
@@ -91,6 +95,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
 
   const discounts = useDiscountSettings();
   const schema = React.useMemo(() => quickTreatmentSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<QuickTreatmentFormValues>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -222,7 +227,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
     <Dialog open={open} onOpenChange={(o) => { if (!isSubmitting) onOpenChange(o); }}>
       <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}>
             <DialogHeader>
               <DialogTitle>{t(mode === 'quote' ? 'titleQuote' : 'titleTreatment')}</DialogTitle>
               <DialogDescription>{patient.name}</DialogDescription>
@@ -244,14 +249,17 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
                 <FormField control={form.control} name="tooth_number" render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('fields.tooth')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="-"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                      />
-                    </FormControl>
+                    <div className="flex gap-1.5">
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="-"
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                          />
+                        </FormControl>
+                        <TeethPicker mode="single" value={field.value == null ? '' : String(field.value)} onChange={(next) => field.onChange(next === '' ? '' : Number(next))} />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )} />

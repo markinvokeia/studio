@@ -1,12 +1,15 @@
 import type {
   OdontogramCondition,
   OdontogramMarcacion,
+  OdontogramMarkMeta,
+  OdontogramMarkSource,
+  OdontogramMarkStatus,
   OdontogramState,
   OdontogramSurface,
   OdontogramToothState,
 } from '@/lib/types';
 
-import { getProcedure, SURFACE_ABBR, SURFACE_ORDER } from './odontogram-catalog';
+import { conceptOf, conditionForStatus, defaultStatus, getProcedure, isRangeCondition, sameConcept, SURFACE_ABBR, SURFACE_ORDER, teethBetween } from './odontogram-catalog';
 
 // Pure helpers over the persisted `estado_odontograma` shape. The odontogram UI reads and
 // writes this shape directly, so whatever it produces stays compatible with existing sessions.
@@ -22,7 +25,7 @@ function cloneTooth(tooth: OdontogramToothState | undefined): OdontogramToothSta
   return tooth ? JSON.parse(JSON.stringify(tooth)) : {};
 }
 
-/** Drops empty fields; returns `undefined` when nothing is left on the tooth */
+/** Drops empty fields (and the details of marks that are gone); returns `undefined` when nothing is left */
 function normalizeTooth(tooth: OdontogramToothState): OdontogramToothState | undefined {
   const next: OdontogramToothState = {};
   for (const surface of SURFACE_ORDER) {
@@ -31,7 +34,23 @@ function normalizeTooth(tooth: OdontogramToothState): OdontogramToothState | und
   if (tooth.whole) next.whole = tooth.whole;
   if (tooth.overlays?.length) next.overlays = tooth.overlays;
   if (tooth.notes?.trim()) next.notes = tooth.notes;
-  return Object.keys(next).length > 0 ? next : undefined;
+
+  if (tooth.meta) {
+    const procedures = getToothProcedures(next);
+    const meta: Record<string, OdontogramMarkMeta> = {};
+    for (const [slot, value] of Object.entries(tooth.meta)) {
+      const alive = slot.startsWith('t:')
+        ? procedures.includes(slot.slice(2) as OdontogramCondition)
+        : !!next[slot as OdontogramSurface];
+      if (alive && value) meta[slot] = value;
+    }
+    if (Object.keys(meta).length) next.meta = meta;
+  }
+  if (tooth.voided?.length) next.voided = tooth.voided;
+
+  // Details and voided marks alone are not something on the tooth
+  const content = Object.keys(next).filter((k) => k !== 'meta' && k !== 'voided');
+  return content.length > 0 || next.voided ? next : undefined;
 }
 
 function withTooth(state: OdontogramState, toothId: string, tooth: OdontogramToothState): OdontogramState {
@@ -129,31 +148,276 @@ export function setToothNotes(state: OdontogramState, toothId: string, notes: st
 
 const SURFACES = new Set<string>(SURFACE_ORDER);
 
+// ── Marks with status ───────────────────────────────────────────────────────
+
+/** `meta` key of a mark: its surface, or `t:<condition>` for tooth-level marks */
+export type MarkSlot = string;
+
+export const toothSlot = (condition: OdontogramCondition): MarkSlot => `t:${condition}`;
+
+export interface OdontogramMark {
+  toothId: string;
+  slot: MarkSlot;
+  condition: OdontogramCondition;
+  /** Present for surface marks */
+  surface?: OdontogramSurface;
+  status: OdontogramMarkStatus;
+  meta?: OdontogramMarkMeta;
+}
+
+/** A mark to record: the condition as picked (its twin for `status` is resolved on save) */
+export interface MarkInput {
+  toothId: string;
+  condition: OdontogramCondition;
+  surface?: OdontogramSurface;
+  status: OdontogramMarkStatus;
+  src?: OdontogramMarkSource;
+  by?: string;
+  range?: string;
+}
+
+export function markStatusOf(tooth: OdontogramToothState | undefined, slot: MarkSlot, condition: OdontogramCondition): OdontogramMarkStatus {
+  return tooth?.meta?.[slot]?.st ?? defaultStatus(condition);
+}
+
+/** Every mark of a tooth: tooth-level first, then surfaces */
+export function listToothMarks(toothId: string, tooth: OdontogramToothState | undefined): OdontogramMark[] {
+  if (!tooth) return [];
+  const marks: OdontogramMark[] = getToothProcedures(tooth).map((condition) => {
+    const slot = toothSlot(condition);
+    return { toothId, slot, condition, status: markStatusOf(tooth, slot, condition), meta: tooth.meta?.[slot] };
+  });
+  for (const surface of SURFACE_ORDER) {
+    const condition = tooth[surface];
+    if (condition) marks.push({ toothId, slot: surface, condition, surface, status: markStatusOf(tooth, surface, condition), meta: tooth.meta?.[surface] });
+  }
+  return marks;
+}
+
+/** Where a condition goes: a surface (surface-only ids, or "both" ids when a surface is given) or the tooth */
+export function placementOf(condition: OdontogramCondition, surface?: OdontogramSurface): OdontogramSurface | null {
+  const procedure = getProcedure(condition);
+  if (!procedure) return null;
+  if (procedure.appliesTo === 'surface') return surface ?? 'center';
+  if (procedure.appliesTo === 'both' && surface) return surface;
+  return null;
+}
+
+/** Slot the mark will end up in once its twin is resolved */
+export function slotFor(input: Pick<MarkInput, 'condition' | 'surface' | 'status'>): MarkSlot {
+  const id = conditionForStatus(input.condition, input.status);
+  return placementOf(id, input.surface) ?? toothSlot(id);
+}
+
+function withMeta(tooth: OdontogramToothState, slot: MarkSlot, meta: OdontogramMarkMeta): OdontogramToothState {
+  return { ...tooth, meta: { ...(tooth.meta ?? {}), [slot]: meta } };
+}
+
+/** Records a mark (never toggles it off). A different status of the same concept replaces the old one */
+export function addMark(state: OdontogramState, input: MarkInput): OdontogramState {
+  const id = conditionForStatus(input.condition, input.status);
+  if (!getProcedure(id)) return state;
+  const meta: OdontogramMarkMeta = { st: input.status, at: new Date().toISOString() };
+  if (input.by) meta.by = input.by;
+  if (input.src && input.src !== 'manual') meta.src = input.src;
+  if (input.range) meta.range = input.range;
+
+  const surface = placementOf(id, input.surface);
+  if (surface) {
+    const next = state[input.toothId]?.[surface] === id ? state : toggleSurface(state, input.toothId, surface, id).state;
+    return withTooth(next, input.toothId, withMeta(cloneTooth(next[input.toothId]), surface, meta));
+  }
+
+  const current = getToothProcedures(state[input.toothId]);
+  const others = current.filter((c) => c !== id && sameConcept(c, id));
+  let next = state;
+  if (others.length) {
+    next = withTooth(next, input.toothId, setToothProcedures(cloneTooth(next[input.toothId]), current.filter((c) => !others.includes(c))));
+  }
+  next = addToothProcedure(next, input.toothId, id);
+  return withTooth(next, input.toothId, withMeta(cloneTooth(next[input.toothId]), toothSlot(id), meta));
+}
+
+/** Records a bridge on every tooth from `from` to `to` of the same arch */
+export function addRangeMark(state: OdontogramState, from: number, to: number, input: Omit<MarkInput, 'toothId' | 'range'>): OdontogramState {
+  const range = `r${Date.now().toString(36)}`;
+  return teethBetween(from, to).reduce((acc, tooth) => addMark(acc, { ...input, toothId: String(tooth), range }), state);
+}
+
+export function removeMark(state: OdontogramState, toothId: string, slot: MarkSlot): OdontogramState {
+  const tooth = cloneTooth(state[toothId]);
+  if (slot.startsWith('t:')) {
+    const condition = slot.slice(2) as OdontogramCondition;
+    return withTooth(state, toothId, setToothProcedures(tooth, getToothProcedures(tooth).filter((c) => c !== condition)));
+  }
+  tooth[slot as OdontogramSurface] = undefined;
+  return withTooth(state, toothId, tooth);
+}
+
+/** Removes a mark inherited from an earlier session, keeping why and who in `voided` */
+export function voidMark(state: OdontogramState, toothId: string, slot: MarkSlot, reason: string, by?: string): OdontogramState {
+  const mark = listToothMarks(toothId, state[toothId]).find((m) => m.slot === slot);
+  if (!mark) return state;
+  const next = removeMark(state, toothId, slot);
+  const tooth = cloneTooth(next[toothId]);
+  tooth.voided = [...(tooth.voided ?? []), { slot, condition: mark.condition, reason, at: new Date().toISOString(), ...(by ? { by } : {}) }];
+  return withTooth(next, toothId, tooth);
+}
+
+/** Moves a mark to another status (indicado ↔ existente ↔ hecho hoy), keeping when, who and the bridge */
+export function changeMarkStatus(state: OdontogramState, toothId: string, slot: MarkSlot, status: OdontogramMarkStatus): OdontogramState {
+  const mark = listToothMarks(toothId, state[toothId]).find((m) => m.slot === slot);
+  if (!mark || mark.status === status) return state;
+  const next = addMark(removeMark(state, toothId, slot), { toothId, condition: mark.condition, surface: mark.surface, status, src: mark.meta?.src, by: mark.meta?.by, range: mark.meta?.range });
+  const newSlot = slotFor({ condition: mark.condition, surface: mark.surface, status });
+  const tooth = cloneTooth(next[toothId]);
+  if (tooth.meta?.[newSlot] && mark.meta?.at) tooth.meta[newSlot] = { ...tooth.meta[newSlot], at: mark.meta.at };
+  return withTooth(next, toothId, tooth);
+}
+
+/** The marks of a bridge: every tooth recorded with the same `range` and concept as `mark` */
+export function rangeMarksOf(state: OdontogramState, mark: OdontogramMark): OdontogramMark[] {
+  const range = mark.meta?.range;
+  if (!range) return [mark];
+  return Object.keys(state).flatMap((id) => listToothMarks(id, state[id]))
+    .filter((m) => m.meta?.range === range && sameConcept(m.condition, mark.condition));
+}
+
+/** One change of the chart between two states, as it goes to the session notes */
+export type MarkChange =
+  | { kind: 'added'; mark: OdontogramMark }
+  | { kind: 'removed'; mark: OdontogramMark }
+  | { kind: 'status'; mark: OdontogramMark; from: OdontogramMarkStatus }
+  | { kind: 'voided'; mark: OdontogramMark; reason: string };
+
+/** Where a mark sits, regardless of its status: its surface, or its concept on the tooth */
+function placeKey(mark: OdontogramMark): string {
+  return `${mark.toothId}|${mark.surface ?? `t:${conceptKey(mark.condition)}`}`;
+}
+
+function conceptKey(condition: OdontogramCondition): string {
+  return conceptOf(condition) ?? condition;
+}
+
 /**
- * Applies the doctor agent's pre-filled markings on top of a base state. Markings are added
- * (never toggled off) and placed according to the catalog: surface procedures go on a face
- * (occlusal when none is given) and tooth procedures go to whole/overlays. Unknown ids are skipped.
+ * Net changes from `start` to `current`, in tooth order: what was marked and then taken back does
+ * not show up, and a status changed twice is one change.
  */
-export function applyMarcaciones(base: OdontogramState, marcaciones: OdontogramMarcacion[]): OdontogramState {
-  let state = cloneState(base);
+export function diffMarks(start: OdontogramState, current: OdontogramState): MarkChange[] {
+  const before = new Map<string, OdontogramMark>();
+  const after = new Map<string, OdontogramMark>();
+  for (const id of Object.keys(start)) listToothMarks(id, start[id]).forEach((m) => before.set(placeKey(m), m));
+  for (const id of Object.keys(current)) listToothMarks(id, current[id]).forEach((m) => after.set(placeKey(m), m));
+
+  const newlyVoided = (mark: OdontogramMark) => {
+    const old = new Set((start[mark.toothId]?.voided ?? []).map((v) => `${v.slot}|${v.at}`));
+    return (current[mark.toothId]?.voided ?? []).find((v) => !old.has(`${v.slot}|${v.at}`) && v.slot === mark.slot);
+  };
+
+  const changes: MarkChange[] = [];
+  const keys = Array.from(new Set([...before.keys(), ...after.keys()]));
+  keys.sort((a, b) => Number(a.split('|')[0]) - Number(b.split('|')[0]));
+  for (const key of keys) {
+    const was = before.get(key);
+    const now = after.get(key);
+    if (was && (!now || !sameConcept(was.condition, now.condition))) {
+      const voided = newlyVoided(was);
+      changes.push(voided ? { kind: 'voided', mark: was, reason: voided.reason } : { kind: 'removed', mark: was });
+    }
+    if (now && (!was || !sameConcept(was.condition, now.condition))) changes.push({ kind: 'added', mark: now });
+    else if (now && was && now.status !== was.status) changes.push({ kind: 'status', mark: now, from: was.status });
+  }
+  return changes;
+}
+
+/** Same concept already marked in that place (to skip duplicated proposals) */
+export function hasMark(state: OdontogramState, input: Pick<MarkInput, 'toothId' | 'condition' | 'surface' | 'status'>): boolean {
+  const id = conditionForStatus(input.condition, input.status);
+  const surface = placementOf(id, input.surface);
+  const tooth = state[input.toothId];
+  if (surface) return tooth?.[surface] === id;
+  return getToothProcedures(tooth).includes(id);
+}
+
+/** The mark was already there in the previous session: it is voided, not deleted */
+export function isInheritedMark(previous: OdontogramState | null | undefined, mark: OdontogramMark): boolean {
+  const before = previous?.[mark.toothId];
+  if (!before) return false;
+  if (mark.surface) {
+    const old = before[mark.surface];
+    return !!old && sameConcept(old, mark.condition);
+  }
+  return getToothProcedures(before).some((c) => sameConcept(c, mark.condition));
+}
+
+/**
+ * Starting point of the next session: what was done today becomes existing, and the per-session
+ * details (source, voided marks) stay in the session where they happened.
+ */
+export function carryOverState(state: OdontogramState): OdontogramState {
+  const next: OdontogramState = {};
+  for (const [toothId, source] of Object.entries(cloneState(state))) {
+    if (!source || typeof source !== 'object') continue;
+    const tooth: OdontogramToothState = { ...source };
+    delete tooth.voided;
+    if (tooth.meta) {
+      tooth.meta = Object.fromEntries(
+        Object.entries(tooth.meta).map(([slot, meta]) => {
+          const rest: OdontogramMarkMeta = { ...meta };
+          delete rest.src;
+          return [slot, rest.st === 'done' ? { ...rest, st: 'existing' as const } : rest];
+        }),
+      );
+    }
+    const normalized = normalizeTooth(tooth);
+    if (normalized) next[toothId] = normalized;
+  }
+  return next;
+}
+
+/** A dictated or agent-suggested mark waiting for the professional to confirm it */
+export interface ProposedMark extends MarkInput {
+  key: string;
+  /** Last tooth of a bridge */
+  toothEndId?: string;
+}
+
+let proposalSeq = 0;
+export const newProposalKey = () => `p${Date.now().toString(36)}_${++proposalSeq}`;
+
+/** Applies proposals on a copy of the state, to preview them on the chart */
+export function applyProposals(state: OdontogramState, proposals: ProposedMark[]): OdontogramState {
+  return proposals.reduce((acc, p) => {
+    if (p.toothEndId && isRangeCondition(p.condition)) return addRangeMark(acc, Number(p.toothId), Number(p.toothEndId), p);
+    return addMark(acc, p);
+  }, state);
+}
+
+/** `<tooth>|<slot>` of every place a proposal touches */
+export function proposalKeys(proposals: ProposedMark[]): Set<string> {
+  const keys = new Set<string>();
+  for (const p of proposals) {
+    const slot = slotFor(p);
+    const teeth = p.toothEndId ? teethBetween(Number(p.toothId), Number(p.toothEndId)).map(String) : [p.toothId];
+    teeth.forEach((t) => keys.add(`${t}|${slot}`));
+  }
+  return keys;
+}
+
+/**
+ * The doctor agent's markings as proposals. The agent uses the catalog ids, which already carry the
+ * status (crown vs. crown-indicated). Unknown ids and invalid teeth are skipped.
+ */
+export function marcacionesToProposals(marcaciones: OdontogramMarcacion[]): ProposedMark[] {
+  const out: ProposedMark[] = [];
   for (const m of marcaciones) {
     const procedure = getProcedure(m?.condicion);
     const toothId = String(m?.diente ?? '').trim();
     if (!procedure || !/^[1-8][1-8]$/.test(toothId)) continue;
-
     const surface = m.superficie && SURFACES.has(m.superficie) ? (m.superficie as OdontogramSurface) : undefined;
-    const onSurface = procedure.appliesTo === 'surface' || (procedure.appliesTo === 'both' && !!surface);
-
-    if (onSurface) {
-      const target = surface ?? 'center';
-      if (state[toothId]?.[target] !== procedure.id) {
-        state = toggleSurface(state, toothId, target, procedure.id).state;
-      }
-    } else {
-      state = addToothProcedure(state, toothId, procedure.id);
-    }
+    out.push({ key: newProposalKey(), toothId, condition: procedure.id, surface, status: defaultStatus(procedure.id), src: 'agent' });
   }
-  return state;
+  return out;
 }
 
 export interface OdontogramEntry {

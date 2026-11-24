@@ -10,6 +10,7 @@ import './Calendar.css';
 
 import type { CalendarProps, CalendarView } from './calendar-types';
 import { DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MIN_VISIBLE_SLOT_PX } from './calendar-constants';
+import { gridStepMinutes } from './calendar-utils';
 import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
@@ -27,6 +28,7 @@ import { CalendarFab } from './calendar-fab';
 import { CalendarFilterSheet } from './calendar-filter-sheet';
 import { CalendarAnchoredInlineDraft, CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarDraftPreviewProvider } from './calendar-draft-preview';
+import { expandVisibleHoursRange } from './calendar-visible-hours';
 
 // Re-export types for backward compatibility
 export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarView } from './calendar-types';
@@ -97,6 +99,7 @@ const Calendar: React.FC<CalendarProps> = ({
   hourSlotHeight,
   slotMinutes,
   hiddenWeekdays,
+  visibleHours,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -180,8 +183,10 @@ const Calendar: React.FC<CalendarProps> = ({
 
 
   const heightSetting = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
-  // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots).
-  const slotsPerHour = Math.max(1, Math.round(60 / (slotMinutes ?? DEFAULT_SLOT_DURATION)));
+  // Densidad de la rejilla: cuántas líneas entran por hora (p. ej. 6 con slots de
+  // 10 min). Sale del paso de la rejilla, no del slot: con slots de 5 min las líneas
+  // quedan en cuartos de hora y los 5 min solo afinan el encaje del arrastre.
+  const slotsPerHour = Math.max(1, Math.round(60 / gridStepMinutes(slotMinutes ?? DEFAULT_SLOT_DURATION)));
   // La preferencia de altura de hora es puro interlineado y se respeta literal: el
   // zoom la multiplica y nada más la infla. Antes había un piso por densidad
   // (slotsPerHour * 24) que dejaba sin efecto media escala del selector — con slots
@@ -306,6 +311,16 @@ const Calendar: React.FC<CalendarProps> = ({
       ? hiddenWeekdays
       : hiddenWeekdays.filter((d) => d !== previewWeekday)),
     [hiddenWeekdays, previewWeekday],
+  );
+
+  // Lo mismo con la franja horaria: si el borrador cae fuera, se amplía para que se vea.
+  const previewStartMin = activeDraftPreview ? activeDraftPreview.start.getHours() * 60 + activeDraftPreview.start.getMinutes() : null;
+  const previewDurationMin = previewStartMs !== null && previewEndMs !== null ? (previewEndMs - previewStartMs) / 60000 : 0;
+  const effectiveVisibleHours = React.useMemo(
+    () => (visibleHours && previewStartMin !== null
+      ? expandVisibleHoursRange(visibleHours, previewStartMin, previewStartMin + previewDurationMin)
+      : visibleHours ?? null),
+    [visibleHours, previewStartMin, previewDurationMin],
   );
 
   // Si la fecha del borrador queda fuera del rango visible, el calendario navega a
@@ -444,6 +459,7 @@ const Calendar: React.FC<CalendarProps> = ({
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
               hiddenWeekdays={effectiveHiddenWeekdays}
+              visibleHours={effectiveVisibleHours}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -474,6 +490,7 @@ const Calendar: React.FC<CalendarProps> = ({
               hideTimeGutter={hideTimeGutter}
               onNavigatePeriod={handleDragEdgeNavigate}
               hiddenWeekdays={effectiveHiddenWeekdays}
+              visibleHours={effectiveVisibleHours}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -497,6 +514,7 @@ const Calendar: React.FC<CalendarProps> = ({
             showTimeColumn={showTimeColumn}
             onToggleTimeColumn={handleToggleTimeColumn}
             hiddenWeekdays={effectiveHiddenWeekdays}
+            visibleHours={effectiveVisibleHours}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}
@@ -568,7 +586,7 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="calendar-container">
+    <div className="calendar-container" data-help-id="appointments.section.calendar">
       {/* Mobile: date subtitle under header */}
       <CalendarHeader
         headerTitle={headerTitle}

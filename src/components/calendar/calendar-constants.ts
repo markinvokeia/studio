@@ -48,12 +48,26 @@ export const HOUR_SLOT_HEIGHT = 80;
 /** Selectable hour-slot heights for the calendar density setting */
 export const HOUR_SLOT_HEIGHT_OPTIONS = [60, 80, 100, 120, 140, 160, 180, 200] as const;
 
+/** Techo del ajuste automático ("fit") de la altura de hora cuando hay una franja
+ *  visible. Con franjas muy cortas (p. ej. 30 min) una hora mediría cientos de
+ *  píxeles y la rejilla dejaría de leerse; por encima de este valor se deja el
+ *  espacio sobrante debajo, como en la vista completa. */
+export const MAX_FIT_HOUR_SLOT_HEIGHT = 240;
+
 /** Selectable default slot durations (minutes). Defines how many slots fit in an
  *  hour (60/duration) and therefore how tall one slot ends up being for a given
  *  hour height. */
-export const SLOT_DURATION_OPTIONS = [10, 15, 20, 30, 60] as const;
+export const SLOT_DURATION_OPTIONS = [5, 10, 15, 20, 30, 60] as const;
 export type SlotDuration = (typeof SLOT_DURATION_OPTIONS)[number];
 export const DEFAULT_SLOT_DURATION: SlotDuration = 15;
+
+/** Slots más finos que esto solo afinan el encaje del arrastre: la rejilla (líneas,
+ *  clic en un hueco, duración de una cita nueva) se queda en este paso. Con slots de
+ *  5 min una línea cada 5 min serían 12 por hora — a la altura por defecto, una cada
+ *  6,7 px — y la hora exacta ya la muestra el fantasma mientras se arrastra. */
+export const MIN_GRID_STEP_MINUTES = 15;
+/** Slots por debajo de este valor usan `MIN_GRID_STEP_MINUTES` para la rejilla. */
+export const FINE_SLOT_THRESHOLD_MINUTES = 10;
 
 /** Piso de render para un slot: por debajo de esto la rejilla deja de leerse como
  *  rejilla (las líneas se solapan y las citas quedan sub-píxel). NO es un piso de
@@ -153,6 +167,19 @@ export const DEFAULT_COLOR_BY_STATUS = true;
 
 /** Hour to auto-scroll to on initial day/week view render (working day start) */
 export const DEFAULT_SCROLL_HOUR = 8;
+
+/** Which hours the day/week grid shows.
+ *  - full:   the whole day (default; users without a saved preference).
+ *  - custom: the user's own start/end range.
+ *  - clinic: the clinic's working hours for the days on screen. */
+export const VISIBLE_HOURS_MODES = ['full', 'custom', 'clinic'] as const;
+export type VisibleHoursMode = (typeof VISIBLE_HOURS_MODES)[number];
+export const DEFAULT_VISIBLE_HOURS_MODE: VisibleHoursMode = 'full';
+/** Range proposed the first time the user picks "custom". */
+export const DEFAULT_VISIBLE_HOURS_START = '09:00';
+export const DEFAULT_VISIBLE_HOURS_END = '17:00';
+/** Step (minutes) of the start/end pickers of the custom range. */
+export const VISIBLE_HOURS_STEP_MINUTES = 30;
 
 /** Calendar display modes.
  *  - invoke: the calendar as it works today (multi-column when grouped).

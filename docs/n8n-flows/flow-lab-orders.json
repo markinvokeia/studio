@@ -1,0 +1,2309 @@
+{
+  "name": "Lab Orders",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        filtros (lab_orders_search, scripts 148/149/167) → [{ row_data, total_count }]\nPOST /lab-orders/board         filtros del tablero (lab_orders_board, scripts 149/167) → [{ stage_id, total, items }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + items + history + attachments)\nPOST /lab-orders/save          sin id = alta (entra en la etapa inicial); items = servicios de laboratorio (script 167) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note?, laboratory_id?, due_date? } → fila de v_lab_orders (script 170: a una etapa no final sin laboratorio → LABORATORY_REQUIRED; script 172: al enviar (inicial → no final) sin fecha → DUE_DATE_REQUIRED)\nPOST /lab-orders/delete        { id } → baja lógica\nGET  /lab-orders/laboratories?search=&category_id=&limit=  laboratorios (lab_laboratories_search, script 170) → [{ id, name, phone_number, email, categories }]\nGET  /lab-orders/lab-categories  categorías de laboratorio (lab_categories_list, script 170) → [{ id, name, description, laboratories_count }]\n\nDespués de guardar / mover / eliminar se publica `lab_order_changed` (canal lab_orders) para el tablero y la lista en vivo.\n\nAlertas por etapa (scripts 150 y 168), sobre el motor de alertas:\n· Alta y cambio de etapa → lab_stage_alert_on_enter(id) crea la alerta LAB_STAGE_ENTERED → \"Notify staff\" (\"Alert Staff Notify\") la manda.\n· Permanencia (atraso) → regla LAB_STAGE_OVERDUE del Alert Scheduler (generador alert_gen_lab_stage_overdue, una vez por día). Este flujo ya no tiene Schedule Trigger.\n\nErrores de negocio: 'LAB_ORDERS:<CODIGO>' → 400 { success:false, code, message }.\nRequiere database/scripts/147–150, 167, 168, 169, 170, 172 y 173.\n\nRespuestas de error: las escrituras (save, change-stage, delete) y el detalle NO tienen alwaysOutputData, así un error sale solo por la salida de error. Las lecturas que pueden devolver 0 filas sí lo tienen; por eso 'Map error' y 'Error' están arriba de todo en el lienzo (con executionOrder v1 un error corre las dos salidas y responde el nodo más alto).\n\n## Adjuntos (script 173)\n- POST /lab-orders/attachments/upload (multipart: order_id + archivos) → \"Attachements CRUD\" UPLOAD (attachments, source_name `lab_order`, Drive) → responde `[{ attachments, order_id }]`.\n- POST /lab-orders/attachments/delete `{ order_id, attachment_id }` → \"Attachements CRUD\" DELETE.\n- GET /lab-orders/attachment?order_id=&id= → el archivo (binario).\nErrores: NOT_FOUND, NO_FILES, TOO_MANY_FILES, INVALID_FILE_TYPE, FILE_TOO_LARGE, UPLOAD_FAILED, DELETE_FAILED.\nAl importar: si el id de \"Attachements CRUD\" no es TTwyLGp8Gg9qDKdn, elegirlo en \"Upload attachment\" y \"Delete attachment file\".\n\n**Aviso al paciente (script 174).** Después de cada cambio de etapa, `Ready alert (moved)` llama a `lab_order_ready_alert(id)`: si la regla LAB_ORDER_READY está activa y la orden quedó en una etapa final, crea la alerta y la despacha con los subflujos del Alert Scheduler (\"Alert Email Auto-Send\" / \"Alert WhatsApp Auto-Send\"), con los mismos interruptores (alert_email_auto_send_enabled, auto_send_email / auto_send_sms y plantilla de la regla).",
+        "height": 520,
+        "width": 900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -700
+      ],
+      "id": "f54338a8-029a-4fe1-b3c6-2ecf7ec81348",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Las funciones de los scripts 148–167 lanzan 'LAB_ORDERS:<CODIGO>'. Cualquier\n// otro error (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\n// Este nodo y \"Error\" van ARRIBA de todo en el lienzo: en las lecturas (con\n// alwaysOutputData) un error corre las dos salidas y responde el nodo más alto.\nconst pieces = [\n  $json.message,\n  $json.error?.message,\n  $json.error?.description,\n  typeof $json.error === 'string' ? $json.error : null,\n].filter((p) => typeof p === 'string' && p.trim());\n// Último recurso: el item entero, por si n8n cambia dónde deja el texto.\nconst haystack = pieces.join('\\n') + '\\n' + JSON.stringify($json);\nconst text = pieces[0] ?? 'Error';\nconst match = haystack.match(/LAB_ORDERS:([A-Z_]+)/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  message: text,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        832
+      ],
+      "name": "Map error",
+      "id": "ad2fb590-ec44-41a5-b134-fe21f2da59cf"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1408,
+        1456
+      ],
+      "name": "OK",
+      "id": "38bbaea4-a56a-4949-8158-7bcace36a773"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1408,
+        832
+      ],
+      "name": "Error",
+      "id": "edd6161b-44bf-488a-8b48-f01fe7022a9d"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/search",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        1056
+      ],
+      "webhookId": "20916fe8-097b-4432-bb59-2345427dacba",
+      "name": "POST /lab-orders/search",
+      "id": "a4c61c7a-56d5-4fed-970e-5728c896fcca",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_orders_search($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {})] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1056
+      ],
+      "name": "Search lab orders",
+      "alwaysOutputData": true,
+      "id": "27285d15-51e5-44f4-b568-0fb0ddb35550",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/board",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        1264
+      ],
+      "webhookId": "1cda82b9-0f72-4009-be6a-9002059b4d69",
+      "name": "POST /lab-orders/board",
+      "id": "1f6e4fe3-d09a-491c-9440-8868b0b80248",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_orders_board($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {})] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1264
+      ],
+      "name": "Lab orders board",
+      "alwaysOutputData": true,
+      "id": "62f39e6a-18b2-48cf-aa5d-9d4387ddaff0",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/detail",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        1456
+      ],
+      "webhookId": "8dc3ec65-1992-439d-9e99-c22690b387f0",
+      "name": "GET /lab-orders/detail",
+      "id": "6f64e96f-cc11-4025-b7bb-a95d42a030e4",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.lab_order_detail($1::integer) AS detail;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1456
+      ],
+      "name": "Get lab order detail",
+      "id": "b29ad44e-5d94-4be5-93d3-2e358b277907",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        1712
+      ],
+      "webhookId": "dc6fe7c0-6748-4828-92ff-4419f08cc693",
+      "name": "POST /lab-orders/save",
+      "id": "eb84980f-d616-4f0b-b526-d8254c643385",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_order_save($1::jsonb, NULLIF($2, '')::uuid);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {}), $json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1712
+      ],
+      "name": "Save lab order",
+      "id": "b66ca859-e204-4d2f-8716-52c8fbff3725",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/change-stage",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2064
+      ],
+      "webhookId": "8466127c-e4c0-4a14-8b65-48a43e0e1848",
+      "name": "POST /lab-orders/change-stage",
+      "id": "99eee57c-7ccb-438b-baed-97921226d5f9",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_order_change_stage(NULLIF($1::text, '')::integer, NULLIF($2::text, '')::integer, NULLIF($3, '')::uuid, NULLIF($4::text, '')::integer, NULLIF($5, ''), NULLIF($6, '')::uuid, NULLIF($7, '')::date, NULLIF($8, '')::date);",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id, $json.body.to_stage_id, $json.jwtPayload?.userId ?? '', $json.body.expected_from_stage_id ?? '', $json.body.note ?? '', $json.body.laboratory_id ?? '', $json.body.due_date ?? '', $json.body.effective_date ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2064
+      ],
+      "name": "Change lab order stage",
+      "id": "53162e8f-9841-4eab-ac4c-ddb30638322b",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2432
+      ],
+      "webhookId": "79640d64-4aea-40da-96d1-a6dd79596bbb",
+      "name": "POST /lab-orders/delete",
+      "id": "69e2e664-1025-463c-a4d9-0d8e599cd75c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila (deleted = false si no existía o ya estaba borrada): así el\n-- nodo no necesita alwaysOutputData y un error solo sale por la salida de error.\nWITH d AS (\n    UPDATE public.lab_orders\n    SET is_deleted = true, updated_at = now(), updated_by = NULLIF($2, '')::uuid\n    WHERE id = $1::integer AND NOT is_deleted\n    RETURNING id\n)\nSELECT $1::integer AS id, EXISTS (SELECT 1 FROM d) AS deleted;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id, $json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2432
+      ],
+      "name": "Delete lab order",
+      "id": "2dcb9df7-fa7e-4768-aa9d-60af7a69e855",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "lab_order_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ [\"lab_orders\"] }}",
+            "payload": "={{ { event_type: 'lab_order_changed', action: 'saved', order_id: Number($json.id), order: $json, actor_id: $('POST /lab-orders/save').first().json.jwtPayload?.userId ?? null } }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        1616
+      ],
+      "name": "Push lab_order_changed (saved)",
+      "id": "0ea83fee-3363-4e2d-b2a9-ac5bcda46d44",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "lab_order_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ [\"lab_orders\"] }}",
+            "payload": "={{ { event_type: 'lab_order_changed', action: 'stage_changed', order_id: Number($json.id), order: $json, actor_id: $('POST /lab-orders/change-stage').first().json.jwtPayload?.userId ?? null } }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        1968
+      ],
+      "name": "Push lab_order_changed (stage_changed)",
+      "id": "d7084d30-20df-4821-92b5-25d8bc38a98a",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "lab_order_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ [\"lab_orders\"] }}",
+            "payload": "={{ { event_type: 'lab_order_changed', action: 'deleted', order_id: Number($json.id), order: null, actor_id: $('POST /lab-orders/delete').first().json.jwtPayload?.userId ?? null } }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        2336
+      ],
+      "name": "Push lab_order_changed (deleted)",
+      "id": "516e330a-4b19-409e-92ef-82b69d48ee90",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "74467b22-1922-4fbf-b39c-0efc24a97f49",
+              "leftValue": "={{ !$('POST /lab-orders/save').first().json.body?.id && !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        1808
+      ],
+      "name": "Created?",
+      "id": "cdf0211b-8f16-41fc-baf9-3e70ea6a86ad"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p AS payload FROM public.lab_stage_alert_on_enter($1::integer, $2) p;",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $now.toISO()] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1408,
+        1808
+      ],
+      "name": "Enter alerts (created)",
+      "id": "ed638812-f28c-4bfd-8fb7-28dddf4c5077",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p AS payload FROM public.lab_stage_alert_on_enter($1::integer, $2) p;",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $now.toISO()] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1168,
+        2160
+      ],
+      "name": "Enter alerts (moved)",
+      "id": "1886c462-7d77-4729-9813-84d88eb78404",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Alert Staff Notify"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "triggered_by": "lab_orders"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "triggered_by",
+              "displayName": "triggered_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1696,
+        1904
+      ],
+      "id": "145759ba-136e-4ec2-9718-6c8aca0e448a",
+      "name": "Notify staff",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/laboratories",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2640
+      ],
+      "webhookId": "ce1a3202-61b8-44dc-88b1-e59e61d321a7",
+      "name": "GET /lab-orders/laboratories",
+      "id": "3b0cc650-ddeb-4c61-b51b-de7a46cefc0f",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_laboratories_search($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify({ search: $json.query.search ?? '', category_id: $json.query.category_id ?? '', limit: $json.query.limit ?? '' })] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2640
+      ],
+      "name": "Search laboratories",
+      "alwaysOutputData": true,
+      "id": "4333722e-fe35-42bf-868a-f91c667eb1c0",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/lab-categories",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        2832
+      ],
+      "webhookId": "11af43d8-29d7-4fd2-a09e-0be7a09b3786",
+      "name": "GET /lab-orders/lab-categories",
+      "id": "44e9bd49-7499-44e7-9a12-d9147116f70d",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_categories_list();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        2832
+      ],
+      "name": "List lab categories",
+      "alwaysOutputData": true,
+      "id": "1fdb07a7-dbc3-4fce-933e-0b3efab330c2",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/attachments/upload",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        3232
+      ],
+      "name": "POST /lab-orders/attachments/upload",
+      "id": "30356fc2-5977-4655-955e-ad6b8d46e7a2",
+      "webhookId": "1cfd04ab-2f10-4f26-9540-40940d668dce",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila: ok = false si la orden no existe o está eliminada.\nSELECT EXISTS (SELECT 1 FROM public.lab_orders o WHERE o.id = NULLIF($1::text, '')::integer AND NOT o.is_deleted) AS ok;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body?.order_id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        3232
+      ],
+      "name": "Upload: order exists?",
+      "id": "a1b5f4bd-8e3c-4357-9fe0-f10e693570e1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item por archivo (binary.data), como /sesiones/upsert antes de \"Attachements CRUD\".\n// Tipos y tamaño iguales a los del frontend (lab-order-attachments.ts).\nif (!$json.ok) throw new Error('LAB_ORDERS:NOT_FOUND');\nconst req = $('POST /lab-orders/attachments/upload').first();\nconst orderId = String(req.json.body?.order_id ?? '');\nconst MAX_FILES = 10;\nconst MAX_BYTES = 10 * 1024 * 1024;\nconst EXT_3D = /\\.(stl|ply|obj)$/i;\n// n8n guarda fileSize como texto (\"850 kB\", \"1.2 MB\"); con el binario en disco no hay base64 que medir.\nconst UNITS = { b: 1, kb: 1024, mb: 1024 ** 2, gb: 1024 ** 3 };\nfunction bytesOf(file) {\n  const m = String(file.fileSize ?? '').trim().match(/^([\\d.]+)\\s*([kmg]?b)?$/i);\n  if (m) return Number(m[1]) * (UNITS[(m[2] || 'b').toLowerCase()] ?? 1);\n  return typeof file.data === 'string' && file.data.length > 64 ? Math.floor(file.data.length * 3 / 4) : 0;\n}\nconst files = Object.values(req.binary ?? {}).filter(Boolean);\nif (files.length === 0) throw new Error('LAB_ORDERS:NO_FILES');\nif (files.length > MAX_FILES) throw new Error('LAB_ORDERS:TOO_MANY_FILES');\nconst out = [];\nfor (const file of files) {\n  const name = file.fileName || 'archivo';\n  const mime = file.mimeType || '';\n  // Imágenes y PDF por tipo; escaneos 3D por extensión (el navegador suele mandarlos como octet-stream).\n  const okType = /^image\\//i.test(mime) || /^application\\/pdf$/i.test(mime) || EXT_3D.test(name);\n  if (!okType) throw new Error('LAB_ORDERS:INVALID_FILE_TYPE');\n  if (bytesOf(file) > MAX_BYTES) throw new Error('LAB_ORDERS:FILE_TOO_LARGE');\n  out.push({ json: { order_id: orderId, fileName: name, mimeType: mime }, binary: { data: file } });\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        3232
+      ],
+      "name": "Split attachment files",
+      "id": "88674660-1af7-43c3-ab48-756cd21b88ab",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TTwyLGp8Gg9qDKdn",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "UPLOAD",
+            "source_name": "lab_order",
+            "source_id": "={{ $json.order_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "attachment_id",
+              "displayName": "attachment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        3232
+      ],
+      "name": "Upload attachment",
+      "id": "03d222c2-3246-48d8-824d-973cebed064a",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \"Attachements CRUD\" no falla: devuelve { success: false } por archivo.\nconst failed = $input.all().filter((i) => i.json.success === false);\nif (failed.length) throw new Error('LAB_ORDERS:UPLOAD_FAILED ' + JSON.stringify(failed[0].json.data ?? {}).slice(0, 300));\nreturn [{ json: { order_id: $('POST /lab-orders/attachments/upload').first().json.body?.order_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        3232
+      ],
+      "name": "Check upload",
+      "id": "37ee1aec-2232-478e-86c7-e7c9888516a0",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(public.lab_order_detail($1::integer) -> 'attachments', '[]'::jsonb) AS attachments,\n       $1::integer AS order_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1808,
+        3232
+      ],
+      "name": "List attachments (upload)",
+      "id": "57947c70-dab9-4ffb-a6fe-3530698cc909",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "lab_order_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ [\"lab_orders\"] }}",
+            "payload": "={{ { event_type: 'lab_order_changed', action: 'attachments', order_id: Number($json.order_id), actor_id: $('POST /lab-orders/attachments/upload').isExecuted ? $('POST /lab-orders/attachments/upload').first().json.jwtPayload?.userId ?? null : $('POST /lab-orders/attachments/delete').first().json.jwtPayload?.userId ?? null } }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        3432
+      ],
+      "name": "Push lab_order_changed (attachments)",
+      "id": "c2dc8b10-587c-41dd-bd4b-7a0382e59290",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-orders/attachments/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        3732
+      ],
+      "name": "POST /lab-orders/attachments/delete",
+      "id": "ff5aa459-1ce9-4503-9cd0-db2f4f10dbd9",
+      "webhookId": "b0ccd0f1-b50c-4830-9fd6-cdbae91a99de",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila: ok = false si el adjunto no es de esa orden (o la orden no existe).\nSELECT EXISTS (\n    SELECT 1 FROM public.attachments a\n    JOIN public.lab_orders o ON o.id::text = a.source_id AND NOT o.is_deleted\n    WHERE a.source_name = 'lab_order'\n      AND a.source_id = NULLIF($1::text, '')\n      AND a.id = NULLIF($2::text, '')::integer\n) AS ok;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body?.order_id ?? ''), String($json.body?.attachment_id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        3732
+      ],
+      "name": "Delete: attachment of order?",
+      "id": "f3628a11-4abb-49df-a0d1-9892e93c8eb1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$json.ok) throw new Error('LAB_ORDERS:NOT_FOUND');\nconst body = $('POST /lab-orders/attachments/delete').first().json.body ?? {};\nreturn [{ json: { order_id: String(body.order_id), attachment_id: String(body.attachment_id) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        3732
+      ],
+      "name": "Guard delete",
+      "id": "ce350b0e-d0e8-48f9-9cf8-ac2e9cc9c09e",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TTwyLGp8Gg9qDKdn",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "DELETE",
+            "attachment_id": "={{ $json.attachment_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "attachment_id",
+              "displayName": "attachment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        3732
+      ],
+      "name": "Delete attachment file",
+      "id": "5e1f2e60-c875-4f62-8c13-90b9c05e97af",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const failed = $input.all().filter((i) => i.json.success === false);\nif (failed.length) throw new Error('LAB_ORDERS:DELETE_FAILED ' + JSON.stringify(failed[0].json.data ?? {}).slice(0, 300));\nreturn [{ json: { order_id: $('Guard delete').first().json.order_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        3732
+      ],
+      "name": "Check delete",
+      "id": "169e4b1c-cd5f-4750-bb47-236652e165a9",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(public.lab_order_detail($1::integer) -> 'attachments', '[]'::jsonb) AS attachments,\n       $1::integer AS order_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1808,
+        3732
+      ],
+      "name": "List attachments (delete)",
+      "id": "689dc2a8-4ec0-4e83-b745-feca8493e641",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/attachment",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        4232
+      ],
+      "name": "GET /lab-orders/attachment",
+      "id": "321a7644-c269-40b7-8917-86c36ffbd041",
+      "webhookId": "7a225b12-4ab2-4ccc-a208-425e3eb1d1b5",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Siempre una fila (LEFT JOIN): drive_file_id null si el adjunto no es de esa orden.\nSELECT a.id, a.file_name, a.mime_type, a.drive_file_id\nFROM (SELECT 1) one\nLEFT JOIN public.attachments a\n  ON a.source_name = 'lab_order'\n AND a.source_id = NULLIF($1::text, '')\n AND a.id = NULLIF($2::text, '')::integer;",
+        "options": {
+          "queryReplacement": "={{ [String($json.query?.order_id ?? ''), String($json.query?.id ?? '')] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        4232
+      ],
+      "name": "Get attachment row",
+      "id": "1da14cfd-16c1-4cca-9342-fc73ceae89d6",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$json.drive_file_id) throw new Error('LAB_ORDERS:NOT_FOUND');\nreturn [{ json: $json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        4232
+      ],
+      "name": "Guard download",
+      "id": "84e813d9-c428-49d5-9d45-e7eff6273418",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        4232
+      ],
+      "name": "Download attachment",
+      "id": "f7876fc4-24d7-468d-ac5d-05968cad7c39",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1568,
+        4232
+      ],
+      "name": "Attachment file",
+      "id": "422a602d-35d0-4303-b72e-f395fc0ccef0"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Aviso al paciente (regla LAB_ORDER_READY, script 174): solo si la regla está activa,\n-- la orden quedó en una etapa final y no tenía aviso por esta llegada.\nSELECT a AS alert FROM public.lab_order_ready_alert($1::integer) a;",
+        "options": {
+          "queryReplacement": "={{ [$json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1168,
+        2384
+      ],
+      "name": "Ready alert (moved)",
+      "id": "9c77680b-65c2-4be5-9f22-5b80411c0159",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a839d102-2ddd-4072-a55e-d6591474a714",
+              "leftValue": "={{ $json.alert?.email_auto_send_globally_enabled === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "77898e22-3a94-486a-96f5-04c96b7062ce",
+              "leftValue": "={{ $json.alert?.auto_send_email === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "984409a7-5f87-4c20-82f0-6fee07997872",
+              "leftValue": "={{ !!$json.alert?.email_template_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        2304
+      ],
+      "name": "Send ready email?",
+      "id": "7d9f77cb-a285-4b2a-a466-10bcf87c78f8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "694c8558-1db4-4cda-987e-c6137f1e05ba",
+              "leftValue": "={{ $json.alert?.auto_send_sms === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "560aa032-c4d3-422b-8f8f-14864b3d70c4",
+              "leftValue": "={{ !!$json.alert?.whatsapp_template_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        2480
+      ],
+      "name": "Send ready WhatsApp?",
+      "id": "69691f7b-88d6-4276-bf5f-6b0011a01ce4"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nR7gZAElUVF9m5Cs",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/nR7gZAElUVF9m5Cs",
+          "cachedResultName": "Alert Email Auto-Send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_instance_id": "={{ $json.alert.id }}",
+            "rule_id": "={{ $json.alert.rule_id }}",
+            "patient_id": "={{ $json.alert.patient_id }}",
+            "reference_table": "={{ $json.alert.reference_table }}",
+            "reference_id": "={{ $json.alert.reference_id }}",
+            "email_template_id": "={{ $json.alert.email_template_id }}",
+            "performed_by": "={{ $env.ALERT_SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000000' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "alert_instance_id",
+              "displayName": "alert_instance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "rule_id",
+              "displayName": "rule_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_table",
+              "displayName": "reference_table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_id",
+              "displayName": "reference_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "email_template_id",
+              "displayName": "email_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "performed_by",
+              "displayName": "performed_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        2304
+      ],
+      "id": "596df41b-d179-4942-b885-ed8911eb387e",
+      "name": "Send ready email",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WlxkMz1nFkh6cwJh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WlxkMz1nFkh6cwJh",
+          "cachedResultName": "Alert WhatsApp Auto-Send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_instance_id": "={{ $json.alert.id }}",
+            "rule_id": "={{ $json.alert.rule_id }}",
+            "patient_id": "={{ $json.alert.patient_id }}",
+            "reference_table": "={{ $json.alert.reference_table }}",
+            "reference_id": "={{ $json.alert.reference_id }}",
+            "whatsapp_template_id": "={{ $json.alert.whatsapp_template_id }}",
+            "performed_by": "={{ $env.ALERT_SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000000' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "alert_instance_id",
+              "displayName": "alert_instance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "rule_id",
+              "displayName": "rule_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_table",
+              "displayName": "reference_table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_id",
+              "displayName": "reference_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "whatsapp_template_id",
+              "displayName": "whatsapp_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "performed_by",
+              "displayName": "performed_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        2480
+      ],
+      "id": "d46a52d2-3603-4c5c-9072-a72ac859363a",
+      "name": "Send ready WhatsApp",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Map error": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/search": {
+      "main": [
+        [
+          {
+            "node": "Search lab orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search lab orders": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/board": {
+      "main": [
+        [
+          {
+            "node": "Lab orders board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lab orders board": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/detail": {
+      "main": [
+        [
+          {
+            "node": "Get lab order detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get lab order detail": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/save": {
+      "main": [
+        [
+          {
+            "node": "Save lab order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lab order": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (saved)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Created?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/change-stage": {
+      "main": [
+        [
+          {
+            "node": "Change lab order stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change lab order stage": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (stage_changed)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enter alerts (moved)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ready alert (moved)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete lab order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete lab order": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (deleted)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Created?": {
+      "main": [
+        [
+          {
+            "node": "Enter alerts (created)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enter alerts (created)": {
+      "main": [
+        [
+          {
+            "node": "Notify staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enter alerts (moved)": {
+      "main": [
+        [
+          {
+            "node": "Notify staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/laboratories": {
+      "main": [
+        [
+          {
+            "node": "Search laboratories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search laboratories": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/lab-categories": {
+      "main": [
+        [
+          {
+            "node": "List lab categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List lab categories": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/attachments/upload": {
+      "main": [
+        [
+          {
+            "node": "Upload: order exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload: order exists?": {
+      "main": [
+        [
+          {
+            "node": "Split attachment files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split attachment files": {
+      "main": [
+        [
+          {
+            "node": "Upload attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload attachment": {
+      "main": [
+        [
+          {
+            "node": "Check upload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check upload": {
+      "main": [
+        [
+          {
+            "node": "List attachments (upload)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List attachments (upload)": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (attachments)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/attachments/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete: attachment of order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete: attachment of order?": {
+      "main": [
+        [
+          {
+            "node": "Guard delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard delete": {
+      "main": [
+        [
+          {
+            "node": "Delete attachment file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete attachment file": {
+      "main": [
+        [
+          {
+            "node": "Check delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check delete": {
+      "main": [
+        [
+          {
+            "node": "List attachments (delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List attachments (delete)": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push lab_order_changed (attachments)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/attachment": {
+      "main": [
+        [
+          {
+            "node": "Get attachment row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get attachment row": {
+      "main": [
+        [
+          {
+            "node": "Guard download",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard download": {
+      "main": [
+        [
+          {
+            "node": "Download attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download attachment": {
+      "main": [
+        [
+          {
+            "node": "Attachment file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ready alert (moved)": {
+      "main": [
+        [
+          {
+            "node": "Send ready email?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send ready WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send ready email?": {
+      "main": [
+        [
+          {
+            "node": "Send ready email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send ready WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Send ready WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1b2c5611-8e33-4dab-9b28-7158b079d992",
+  "meta": {
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "JWeklVm7DpRORBAQ",
+  "tags": []
+}

@@ -1,4 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
+import { parseBookingWindow } from '@/lib/patient-booking-window';
 import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import type { PublicClinicInfo, PublicClinicSchedule, PublicSede } from '@/lib/types';
 import { api } from '@/services/api';
@@ -82,6 +83,10 @@ async function requestPublicClinicInfo(): Promise<PublicClinicInfo | null> {
       service_selection_enabled: raw.service_selection_enabled === true,
       show_pricing: raw.show_pricing === true,
       default_service: raw.default_service ? mapBookableService(raw.default_service) : null,
+      ...(() => {
+        const { unit, value } = parseBookingWindow(raw.booking_window_unit, raw.booking_window_value);
+        return { booking_window_unit: unit, booking_window_value: value };
+      })(),
       schedules,
     };
   } catch (error) {

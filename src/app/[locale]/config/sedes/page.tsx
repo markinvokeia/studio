@@ -20,9 +20,11 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { Clinic, Sede } from '@/lib/types';
 import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -116,6 +118,7 @@ export default function SedesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingSede, setDeletingSede] = React.useState<Sede | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<SedeFormValues>({
         resolver: zodResolver(sedeFormSchema(t)),
         defaultValues: { name: '', address: '', phone: '', email: '', is_active: true },
@@ -229,7 +232,7 @@ export default function SedesPage() {
         {
             accessorKey: 'phone',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('SedesPage.columns.phone')} />,
-            cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.original.phone || '—'}</span>,
+            cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatPhoneNumber(row.original.phone) || '—'}</span>,
         },
         {
             accessorKey: 'email',
@@ -274,7 +277,7 @@ export default function SedesPage() {
                 <FormItem>
                     <FormLabel>{t('SedesPage.form.phone')}</FormLabel>
                     <FormControl>
-                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} placeholder={t('SedesPage.form.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} onChange={field.onChange} value={field.value} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -338,7 +341,7 @@ export default function SedesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.sedes.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><Building2 className="h-5 w-5" /></div>
@@ -348,13 +351,13 @@ export default function SedesPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedSede && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="config.sedes.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('SedesPage.form.edit')}</span>
                             </Button>
                         )}
                         {selectedSede && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('SedesPage.deleteDialog.delete')} onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="config.sedes.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('SedesPage.deleteDialog.delete')} onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -376,7 +379,7 @@ export default function SedesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {sedeForm(!isEditing || save.isPending)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
@@ -426,7 +429,7 @@ export default function SedesPage() {
                         <DialogTitle>{t('SedesPage.form.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {sedeForm(save.isPending)}
                             </DialogBody>

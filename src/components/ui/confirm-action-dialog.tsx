@@ -13,7 +13,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useHelpScope } from '@/components/help/help-scope';
 
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 
 export interface ConfirmActionDialogProps {
@@ -50,7 +52,10 @@ const ConfirmActionDialog = ({
   isPending,
   destructive = true,
   children,
-}: ConfirmActionDialogProps) => (
+}: ConfirmActionDialogProps) => {
+  // Help id con el scope de la pantalla (config.sedes.btn.confirm-action…): el paso `confirm` de las guías de baja.
+  const helpScope = useHelpScope();
+  return (
   <AlertDialog
     open={open}
     onOpenChange={(next) => {
@@ -66,6 +71,7 @@ const ConfirmActionDialog = ({
       <AlertDialogFooter>
         <AlertDialogCancel disabled={isPending}>{cancelLabel}</AlertDialogCancel>
         <AlertDialogAction
+          data-help-id={composeHelpId(helpScope, 'btn', 'confirm-action')}
           onClick={(event) => {
             // Keep the dialog open until the request settles; the caller closes it on success.
             event.preventDefault();
@@ -81,7 +87,8 @@ const ConfirmActionDialog = ({
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
-);
+  );
+};
 ConfirmActionDialog.displayName = 'ConfirmActionDialog';
 
 export { ConfirmActionDialog };

@@ -12,6 +12,9 @@ import {
 } from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
+import { LabOrderFormDialog, type LabOrderDraft } from '@/components/lab-orders/lab-order-form-dialog';
+import { findLabItemsInTreatments } from '@/components/lab-orders/lab-order-from-session';
+import { LabOrderQuickCreateDialog } from '@/components/lab-orders/lab-order-quick-create';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
@@ -29,16 +32,17 @@ import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { toast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, LAB_ORDERS_PERMISSIONS, PERIO_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { recomputeStudyOrderForAppointment } from '@/services/study-orders';
+import { useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
@@ -51,11 +55,13 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
+  FlaskConical,
   Pill,
   Heart,
   Lock,
   RefreshCw,
   Sparkles,
+  Activity,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -88,6 +94,10 @@ type DoctorAgentActionResult = {
 };
 
 const AUTO_REFRESH_MS = 60_000;
+
+/** Which appointment (and patient) the clinical panel is showing; a session is only valid for the key it was loaded with */
+const appointmentContextKey = (appointment: Appointment) => `${appointment.id}:${appointment.patientId}`;
+
 /** How long an odontogram prefill may take to be applied (includes loading the patient's sessions) */
 const ODONTOGRAM_PREFILL_TIMEOUT_MS = 30_000;
 /** Agent "titles" longer than this are really the dictated procedures and belong in the notes */
@@ -404,6 +414,7 @@ function DoctorAgendaTimeline({
                 {/* Card */}
                 <button
                   type="button"
+                  data-help-id="workspace.section.appointment"
                   onClick={() => onSelect(layout.appointment.id)}
                   className={cn(
                     'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
@@ -830,7 +841,7 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
               name: service.name || '',
               price: Number(service.price || 0),
               category: '',
-              duration_minutes: 30,
+              duration_minutes: Number(service.duration_minutes) || 0,
               is_active: true,
             }))
           : [],
@@ -844,6 +855,29 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
         ? left.time.localeCompare(right.time)
         : left.date.localeCompare(right.date)
     ));
+}
+
+/**
+ * Orden de laboratorio propuesta al guardar una sesión: sus servicios de laboratorio con
+ * piezas y cantidades, y el doctor de la sesión. Al editar una sesión solo cuentan los
+ * servicios que no estaban antes, para no proponer de nuevo una orden ya pedida.
+ */
+async function labOrderDraftFromSession(
+  data: ClinicSessionFormData,
+  previousTreatments: TreatmentDetail[] | undefined,
+): Promise<LabOrderDraft | null> {
+  const serviceKey = (treatment: TreatmentDetail) => {
+    const id = treatment.service_id ?? treatment.service_catalog_id;
+    return id === undefined || id === null || id === '' ? null : String(id);
+  };
+  const previousIds = new Set((previousTreatments ?? []).map(serviceKey).filter((id): id is string => id !== null));
+  const newTreatments = (data.tratamientos ?? []).filter((treatment) => {
+    const id = serviceKey(treatment);
+    return id === null || !previousIds.has(id);
+  });
+  const items = await findLabItemsInTreatments(newTreatments);
+  if (items.length === 0) return null;
+  return { doctor: data.doctor_id ? { id: data.doctor_id, name: data.doctor_name } : null, items };
 }
 
 export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'doctor' }: DoctorWorkspaceProps) {
@@ -864,6 +898,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
   // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
   const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
+  const canCreateAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  const canCreatePerio = hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
+  // Orden de laboratorio: el doctor llega preseleccionado y solo quien edita órdenes puede cambiarlo.
+  const canCreateLabOrder = hasPermission(LAB_ORDERS_PERMISSIONS.CREATE);
+  const canChangeLabOrderDoctor = hasPermission(LAB_ORDERS_PERMISSIONS.UPDATE);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -891,6 +930,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
   const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+  // Context key linkedSession was loaded for. Until it matches the selected appointment we don't
+  // know whether that appointment already has a session, so nothing may be saved for it.
+  const [linkedSessionContextKey, setLinkedSessionContextKey] = React.useState<string | null>(null);
   const [patientSessions, setPatientSessions] = React.useState<PatientSession[]>([]);
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
   const [patientAlertTags, setPatientAlertTags] = React.useState<PatientAlertTag[]>([]);
@@ -899,6 +941,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = React.useState(false);
+  /** Alta de orden de laboratorio: a mano (botón) o propuesta al guardar una sesión con trabajos de laboratorio. */
+  const [labOrderRequest, setLabOrderRequest] = React.useState<{ draft: LabOrderDraft; fromSession: boolean } | null>(null);
+  const [labOrderOpen, setLabOrderOpen] = React.useState(false);
+  /** Orden propuesta al guardar la sesión: primero una confirmación de un clic, no el formulario. */
+  const [quickLabDraft, setQuickLabDraft] = React.useState<LabOrderDraft | null>(null);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
@@ -911,6 +958,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
+  // Opens the aesthetic session sheet of the timeline, linked to the selected appointment
+  const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
+  const [createPerioTrigger, setCreatePerioTrigger] = React.useState(0);
   // Each agent request gets its own key so the odontogram applies it even when it is already open
   const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const odontogramPrefillKeyRef = React.useRef(0);
@@ -1060,10 +1110,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number, silent = false) => {
     if (!appointment?.patientId) {
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
       setIsLoadingTimeline(false);
       return;
     }
+
+    // A response for an appointment that is no longer on screen (the doctor moved on while it
+    // loaded, or a save from a previous appointment reloads it) must not replace the current one:
+    // its session would be edited — and moved to the new patient — on the next save.
+    const contextKey = appointmentContextKey(appointment);
+    const isStale = () => (
+      (requestId != null && requestId !== contextRequestRef.current)
+      || lastLoadedContextKeyRef.current !== contextKey
+    );
 
     if (!silent) setIsLoadingTimeline(true);
     try {
@@ -1077,16 +1137,19 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
           return Number.isNaN(rightDate) || Number.isNaN(leftDate) ? 0 : rightDate - leftDate;
         });
       const match = sessions.find((session) => String(session?.appointment_id ?? '') === appointment.id);
-      if (requestId != null && requestId !== contextRequestRef.current) return;
+      if (isStale()) return;
       setPatientSessions(sessions);
       setLinkedSession(match ? ({ ...match, sesion_id: Number(match.sesion_id) } as PatientSession) : null);
+      setLinkedSessionContextKey(contextKey);
     } catch (error) {
       console.error('Failed to load linked session:', error);
-      if (requestId != null && requestId !== contextRequestRef.current) return;
+      if (isStale()) return;
+      // Unknown whether the appointment has a session: keep saving blocked until a reload succeeds
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
     } finally {
-      if (requestId == null || requestId === contextRequestRef.current) {
+      if (!isStale()) {
         setIsLoadingTimeline(false);
       }
     }
@@ -1162,6 +1225,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   React.useEffect(() => {
     if (!selectedAppointment) {
       setLinkedSession(null);
+      setLinkedSessionContextKey(null);
       setPatientSessions([]);
       setQuoteItems([]);
       setPatientAlertTags([]);
@@ -1171,9 +1235,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
 
     // Detect whether this is a genuine appointment navigation or just a background poll
     // that refreshed the appointments array (same appointment, new object reference).
-    const contextKey = `${selectedAppointment.id}:${selectedAppointment.patientId}`;
+    const contextKey = appointmentContextKey(selectedAppointment);
     const isSameContext = lastLoadedContextKeyRef.current === contextKey;
     lastLoadedContextKeyRef.current = contextKey;
+
+    if (!isSameContext) {
+      // The previous appointment's session must not stay around while this one loads:
+      // saving in that window would update it with this appointment's patient.
+      setLinkedSession(null);
+      setLinkedSessionContextKey(null);
+      setPatientSessions([]);
+    }
 
     contextRequestRef.current += 1;
     const requestId = contextRequestRef.current;
@@ -1201,8 +1273,42 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     };
   }, [loadAppointments]);
 
+  const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
+
+  // Pasa la cita a "completada" al guardar su sesión. Si el paciente no tiene el
+  // documento que exige ese estado, la sesión queda guardada y la cita conserva su
+  // estado hasta que se cargue el documento desde el aviso (ahí se completa sola).
+  const completeSelectedAppointment = React.useCallback(async (appointment: Appointment) => {
+    const userId = String(user?.id ?? '');
+    markAppointmentLocallyUpdated(userId, appointment.id);
+    const completed = await completeAppointmentWithDocumentCheck(appointment, () => {
+      markAppointmentLocallyUpdated(userId, appointment.id);
+      updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+      void loadAppointments(true);
+    });
+    if (completed) updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+  }, [completeAppointmentWithDocumentCheck, loadAppointments, user?.id]);
+
+  // Why the selected appointment's session can't be saved right now, or null. The session to
+  // update must have been loaded for this very appointment (and patient) and still be on screen:
+  // the endpoint rewrites paciente_id/appointment_id, so a stale session would move patients.
+  const getSessionSaveBlocker = React.useCallback((appointment: Appointment): string | null => {
+    const contextKey = appointmentContextKey(appointment);
+    if (lastLoadedContextKeyRef.current !== contextKey || linkedSessionContextKey !== contextKey) {
+      return t('focus.sessionContextNotReady');
+    }
+    if (linkedSession && String(linkedSession.appointment_id ?? '') !== appointment.id) {
+      return t('focus.sessionContextNotReady');
+    }
+    return null;
+  }, [linkedSession, linkedSessionContextKey, t]);
+
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
+
+    // Thrown so the dialog keeps the form open and shows the reason
+    const blocker = getSessionSaveBlocker(selectedAppointment);
+    if (blocker) throw new Error(blocker);
 
     // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
     let sesionId: number | undefined;
@@ -1221,12 +1327,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     }
 
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
+      await completeSelectedAppointment(selectedAppointment);
+    }
+
+    // Trabajos de laboratorio en la sesión → se propone la orden ya cargada (un clic la crea).
+    if (canCreateLabOrder) {
+      const draft = await labOrderDraftFromSession(data, linkedSession?.tratamientos);
+      if (draft) setQuickLabDraft(draft);
     }
 
     // La cita quedó atendida: si venía de una orden de estudio y era la
@@ -1237,10 +1344,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
+    canCreateLabOrder,
+    completeSelectedAppointment,
+    setQuickLabDraft,
     createSession,
+    getSessionSaveBlocker,
     isSessionEditingBlockedByDate,
-    linkedSession?.archivos_adjuntos,
-    linkedSession?.sesion_id,
+    linkedSession,
     loadAppointments,
     loadLinkedSession,
     selectedAppointment,
@@ -1298,6 +1408,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const isNewSessionBlocked = false;
   const isOdontogramSession = linkedSession?.tipo_sesion === 'odontograma';
 
+  const openLabOrder = () => {
+    setLabOrderRequest({
+      draft: { doctor: sessionDoctorId ? { id: sessionDoctorId, name: sessionDoctorName ?? '' } : null },
+      fromSession: false,
+    });
+    setLabOrderOpen(true);
+  };
+
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
   const alertAllergies = patientAlertTags.filter(tag => tag.type === 'allergy');
   const alertConditions = patientAlertTags.filter(tag => tag.type === 'condition');
@@ -1317,6 +1435,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const executeDoctorAgentAction = React.useCallback(async (action: DoctorAgentAction): Promise<DoctorAgentActionResult> => {
     if (!selectedAppointment) {
       return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
+    }
+
+    // The agent names another appointment when the doctor asks for one that isn't open. Opening
+    // this one with that data would put another patient's dictation here.
+    const targetAppointmentId = action.payload?.appointment_id;
+    if (targetAppointmentId && targetAppointmentId !== selectedAppointment.id) {
+      return { success: false, message: t('focus.ai.actionOtherAppointment') };
     }
 
     if (
@@ -1384,12 +1509,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
+      await completeSelectedAppointment(selectedAppointment);
     }
 
     // Este camino —sesión guardada desde el odontograma— también cierra la cita,
@@ -1399,7 +1519,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     void recomputeStudyOrderForAppointment(String(selectedAppointment.id));
 
     await loadAppointments(true);
-  }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
+  }, [completeSelectedAppointment, isSessionEditingBlockedByDate, loadAppointments, selectedAppointment]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
@@ -1408,8 +1528,18 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     }
   }, [clearAgentSessionDraft]);
 
-  const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
-    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
+  const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload): Promise<DoctorAgentActionResult> => {
+    if (!selectedAppointment?.patientId) {
+      return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
+    }
+    if (isSessionEditingBlockedByDate) {
+      return { success: false, message: t('focus.sessionOnlyOnAppointmentDay') };
+    }
+    if (payload.appointment_id && payload.appointment_id !== selectedAppointment.id) {
+      return { success: false, message: t('focus.ai.actionOtherAppointment') };
+    }
+    const blocker = getSessionSaveBlocker(selectedAppointment);
+    if (blocker) return { success: false, message: blocker };
 
     const fecha = selectedAppointment.start?.dateTime
       ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
@@ -1428,7 +1558,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, isSessionEditingBlockedByDate, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
+    return { success: true };
+  }, [getSessionSaveBlocker, handleSaveClinicSession, isSessionEditingBlockedByDate, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName, t]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
@@ -1440,6 +1571,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     <Button
       variant="outline"
       size="sm"
+      data-help-id="workspace.btn.patient-file"
       className={cn('shrink-0', isMobile ? 'h-8' : 'self-start')}
       onClick={() => setPatientFichaOpen(true)}
     >
@@ -1449,7 +1581,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
   );
 
   const renderDetailPanel = selectedAppointment ? (
-    <Card className="flex h-full flex-col overflow-hidden">
+    <Card data-help-id="workspace.section.focus" className="flex h-full flex-col overflow-hidden">
       <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden gap-3 p-3 sm:p-4">
         {isMobile && (
           <div className="flex shrink-0 items-center justify-between gap-2">
@@ -1469,7 +1601,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <PopoverTrigger asChild>
-                          <button type="button" className="flex-none cursor-pointer">
+                          <button type="button" data-help-id="workspace.btn.patient-alerts" className="flex-none cursor-pointer">
                             <div className="relative flex-none">
                               <span
                                 className={cn(
@@ -1588,6 +1720,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
+                  data-help-id="workspace.tab.sessions"
                   onClick={() => { setActivePanel('sessions'); setOdontogramPrefill(null); }}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
@@ -1600,6 +1733,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                 </button>
                 <button
                   type="button"
+                  data-help-id="workspace.tab.odontogram"
                   onClick={() => setActivePanel('odontogram')}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
@@ -1613,15 +1747,33 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <Button size="sm" data-help-id="workspace.btn.session" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
               )}
               {activePanel === 'sessions' && canPrescribe && (
-                <Button size="sm" variant="outline" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
                   <Pill className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{t('focus.prescribe')}</span>
+                </Button>
+              )}
+              {activePanel === 'sessions' && canCreateLabOrder && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.lab-order" onClick={openLabOrder} className="hidden shrink-0 sm:inline-flex">
+                  <FlaskConical className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.labOrder')}</span>
+                </Button>
+              )}
+              {activePanel === 'sessions' && canCreateAesthetic && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
+                  <Sparkles className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.aestheticSession')}</span>
+                </Button>
+              )}
+              {activePanel === 'sessions' && canCreatePerio && (
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.periodontogram" onClick={() => setCreatePerioTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
+                  <Activity className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.perioExam')}</span>
                 </Button>
               )}
             </div>
@@ -1629,7 +1781,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
             {/* Content */}
             {activePanel === 'sessions' ? (
               <>
-                <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+                <div data-help-id="workspace.section.timeline" className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
                   {/* Misma línea de tiempo que la historia clínica, en modo doctor y sin
                       citas: acordeón con la sesión más reciente desplegada, sin truncar. */}
                   <TreatmentTimeline
@@ -1648,26 +1800,46 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                     onRefreshAll={handleRefreshSessions}
                     onLoadSessionAttachment={getSessionAttachment}
                     linkedAppointmentId={selectedAppointment.id}
+                    createAestheticTrigger={createAestheticTrigger}
+                    onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
+                    createPerioTrigger={createPerioTrigger}
+                    onPerioTriggerConsumed={() => setCreatePerioTrigger(0)}
+                    aestheticDefaults={{ doctorId: sessionDoctorId || undefined, doctorName: sessionDoctorName || undefined, appointmentId: selectedAppointment.id }}
                     isDoctorMode
                     hideToolbar
                     readOnly={!canManageSessions}
                   />
                 </div>
                 <div className="mt-2 flex shrink-0 gap-2 border-t pt-3 sm:hidden">
-                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                  <Button data-help-id="workspace.btn.session" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
                   {canPrescribe && (
-                    <Button variant="outline" onClick={() => setPrescriptionOpen(true)} className="flex-1">
+                    <Button variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="flex-1">
                       <Pill className="mr-2 h-4 w-4" />
                       {t('focus.prescribe')}
+                    </Button>
+                  )}
+                  {canCreateLabOrder && (
+                    <Button variant="outline" size="icon" data-help-id="workspace.btn.lab-order" onClick={openLabOrder} className="shrink-0" aria-label={t('focus.labOrder')} title={t('focus.labOrder')}>
+                      <FlaskConical className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {canCreateAesthetic && (
+                    <Button variant="outline" size="icon" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.aestheticSession')} title={t('focus.aestheticSession')}>
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {canCreatePerio && (
+                    <Button variant="outline" size="icon" onClick={() => setCreatePerioTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.perioExam')} title={t('focus.perioExam')}>
+                      <Activity className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto pb-6">
+              <div data-help-id="workspace.section.odontogram" className="flex-1 min-h-0 overflow-y-auto pb-6">
                 <DentalRecordViewer
                   patientId={selectedAppointment.patientId}
                   patientName={selectedAppointment.patientName}
@@ -1710,7 +1882,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
           renderDetailPanel
         ) : (
           <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
-            <Card className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
+            <Card data-help-id="workspace.section.agenda" className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
               <CardHeader className="shrink-0 flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
                 <div className="flex items-start gap-2.5">
                   <div className="header-icon-circle mt-0.5">
@@ -1723,7 +1895,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                     <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
+                <Button data-help-id="workspace.btn.refresh" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
                   <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
                 </Button>
               </CardHeader>
@@ -1740,6 +1912,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                   <Button
                     variant="outline"
                     size="sm"
+                    data-help-id="workspace.btn.today"
                     className="h-8 shrink-0 text-xs font-medium"
                     onClick={goToToday}
                   >
@@ -1753,6 +1926,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                   <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5">
                     <button
                       type="button"
+                      data-help-id="workspace.tab.assigned"
                       onClick={() => setViewMode('mine')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
@@ -1763,6 +1937,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                     </button>
                     <button
                       type="button"
+                      data-help-id="workspace.tab.calendars"
                       onClick={() => setViewMode('calendar')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
@@ -1775,7 +1950,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
 
                   {viewMode === 'calendar' && (
                     <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
-                      <SelectTrigger className="h-8 w-full text-xs" aria-label={t('calendarSwitch.selectCalendar')}>
+                      <SelectTrigger data-help-id="workspace.filter.calendar" className="h-8 w-full text-xs" aria-label={t('calendarSwitch.selectCalendar')}>
                         <SelectValue placeholder={t('calendarSwitch.selectCalendar')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1795,7 +1970,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
                 </div>
               )}
 
-              <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
+              <CardContent data-help-id="workspace.section.appointments" className="flex-1 min-h-0 overflow-y-auto p-4">
                 <DoctorAgendaPanel
                   appointments={appointments}
                   dateLocale={dateFnsLocale}
@@ -1835,6 +2010,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
           userId={selectedAppointment.patientId}
           userName={selectedAppointment.patientName || ''}
           mode="doctor"
+          defaultDoctor={sessionDoctorId ? { id: sessionDoctorId, name: sessionDoctorName ?? '' } : null}
           clinicalHistoryDefaultView={patientFichaDefaultView}
           readOnly={isSessionEditingBlockedByDate}
         />
@@ -1860,6 +2036,38 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
           lockDoctor
+        />
+      )}
+
+      {selectedAppointment && canCreateLabOrder && (
+        <LabOrderQuickCreateDialog
+          draft={quickLabDraft}
+          patient={{ id: selectedAppointment.patientId, name: selectedAppointment.patientName || '' }}
+          onClose={() => setQuickLabDraft(null)}
+          onEdit={(draft) => {
+            setQuickLabDraft(null);
+            setLabOrderRequest({ draft, fromSession: true });
+            setLabOrderOpen(true);
+          }}
+          onSaved={(order) => toast({ title: t('focus.labOrderCreated', { id: order.id }) })}
+        />
+      )}
+
+      {selectedAppointment && canCreateLabOrder && (
+        <LabOrderFormDialog
+          open={labOrderOpen}
+          onOpenChange={setLabOrderOpen}
+          patient={{ id: selectedAppointment.patientId, name: selectedAppointment.patientName || '' }}
+          draft={labOrderRequest?.draft}
+          lockDoctor={!canChangeLabOrderDoctor}
+          description={labOrderRequest?.fromSession ? t('focus.labOrderFromSession') : undefined}
+          onSaved={(order) => {
+            toast({
+              title: order.stage_kind === 'initial'
+                ? t('focus.labOrderCreated', { id: order.id })
+                : t('focus.labOrderCreatedAndSent', { id: order.id, stage: order.stage_name }),
+            });
+          }}
         />
       )}
 

@@ -1,0 +1,44 @@
+{
+  "id": "cashier.cash-point-edit",
+  "title": "Edit or deactivate a physical cash register",
+  "summary": "Rename a cash register, change its branch or deactivate it.",
+  "module": "Cash register",
+  "inputs": {
+    "name": "Cash register name"
+  },
+  "keywords": [
+    "edit cash register",
+    "deactivate cash register",
+    "delete cash register",
+    "rename cash register"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Physical Cash Registers"
+    },
+    {
+      "id": "row",
+      "title": "A cash register",
+      "details": "Each cash register with its branch and status."
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "details": "Change the name, the branch or deactivate it."
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "active",
+      "title": "Active",
+      "details": "Deactivate it if it's no longer used: its history isn't deleted."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

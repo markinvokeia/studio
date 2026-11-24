@@ -1,0 +1,20 @@
+{
+  "id": "system.whatsapp-agent",
+  "summary": "WhatsApp agent.",
+  "purpose": "Turns on the agent that serves patients over WhatsApp and sets its office hours.",
+  "tips": [
+    "The Invoke team connects the number; here you turn it on and set it up."
+  ],
+  "elements": {
+    "system.whatsapp-agent.section.agent": {
+      "label": "Agent"
+    },
+    "system.whatsapp-agent.section.hours": {
+      "label": "Hours",
+      "description": "Outside office hours it replies with the away message."
+    },
+    "system.whatsapp-agent.btn.save": {
+      "label": "Save"
+    }
+  }
+}

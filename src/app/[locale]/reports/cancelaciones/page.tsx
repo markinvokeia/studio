@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarX } from 'lucide-react';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -161,7 +162,7 @@ export default function CancelacionesPage() {
         <div className="leading-tight">
           <div className="text-xs font-medium">{row.original.patient_name}</div>
           {row.original.phone_number && (
-            <div className="text-[10px] text-muted-foreground">{row.original.phone_number}</div>
+            <div className="text-[10px] text-muted-foreground">{formatPhoneNumber(row.original.phone_number)}</div>
           )}
         </div>
       ),

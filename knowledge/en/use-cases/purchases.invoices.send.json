@@ -1,0 +1,47 @@
+{
+  "id": "purchases.invoices.send",
+  "title": "Print or email an invoice",
+  "summary": "Print the invoice or send it to the provider as a PDF.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Invoice number"
+  },
+  "keywords": [
+    "print invoice",
+    "send invoice",
+    "email invoice"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Invoices",
+      "details": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly."
+    },
+    {
+      "id": "search",
+      "title": "Find the invoice",
+      "details": "By document number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the invoice",
+      "details": "Tap it in the list. The guide continues once its details open."
+    },
+    {
+      "id": "print",
+      "title": "Print"
+    },
+    {
+      "id": "email",
+      "title": "Send by email"
+    },
+    {
+      "id": "to",
+      "title": "Recipients"
+    },
+    {
+      "id": "send",
+      "title": "Send"
+    }
+  ]
+}

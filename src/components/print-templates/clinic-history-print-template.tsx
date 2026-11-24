@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import type { ClinicHistoryPrintData } from '@/stores/print-document-store';
 import type { MedicationItem } from '@/hooks/useClinicHistory';
 import { formatOdontogramEntries, getConditionLabel } from '@/components/users/dental-record/odontogram-state';
@@ -121,7 +122,7 @@ export function ClinicHistoryPrintTemplate({ data }: ClinicHistoryPrintTemplateP
         {patient.phone && (
           <div>
             <span className="text-gray-500">{t('patient.phone')}: </span>
-            <span className="font-medium">{patient.phone}</span>
+            <span className="font-medium">{formatPhoneNumber(patient.phone)}</span>
           </div>
         )}
       </div>

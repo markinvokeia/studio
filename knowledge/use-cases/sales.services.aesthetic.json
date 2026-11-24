@@ -1,0 +1,145 @@
+{
+  "id": "sales.services.aesthetic",
+  "title": "Configurar un servicio de estética",
+  "module": "Ventas",
+  "summary": "Unidad de medida, cómo se marca en el mapa, dosis inicial, límites, próxima cita e indicaciones posteriores.",
+  "screens": [
+    "sales.services"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "servicio de estética",
+    "servicio estético",
+    "ficha estética",
+    "herramienta de marcado",
+    "dosis por defecto",
+    "máximo por sesión",
+    "intervalo mínimo",
+    "próxima cita sugerida",
+    "indicaciones posteriores",
+    "unidad del servicio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/services",
+      "title": "Menú → Ventas → Servicios",
+      "details": "Un servicio aparece en la ficha estética sólo si está marcado como servicio de estética."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.services.filter.search",
+      "title": "Buscá el servicio",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.services.section.first-row",
+      "title": "Elegí el servicio",
+      "details": "Tocalo para abrir su ficha.",
+      "until": "sales.services.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "details",
+      "action": "click",
+      "target": "sales.services.tab.details",
+      "title": "Datos",
+      "skipIfMissing": true
+    },
+    {
+      "id": "unit",
+      "action": "highlight",
+      "target": "sales.services.field.unit_id",
+      "title": "Unidad de medida",
+      "details": "En qué se mide lo que se aplica (U, ml, mg…). Es obligatoria para un servicio de estética. Las unidades se crean en Catálogo de la Clínica → Unidades de medida."
+    },
+    {
+      "id": "flag",
+      "action": "highlight",
+      "target": "sales.services.field.is_aesthetic",
+      "title": "Servicio de estética",
+      "details": "Lo suma a la ficha estética y habilita la pestaña Estética. Si lo apagás, deja de aparecer para sesiones nuevas; las ya registradas no cambian."
+    },
+    {
+      "id": "save-service",
+      "action": "confirm",
+      "target": "sales.services.btn.submit",
+      "title": "Guardar el servicio",
+      "details": "Guarda la unidad y la marca de estética. La configuración de la pestaña Estética se guarda aparte.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "sales.services.tab.aesthetic",
+      "title": "Estética",
+      "details": "Cómo se registra este servicio en la ficha estética.",
+      "until": "sales.services.section.aesthetic-config",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tool",
+      "action": "highlight",
+      "target": "sales.services.section.aesthetic-tool",
+      "title": "Se marca con",
+      "details": "Puntos (cada toque es una aplicación: toxina, labios), áreas (contorno de la zona: mesoterapia) o línea (dos extremos: hilos tensores).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "qty",
+      "action": "highlight",
+      "target": "sales.services.field.aesthetic-default-quantity",
+      "title": "Cantidad inicial por marca",
+      "details": "Con la que arranca cada marca nueva; después se ajusta.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "max",
+      "action": "highlight",
+      "target": "sales.services.field.aesthetic-max-per-session",
+      "title": "Máximo por sesión",
+      "details": "Avisa al superarlo durante el marcado; no bloquea.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "interval",
+      "action": "highlight",
+      "target": "sales.services.field.aesthetic-min-interval",
+      "title": "Intervalo mínimo en una zona",
+      "details": "Días que deberían pasar entre aplicaciones en la misma zona. También sólo avisa.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "follow",
+      "action": "highlight",
+      "target": "sales.services.field.aesthetic-follow-up-days",
+      "title": "Próxima cita sugerida",
+      "details": "A cuántos días se ofrece agendar el control al cerrar la sesión; se le puede poner un nombre.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "aftercare",
+      "action": "highlight",
+      "target": "sales.services.field.aesthetic-aftercare",
+      "title": "Indicaciones posteriores",
+      "details": "Lo que se le puede enviar al paciente por WhatsApp al cerrar la sesión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.services.btn.aesthetic-save",
+      "title": "Guardar",
+      "details": "Aparece al haber cambios. Hasta guardar por primera vez, el servicio no sale en la ficha estética.",
+      "skipIfMissing": true
+    }
+  ]
+}

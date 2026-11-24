@@ -33,6 +33,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { ToothInputWithPicker } from '@/components/dental/teeth-picker';
 
 interface QuoteItem {
   id: string;
@@ -67,7 +68,10 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const [sedeId, setSedeId] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // Reset form on open
+  // Reset form on open. Solo depende de `open`: con la sede activa como
+  // dependencia, cualquier re-render del AuthContext (p. ej. al volver a la
+  // pestaña) vaciaba los ítems que se estaban cargando.
+  const activeSedeId = activeSede?.id || '';
   React.useEffect(() => {
     if (open) {
       setItems([]);
@@ -76,9 +80,15 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       setCreatedAt(formatDate(new Date()));
       setNotes('');
       setPatientConfirmed(false);
-      setSedeId(activeSede?.id || '');
+      setSedeId(activeSedeId);
     }
-  }, [open, activeSede]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // La sede activa puede llegar después de abrir: se completa sin pisar una elegida.
+  React.useEffect(() => {
+    if (open && activeSedeId) setSedeId((current) => current || activeSedeId);
+  }, [open, activeSedeId]);
 
   const handleAddItem = () => {
     const newItem: QuoteItem = {
@@ -348,14 +358,17 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                               />
                             </td>
                             <td className="p-1">
-                              <Input
-                                type="number"
-                                min="11"
-                                max="85"
-                                placeholder="—"
-                                value={item.tooth_number || ''}
-                                onChange={(e) => handleUpdateItem(index, 'tooth_number', e.target.value)}
-                              />
+                              <ToothInputWithPicker value={item.tooth_number} onChange={(next) => handleUpdateItem(index, 'tooth_number', next)}>
+                                <Input
+                                  type="number"
+                                  min="11"
+                                  max="85"
+                                  placeholder="—"
+                                  className="pl-7"
+                                  value={item.tooth_number || ''}
+                                  onChange={(e) => handleUpdateItem(index, 'tooth_number', e.target.value)}
+                                />
+                              </ToothInputWithPicker>
                             </td>
                             <td className="p-1 text-center">
                               <Button

@@ -1,0 +1,107 @@
+{
+  "id": "reports.gastos-operativos.overview",
+  "title": "Usar el reporte Gastos Operativos",
+  "module": "Reportes",
+  "summary": "Los egresos del período: misceláneas de caja y compras a proveedores.",
+  "screens": [
+    "reports.gastos-operativos"
+  ],
+  "keywords": [
+    "gastos",
+    "egresos",
+    "gastos operativos",
+    "deuda con proveedores"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/gastos-operativos",
+      "title": "Menú → Reportes → Gastos Operativos",
+      "details": "Los egresos del período: misceláneas de caja y compras a proveedores."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.gastos-operativos.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.gastos-operativos.section.results",
+        "reports.gastos-operativos.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.gastos-operativos.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.section.kpi",
+      "title": "Indicadores",
+      "details": "Misceláneas, facturado y pagado a proveedores y deuda con proveedores.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.section.results",
+      "title": "Resultados",
+      "details": "Gastos por categoría y por proveedor.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.gastos-operativos.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

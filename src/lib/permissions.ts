@@ -22,45 +22,53 @@ function cleanSeparators(items: NavItem[]): NavItem[] {
   return result;
 }
 
+/** Whether the user meets a nav item's own requirements (its sub-items are not checked). */
+export function isNavItemAllowed(item: NavItem, userPermissions: string[], userRoles: string[]): boolean {
+  if (item.requiredPermission && !userPermissions.includes(item.requiredPermission)) {
+    return false;
+  }
+
+  if (item.requiredPermissions) {
+    const hasAll = item.requiredPermissions.every(p => userPermissions.includes(p));
+    if (!hasAll) return false;
+  }
+
+  if (item.requiredAnyPermission) {
+    const hasAny = item.requiredAnyPermission.some(p => userPermissions.includes(p));
+    if (!hasAny) return false;
+  }
+
+  if (item.requiredRole && !userRoles.includes(item.requiredRole)) {
+    return false;
+  }
+
+  if (item.requiredAnyRole) {
+    const lowerRoles = userRoles.map((r) => r.toLowerCase());
+    const hasAnyRole = item.requiredAnyRole.some((r) => lowerRoles.includes(r.toLowerCase()));
+    if (!hasAnyRole) return false;
+  }
+
+  return true;
+}
+
 export function filterNavByPermissions(
   items: NavItem[],
   userPermissions: string[],
   userRoles: string[]
 ): NavItem[] {
-  const filtered = items.filter(item => {
-    if (item.isSeparator) return true;
+  // Returns copies: `navItems` is shared (the guided assistant reads the full menu).
+  const filtered = items.flatMap((item): NavItem[] => {
+    if (item.isSeparator) return [item];
 
-    if (item.requiredPermission && !userPermissions.includes(item.requiredPermission)) {
-      return false;
-    }
-
-    if (item.requiredPermissions) {
-      const hasAll = item.requiredPermissions.every(p => userPermissions.includes(p));
-      if (!hasAll) return false;
-    }
-
-    if (item.requiredAnyPermission) {
-      const hasAny = item.requiredAnyPermission.some(p => userPermissions.includes(p));
-      if (!hasAny) return false;
-    }
-
-    if (item.requiredRole && !userRoles.includes(item.requiredRole)) {
-      return false;
-    }
-
-    if (item.requiredAnyRole) {
-      const lowerRoles = userRoles.map((r) => r.toLowerCase());
-      const hasAnyRole = item.requiredAnyRole.some((r) => lowerRoles.includes(r.toLowerCase()));
-      if (!hasAnyRole) return false;
-    }
+    if (!isNavItemAllowed(item, userPermissions, userRoles)) return [];
 
     if (item.items && item.items.length > 0) {
       const filteredItems = filterNavByPermissions(item.items, userPermissions, userRoles);
-      if (filteredItems.length === 0) return false;
-      item.items = filteredItems;
+      if (filteredItems.length === 0) return [];
+      return [{ ...item, items: filteredItems }];
     }
 
-    return true;
+    return [item];
   });
 
   return cleanSeparators(filtered);

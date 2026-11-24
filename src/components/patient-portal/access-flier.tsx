@@ -7,7 +7,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 
-import { INVOKEIA_LOGO } from '@/components/patient-portal/invokeia-logo';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 
 /** Lado del canvas oculto del que se extrae el PNG: alto para que imprima nítido. */
 const QR_RENDER_SIZE = 620;
@@ -123,6 +123,9 @@ function esc(value: string): string {
 }
 
 function buildFlierHtml(pages: FlierPage[], clinicLogoUrl: string, clinicName: string): string {
+  // El HTML se escribe en una ventana `about:blank`: la ruta del asset tiene que
+  // ir absoluta para no depender de qué base URL herede ese documento.
+  const invokeiaLogoUrl = new URL(INVOKEIA_LOGO.src, window.location.origin).href;
   const sections = pages
     .map(
       (page) => `
@@ -136,7 +139,7 @@ function buildFlierHtml(pages: FlierPage[], clinicLogoUrl: string, clinicName: s
     </header>
 
     <div class="brand">
-      <img src="${INVOKEIA_LOGO}" alt="InvokeIA">
+      <img src="${invokeiaLogoUrl}" alt="InvokeIA">
       <div class="brand-name">InvokeIA</div>
     </div>
 
@@ -148,7 +151,7 @@ function buildFlierHtml(pages: FlierPage[], clinicLogoUrl: string, clinicName: s
     <div class="qr-block">
       <div class="qr-frame" style="border-color:${page.qrBorder};box-shadow:0 14px 40px ${page.shadow}">
         <img class="qr" src="${page.qrDataUrl}" alt="QR">
-        <span class="qr-logo"><img src="${INVOKEIA_LOGO}" alt=""></span>
+        <span class="qr-logo"><img src="${invokeiaLogoUrl}" alt=""></span>
       </div>
       <div class="url-pill" style="background:${page.pillBg};color:${page.pillText}">
         <span class="dot" style="background:${page.accent}"></span>${esc(page.urlLabel)}

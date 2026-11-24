@@ -29,6 +29,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -47,6 +48,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
@@ -208,6 +210,7 @@ export default function PaymentsPage() {
     );
     const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -452,17 +455,17 @@ export default function PaymentsPage() {
                                     onClose={handleCloseDetails}
                                 />
                             </CardHeader>
-                            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                            <div data-help-id="sales.payments.section.actions" className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                                 {selectedPayment.is_historical && (
                                     <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                                         {t('columns.isHistorical')}
                                     </Badge>
                                 )}
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
+                                <Button data-help-id="sales.payments.btn.print" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
                                     <Printer className="h-3.5 w-3.5" />
                                     {t('actions.print')}
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
+                                <Button data-help-id="sales.payments.btn.email" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
                                     <Send className="h-3.5 w-3.5" />
                                     {t('actions.sendEmail')}
                                 </Button>
@@ -470,7 +473,7 @@ export default function PaymentsPage() {
 
                             {/* Credit balance summary — only for prepaid payments (no invoice attached) */}
                             {!selectedPayment.invoice_id && (
-                                <div className="px-6 py-3 border-b">
+                                <div data-help-id="sales.payments.section.credit-balance" className="px-6 py-3 border-b">
                                     {isLoadingAllocations ? (
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -562,6 +565,7 @@ export default function PaymentsPage() {
                                     activeTabId={activeTab}
                                     onTabClick={(tab) => setActiveTab(tab.id)}
                                 />
+                                <HelpScopeProvider scope="sales.payments.detail">
                                 <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                     {activeTab === 'allocations' && (
                                         <div className="m-0 h-full flex flex-col px-3">
@@ -589,6 +593,7 @@ export default function PaymentsPage() {
                                         </div>
                                     )}
                                 </div>
+                                </HelpScopeProvider>
                             </CardContent>
                         </Card>
                     )
@@ -616,7 +621,7 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -761,7 +766,7 @@ export default function PaymentsPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('prepaidDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmPrepaid}>{t('prepaidDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="sales.payments.btn.prepaid-confirm" onClick={handleConfirmPrepaid}>{t('prepaidDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

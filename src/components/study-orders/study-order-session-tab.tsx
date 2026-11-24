@@ -14,12 +14,12 @@ import { StudyOrderSessionCard } from './study-order-session-card';
 
 import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { useAuth } from '@/context/AuthContext';
+import { useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/utils';
 import type { Appointment, StudyOrder, StudyOrderAppointment } from '@/lib/types';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { recomputeStudyOrderForAppointment } from '@/services/study-orders';
 
 /**
@@ -60,6 +60,7 @@ export function StudyOrderSessionTab({ order, onSaved, openRequest = 0, readOnly
     const { hasPermission } = usePermissions();
     const { createSession, fetchPatientSessions, patientSessions } = useClinicHistory();
     const { toast } = useToast();
+    const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
 
     /**
      * Las sesiones del paciente, para poder mostrar sus adjuntos.
@@ -120,15 +121,16 @@ export function StudyOrderSessionTab({ order, onSaved, openRequest = 0, readOnly
             // guardar una sesión, y acá no es cosmético: `v_study_orders_board`
             // cuenta una línea como completada mirando el estado de su cita, así
             // que sin esto la orden nunca cerraría.
+            // Si falta el documento que exige ese estado, la sesión queda guardada y la
+            // cita se completa sola cuando lo cargan desde el aviso.
             if (chosen.status !== 'completed') {
-                await updateAppointmentStatusRequest({
-                    appointment: {
-                        id: chosen.id,
-                        googleEventId: chosen.google_event_id ?? undefined,
-                        calendar_source_id: chosen.calendar_source_id ?? undefined,
-                    } as unknown as Appointment,
-                    newStatus: 'completed',
-                });
+                await completeAppointmentWithDocumentCheck({
+                    id: chosen.id,
+                    googleEventId: chosen.google_event_id ?? undefined,
+                    calendar_source_id: chosen.calendar_source_id ?? undefined,
+                    patientId: order.patient_id,
+                    patientName: order.patient_name,
+                } as unknown as Appointment, () => onSaved?.());
             }
 
             // Va DESPUÉS y con await: el recálculo lee el estado de las citas, y

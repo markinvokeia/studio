@@ -1,0 +1,196 @@
+{
+  "id": "dashboard",
+  "status": "draft",
+  "summary": "Panel de Control: cómo viene la clínica hoy y en el mes.",
+  "purpose": "Pantalla de inicio de gerencia y administración. Muestra producción, cobranza, atenciones y resultado de caja del día y del mes, la comparación entre sucursales, los servicios que más venden, los pacientes atendidos por día y la evolución de los últimos meses. Es sólo lectura: los datos salen de facturas, cobros, citas atendidas y gastos cargados en el resto del sistema.",
+  "prerequisites": [],
+  "tips": [
+    "«Hoy» y «el mes acumulado» no cambian con el período: siempre son el día y el mes en curso. El período afecta Sucursales, Servicios más vendidos y Pacientes por día.",
+    "La cobranza siempre se ve consolidada aunque elijas una sucursal: los cobros no registran sede.",
+    "Si un indicador dice «sin datos» es porque todavía no hay nada cargado (por ejemplo, gastos en Caja), no porque sea cero.",
+    "Cada bloque aparece según los permisos del usuario: sin permiso de sucursales no se ven ni el selector de sede ni la comparativa."
+  ],
+  "useCases": [
+    "dashboard.overview",
+    "dashboard.filters",
+    "dashboard.rail-tour",
+    "dashboard.rail-patient-sede-cash",
+    "dashboard.rail-tv-bill",
+    "dashboard.rail-alerts-inbox-notes",
+    "dashboard.menu-tour",
+    "dashboard.menu-Cashier",
+    "dashboard.menu-Sales",
+    "dashboard.menu-Purchases",
+    "dashboard.menu-ClinicCatalog",
+    "dashboard.menu-BusinessSetup-1",
+    "dashboard.menu-BusinessSetup-2",
+    "dashboard.menu-BusinessSetup-3",
+    "dashboard.menu-BusinessSetup-4",
+    "dashboard.menu-System-1",
+    "dashboard.menu-System-2",
+    "dashboard.menu-System-3",
+    "dashboard.menu-System-4",
+    "dashboard.menu-System-5",
+    "dashboard.menu-Reports-1",
+    "dashboard.menu-Reports-2",
+    "dashboard.menu-Reports-3",
+    "dashboard.menu-Reports-4",
+    "dashboard.menu-Reports-5"
+  ],
+  "elements": {
+    "dashboard.filter.branch": {
+      "label": "Sucursal",
+      "description": "Consolidado suma todas las sedes. Al elegir una sede, el panel muestra sólo esa (la cobranza sigue consolidada)."
+    },
+    "dashboard.filter.period": {
+      "label": "Período",
+      "description": "Rango de fechas de Sucursales, Servicios más vendidos y Pacientes por día: hoy, esta semana, este mes, el mes pasado, este año o personalizado."
+    },
+    "dashboard.section.period-options": {
+      "label": "Opciones de período",
+      "description": "Elegí un período rápido o cargá un rango con Desde y Hasta."
+    },
+    "dashboard.filter.period-today": {
+      "label": "Hoy"
+    },
+    "dashboard.filter.period-week": {
+      "label": "Esta semana"
+    },
+    "dashboard.filter.period-month": {
+      "label": "Este mes"
+    },
+    "dashboard.filter.period-prevMonth": {
+      "label": "Mes anterior"
+    },
+    "dashboard.filter.period-year": {
+      "label": "Este año"
+    },
+    "dashboard.filter.period-custom": {
+      "label": "Personalizado",
+      "description": "Rango propio: fecha Desde y fecha Hasta."
+    },
+    "dashboard.filter.currency": {
+      "label": "Moneda",
+      "description": "Muestra todos los montos en la moneda elegida. Sólo aparece si la clínica trabaja con más de una moneda."
+    },
+    "dashboard.section.today": {
+      "label": "Hoy",
+      "description": "Producción (lo facturado hoy), Cobranza (lo cobrado), Atenciones (citas atendidas, pacientes distintos y de cuántos agendados) y Resultado de caja (cobros menos gastos). Se compara con el mismo día de la semana pasada."
+    },
+    "dashboard.section.month": {
+      "label": "Mes acumulado",
+      "description": "Lo mismo sumado desde el 1° del mes, comparado con el mes anterior. La cobranza dice qué porcentaje de lo producido ya entró; Gastos del mes sale de los gastos cargados."
+    },
+    "dashboard.section.branches": {
+      "label": "Sucursales",
+      "description": "Por sede: producción, atenciones, pacientes, ticket promedio y no asistió, en el período elegido. La sede de una factura se estima por la cita del paciente más cercana."
+    },
+    "dashboard.section.top-services": {
+      "label": "Servicios más vendidos",
+      "description": "Los 6 servicios que más facturaron en el período y la sede elegidos."
+    },
+    "dashboard.section.patients-per-day": {
+      "label": "Pacientes por día",
+      "description": "Pacientes atendidos en el período, nuevos y recurrentes. Con períodos largos se agrupa por semana o por mes. Cada barra cuenta pacientes únicos, por eso no suman el total."
+    },
+    "dashboard.section.evolution": {
+      "label": "Evolución",
+      "description": "Los últimos 6 meses de producción, cobranza, atenciones, pacientes nuevos y gastos, con la variación contra el mes anterior. No depende del período; el mes en curso figura como parcial."
+    },
+    "rail.btn.expand": {
+      "label": "Abrir la barra",
+      "description": "Pestaña arriba a la derecha."
+    },
+    "rail.btn.collapse": {
+      "label": "Cerrar la barra"
+    },
+    "rail.section.rail": {
+      "label": "Barra de accesos rápidos"
+    },
+    "rail.section.patient": {
+      "label": "Paciente",
+      "description": "Búsqueda rápida y ficha rápida."
+    },
+    "rail.section.sede": {
+      "label": "Sede",
+      "description": "Sede de trabajo."
+    },
+    "rail.section.cash": {
+      "label": "Caja",
+      "description": "Estado de la caja abierta."
+    },
+    "rail.section.tv": {
+      "label": "TV",
+      "description": "Pantalla de la sala de espera."
+    },
+    "rail.btn.bill": {
+      "label": "Cobrar",
+      "description": "Cobro rápido."
+    },
+    "rail.section.alerts": {
+      "label": "Alertas"
+    },
+    "rail.section.exchange": {
+      "label": "Cambio",
+      "description": "Tipo de cambio de la caja."
+    },
+    "rail.section.inbox": {
+      "label": "Inbox",
+      "description": "Notificaciones internas."
+    },
+    "rail.section.notes": {
+      "label": "Notas",
+      "description": "Notas adhesivas personales."
+    },
+    "rail.section.assistant": {
+      "label": "Asistente"
+    },
+    "billing-wizard.section.wizard": {
+      "label": "Asistente de cobro"
+    },
+    "app.section.page": {
+      "label": "Pantalla",
+      "description": "El contenido de la pantalla actual."
+    },
+    "rail.btn.patient": {
+      "label": "Buscar paciente"
+    },
+    "rail.section.patient-search": {
+      "label": "Búsqueda rápida de pacientes"
+    },
+    "rail.btn.sede": {
+      "label": "Sede"
+    },
+    "rail.section.sede-list": {
+      "label": "Sedes"
+    },
+    "rail.btn.cash": {
+      "label": "Caja"
+    },
+    "rail.section.cash-panel": {
+      "label": "Tu caja"
+    },
+    "rail.btn.tv": {
+      "label": "TV"
+    },
+    "rail.section.tv-menu": {
+      "label": "Control de la TV"
+    },
+    "rail.btn.alerts": {
+      "label": "Alertas"
+    },
+    "rail.section.alerts-panel": {
+      "label": "Alertas pendientes"
+    },
+    "rail.btn.notes": {
+      "label": "Notas"
+    },
+    "rail.section.notes-panel": {
+      "label": "Notas"
+    },
+    "rail.section.bill": {
+      "label": "Cobrar",
+      "description": "Cobro rápido."
+    }
+  }
+}

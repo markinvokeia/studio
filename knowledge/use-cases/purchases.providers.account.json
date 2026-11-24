@@ -1,0 +1,74 @@
+{
+  "id": "purchases.providers.account",
+  "title": "Ver la cuenta de un proveedor",
+  "module": "Compras",
+  "summary": "Pestañas Presupuestos, Facturas y Pagos: qué le pedimos, qué nos facturó y qué le pagamos.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Compras al proveedor",
+  "inputs": {
+    "query": "Nombre, correo o RUT"
+  },
+  "keywords": [
+    "cuenta del proveedor",
+    "deuda con proveedor",
+    "qué le debemos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "quotes",
+      "action": "click",
+      "target": "purchases.providers.tab.quotes",
+      "title": "Presupuestos",
+      "skipIfMissing": true
+    },
+    {
+      "id": "invoices",
+      "action": "click",
+      "target": "purchases.providers.tab.invoices",
+      "title": "Facturas",
+      "skipIfMissing": true
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "purchases.providers.detail.section.first-row",
+      "title": "Una factura",
+      "details": "Tocala para ver su detalle.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "payments",
+      "action": "click",
+      "target": "purchases.providers.tab.payments",
+      "title": "Pagos",
+      "skipIfMissing": true
+    }
+  ]
+}

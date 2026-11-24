@@ -1,0 +1,58 @@
+{
+  "es": {
+    "landscape": {
+      "hook": "Lo que vas a ver no es un video hecho con I.A.",
+      "intro": "¿Hay alguien ahí? ¡Hola! Soy el asistente de Invoke, y vivo dentro de tu sistema para ayudarte.",
+      "onb": "¿Recién llegás? Te armo la lista de lo que falta para dejar tu clínica lista, y te llevo a cada paso.",
+      "ops": "En cada pantalla tenés todo lo que podés hacer, con su guía y su video.",
+      "field": "¿Buscás un campo? Te llevo directo y te explico para qué sirve.",
+      "ask": "Preguntame como a un compañero, con tu voz o por escrito. Te entiendo, y te digo cómo hacerlo.",
+      "reply": null,
+      "video": "¿Preferís verlo? Hay un video de cada paso, desde cualquier lado.",
+      "guide": "O te llevo de la mano: elijo a Carlos Delgado, el servicio, el profesional, la fecha y la hora. Vos solo revisás y confirmás. Nunca guardo sin tu permiso.",
+      "ohh": "¡Ohhh! Ese horario está ocupado. Te aviso enseguida.",
+      "outro": "En Invoke hay I.A., y detrás hay personas reales que te ayudan. Seré tu asistente en Invoke"
+    },
+    "reel": {
+      "hook": "Esto no es un video hecho con I.A.",
+      "intro": "¡Hola! Soy el asistente de Invoke",
+      "onb": "¿Recién llegás? Te guío paso a paso para dejar tu clínica lista.",
+      "ops": "Todo lo que podés hacer, en una sola página.",
+      "field": "Y te llevo directo a cada campo.",
+      "ask": "Preguntame con tu voz o por escrito, como a un compañero.",
+      "reply": null,
+      "video": "¿Preferís verlo? Mirá el video.",
+      "guide": "O te llevo de la mano, paso a paso. Vos solo confirmás.",
+      "ohh": "¡Ohhh! Ese horario está ocupado.",
+      "outro": "Detrás hay personas. Seré tu asistente en Invoke"
+    }
+  },
+  "en": {
+    "landscape": {
+      "hook": "What you're about to see isn't an A.I.-generated video.",
+      "intro": "Anybody there? Hi! I'm the Invoke assistant. I live inside your system, and I'm here to help.",
+      "onb": "New here? I'll list what's left to get your clinic ready, and take you to each step.",
+      "ops": "Every screen shows everything you can do, with its guide and its video.",
+      "field": "Looking for a field? I'll take you straight to it, and explain what it's for.",
+      "ask": "Ask me like you'd ask a teammate, by voice or in writing. I'll tell you how to do it.",
+      "reply": null,
+      "video": "Rather watch it? Every task has a video, from anywhere.",
+      "guide": "Or I'll take you by the hand: I pick Carlos Delgado, the service, the doctor, the date and the time. You just review and confirm. I never save without your OK.",
+      "ohh": "Ohhh! That time is taken. I'll let you know right away.",
+      "outro": "Invoke has A.I., and behind it, real people who help you. I'll be your assistant at Invoke"
+    },
+    "reel": {
+      "hook": "This isn't an A.I.-generated video.",
+      "intro": "Hi! I'm the Invoke assistant.",
+      "onb": "New here? I'll guide you step by step to get your clinic ready.",
+      "ops": "Everything you can do, on one page.",
+      "field": "And I'll take you straight to any field.",
+      "ask": "Ask me by voice or in writing, like a teammate.",
+      "reply": null,
+      "video": "Rather watch it? There's a video.",
+      "guide": "Or I'll take you by the hand. You just confirm.",
+      "ohh": "Ohhh! That time is taken.",
+      "outro": "With real people. I'll be your assistant at Invoke"
+    }
+  }
+}

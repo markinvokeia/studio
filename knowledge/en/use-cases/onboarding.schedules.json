@@ -1,0 +1,57 @@
+{
+  "id": "onboarding.schedules",
+  "title": "Enter a branch's office hours",
+  "summary": "The days and hours the branch is open. You can choose several days at once; one time range is created per day.",
+  "module": "Business setup",
+  "inputs": {
+    "days_of_week": "List of days, 0=Sunday, 1=Monday … 6=Saturday (e.g. [1,2,3,4,5] Monday to Friday)",
+    "start_time": "Opening time HH:MM",
+    "end_time": "Closing time HH:MM"
+  },
+  "keywords": [
+    "schedule",
+    "schedules",
+    "opening",
+    "closing",
+    "opening days"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "I'm opening Schedules"
+    },
+    {
+      "id": "sede",
+      "title": "Choose the branch at the top",
+      "details": "Each branch has its own hours. If you have several, repeat this guide for each one.",
+      "description": "Hours are per branch: above the list there's a tab for each branch. Make sure you're on the right one."
+    },
+    {
+      "id": "new",
+      "title": "New schedule",
+      "details": "Opens the new schedule form."
+    },
+    {
+      "id": "days",
+      "title": "Opening days",
+      "details": "Check all the days with the same hours: one time range is created per day. Unchecked days stay closed and no appointments are offered.",
+      "description": "Check all the days with the same hours. If you open differently on Saturdays, enter them in another schedule."
+    },
+    {
+      "id": "start",
+      "title": "Opening time",
+      "details": "Before this time no appointments can be given at the branch, even if the doctor is available."
+    },
+    {
+      "id": "end",
+      "title": "Closing time",
+      "details": "After this time no appointments are offered. To break at midday, enter two time ranges on the same day.",
+      "description": "If you close at midday, enter two time ranges: morning and afternoon."
+    },
+    {
+      "id": "save",
+      "title": "Save the schedule",
+      "details": "Saves the time ranges. The calendar and the patient portal use them right away."
+    }
+  ]
+}

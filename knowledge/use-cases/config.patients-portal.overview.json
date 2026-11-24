@@ -1,0 +1,54 @@
+{
+  "id": "config.patients-portal.overview",
+  "title": "Configurar Portal del Paciente",
+  "module": "Configuración de Negocio",
+  "summary": "El portal donde los pacientes reservan y ven sus citas, presupuestos y documentos.",
+  "screens": [
+    "config.patients-portal"
+  ],
+  "keywords": [
+    "portal del paciente",
+    "reservas en línea",
+    "autogestión"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/patients-portal",
+      "title": "Menú → Configuración de Negocio → Portal del Paciente",
+      "details": "El portal donde los pacientes reservan y ven sus citas, presupuestos y documentos."
+    },
+    {
+      "id": "access",
+      "action": "highlight",
+      "target": "config.patients-portal.section.access",
+      "title": "Acceso",
+      "details": "Si el portal está habilitado y qué pueden hacer los pacientes (reservar, cancelar, ver documentos).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "booking-services",
+      "action": "highlight",
+      "target": "config.patients-portal.section.booking-services",
+      "title": "Servicios de la reserva",
+      "details": "Qué servicios se pueden reservar en línea.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "presentation",
+      "action": "highlight",
+      "target": "config.patients-portal.section.presentation",
+      "title": "Presentación",
+      "details": "Textos y datos que ve el paciente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.patients-portal.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

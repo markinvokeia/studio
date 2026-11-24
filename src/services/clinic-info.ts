@@ -32,7 +32,19 @@ export interface ClinicInfo {
   secondaryCurrency?: string;
 }
 
-export async function fetchClinicInfo(): Promise<ClinicInfo | null> {
+// Petición en curso compartida: el store, `usePrintDocument` (una vez por cada componente
+// que lo usa) y las impresiones piden los datos de la clínica casi a la vez al cargar la
+// app. Sin esto salían varias peticiones idénticas que competían por n8n.
+let inFlight: Promise<ClinicInfo | null> | null = null;
+
+export function fetchClinicInfo(): Promise<ClinicInfo | null> {
+  inFlight ??= requestClinicInfo().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function requestClinicInfo(): Promise<ClinicInfo | null> {
   const raw: unknown = await api.get(API_ROUTES.CLINIC);
   const data = Array.isArray(raw) ? (raw as Record<string, unknown>[])[0] : (raw as Record<string, unknown>);
   if (!data) return null;

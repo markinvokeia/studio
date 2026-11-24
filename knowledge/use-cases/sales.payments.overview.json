@@ -1,0 +1,105 @@
+{
+  "id": "sales.payments.overview",
+  "title": "Recorrer pagos",
+  "module": "Ventas",
+  "summary": "Listado con filtro por tipo (prepago, pago directo, asignaciones), detalle del pago, saldo a favor y asignaciones.",
+  "screens": [
+    "sales.payments"
+  ],
+  "inputs": {
+    "query": "Número de pago"
+  },
+  "keywords": [
+    "pagos",
+    "cobros",
+    "ver pago",
+    "prepagos",
+    "saldo a favor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/payments",
+      "title": "Menú → Ventas → Pagos",
+      "details": "Los cobros a pacientes: pagos de facturas y prepagos (dinero a cuenta que después se aplica a facturas)."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.payments.filter.search",
+      "title": "Buscar",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "filters",
+      "action": "click",
+      "target": "sales.payments.btn.filters",
+      "title": "Filtrar por tipo",
+      "until": "sales.payments.section.filters",
+      "skipIfMissing": true
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "sales.payments.section.filters",
+      "title": "Tipo",
+      "details": "Prepago (a cuenta), pago directo de factura, asignación de pago o de nota de crédito.",
+      "doneOnClose": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "sales.payments.btn.export",
+      "title": "Exportar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.payments.section.first-row",
+      "title": "Abrí un pago",
+      "until": "sales.payments.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "header",
+      "action": "highlight",
+      "target": "sales.payments.section.detail-header",
+      "title": "Detalle",
+      "details": "Monto, medio de pago, moneda, factura y fecha."
+    },
+    {
+      "id": "actions",
+      "action": "highlight",
+      "target": "sales.payments.section.actions",
+      "title": "Acciones",
+      "details": "Imprimir el recibo o enviarlo por correo. «Histórico» marca pagos cargados sin caja."
+    },
+    {
+      "id": "credit",
+      "action": "highlight",
+      "target": "sales.payments.section.credit-balance",
+      "title": "Saldo a favor",
+      "details": "Sólo en prepagos: cuánto queda disponible para aplicar a facturas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "alloc",
+      "action": "click",
+      "target": "sales.payments.tab.allocations",
+      "title": "Asignaciones",
+      "details": "A qué facturas se aplicó el prepago.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "click",
+      "target": "sales.payments.tab.notes",
+      "title": "Notas"
+    }
+  ]
+}

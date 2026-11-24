@@ -1,0 +1,29 @@
+{
+  "id": "subscriptions.overview",
+  "title": "Ver el historial de suscripciones",
+  "module": "Sistema",
+  "summary": "Cada período de suscripción de la clínica con su plan y vigencia.",
+  "screens": [
+    "subscriptions"
+  ],
+  "keywords": [
+    "suscripciones",
+    "plan",
+    "facturación del servicio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/subscriptions",
+      "title": "Menú → Sistema → Suscripciones"
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "subscriptions.section.first-row",
+      "title": "La más reciente",
+      "skipIfMissing": true
+    }
+  ]
+}

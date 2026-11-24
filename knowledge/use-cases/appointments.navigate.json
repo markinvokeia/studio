@@ -1,0 +1,99 @@
+{
+  "id": "appointments.navigate",
+  "title": "Moverse por la agenda: días, vista, agendas y ajustes",
+  "module": "Agenda",
+  "summary": "Cambiar de día, saltar a una fecha, elegir la vista, el zoom y las agendas visibles.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "cambiar de dia",
+    "semana",
+    "vista",
+    "zoom",
+    "hoy",
+    "ir a fecha",
+    "agendas",
+    "ver otro consultorio",
+    "ajustes de agenda",
+    "exportar",
+    "excel",
+    "actualizar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "today",
+      "action": "highlight",
+      "target": "appointments.btn.today",
+      "title": "Hoy",
+      "details": "Vuelve al día de hoy."
+    },
+    {
+      "id": "arrows",
+      "action": "highlight",
+      "target": "appointments.btn.next",
+      "title": "Anterior y siguiente",
+      "details": "Avanzan o retroceden un día, una semana o un mes según la vista."
+    },
+    {
+      "id": "date",
+      "action": "highlight",
+      "target": "appointments.btn.date-picker",
+      "title": "Ir a una fecha",
+      "details": "Clic en la fecha para elegir un día en el calendario."
+    },
+    {
+      "id": "agendas",
+      "action": "highlight",
+      "target": "appointments.btn.agendas",
+      "title": "Agendas",
+      "skipIfMissing": true,
+      "details": "Muestra u oculta el panel de agendas: elegí qué consultorio ver."
+    },
+    {
+      "id": "view",
+      "action": "highlight",
+      "target": "appointments.btn.view",
+      "title": "Vista",
+      "skipIfMissing": true,
+      "details": "Día, varios días, semana, mes o lista, y qué agendas se muestran."
+    },
+    {
+      "id": "zoom",
+      "action": "highlight",
+      "target": "appointments.btn.zoom",
+      "title": "Zoom",
+      "skipIfMissing": true,
+      "details": "Agranda o achica las franjas horarias."
+    },
+    {
+      "id": "refresh",
+      "action": "highlight",
+      "target": "appointments.btn.refresh",
+      "title": "Actualizar",
+      "details": "Vuelve a traer las citas (por si alguien agendó desde otro lado)."
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "appointments.btn.print",
+      "title": "Exportar agenda a Excel",
+      "details": "Descarga las citas de un período en Excel."
+    },
+    {
+      "id": "settings",
+      "action": "highlight",
+      "target": "appointments.btn.settings",
+      "title": "Ajustes de la agenda",
+      "skipIfMissing": true,
+      "details": "Horario visible, duración de las franjas, cómo se crea una cita (ventana o tarjeta) y agrupación."
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "reports.cancelaciones.overview",
+  "title": "Usar el reporte Cancelaciones",
+  "module": "Reportes",
+  "summary": "Citas canceladas o con ausencia en el período, con motivo, profesional y paciente.",
+  "screens": [
+    "reports.cancelaciones"
+  ],
+  "keywords": [
+    "cancelaciones",
+    "ausencias",
+    "no shows",
+    "motivos de cancelación"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/cancelaciones",
+      "title": "Menú → Reportes → Cancelaciones",
+      "details": "Citas canceladas o con ausencia en el período, con motivo, profesional y paciente."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.cancelaciones.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.cancelaciones.section.filters",
+      "title": "Filtros",
+      "details": "Profesional, motivo y tipo (cancelación o ausencia)."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.cancelaciones.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.cancelaciones.section.results",
+        "reports.cancelaciones.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.cancelaciones.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.cancelaciones.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.cancelaciones.section.kpi",
+      "title": "Indicadores",
+      "details": "Total de cancelaciones, motivo principal, profesional más afectado y paciente más recurrente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.cancelaciones.section.results",
+      "title": "Resultados",
+      "details": "Gráficos por motivo, día y hora, y el detalle de cada cancelación.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.cancelaciones.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.cancelaciones.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.cancelaciones.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

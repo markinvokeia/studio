@@ -34,7 +34,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { getSalesServices } from '@/services/services';
 import { ensureDoctorOption } from '@/services/doctors';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+import { TeethPicker, ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface ClinicSessionDialogProps {
@@ -142,6 +145,9 @@ export function ClinicSessionDialog({
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
+    // Help ids del asistente con el scope de la pantalla (workspace.field.session-procedure…).
+    const helpScope = useHelpScope();
+    const sessionHelpId = (name: string) => composeHelpId(helpScope, 'field', name);
     const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
@@ -153,6 +159,7 @@ export function ClinicSessionDialog({
     const [doctorError, setDoctorError] = React.useState(false);
     const [shouldDischargePatient, setShouldDischargePatient] = React.useState(false);
     const [dischargeDate, setDischargeDate] = React.useState('');
+    const [dischargeDateError, setDischargeDateError] = React.useState(false);
 
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
@@ -503,6 +510,7 @@ export function ClinicSessionDialog({
         }
 
         if (shouldDischargePatient && !dischargeDate) {
+            setDischargeDateError(true);
             toast({ title: t('discharge.dateRequired'), variant: 'destructive' });
             return;
         }
@@ -819,7 +827,7 @@ export function ClinicSessionDialog({
                                     </div>
                                 )}
                                 {/* Date */}
-                                <div className="space-y-2">
+                                <div data-help-id={sessionHelpId('session-date')} className="space-y-2">
                                     <Label>{t('date')}</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -852,19 +860,28 @@ export function ClinicSessionDialog({
                                 {annotationMode && (
                                     <div className="space-y-2">
                                         <Label>{t('annotation.piece')}</Label>
-                                        <Input
-                                            value={form.pieza || ''}
-                                            onChange={(e) => {
-                                                setIsDirty(true);
-                                                setForm(prev => ({ ...prev, pieza: e.target.value }));
-                                            }}
-                                            placeholder={t('annotation.piecePlaceholder')}
-                                        />
+                                        <div className="flex gap-1.5">
+                                            <Input
+                                                value={form.pieza || ''}
+                                                onChange={(e) => {
+                                                    setIsDirty(true);
+                                                    setForm(prev => ({ ...prev, pieza: e.target.value }));
+                                                }}
+                                                placeholder={t('annotation.piecePlaceholder')}
+                                            />
+                                            <TeethPicker
+                                                value={form.pieza || ''}
+                                                onChange={(next) => {
+                                                    setIsDirty(true);
+                                                    setForm(prev => ({ ...prev, pieza: next }));
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* Doctor */}
-                                <div className="space-y-2">
+                                <div data-help-id={sessionHelpId('session-doctor')} className="space-y-2">
                                     <Label>{t('doctor')}</Label>
                                     <Select
                                         value={form.doctor_id}
@@ -1049,7 +1066,7 @@ export function ClinicSessionDialog({
                                 )}
 
                                 {/* Procedure + current-session treatment badges */}
-                                <div className="space-y-2 md:col-span-2">
+                                <div data-help-id={sessionHelpId('session-procedure')} className="space-y-2 md:col-span-2">
                                     <Label>{annotationMode ? t('annotation.annotationLabel') : t('procedure')}</Label>
                                     <Textarea
                                         value={form.procedimiento_realizado}
@@ -1169,7 +1186,7 @@ export function ClinicSessionDialog({
                                 {/* Diagnosis + Clinical Notes (optional) */}
                                 {showDiagnosticFields && (
                                     <>
-                                        <div className="space-y-2 md:col-span-2">
+                                        <div data-help-id={sessionHelpId('session-diagnosis')} className="space-y-2 md:col-span-2">
                                             <Label>{t('diagnosis')}</Label>
                                             <Textarea
                                                 value={form.diagnostico || ''}
@@ -1178,7 +1195,7 @@ export function ClinicSessionDialog({
                                                 className="min-h-[80px] resize-y"
                                             />
                                         </div>
-                                        <div className="space-y-2 md:col-span-2">
+                                        <div data-help-id={sessionHelpId('session-notes')} className="space-y-2 md:col-span-2">
                                             <Label>{t('notes')}</Label>
                                             <Textarea
                                                 value={form.notas_clinicas || ''}
@@ -1191,7 +1208,7 @@ export function ClinicSessionDialog({
                                 )}
 
                                 {/* Next Appointment Plan + next-session treatment badges */}
-                                <div className="space-y-2 md:col-span-2">
+                                <div data-help-id={sessionHelpId('session-next-plan')} className="space-y-2 md:col-span-2">
                                     <Label>{annotationMode ? t('annotation.nextLabel') : t('nextSessionPlan')}</Label>
                                     <Textarea
                                         value={form.plan_proxima_cita || ''}
@@ -1310,7 +1327,7 @@ export function ClinicSessionDialog({
 
                                 {!annotationMode && (
                                 <div className="space-y-3 md:col-span-2">
-                                    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                                    <div data-help-id={sessionHelpId('session-discharge')} className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                                         <Checkbox
                                             id="discharge-patient"
                                             checked={shouldDischargePatient}
@@ -1386,6 +1403,7 @@ export function ClinicSessionDialog({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
+                                                            aria-invalid={(dischargeDateError && !dischargeDate) || undefined}
                                                             className={cn(
                                                                 "w-full justify-start text-left font-normal h-10 border-input",
                                                                 !dischargeDate && "text-muted-foreground"
@@ -1415,7 +1433,7 @@ export function ClinicSessionDialog({
 
                                 {/* Inline Treatments panel */}
                                 {showTreatments && (
-                                    <div className="space-y-2 md:col-span-2">
+                                    <div data-help-id={sessionHelpId('session-treatments')} className="space-y-2 md:col-span-2">
                                         <div className="flex items-center justify-between">
                                             <Label className="text-xs font-semibold">{t('treatments.title')}</Label>
                                             <Button type="button" variant="ghost" size="sm" onClick={handleAddTreatment} className="h-7 px-2 text-xs">
@@ -1430,17 +1448,28 @@ export function ClinicSessionDialog({
                                                 </div>
                                             ) : treatments.map((treatment, index) => (
                                                 <div key={index} className="flex gap-2 items-start p-2 bg-background border rounded-md">
-                                                    <Input
-                                                        type="number"
-                                                        placeholder={t('treatments.toothNumber')}
-                                                        value={treatment.numero_diente ?? ''}
-                                                        onChange={(e) => {
+                                                    <ToothInputWithPicker
+                                                        size="sm"
+                                                        className="w-20 shrink-0"
+                                                        value={treatment.numero_diente}
+                                                        onChange={(next) => {
                                                             setTreatments(prev => prev.map((t, i) =>
-                                                                i === index ? { ...t, numero_diente: e.target.value ? parseInt(e.target.value, 10) : null } : t
+                                                                i === index ? { ...t, numero_diente: next ? Number(next) : null } : t
                                                             ));
                                                         }}
-                                                        className="h-7 text-xs px-2 w-16"
-                                                    />
+                                                    >
+                                                        <Input
+                                                            type="number"
+                                                            placeholder={t('treatments.toothNumber')}
+                                                            value={treatment.numero_diente ?? ''}
+                                                            onChange={(e) => {
+                                                                setTreatments(prev => prev.map((t, i) =>
+                                                                    i === index ? { ...t, numero_diente: e.target.value ? parseInt(e.target.value, 10) : null } : t
+                                                                ));
+                                                            }}
+                                                            className="h-7 text-xs pl-7 pr-1"
+                                                        />
+                                                    </ToothInputWithPicker>
                                                     <Textarea
                                                         placeholder={t('treatments.treatmentPlaceholder')}
                                                         value={treatment.descripcion}
@@ -1468,7 +1497,7 @@ export function ClinicSessionDialog({
 
                                 {/* Compact inline attachments section */}
                                 {showAttachments && (
-                                    <div className="space-y-2 md:col-span-2">
+                                    <div data-help-id={sessionHelpId('session-attachments')} className="space-y-2 md:col-span-2">
                                         <Label className="text-xs font-semibold">{t('attachments.title')}</Label>
                                         {/* Compact horizontal dropzone */}
                                         <div

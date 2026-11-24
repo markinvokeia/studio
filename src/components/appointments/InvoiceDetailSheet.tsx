@@ -28,6 +28,7 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { confirmInvoice } from '@/services/invoices';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { SHEET_TAB_CLASS, hasValidPayments } from '@/components/appointments/sheet-utils';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
@@ -199,6 +200,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
   const [payments, setPayments] = React.useState<Payment[]>([]);
 
   // Payment form
+  const onInvalidSubmit = useInvalidSubmitToast();
   const paymentForm = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(t)),
     defaultValues: {
@@ -488,7 +490,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent maxWidth="2xl">
           <Form {...paymentForm}>
-            <form onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)} className="flex flex-col flex-1 w-full overflow-hidden">
+            <form onSubmit={paymentForm.handleSubmit(handlePaymentSubmit, onInvalidSubmit)} className="flex flex-col flex-1 w-full overflow-hidden">
               <DialogHeader>
                 <div className="flex items-start gap-3">
                   <div className="header-icon-circle mt-0.5">

@@ -1,0 +1,59 @@
+{
+  "id": "config.prescription-templates.delete",
+  "title": "Eliminar la plantilla de receta",
+  "module": "Configuración de Negocio",
+  "summary": "Borrar una plantilla de receta (pide confirmación).",
+  "screens": [
+    "config.prescription-templates"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar plantilla de receta",
+    "borrar plantilla de receta",
+    "quitar plantilla de receta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/prescription-templates",
+      "title": "Menú → Configuración de Negocio → Plantillas de Receta",
+      "details": "Recetas habituales con medicamentos e indicaciones; se eligen al recetar."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.prescription-templates.filter.search",
+      "title": "Buscá la plantilla de receta",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.prescription-templates.section.first-row",
+      "title": "Elegí la plantilla de receta",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.prescription-templates.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "config.prescription-templates.btn.delete",
+      "title": "Eliminar",
+      "until": "config.prescription-templates.btn.confirm-action"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "config.prescription-templates.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

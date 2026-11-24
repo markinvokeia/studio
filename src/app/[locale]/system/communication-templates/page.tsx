@@ -32,7 +32,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
-import { AlertCategory, CommunicationTemplate } from '@/lib/types';
+import { AlertCategory, CommunicationTemplate, type WhatsAppTemplateEntityType } from '@/lib/types';
 import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
@@ -58,7 +58,7 @@ const templateFormSchema = (t: (key: string) => string) => z.object({
     body_text: z.string().nullish(),
     variables_schema: z.any().nullish(),
     provider_language: z.string().nullish(),
-    entity_type: z.enum(['patient', 'appointment', 'invoice']).nullish(),
+    entity_type: z.enum(['patient', 'appointment', 'invoice', 'lab_order']).nullish(),
     default_sender: z.string().nullish(),
     attachments_config: z.any().nullish(),
     is_active: z.boolean().default(true),
@@ -69,10 +69,15 @@ const templateFormSchema = (t: (key: string) => string) => z.object({
 
 // entity_type -> resolver field keys the n8n send flow can populate (docs/whatsapp-templates-alerts-design.md).
 // Growing this list requires adding the matching resolution logic server-side; it's not just frontend config.
-const WHATSAPP_ENTITY_FIELD_KEYS: Record<'patient' | 'appointment' | 'invoice', string[]> = {
+const WHATSAPP_ENTITY_FIELD_KEYS: Record<WhatsAppTemplateEntityType, string[]> = {
     patient: ['patient.name', 'clinic.name'],
     appointment: ['patient.name', 'clinic.name', 'appointment.date', 'appointment.hour', 'appointment.professional_name'],
     invoice: ['patient.name', 'clinic.name', 'invoice.doc_no', 'invoice.amount_formatted', 'invoice.due_date_formatted'],
+    // Avisos de etapas de laboratorio al equipo: los resuelve "Explode recipients" del flujo Lab Orders.
+    lab_order: [
+        'recipient.name', 'patient.name', 'clinic.name', 'lab_order.number', 'lab_order.work', 'lab_order.laboratory',
+        'lab_order.stage', 'lab_order.days_in_stage', 'lab_order.doctor', 'lab_order.teeth', 'lab_order.due_date',
+    ],
 };
 
 // Resolver field key (dotted, used in variables_schema) -> i18n key under dialog.whatsapp.fieldLabels.
@@ -86,6 +91,15 @@ const WHATSAPP_FIELD_LABEL_KEYS: Record<string, string> = {
     'invoice.doc_no': 'invoiceDocNo',
     'invoice.amount_formatted': 'invoiceAmount',
     'invoice.due_date_formatted': 'invoiceDueDate',
+    'recipient.name': 'recipientName',
+    'lab_order.number': 'labOrderNumber',
+    'lab_order.work': 'labOrderWork',
+    'lab_order.laboratory': 'labOrderLaboratory',
+    'lab_order.stage': 'labOrderStage',
+    'lab_order.days_in_stage': 'labOrderDaysInStage',
+    'lab_order.doctor': 'labOrderDoctor',
+    'lab_order.teeth': 'labOrderTeeth',
+    'lab_order.due_date': 'labOrderDueDate',
 };
 
 async function fetchYCloudTemplates(): Promise<any[]> {
@@ -230,7 +244,7 @@ export default function CommunicationTemplatesPage() {
     const watchedType = form.watch('type');
     const watchedCode = form.watch('code');
     const watchedProviderLanguage = form.watch('provider_language');
-    const watchedEntityType = form.watch('entity_type') as 'patient' | 'appointment' | 'invoice' | undefined;
+    const watchedEntityType = form.watch('entity_type') as WhatsAppTemplateEntityType | undefined;
     const watchedVariablesSchema = (form.watch('variables_schema') || {}) as Record<string, string>;
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -536,12 +550,12 @@ export default function CommunicationTemplatesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <><DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem></>}
+                            {canUpdate && <><DropdownMenuItem data-help-id="system.communication-templates.btn.row-edit" onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
+                                <DropdownMenuItem data-help-id="system.communication-templates.btn.row-duplicate" onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem></>}
                             <DropdownMenuItem onClick={() => handlePreview(template)}>{t('columns.preview')}</DropdownMenuItem>
                             {/* <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem> */}
                             <DropdownMenuSeparator />
-                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem data-help-id="system.communication-templates.btn.row-delete" onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -605,7 +619,7 @@ export default function CommunicationTemplatesPage() {
 
     const rightPanel = selectedTemplate ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.communication-templates.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><BookCopy className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -614,12 +628,12 @@ export default function CommunicationTemplatesPage() {
                     </div>
                     <div className="flex gap-1 flex-none">
                         {canUpdate && (
-                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
+                            <Button data-help-id="system.communication-templates.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
                                 <Pencil className="h-4 w-4 mr-1" />Editar
                             </Button>
                         )}
                         {canDelete && (
-                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
+                            <Button data-help-id="system.communication-templates.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -796,6 +810,7 @@ export default function CommunicationTemplatesPage() {
                                                     <SelectItem value="patient">{t('dialog.whatsapp.entityTypes.patient')}</SelectItem>
                                                     <SelectItem value="appointment">{t('dialog.whatsapp.entityTypes.appointment')}</SelectItem>
                                                     <SelectItem value="invoice">{t('dialog.whatsapp.entityTypes.invoice')}</SelectItem>
+                                                    <SelectItem value="lab_order">{t('dialog.whatsapp.entityTypes.lab_order')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

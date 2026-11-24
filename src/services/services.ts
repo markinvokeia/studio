@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Service, UserServicesEntry } from '@/lib/types';
+import { MiscellaneousCategory, Service, UserServicesEntry } from '@/lib/types';
 import { api, REQUEST_TIMEOUT_MS } from './api';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
@@ -15,6 +15,8 @@ export interface GetServicesParams {
     search?: string;
     page?: number;
     limit?: number;
+    /** true: solo trabajos de laboratorio; false: solo los que no lo son. */
+    is_lab?: boolean;
 }
 
 /**
@@ -40,6 +42,10 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
 
         if (params.limit) {
             queryParams.limit = String(params.limit);
+        }
+
+        if (params.is_lab !== undefined) {
+            queryParams.is_lab = String(params.is_lab);
         }
 
         // Fuera de los catálogos de Ventas/Compras el resto de la app solo debe ver
@@ -113,6 +119,94 @@ export async function setServiceBookableOnline(serviceId: string, bookableOnline
         console.error('Failed to update the online booking flag:', error);
         return false;
     }
+}
+
+/**
+ * Marca o desmarca un servicio como trabajo de laboratorio.
+ *
+ * Igual que `setServiceBookableOnline`: endpoint propio porque
+ * `/catalogoservicios/upsert` no persiste `is_lab`. Se llama al crear un
+ * servicio, y al editar **sólo si el flag cambió**.
+ *
+ * `labCategoryId` (script 170): `undefined` no la toca; `null` la borra. Sin
+ * `is_lab` el backend la borra siempre.
+ *
+ * Nunca lanza: devuelve `false` si no se pudo aplicar.
+ */
+export async function setServiceIsLab(serviceId: string, isLab: boolean, labCategoryId?: string | null): Promise<boolean> {
+    if (!serviceId) return false;
+    try {
+        const response = await api.post(
+            API_ROUTES.SERVICE_LAB_WORK,
+            {
+                service_id: Number(serviceId),
+                is_lab: isLab,
+                ...(labCategoryId !== undefined ? { lab_category_id: labCategoryId } : {}),
+            },
+            undefined,
+            undefined,
+            { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+        );
+        const result = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+        if (result?.error || (result?.code && result.code >= 400)) return false;
+        return true;
+    } catch (error) {
+        console.error('Failed to update the lab work flag:', error);
+        return false;
+    }
+}
+
+export interface QuickSalesServiceInput {
+    name: string;
+    categoryId: string;
+    categoryName: string;
+    price: number;
+    durationMinutes: number;
+}
+
+/**
+ * Alta rápida de un servicio de venta (lo mínimo del formulario de Ventas → Servicios:
+ * nombre, categoría, precio y duración, en la moneda de la clínica). Mismo endpoint que esa
+ * pantalla; `is_lab` y demás flags van aparte (ver `setServiceIsLab`). Devuelve el id nuevo,
+ * o `null` si el backend no lo devolvió (el servicio igual quedó creado). Lanza si falla.
+ */
+export async function createSalesService(input: QuickSalesServiceInput): Promise<string | null> {
+    const response = await api.post(
+        API_ROUTES.PURCHASES.SERVICES_UPSERT,
+        {
+            name: input.name.trim(),
+            category_id: input.categoryId,
+            category: input.categoryName,
+            price: input.price,
+            currency: getClinicCurrency(),
+            duration_minutes: input.durationMinutes,
+            description: '',
+            indications: '',
+            color: '',
+            is_active: true,
+            service_type: 'single',
+            treatment_steps: [],
+            is_sales: true,
+        },
+        undefined,
+        undefined,
+        { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+    );
+    // n8n devuelve indistintamente `{...}`, `[{...}]` o `[{ json: {...} }]`.
+    const row: any = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+    if (row?.error || (typeof row?.code === 'number' && row.code >= 400)) {
+        throw new Error(row.message || row.error || 'Failed to save service');
+    }
+    const id = row?.id ?? row?.service_id ?? row?.data?.id ?? row?.service?.id;
+    return id != null && String(id).trim() ? String(id) : null;
+}
+
+/** Categorías de ingreso (las de los servicios de venta). */
+export async function getIncomeCategories(): Promise<MiscellaneousCategory[]> {
+    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES, { limit: '1000', type: 'income' });
+    return normalizeApiResponse<any>(data).items
+        .filter((c: any) => c?.id != null)
+        .map((c: any) => ({ ...c, id: String(c.id), type: c.category_type || c.type }));
 }
 
 /**

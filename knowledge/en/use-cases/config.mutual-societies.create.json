@@ -1,0 +1,48 @@
+{
+  "id": "config.mutual-societies.create",
+  "title": "Create a mutual society",
+  "summary": "New mutual society.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name",
+    "code": "Short code (e.g. MDE)"
+  },
+  "keywords": [
+    "new mutual society",
+    "new mutual society",
+    "create mutual society",
+    "add mutual society"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Mutual Societies",
+      "details": "Mutual societies, insurers or agreements patients belong to (chosen on the patient's record)."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "code",
+      "title": "Code",
+      "details": "Required: a unique abbreviation for reports and billing."
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "id": "dashboard.filters",
+  "title": "Filtrar el panel por sucursal, período y moneda",
+  "module": "Inicio",
+  "summary": "Ver el Panel de Control de una sola sede, de otro período o en otra moneda.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Panel de Control",
+  "inputs": {
+    "branch": "Nombre de la sucursal, o Consolidado para todas",
+    "period": "today | week | month | prevMonth | year",
+    "currency": "Código de moneda (UYU, USD…)"
+  },
+  "keywords": [
+    "filtrar",
+    "filtro",
+    "sucursal",
+    "sede",
+    "consolidado",
+    "periodo",
+    "fechas",
+    "rango",
+    "mes",
+    "semana",
+    "año",
+    "moneda",
+    "dolares",
+    "pesos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/",
+      "title": "Menú → Panel de Control",
+      "details": "El Panel de Control es la pantalla de inicio de la clínica."
+    },
+    {
+      "id": "branch",
+      "action": "fill",
+      "target": "dashboard.filter.branch",
+      "value": "{{values.branch}}",
+      "title": "Elegí la sucursal",
+      "details": "Consolidado suma todas las sedes. Con una sede elegida, todo el panel muestra sólo esa; la cobranza queda consolidada porque los cobros no registran sede."
+    },
+    {
+      "id": "period",
+      "action": "click",
+      "target": "dashboard.filter.period",
+      "title": "Abrí el período",
+      "skipIfMissing": true,
+      "details": "El período cambia Sucursales, Servicios más vendidos y Pacientes por día. Hoy, el mes acumulado y la evolución no dependen de él."
+    },
+    {
+      "id": "period-options",
+      "action": "highlight",
+      "target": "dashboard.section.period-options",
+      "title": "Elegí el período",
+      "skipIfMissing": true,
+      "doneOnClose": true,
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango personalizado con Desde y Hasta."
+    },
+    {
+      "id": "period-pick",
+      "action": "click",
+      "target": "dashboard.filter.period-{{values.period}}",
+      "title": "Período elegido",
+      "optional": true
+    },
+    {
+      "id": "currency-pick",
+      "action": "click",
+      "target": "dashboard.filter.currency-{{values.currency}}",
+      "title": "Moneda elegida",
+      "optional": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "dashboard.filter.currency",
+      "title": "Moneda",
+      "skipIfMissing": true,
+      "details": "Muestra todos los montos en la moneda elegida. Sólo aparece si la clínica trabaja con más de una moneda."
+    }
+  ]
+}

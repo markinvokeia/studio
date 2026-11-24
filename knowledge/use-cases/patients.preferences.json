@@ -1,0 +1,81 @@
+{
+  "id": "patients.preferences",
+  "title": "Preferencias del paciente",
+  "module": "Pacientes",
+  "summary": "Avisos que recibe, cómo se ve su sección de Finanzas y sus preferencias de agenda.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Información",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "preferencias",
+    "notificaciones del paciente",
+    "no enviar recordatorios",
+    "vista de finanzas",
+    "preferencias de agenda"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.more-menu",
+      "title": "Más acciones",
+      "details": "Comunicación, estado del paciente y preferencias.",
+      "until": "patients.btn.preferences"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.preferences",
+      "title": "Preferencias",
+      "details": "Abre Información → Preferencias.",
+      "until": "patients.section.finance-view",
+      "skipIfMissing": true
+    },
+    {
+      "id": "finance",
+      "action": "highlight",
+      "target": "patients.section.finance-view",
+      "title": "Vista de finanzas",
+      "details": "Normal: presupuestos, facturas y pagos en pestañas. Personalizado: una sola cuenta corriente. Se guarda al tocarla.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "calendar",
+      "action": "highlight",
+      "target": "patients.section.calendar-prefs",
+      "title": "Agenda",
+      "details": "Preferencias de agenda de este paciente.",
+      "skipIfMissing": true
+    }
+  ]
+}

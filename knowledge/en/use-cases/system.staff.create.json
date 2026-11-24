@@ -1,0 +1,59 @@
+{
+  "id": "system.staff.create",
+  "title": "Register a team member",
+  "summary": "Register them with their contact details; the email is their username to sign in.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role name (receptionist, administrator…)"
+  },
+  "keywords": [
+    "new team member",
+    "register",
+    "add to the team"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Receptionists & Administration"
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "If the clinic reached its license's maximum number of users, a notice shows instead of the form."
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "details": "They sign in to the system with this email."
+    },
+    {
+      "id": "phone",
+      "title": "Phone"
+    },
+    {
+      "id": "role_id",
+      "title": "Role",
+      "details": "Required: the role defines what they can see and do."
+    },
+    {
+      "id": "identity_document",
+      "title": "ID"
+    },
+    {
+      "id": "active_sede_id",
+      "title": "Branch"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Then send them the initial password from their record."
+    }
+  ]
+}

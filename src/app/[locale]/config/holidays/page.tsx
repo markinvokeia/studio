@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { parseClinicExceptions } from '@/lib/clinic-exceptions';
@@ -91,6 +92,9 @@ async function upsertHoliday(holidayData: ExceptionFormValues) {
 
 async function deleteHoliday(id: string) {
     const responseData = await api.delete(API_ROUTES.HOLIDAYS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+    if (responseData && typeof responseData === 'object' && responseData.error === true) {
+        throw new Error(responseData.message || 'Failed to delete holiday');
+    }
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete holiday');
     }
@@ -126,6 +130,7 @@ export default function HolidaysPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingHoliday, setDeletingHoliday] = React.useState<ClinicException | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ExceptionFormValues>({
         resolver: zodResolver(exceptionFormSchema(tValidation)),
         defaultValues: EMPTY_EXCEPTION_FORM,
@@ -336,7 +341,7 @@ export default function HolidaysPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.holidays.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarOff className="h-5 w-5" /></div>
@@ -346,13 +351,13 @@ export default function HolidaysPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedHoliday && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="config.holidays.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('createDialog.edit')}</span>
                             </Button>
                         )}
                         {selectedHoliday && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingHoliday(selectedHoliday); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="config.holidays.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingHoliday(selectedHoliday); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -369,7 +374,7 @@ export default function HolidaysPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -434,7 +439,7 @@ export default function HolidaysPage() {
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

@@ -1,0 +1,76 @@
+{
+  "id": "purchases.quotes.send",
+  "title": "Imprimir o enviar un presupuesto por correo",
+  "module": "Compras",
+  "summary": "Imprimir el presupuesto o mandarlo por correo al proveedor en PDF.",
+  "screens": [
+    "purchases.quotes"
+  ],
+  "inputs": {
+    "query": "Número o proveedor"
+  },
+  "keywords": [
+    "imprimir presupuesto",
+    "enviar presupuesto",
+    "mandar presupuesto por mail",
+    "pdf del presupuesto"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/quotes",
+      "title": "Menú → Compras → Presupuestos de Compra",
+      "details": "La cotización de un proveedor: qué productos o servicios, a qué precio. Confirmada, se factura al recibirla."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.quotes.filter.search",
+      "title": "Buscá el presupuesto",
+      "details": "Por número o por proveedor.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.quotes.section.first-row",
+      "title": "Abrí el presupuesto",
+      "details": "Tocá el presupuesto en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "purchases.quotes.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "purchases.quotes.btn.print",
+      "title": "Imprimir",
+      "details": "Abre la vista de impresión con el formato de la clínica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "click",
+      "target": "purchases.quotes.btn.email",
+      "title": "Enviar por correo",
+      "until": "purchases.quotes.field.doc-email-to",
+      "skipIfMissing": true
+    },
+    {
+      "id": "to",
+      "action": "highlight",
+      "target": "purchases.quotes.field.doc-email-to",
+      "title": "Destinatarios",
+      "details": "Viene el correo del proveedor; podés agregar otros separados por coma."
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "purchases.quotes.btn.doc-email-send",
+      "title": "Enviar",
+      "details": "Se adjunta el PDF y queda en el historial de comunicaciones."
+    }
+  ]
+}

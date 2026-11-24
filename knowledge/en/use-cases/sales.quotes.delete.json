@@ -1,0 +1,41 @@
+{
+  "id": "sales.quotes.delete",
+  "title": "Delete a draft quote",
+  "summary": "Delete a quote that wasn't confirmed (confirmed ones can't be deleted).",
+  "module": "Sales",
+  "inputs": {
+    "query": "Number or patient"
+  },
+  "keywords": [
+    "delete quote",
+    "remove quote",
+    "void quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Quotes",
+      "details": "The treatment plan with prices for the patient to approve; once confirmed it's invoiced, booked and charged."
+    },
+    {
+      "id": "search",
+      "title": "Find the quote",
+      "details": "By number or by patient."
+    },
+    {
+      "id": "pick",
+      "title": "Open the quote",
+      "details": "Tap the quote in the list. The guide continues once its details open."
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Drafts only."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm deletion",
+      "details": "This can't be undone."
+    }
+  ]
+}

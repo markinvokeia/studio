@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -47,9 +47,12 @@ import {
 } from '@/components/patients/patient-detail-main-content';
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
+import { PatientDependentsTab } from '@/components/patients/patient-dependents-tab';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
+  fetchPatientById,
   getDependantContactInfo,
   getDuplicateContactWarning,
   getMutualSocietiesList,
@@ -63,6 +66,7 @@ import {
 } from '@/components/patients/patient-form-utils';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
@@ -79,13 +83,15 @@ import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
+import { PatientLabOrdersTab } from '@/components/lab-orders/patient-lab-orders-tab';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
 import { RelatedStudyOrders } from '@/components/study-orders/related-study-orders';
-import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, LAB_ORDERS_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, PERIO_RECORD_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -93,6 +99,7 @@ import { Appointment, Calendar as CalendarType, DuplicateContactOwners, PatientD
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
+import { extractCreatedUserId } from '@/services/users';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
@@ -158,9 +165,15 @@ function mapApiUser(apiUser: any): User {
     name: apiUser.name || '',
     email: apiUser.email || '',
     phone_number: apiUser.phone_number || '',
+    alternative_phone: apiUser.alternative_phone || '',
     is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
     internal_id: apiUser.internal_id ?? null,
     identity_document: apiUser.identity_document,
+    // El formulario de la ficha se arma con esta fila y el guardado la reescribe entera: lo que
+    // no se copie acá se muestra vacío (o cédula) y se pisa al guardar.
+    identity_document_type: apiUser.identity_document_type || undefined,
+    address: apiUser.address || '',
+    sex: apiUser.sex ?? null,
     birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
     avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     total_invoiced: apiUser.total_invoiced,
@@ -173,6 +186,8 @@ function mapApiUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
     doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
       ? String(apiUser.doctor_id)
       : null,
@@ -282,11 +297,11 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
   };
 
   return (
-    <Card className="h-full flex flex-col shadow-none border-0">
+    <Card data-help-id="patients.section.notes" className="h-full flex flex-col shadow-none border-0">
       <CardHeader className="flex flex-row items-center justify-end flex-none p-4 pb-2">
         <div className="flex items-center gap-2">
           {!isEditing && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Button data-help-id="patients.btn.notes-edit" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               {t('UsersPage.notes.edit')}
             </Button>
           )}
@@ -295,7 +310,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
               <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
                 {t('UsersPage.notes.cancel')}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Button data-help-id="patients.btn.notes-save" size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
               </Button>
             </>
@@ -305,6 +320,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
       <CardContent className="flex-1 overflow-auto p-4 pt-2">
         {isEditing ? (
           <Textarea
+            data-help-id="patients.field.notes-text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t('UsersPage.notes.placeholder')}
@@ -375,7 +391,12 @@ function UsersTableWithCards({
       renderCard={(user: User, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={user.name}
-          subtitle={user.email || user.phone_number || user.identity_document || ''}
+          subtitle={user.matched_by_responsible && user.responsible_contact_name
+            ? t(user.responsible_phone_number ? 'UsersPage.responsibleMatchWithPhone' : 'UsersPage.responsibleMatch', {
+                name: user.responsible_contact_name,
+                phone: formatPhoneNumber(user.responsible_phone_number),
+              })
+            : user.email || formatPhoneNumber(user.phone_number) || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
@@ -440,7 +461,7 @@ export default function UsersPage() {
   // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
   const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
   // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
-  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+  const [uniqueConflict, setUniqueConflict] = React.useState<(UniqueConflict & { data: UserFormValues }) | null>(null);
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -518,6 +539,8 @@ export default function UsersPage() {
     CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
   ]);
   const isClinicalReadOnly = !canWriteClinical;
+  const canCreateAesthetic = canWriteClinical && hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  const canCreatePerio = canWriteClinical && hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
 
   // Header actions that were previously ungated.
   const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
@@ -552,6 +575,8 @@ export default function UsersPage() {
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
+  const [createPerioTrigger, setCreatePerioTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
@@ -735,12 +760,14 @@ export default function UsersPage() {
     }
   }, []);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: editingUser?.name })),
     defaultValues: {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
       identity_document_type: 'cedula_uy',
       birth_date: '',
@@ -798,6 +825,23 @@ export default function UsersPage() {
     setUserCount(total);
     setIsRefreshing(false);
   }, [pagination, columnFilters, date, showDebtors, showOnlyActive]);
+
+  /** La ficha abierta cedió su contacto a un tutor: la cabecera la muestra sin esperar otra selección. */
+  const refreshSelectedContact = React.useCallback(async (userId: string) => {
+    const fresh = await fetchPatientById(userId);
+    if (fresh?.id !== userId) return;
+    setSelectedUser((prev) => (prev?.id === userId
+      ? {
+        ...prev,
+        email: fresh.email,
+        phone_number: fresh.phone_number,
+        is_dependent: fresh.is_dependent,
+        responsible_contact_id: fresh.responsible_contact_id,
+        responsible_contact_name: fresh.responsible_contact_name,
+        responsible_phone_number: fresh.responsible_phone_number,
+      }
+      : prev));
+  }, []);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -997,6 +1041,7 @@ export default function UsersPage() {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
       identity_document_type: 'cedula_uy',
       birth_date: '',
@@ -1022,6 +1067,7 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       phone: user.phone_number,
+      alternative_phone: user.alternative_phone || '',
       identity_document: user.identity_document || '',
       identity_document_type: user.identity_document_type || 'cedula_uy',
       birth_date: user.birth_date || '',
@@ -1068,6 +1114,13 @@ export default function UsersPage() {
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+      // Un dependiente encontrado por el teléfono de su tutor: se aclara por qué aparece.
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate">{row.original.name}</span>
+          <ResponsibleMatchHint user={row.original} onlyWhenMatched />
+        </div>
+      ),
     },
     {
       accessorKey: 'email',
@@ -1114,6 +1167,8 @@ export default function UsersPage() {
       setPatientConditions([]);
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
+      setCreateAestheticTrigger(0);
+      setCreatePerioTrigger(0);
       setCreateDocumentTrigger(0);
       setCreateMedicalInstructionTrigger(0);
       setCreatePrescriptionTrigger(0);
@@ -1125,14 +1180,14 @@ export default function UsersPage() {
     setRowSelection({});
   };
 
-  const onSubmit = async (data: UserFormValues, confirmDuplicates = false) => {
+  const onSubmit = async (data: UserFormValues, confirmDuplicates = false, adoptDependentIds: string[] = []) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
-      const savedData = await upsertUser(data, { confirmDuplicates });
+      const savedData = await upsertUser(data, { confirmDuplicates, adoptDependentIds });
       const isEditing = !!editingUser;
-      const savedUserId = data.id || savedData?.id || savedData?.user_id;
+      const savedUserId = data.id || extractCreatedUserId(savedData);
       if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
         try {
           await api.post(API_ROUTES.MUTUAL_SOCIETIES_ASSIGN_USER, {
@@ -1147,16 +1202,22 @@ export default function UsersPage() {
         }
       }
 
-      toast({
-        title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
-        description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
-      });
+      toast(adoptDependentIds.length > 0
+        ? {
+          title: t('DuplicateContact.adopt.successTitle'),
+          description: t('DuplicateContact.adopt.successDescription', { count: adoptDependentIds.length }),
+        }
+        : {
+          title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
+          description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
+        });
       if (selectedUser && savedUserId === selectedUser.id) {
         setSelectedUser({
           ...selectedUser,
           name: data.name,
           email: data.email || '',
           phone_number: data.phone || '',
+          alternative_phone: data.alternative_phone || '',
           identity_document: data.identity_document,
           identity_document_type: data.identity_document_type as User['identity_document_type'],
           birth_date: data.birth_date,
@@ -1170,6 +1231,9 @@ export default function UsersPage() {
           doctor_name: selectedDoctorDisplayName || undefined,
           sex: data.sex ?? null,
         });
+      }
+      if (selectedUser && adoptDependentIds.includes(selectedUser.id)) {
+        void refreshSelectedContact(selectedUser.id);
       }
       setIsDialogOpen(false);
       if (!isEditing) {
@@ -1186,7 +1250,7 @@ export default function UsersPage() {
       if (duplicateOwners) {
         setDuplicateWarning({ owners: duplicateOwners, data });
       } else if (conflict) {
-        setUniqueConflict(conflict);
+        setUniqueConflict({ ...conflict, data });
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -1415,6 +1479,8 @@ export default function UsersPage() {
                         showActivate={canToggleStatus}
                         onCreateClinicalSession={canWriteClinical ? () => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); } : undefined}
                         onCreateOdontogram={canWriteClinical ? () => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); } : undefined}
+                        onCreateAestheticSession={canCreateAesthetic ? () => { openClinicalHistory(); setCreateAestheticTrigger(n => n + 1); } : undefined}
+                        onCreatePerioExam={canCreatePerio ? () => { openClinicalHistory(); setCreatePerioTrigger(n => n + 1); } : undefined}
                         onCreateMedicalInstruction={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); } : undefined}
                         onCreatePrescription={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreatePrescriptionTrigger(n => n + 1); } : undefined}
                         onCreateDocument={canWriteClinical ? () => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); } : undefined}
@@ -1485,6 +1551,10 @@ export default function UsersPage() {
                               setSelectedUser(updated)
                               loadUsers()
                             }}
+                            onContactMoved={() => {
+                              void refreshSelectedContact(selectedUser.id)
+                              void loadUsers()
+                            }}
                           />
                         }
                         notesContent={
@@ -1495,6 +1565,19 @@ export default function UsersPage() {
                         }
                         preferencesContent={
                           <UserPreferencesTab user={selectedUser} showFinanceView />
+                        }
+                        dependentsLabel={t(selectedUser.is_dependent ? 'UsersPage.tabs.responsible' : 'UsersPage.tabs.dependents')}
+                        dependentsContent={
+                          <PatientDependentsTab
+                            patient={selectedUser}
+                            responsible={selectedUser.is_dependent && (dependantContactInfo?.id || selectedUser.responsible_contact_id)
+                              ? {
+                                  id: dependantContactInfo?.id || selectedUser.responsible_contact_id || '',
+                                  name: selectedUser.responsible_contact_name || dependantContactInfo?.name || '',
+                                }
+                              : null}
+                            onDependentsChanged={loadUsers}
+                          />
                         }
                         anamnesisContent={
                           <AnamnesisViewer
@@ -1513,6 +1596,11 @@ export default function UsersPage() {
                             readOnly={isClinicalReadOnly}
                             createSessionTrigger={createSessionTrigger}
                             createOdontogramTrigger={createOdontogramTrigger}
+                            createAestheticTrigger={createAestheticTrigger}
+                            onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
+                            createPerioTrigger={createPerioTrigger}
+                            onPerioTriggerConsumed={() => setCreatePerioTrigger(0)}
+                            patientSex={selectedUser.sex}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}
                             refreshAppointmentsTrigger={apptRefreshTrigger}
@@ -1534,6 +1622,9 @@ export default function UsersPage() {
                             }}
                           />
                         }
+                        labOrdersContent={hasPermission(LAB_ORDERS_PERMISSIONS.VIEW) ? (
+                          <PatientLabOrdersTab patientId={selectedUser.id} patientName={selectedUser.name} readOnly={isClinicalReadOnly} />
+                        ) : undefined}
                         treatmentPlansContent={
                           <UserTreatmentPlans
                             userId={selectedUser.id}
@@ -1594,8 +1685,22 @@ export default function UsersPage() {
           setDuplicateWarning(null);
           if (pending) void onSubmit(pending.data, true);
         }}
+        onAdopt={canUpdate && !duplicateWarning?.data.is_dependent ? (ids) => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          // Si otra ficha sigue compartiendo el teléfono, ya se la mostró: no se vuelve a preguntar.
+          if (pending) void onSubmit(pending.data, true, ids);
+        } : undefined}
       />
-      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+      <UniqueConflictDialog
+        conflict={uniqueConflict}
+        onClose={() => setUniqueConflict(null)}
+        onAdopt={canUpdate && !uniqueConflict?.data.is_dependent ? (ids) => {
+          const pending = uniqueConflict;
+          setUniqueConflict(null);
+          if (pending) void onSubmit(pending.data, false, ids);
+        } : undefined}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
@@ -1604,7 +1709,7 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data), onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -1649,11 +1754,29 @@ export default function UsersPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('UsersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="alternative_phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.landlinePhone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>{t('UsersPage.createDialog.landlinePhoneHint')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1823,6 +1946,7 @@ export default function UsersPage() {
                     currentUserId={editingUser?.id}
                     initialDisplayName={selectedGuardianDisplayName}
                     onDisplayNameChange={setSelectedGuardianDisplayName}
+                    onContactMoved={() => void loadUsers()}
                   />
                 ) : null}
                 <FormField
@@ -1855,8 +1979,8 @@ export default function UsersPage() {
               {t('ClinicHistoryPage.discharge.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="space-y-6 px-6 py-4">
-            <div className="space-y-3">
+          <DialogBody data-help-id="patients.section.discharge" className="space-y-6 px-6 py-4">
+            <div data-help-id="patients.field.discharge-options" className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.optionsLabel')}
               </Label>
@@ -1864,6 +1988,7 @@ export default function UsersPage() {
                 {([1, 3, 6, 12] as const).map((months) => (
                   <Button
                     key={months}
+                    data-help-id={`patients.btn.discharge-${months}m`}
                     variant={dischargePreset === months ? 'default' : 'secondary'}
                     size="sm"
                     className="rounded-full"
@@ -1884,7 +2009,7 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div data-help-id="patients.field.discharge-date" className="space-y-3 pt-2">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.dateLabel')}
               </Label>
@@ -1898,6 +2023,7 @@ export default function UsersPage() {
           </DialogBody>
           <DialogFooter>
             <Button
+              data-help-id="patients.btn.discharge-save"
               className="px-8"
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}

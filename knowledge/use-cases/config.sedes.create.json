@@ -1,0 +1,78 @@
+{
+  "id": "config.sedes.create",
+  "title": "Crear una sede",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de una sede.",
+  "screens": [
+    "config.sedes"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo sede",
+    "nueva sede",
+    "crear sede",
+    "agregar sede"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/sedes",
+      "title": "Menú → Configuración de Negocio → Sedes",
+      "details": "Los lugares físicos donde atiende la clínica: cada consultorio, horario y caja pertenece a una sede."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.sedes.btn.new",
+      "title": "Crear",
+      "until": "config.sedes.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.sedes.field.name",
+      "title": "Nombre",
+      "details": "Nombre corto que reconoce el equipo (Centro, Pocitos…).",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "address",
+      "action": "highlight",
+      "target": "config.sedes.field.address",
+      "title": "Dirección",
+      "details": "Se usa en recordatorios y en el portal del paciente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "phone",
+      "action": "highlight",
+      "target": "config.sedes.field.phone",
+      "title": "Teléfono",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "highlight",
+      "target": "config.sedes.field.email",
+      "title": "Correo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.sedes.field.is_active",
+      "title": "Activa",
+      "details": "Desmarcada no aparece para agendar ni para elegir.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.sedes.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

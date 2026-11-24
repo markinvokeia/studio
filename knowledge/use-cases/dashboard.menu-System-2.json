@@ -1,0 +1,80 @@
+{
+  "id": "dashboard.menu-System-2",
+  "title": "Conocer Sistema: Configuración de Alertas, Categorías de Alertas y más",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Configuración de Alertas, Categorías de Alertas, Reglas de Alertas y Plantillas de Alertas: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "sistema",
+    "qué hay en sistema",
+    "configuración de alertas",
+    "categorías de alertas",
+    "reglas de alertas",
+    "plantillas de alertas"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.System",
+      "title": "Sistema",
+      "details": "Recorremos Configuración de Alertas, Categorías de Alertas, Reglas de Alertas y Plantillas de Alertas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-system.alerts-config",
+      "action": "navigate",
+      "route": "/system/alerts-config",
+      "title": "Menú → Sistema → Configuración de Alertas"
+    },
+    {
+      "id": "page-system.alerts-config",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Configuración de Alertas",
+      "details": "Horarios y parámetros con que corre el motor de alertas. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-system.alert-categories",
+      "action": "navigate",
+      "route": "/system/alert-categories",
+      "title": "Menú → Sistema → Categorías de Alertas"
+    },
+    {
+      "id": "page-system.alert-categories",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Categorías de Alertas",
+      "details": "Agrupan las alertas (cobranza, recordatorios, seguimiento) para filtrarlas y priorizarlas. Tiene 4 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-system.alert-rules",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+      "id": "page-system.alert-rules",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Reglas de Alertas",
+      "details": "Definen cuándo el sistema genera una alerta (deuda, paciente inactivo, turno sin confirmar) y si se envía sola por correo o WhatsApp. Tiene 5 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-system.communication-templates",
+      "action": "navigate",
+      "route": "/system/communication-templates",
+      "title": "Menú → Sistema → Plantillas de Alertas"
+    },
+    {
+      "id": "page-system.communication-templates",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Plantillas de Alertas",
+      "details": "Textos de correos y WhatsApp que usan las alertas y los recordatorios. Tiene 4 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

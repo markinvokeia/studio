@@ -6728,7 +6728,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH upd AS (\n  UPDATE public.quote_items qi SET\n    service_id     = $3,\n    quantity       = $4,\n    unit_price     = $5,\n    total          = $6,\n    tooth_number   = $7,\n    gross_total    = $8,\n    discount_mode  = $9,\n    discount_value = $10,\n    discount_amount= $11,\n    updated_at     = $12\n  WHERE qi.id = $1 AND qi.quote_id = $2\n  RETURNING qi.id\n)\nINSERT INTO public.quote_items\n  (quote_id, service_id, quantity, unit_price, total, tooth_number, gross_total, discount_mode, discount_value, discount_amount, updated_at)\nSELECT $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12\nWHERE NOT EXISTS (SELECT 1 FROM upd)\nRETURNING id;",
+        "query": "WITH upd AS (\n  UPDATE public.quote_items qi SET\n    service_id = $3, quantity = $4, unit_price = $5, total = $6, tooth_number = $7,\n    gross_total = $8, discount_mode = $9, discount_value = $10, discount_amount = $11,\n    updated_by = $12::uuid\n  WHERE qi.id = $1 AND qi.quote_id = $2\n  RETURNING qi.id\n)\nINSERT INTO public.quote_items\n  (quote_id, service_id, quantity, unit_price, total, tooth_number, gross_total,\n   discount_mode, discount_value, discount_amount, created_by, updated_by)\nSELECT $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::uuid, $12::uuid\nWHERE NOT EXISTS (SELECT 1 FROM upd)\nRETURNING id;",
         "options": {
           "queryBatching": "transaction",
           "queryReplacement": "={{ [ ($json.id !== undefined && $json.id !== null && $json.id !== '') ? parseInt($json.id, 10) : null, $('Update').first().json.id, $json.service_id, $json.quantity, $json.unit_price, $json.total, ($json.tooth_number ?? null), ($json.gross_total ?? null), ($json.discount_mode ?? null), ($json.discount_value ?? null), ($json.discount_amount ?? null), $('quotes/upsert').item.json.jwtPayload.userId] }}"
@@ -8991,7 +8991,7 @@
         "query": "INSERT INTO public.payment_allocations\n    (payment_id, invoice_id, amount, allocated_currency, target_amount, exchange_rate)\nVALUES\n    ($1, $2, $3, $4, $5, $6);",
         "options": {
           "queryBatching": "transaction",
-          "queryReplacement": "={{ [$('Has allocations?').first().json.payment_id, $json.invoice_id, $json.amount, $('Has allocations?').first().json.currency || 'UYU', $json.amount, $('Has allocations?').first().json.exchange_rate || 1] }}"
+          "queryReplacement": "={{ [$('Has allocations?').first().json.payment_id, $json.invoice_id, $json.amount, $('Has allocations?').first().json.currency || 'UYU', $json.target_amount ?? $json.amount, $json.exchange_rate ?? ($('Has allocations?').first().json.exchange_rate || 1)] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -10172,7 +10172,7 @@
             "id": "={{ $('Get payment1').first().json.id }}",
             "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
             "amount": "={{ (Number($('Get payment1').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) }}",
-            "converted_amount": "={{ (Number($('Get payment1').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) * Number($('Get payment1').first().json.exchange_rate || 1) }}",
+            "converted_amount": "={{ (() => { const p = $('Get payment1').first().json; const oldAmount = Math.abs(Number(p.amount)); const ratio = oldAmount > 0 && p.converted_amount != null ? Math.abs(Number(p.converted_amount)) / oldAmount : 1; return (Number(p.amount) < 0 ? -1 : 1) * Math.round(Number($('Detectar cambios').first().json.new_amount) * ratio * 100) / 100; })() }}",
             "created_at": "={{ $('Detectar cambios').first().json.new_payment_date }}",
             "notes": "={{ $('Detectar cambios').first().json.new_notes }}",
             "is_historical": "={{ $('Detectar cambios').first().json.new_is_historical }}"
@@ -18400,7 +18400,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "512a497c-f43c-4106-babe-372813cc6789",
+  "versionId": "24e3feb1-34b6-4bbd-bbaa-a4ff1dd44b11",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

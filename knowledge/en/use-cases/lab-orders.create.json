@@ -1,0 +1,116 @@
+{
+  "id": "lab-orders.create",
+  "title": "Record a lab order",
+  "summary": "Enter a job for the lab step by step: patient, services with teeth, laboratory and review; it can be sent while creating it.",
+  "module": "Clinic History",
+  "inputs": {
+    "patient": "Patient",
+    "service": "Lab service",
+    "teeth": "Teeth (comma-separated numbers, e.g. 11, 21)",
+    "item_notes": "Service note (shade, material…)",
+    "doctor": "Doctor",
+    "laboratory": "Lab",
+    "notes": "Notes",
+    "urgent": "Urgent (yes/no)",
+    "send_due_date": "Expected delivery date if sent now (YYYY-MM-DD)"
+  },
+  "keywords": [
+    "new lab order",
+    "create order",
+    "send job to lab",
+    "order a crown",
+    "order a prosthesis",
+    "record a job",
+    "create and send order"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "new",
+      "title": "New order"
+    },
+    {
+      "id": "patient",
+      "title": "Patient",
+      "details": "Who the job is for. From the patient’s record it comes preselected."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Who requested the job. They get the order’s alerts. If you are a doctor, you come preselected."
+    },
+    {
+      "id": "next-work",
+      "title": "Continue",
+      "details": "Goes to the job."
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "details": "Pick the job from the list. You can add several. The quantity is next to the name, and it is almost always one."
+    },
+    {
+      "id": "teeth",
+      "title": "Teeth",
+      "details": "The teeth for that service: type them or tap them on the chart next to it. The order’s teeth are all its services’ teeth combined."
+    },
+    {
+      "id": "item-notes",
+      "title": "Service note",
+      "details": "Shade, material or any instruction for the lab."
+    },
+    {
+      "id": "next-laboratory",
+      "title": "Continue",
+      "details": "Goes to the lab. At least one service is needed."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "If only one lab does that job, it comes preselected. Otherwise click one of the suggestions, or leave it for when you send it."
+    },
+    {
+      "id": "next-review",
+      "title": "Continue",
+      "details": "Goes to review the order before creating it."
+    },
+    {
+      "id": "review",
+      "title": "Review the order",
+      "details": "Patient, job and lab. Edit takes you back to that step without losing anything."
+    },
+    {
+      "id": "send",
+      "title": "Send it now?",
+      "details": "Save to send later keeps it in the first stage. Send now creates it and moves it to the next stage, and asks for the due date."
+    },
+    {
+      "id": "send-due",
+      "title": "Expected delivery",
+      "details": "The one the lab promised. From the next day, if it has not arrived, the order shows as overdue."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "attachments",
+      "title": "Attachments",
+      "details": "Photos, PDFs or 3D scans for the lab. They upload when the order is created."
+    },
+    {
+      "id": "urgent",
+      "title": "Urgent",
+      "details": "If you mark it, it shows first in the list, on the board and in the patient’s record."
+    },
+    {
+      "id": "save",
+      "title": "Create the order",
+      "details": "Without sending it, it stays in the first stage. If you chose to send it now, it moves to the next stage with the lab and the date."
+    }
+  ]
+}

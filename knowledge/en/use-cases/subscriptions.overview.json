@@ -1,0 +1,21 @@
+{
+  "id": "subscriptions.overview",
+  "title": "View the subscription history",
+  "summary": "Each of the clinic's subscription periods with its plan and validity.",
+  "module": "System",
+  "keywords": [
+    "subscriptions",
+    "plan",
+    "service billing"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Subscriptions"
+    },
+    {
+      "id": "row",
+      "title": "The most recent"
+    }
+  ]
+}

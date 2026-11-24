@@ -1,0 +1,106 @@
+{
+  "id": "reports.servicios.overview",
+  "title": "Usar el reporte Rendimiento de Servicios",
+  "module": "Reportes",
+  "summary": "Qué servicios se venden más y cuánto aportan.",
+  "screens": [
+    "reports.servicios"
+  ],
+  "keywords": [
+    "rendimiento de servicios",
+    "servicios más vendidos",
+    "qué servicio factura más"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/servicios",
+      "title": "Menú → Reportes → Rendimiento de Servicios",
+      "details": "Qué servicios se venden más y cuánto aportan."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.servicios.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.servicios.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.servicios.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.servicios.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.servicios.section.results",
+        "reports.servicios.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.servicios.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.servicios.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.servicios.section.kpi",
+      "title": "Indicadores",
+      "details": "Servicios activos y sesiones realizadas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.servicios.section.results",
+      "title": "Resultados",
+      "details": "Ranking de servicios por cantidad y facturación.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.servicios.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.servicios.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.servicios.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

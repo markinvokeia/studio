@@ -1,0 +1,122 @@
+{
+  "id": "alerts.overview",
+  "title": "Usar el Centro de Alertas",
+  "module": "Centro de Alertas",
+  "summary": "Qué muestra cada parte: resumen por prioridad, alertas por categoría, el paciente, el estado, el historial y las acciones.",
+  "screens": [
+    "alerts"
+  ],
+  "keywords": [
+    "alertas",
+    "centro de alertas",
+    "pendientes",
+    "avisos",
+    "que tengo que hacer",
+    "prioridad",
+    "critica"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "summary",
+      "action": "highlight",
+      "target": "alerts.section.summary",
+      "title": "Resumen",
+      "details": "Cuántas alertas pendientes hay en total y cuántas son críticas, de prioridad alta y media.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "refresh",
+      "action": "highlight",
+      "target": "alerts.btn.refresh",
+      "title": "Actualizar",
+      "details": "Vuelve a traer las alertas."
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "alerts.btn.filters",
+      "title": "Filtros",
+      "details": "Por estado (pendiente, completada, acción tomada, ignorada, suprimida) y por prioridad.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "category",
+      "action": "highlight",
+      "target": "alerts.section.category",
+      "title": "Categorías",
+      "details": "Las alertas se agrupan por categoría (citas, facturación, seguimiento, pacientes, recordatorios, fechas). El check de la categoría selecciona todas sus alertas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "alert",
+      "action": "highlight",
+      "target": "alerts.section.alert",
+      "title": "Una alerta",
+      "details": "La franja de color es la prioridad. Debajo del título se ven los datos que la generaron, el historial de acciones y el estado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "patient",
+      "action": "highlight",
+      "target": "alerts.btn.view-patient",
+      "title": "Ver al paciente",
+      "details": "El título abre la ficha del paciente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "whatsapp",
+      "action": "highlight",
+      "target": "alerts.btn.send-whatsapp",
+      "title": "Enviar WhatsApp",
+      "details": "Manda la plantilla de WhatsApp de la regla al paciente. Deshabilitado si no tiene teléfono o la regla no tiene plantilla.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "highlight",
+      "target": "alerts.btn.send-email",
+      "title": "Enviar correo",
+      "details": "Abre el correo con el texto de la regla para revisarlo y enviarlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "call",
+      "action": "highlight",
+      "target": "alerts.btn.register-call",
+      "title": "Registrar llamada",
+      "details": "Anota que llamaste, cuándo y qué se habló.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "snooze",
+      "action": "highlight",
+      "target": "alerts.btn.snooze",
+      "title": "Pausar",
+      "details": "La saca de la bandeja hasta una fecha (1 día, 3 días, 1 semana u otra).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "ignore",
+      "action": "highlight",
+      "target": "alerts.btn.ignore",
+      "title": "Ignorar",
+      "details": "La descarta con un motivo, sin hacer nada.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "note",
+      "action": "highlight",
+      "target": "alerts.btn.add-note",
+      "title": "Agregar nota",
+      "details": "Un comentario para el equipo; queda en el historial de la alerta.",
+      "skipIfMissing": true
+    }
+  ]
+}

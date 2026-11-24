@@ -1,0 +1,39 @@
+{
+  "id": "config.schedules.delete",
+  "title": "Delete the schedule",
+  "summary": "Delete a schedule (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete schedule",
+    "remove schedule",
+    "clear schedule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Schedules",
+      "details": "Each branch's office hours, per day. Outside these hours the calendar doesn't offer slots."
+    },
+    {
+      "id": "search",
+      "title": "Find the schedule"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the schedule",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

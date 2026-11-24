@@ -1,0 +1,54 @@
+{
+  "id": "system.staff.overview",
+  "title": "Tour Receptionists & Administration",
+  "summary": "List, record with tabs and system access.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "receptionists & administration",
+    "view team member"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Receptionists & Administration"
+    },
+    {
+      "id": "search",
+      "title": "Search"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the team member"
+    },
+    {
+      "id": "detail",
+      "title": "Record"
+    },
+    {
+      "id": "tab-details",
+      "title": "Details"
+    },
+    {
+      "id": "tab-roles",
+      "title": "Roles",
+      "details": "The assigned roles: each one adds permissions."
+    },
+    {
+      "id": "tab-logs",
+      "title": "Activity",
+      "details": "What they did in the system."
+    },
+    {
+      "id": "tab-preferences",
+      "title": "Preferences"
+    },
+    {
+      "id": "pw",
+      "title": "Initial password",
+      "details": "Emails them a password to sign in. Sent as soon as you tap it."
+    }
+  ]
+}

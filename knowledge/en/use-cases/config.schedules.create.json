@@ -1,0 +1,47 @@
+{
+  "id": "config.schedules.create",
+  "title": "Create a schedule",
+  "summary": "New schedule.",
+  "module": "Business Setup",
+  "inputs": {
+    "start_time": "From",
+    "end_time": "Until",
+    "days_of_week": "List of days, 0=Sunday, 1=Monday … 6=Saturday (e.g. [1,2,3,4,5])"
+  },
+  "keywords": [
+    "new schedule",
+    "new schedule",
+    "create schedule",
+    "add schedule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Schedules",
+      "details": "Each branch's office hours, per day. Outside these hours the calendar doesn't offer slots."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "days_of_week",
+      "title": "Days",
+      "details": "Required: check all the days with the same hours; one time range is created per day."
+    },
+    {
+      "id": "start_time",
+      "title": "From",
+      "details": "Opening time."
+    },
+    {
+      "id": "end_time",
+      "title": "Until",
+      "details": "Closing time."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

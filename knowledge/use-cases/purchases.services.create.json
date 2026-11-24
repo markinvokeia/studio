@@ -1,0 +1,93 @@
+{
+  "id": "purchases.services.create",
+  "title": "Crear un producto o servicio",
+  "module": "Compras",
+  "summary": "Alta de un producto o servicio con precio y moneda.",
+  "screens": [
+    "purchases.services"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "price": "Precio de referencia",
+    "category": "Categoría de gasto (ej. Insumo Clínico)"
+  },
+  "keywords": [
+    "nuevo producto o servicio",
+    "crear producto o servicio",
+    "agregar a la lista de precios"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/services",
+      "title": "Menú → Compras → Productos y Servicios de Proveedores",
+      "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "purchases.services.btn.new",
+      "title": "Crear",
+      "until": "purchases.services.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "purchases.services.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}",
+      "optional": false
+    },
+    {
+      "id": "category_id",
+      "action": "fill",
+      "target": "purchases.services.field.category_id",
+      "title": "Categoría",
+      "value": "{{values.category}}",
+      "details": "Obligatoria: la categoría de gasto con que se agrupa en los reportes."
+    },
+    {
+      "id": "price",
+      "action": "fill",
+      "target": "purchases.services.field.price",
+      "title": "Precio de referencia",
+      "value": "{{values.price}}",
+      "optional": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "purchases.services.field.currency",
+      "title": "Moneda",
+      "skipIfMissing": true
+    },
+    {
+      "id": "color",
+      "action": "highlight",
+      "target": "purchases.services.field.color",
+      "title": "Color",
+      "skipIfMissing": true
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "purchases.services.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "purchases.services.field.is_active",
+      "title": "Activo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.services.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

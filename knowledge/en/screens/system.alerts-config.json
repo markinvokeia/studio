@@ -1,0 +1,18 @@
+{
+  "id": "system.alerts-config",
+  "summary": "General alerts settings.",
+  "purpose": "Schedules and parameters the alerts engine runs with.",
+  "elements": {
+    "system.alerts-config.section.scheduler": {
+      "label": "Scheduling",
+      "description": "How often and at what time alerts are created."
+    },
+    "system.alerts-config.section.retention": {
+      "label": "Retention",
+      "description": "How many days alerts and history are kept before being cleaned up."
+    },
+    "system.alerts-config.btn.save": {
+      "label": "Save"
+    }
+  }
+}

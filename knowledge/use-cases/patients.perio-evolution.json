@@ -1,0 +1,141 @@
+{
+  "id": "patients.perio-evolution",
+  "title": "Comparar con exámenes anteriores",
+  "module": "Pacientes",
+  "summary": "Ver la evolución del paciente: deslizador, superponer, cambios, mapa, animación y tendencias.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "evolución",
+    "comparar",
+    "antes y después",
+    "deslizador",
+    "tendencias",
+    "inserción"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado con sondaje queda como guía (un cribado no es guía).",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "step",
+      "action": "click",
+      "target": "perio-session.btn.step-evolution",
+      "title": "Evolución",
+      "details": "Compara hoy con cualquier examen anterior; por defecto, con el inicial."
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "perio-session.section.evolution-empty",
+      "title": "Primer periodontograma",
+      "details": "Si es el primero del paciente, no hay con qué comparar todavía.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "controls",
+      "action": "highlight",
+      "target": "perio-session.section.evolution-controls",
+      "title": "Cómo comparar",
+      "details": "Deslizador (antes y después), Superponer (barras verdes si se ganó inserción, rojas si se perdió) o Cambios; arcada; curvas o mapa.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "perio-session.section.evolution-chart",
+      "title": "Comparación",
+      "details": "Arrastrá la manija del deslizador para mostrarle al paciente el antes y el después.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "play",
+      "action": "highlight",
+      "target": "perio-session.btn.evolution-play",
+      "title": "Ver la evolución animada",
+      "details": "Pasa de un examen al siguiente para contar la historia del tratamiento.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "with",
+      "action": "highlight",
+      "target": "perio-session.section.compare-with",
+      "title": "Comparar hoy con…",
+      "details": "Tocá otro examen para cambiar contra cuál se compara.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "trends",
+      "action": "highlight",
+      "target": "perio-session.section.trends",
+      "title": "Tendencias",
+      "details": "Cada índice en todas las sesiones: verde si mejora, rojo si empeora.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "worse",
+      "action": "highlight",
+      "target": "perio-session.section.worse",
+      "title": "Empeoraron y mejoraron",
+      "details": "Solo cambios de 2 mm o más: 1 mm entra en el error de la sonda manual. Tocá un sitio para verlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "next",
+      "action": "highlight",
+      "target": "perio-session.btn.next-evolution",
+      "title": "Ir al diagnóstico",
+      "details": "El paso siguiente.",
+      "skipIfMissing": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "system.import.overview",
+  "title": "Importar datos desde un archivo",
+  "module": "Sistema",
+  "summary": "Carga en masa (pacientes, servicios…) desde un CSV, paso a paso.",
+  "screens": [
+    "system.import"
+  ],
+  "keywords": [
+    "importar",
+    "csv",
+    "carga masiva",
+    "subir planilla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/import",
+      "title": "Menú → Sistema → Importar Datos",
+      "details": "Importá registros en masa desde un archivo CSV."
+    },
+    {
+      "id": "step",
+      "action": "highlight",
+      "target": "system.import.section.step",
+      "title": "Paso actual",
+      "details": "Elegí qué importar, subí el archivo, revisá cómo se mapean las columnas y confirmá."
+    },
+    {
+      "id": "next",
+      "action": "highlight",
+      "target": "system.import.btn.next",
+      "title": "Siguiente",
+      "skipIfMissing": true
+    }
+  ]
+}

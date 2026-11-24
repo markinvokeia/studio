@@ -1,0 +1,56 @@
+{
+  "id": "alerts.bulk",
+  "title": "Work several alerts at once",
+  "summary": "Select alerts (or a whole category) and complete, snooze or WhatsApp them together.",
+  "module": "Alerts Center",
+  "keywords": [
+    "several alerts",
+    "all",
+    "bulk",
+    "in bulk",
+    "select all",
+    "whole category"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "select",
+      "title": "Select a category",
+      "details": "The category's checkbox selects all its alerts; you can also check them one by one."
+    },
+    {
+      "id": "bar",
+      "title": "Action bar",
+      "details": "How many are selected and what you can do with all of them together."
+    },
+    {
+      "id": "whatsapp",
+      "title": "WhatsApp all",
+      "details": "Sends the template to those that have a phone; it tells you how many were sent and how many were skipped."
+    },
+    {
+      "id": "snooze",
+      "title": "Snooze all",
+      "details": "Snoozes them until the date you choose."
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "details": "Only with one alert selected."
+    },
+    {
+      "id": "complete",
+      "title": "Complete all",
+      "details": "Marks them as resolved."
+    },
+    {
+      "id": "deselect",
+      "title": "Deselect",
+      "details": "Clears the selection."
+    }
+  ]
+}

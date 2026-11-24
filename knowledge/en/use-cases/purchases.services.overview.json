@@ -1,0 +1,40 @@
+{
+  "id": "purchases.services.overview",
+  "title": "Tour provider products and services",
+  "summary": "What the clinic buys from providers, with its reference price: it's used in purchase quotes and invoices.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "provider products",
+    "supplies",
+    "shopping list"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Provider Products and Services",
+      "details": "What the clinic buys from providers, with its reference price: it's used in purchase quotes and invoices."
+    },
+    {
+      "id": "search",
+      "title": "Find the product or service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the product or service",
+      "details": "Tap it to open their record."
+    },
+    {
+      "id": "detail",
+      "title": "Record",
+      "details": "Name and category; the trash can deletes it."
+    },
+    {
+      "id": "details",
+      "title": "Details",
+      "details": "They're edited directly and saved with «Save»."
+    }
+  ]
+}

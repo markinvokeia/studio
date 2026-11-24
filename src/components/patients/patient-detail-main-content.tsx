@@ -10,8 +10,8 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial' | 'study-orders'
-export type InfoSubTab = 'details' | 'notes' | 'preferences'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
+export type InfoSubTab = 'details' | 'notes' | 'preferences' | 'dependents'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'lab-orders' | 'medical-instructions' | 'documents'
 
 interface PatientDetailMainContentProps {
   activeTab: PatientMacroTab
@@ -23,6 +23,8 @@ interface PatientDetailMainContentProps {
   showDocuments: boolean
   showNotes: boolean
   showPreferences: boolean
+  /** Label of the dependents sub-tab; omit to hide it. "Dependientes" for a guardian, "Responsable" for a dependent. */
+  dependentsLabel?: string
   /** Macro-tab visibility, permission-driven by the caller. */
   showInfo: boolean
   showClinical: boolean
@@ -32,9 +34,12 @@ interface PatientDetailMainContentProps {
   infoContent: React.ReactNode
   notesContent: React.ReactNode
   preferencesContent: React.ReactNode
+  dependentsContent?: React.ReactNode
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
+  /** Órdenes de laboratorio del paciente; omit to hide the sub-tab (permission-driven by the caller). */
+  labOrdersContent?: React.ReactNode
   medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
   ledgerContent: React.ReactNode
@@ -51,6 +56,7 @@ export function PatientDetailMainContent({
   showDocuments,
   showNotes,
   showPreferences,
+  dependentsLabel,
   showInfo,
   showClinical,
   showFinancial,
@@ -58,9 +64,11 @@ export function PatientDetailMainContent({
   infoContent,
   notesContent,
   preferencesContent,
+  dependentsContent,
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
+  labOrdersContent,
   medicalInstructionsContent,
   documentsContent,
   ledgerContent,
@@ -70,24 +78,26 @@ export function PatientDetailMainContent({
 
   const macroTabs = React.useMemo<VerticalTab[]>(() => [
     ...(showInfo ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []),
-    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' }] : []),
-    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' }] : []),
+    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: t('tabs.clinicalShort') }] : []),
+    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: t('tabs.financialShort') }] : []),
     ...(showStudyOrders ? [{ id: 'study-orders', icon: ClipboardList, label: t('tabs.studyOrders'), shortLabel: t('tabs.studyOrdersShort') }] : []),
   ], [showInfo, showClinical, showFinancial, showStudyOrders, t])
 
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
     ...(showNotes ? [{ id: 'notes', label: t('tabs.notes') }] : []),
+    ...(dependentsLabel ? [{ id: 'dependents', label: dependentsLabel }] : []),
     ...(showPreferences ? [{ id: 'preferences', label: t('tabs.preferences') }] : []),
-  ], [showNotes, showPreferences, t])
+  ], [showNotes, showPreferences, dependentsLabel, t])
 
   const clinicalTabs = React.useMemo(() => [
     { id: 'anamnesis', label: t('tabs.anamnesis') },
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
+    ...(labOrdersContent ? [{ id: 'lab-orders', label: t('tabs.labOrders') }] : []),
     { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
-  ], [showDocuments, t])
+  ], [showDocuments, labOrdersContent, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -117,6 +127,7 @@ export function PatientDetailMainContent({
             {activeInfoSubTab === 'details' && <div className="min-h-0 flex-1">{infoContent}</div>}
             {activeInfoSubTab === 'notes' && notesContent}
             {activeInfoSubTab === 'preferences' && preferencesContent}
+            {activeInfoSubTab === 'dependents' && dependentsLabel && dependentsContent}
           </div>
         )}
 
@@ -130,6 +141,7 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'anamnesis' && anamnesisContent}
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
+            {activeClinicalSubTab === 'lab-orders' && labOrdersContent}
             {activeClinicalSubTab === 'medical-instructions' && medicalInstructionsContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
           </>

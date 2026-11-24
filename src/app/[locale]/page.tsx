@@ -35,6 +35,16 @@ import { useTranslations } from 'next-intl';
 const TOP_SERVICES = 6;
 const EVOLUTION_MONTHS = 6;
 
+type DashboardSection = 'summary' | 'branches' | 'patientsPerDay' | 'salesByService' | 'evolution';
+
+const ALL_LOADING: Record<DashboardSection, boolean> = {
+  summary: true,
+  branches: true,
+  patientsPerDay: true,
+  salesByService: true,
+  evolution: true,
+};
+
 /**
  * Los webhooks de n8n responden `{ data: … }`, pero algunos flujos devuelven el objeto
  * envuelto en un array de un elemento. Se aceptan las dos formas.
@@ -57,7 +67,7 @@ export default function DashboardPage() {
 function ManagerialDashboard() {
   const t = useTranslations('DashboardGerencial');
   const { hasPermission } = usePermissions();
-  const { sedeId, dateRange, currency } = useDashboardFilters();
+  const { sedeId, dateRange, currency, isReady } = useDashboardFilters();
 
   const canViewByBranch = hasPermission(DASHBOARD_PERMISSIONS.VIEW_BY_BRANCH);
 
@@ -66,7 +76,9 @@ function ManagerialDashboard() {
   const [patientsPerDay, setPatientsPerDay] = React.useState<PacientesPorDiaResponse | null>(null);
   const [salesByService, setSalesByService] = React.useState<VentasPorServicioResponse | null>(null);
   const [evolution, setEvolution] = React.useState<EvolucionMensualResponse | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Un estado de carga por tarjeta: con uno solo, todo el panel esperaba a la consulta más
+  // lenta aunque las demás ya hubieran respondido.
+  const [loading, setLoading] = React.useState<Record<DashboardSection, boolean>>(ALL_LOADING);
   const [hasError, setHasError] = React.useState(false);
   const [reloadToken, setReloadToken] = React.useState(0);
 
@@ -76,7 +88,7 @@ function ManagerialDashboard() {
   const runIdRef = React.useRef(0);
 
   React.useEffect(() => {
-    if (!dateRange?.from || !dateRange?.to) return;
+    if (!isReady || !dateRange?.from || !dateRange?.to) return;
 
     const runId = ++runIdRef.current;
     const isStale = () => runIdRef.current !== runId;
@@ -87,53 +99,79 @@ function ManagerialDashboard() {
     };
     const sedeQuery: Record<string, string> = sedeId ? { sede_id: sedeId } : {};
 
-    setIsLoading(true);
+    setLoading(ALL_LOADING);
     setHasError(false);
 
-    // allSettled y no all: los flujos de n8n se despliegan a mano y por fuera del frontend,
-    // así que un endpoint que todavía no existe debe vaciar su propia tarjeta y no tumbar
-    // el panel entero. El aviso de error aparece solo si falla todo.
-    Promise.allSettled([
-      api.get(API_ROUTES.DASHBOARD.EXECUTIVE_SUMMARY, { ...sedeQuery, currency }),
-      canViewByBranch
-        ? api.get(API_ROUTES.DASHBOARD.PRODUCCION_SUCURSAL, { ...range, currency })
-        : Promise.resolve(null),
-      api.get(API_ROUTES.DASHBOARD.PACIENTES_POR_DIA, { ...range, ...sedeQuery }),
-      api.get(API_ROUTES.DASHBOARD.VENTAS_POR_SERVICIO, {
-        ...range,
-        ...sedeQuery,
-        currency,
-        limit: String(TOP_SERVICES),
-      }),
+    // Cada tarjeta se pinta en cuanto llega su respuesta. Un endpoint que falla vacía solo
+    // su tarjeta (los flujos de n8n se despliegan a mano y por fuera del frontend, así que
+    // uno puede no existir todavía); el aviso de error aparece solo si falla todo.
+    let failures = 0;
+    const load = <T,>(
+      section: DashboardSection,
+      request: Promise<unknown> | null,
+      apply: (data: T | null) => void,
+    ): Promise<void> =>
+      (request ?? Promise.resolve(null))
+        .then((response) => {
+          if (isStale()) return;
+          apply(response === null ? null : unwrap<T>(response));
+        })
+        .catch((error: unknown) => {
+          if (isStale()) return;
+          console.error(`Dashboard section "${section}" failed:`, error);
+          failures += 1;
+          apply(null);
+        })
+        .finally(() => {
+          if (isStale()) return;
+          setLoading((prev) => ({ ...prev, [section]: false }));
+        });
+
+    const requests = [
+      load<DashboardExecutiveSummary>(
+        'summary',
+        api.get(API_ROUTES.DASHBOARD.EXECUTIVE_SUMMARY, { ...sedeQuery, currency }),
+        setSummary,
+      ),
+      load<ProduccionSucursalResponse>(
+        'branches',
+        canViewByBranch ? api.get(API_ROUTES.DASHBOARD.PRODUCCION_SUCURSAL, { ...range, currency }) : null,
+        setBranches,
+      ),
+      load<PacientesPorDiaResponse>(
+        'patientsPerDay',
+        api.get(API_ROUTES.DASHBOARD.PACIENTES_POR_DIA, { ...range, ...sedeQuery }),
+        setPatientsPerDay,
+      ),
+      load<VentasPorServicioResponse>(
+        'salesByService',
+        api.get(API_ROUTES.DASHBOARD.VENTAS_POR_SERVICIO, {
+          ...range,
+          ...sedeQuery,
+          currency,
+          limit: String(TOP_SERVICES),
+        }),
+        setSalesByService,
+      ),
       // La evolución mensual no depende del período elegido: siempre mira los últimos
       // meses cerrados, que es lo que responde "cómo venimos de un mes a otro".
-      api.get(API_ROUTES.DASHBOARD.EVOLUCION_MENSUAL, {
-        ...sedeQuery,
-        currency,
-        meses: String(EVOLUTION_MONTHS),
-      }),
-    ]).then((results) => {
+      load<EvolucionMensualResponse>(
+        'evolution',
+        api.get(API_ROUTES.DASHBOARD.EVOLUCION_MENSUAL, {
+          ...sedeQuery,
+          currency,
+          meses: String(EVOLUTION_MONTHS),
+        }),
+        setEvolution,
+      ),
+    ];
+
+    void Promise.all(requests).then(() => {
       if (isStale()) return;
-
-      const value = <T,>(i: number): T | null => {
-        const r = results[i];
-        if (r.status === 'rejected') {
-          console.error(`Dashboard endpoint ${i} failed:`, r.reason);
-          return null;
-        }
-        return r.value === null ? null : unwrap<T>(r.value);
-      };
-
-      setSummary(value<DashboardExecutiveSummary>(0));
-      setBranches(value<ProduccionSucursalResponse>(1));
-      setPatientsPerDay(value<PacientesPorDiaResponse>(2));
-      setSalesByService(value<VentasPorServicioResponse>(3));
-      setEvolution(value<EvolucionMensualResponse>(4));
-
-      setHasError(results.every((r) => r.status === 'rejected'));
-      setIsLoading(false);
+      // La tarjeta de sucursales sin permiso no hace petición: no cuenta como fallo ni como intento.
+      setHasError(failures === (canViewByBranch ? requests.length : requests.length - 1));
     });
-  }, [dateRange, sedeId, currency, canViewByBranch, reloadToken]);
+  }, [isReady, dateRange, sedeId, currency, canViewByBranch, reloadToken]);
 
   // Sin permiso de sucursal, esa tarjeta desaparece y la fila queda con una sola:
   // dejarla en dos columnas abriría un hueco vacío.
@@ -159,38 +197,38 @@ function ManagerialDashboard() {
           data={summary}
           currency={currency}
           isBranchFiltered={!!sedeId}
-          isLoading={isLoading}
+          isLoading={loading.summary}
         />
         <MonthSummaryCards
           data={summary}
           currency={currency}
           isBranchFiltered={!!sedeId}
-          isLoading={isLoading}
+          isLoading={loading.summary}
         />
       </Can>
 
       <Can permission={DASHBOARD_PERMISSIONS.VIEW_CHARTS}>
         <div className={cn('grid grid-cols-1 gap-3', rowColumns)}>
           <Can permission={DASHBOARD_PERMISSIONS.VIEW_BY_BRANCH}>
-            <ProductionByBranch data={branches} currency={currency} isLoading={isLoading} />
+            <ProductionByBranch data={branches} currency={currency} isLoading={loading.branches} />
           </Can>
 
           <SalesByServiceChart
             chartData={salesByService?.rows ?? []}
-            isLoading={isLoading}
+            isLoading={loading.salesByService}
             formatAmount={(sales) => formatAmount(sales, currency)}
           />
         </div>
 
         {/* Fila propia y a todo el ancho: la serie diaria necesita espacio horizontal para que
             se lean las etiquetas de fecha, que en una columna angosta no entran. */}
-        <PatientsPerDayChart data={patientsPerDay} isLoading={isLoading} />
+        <PatientsPerDayChart data={patientsPerDay} isLoading={loading.patientsPerDay} />
       </Can>
 
       {/* La comparativa entre meses es lectura de resumen ejecutivo, no un gráfico más:
           va con el mismo permiso y no se crea uno nuevo. */}
       <Can permission={DASHBOARD_PERMISSIONS.VIEW_EXECUTIVE_SUMMARY}>
-        <MonthlyEvolution data={evolution} currency={currency} isLoading={isLoading} />
+        <MonthlyEvolution data={evolution} currency={currency} isLoading={loading.evolution} />
       </Can>
     </div>
   );

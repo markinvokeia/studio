@@ -1,0 +1,54 @@
+{
+  "id": "appointments.reassign",
+  "title": "Cambiar el profesional o el consultorio de una cita",
+  "module": "Agenda",
+  "summary": "Reasignar la cita a otro profesional u otra agenda desde su menú.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "reasignar",
+    "cambiar doctor",
+    "cambiar profesional",
+    "cambiar consultorio",
+    "otro doctor",
+    "otra agenda"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Clic derecho sobre la cita",
+      "until": [
+        "appointments.btn.change-doctor"
+      ],
+      "blocking": true,
+      "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita."
+    },
+    {
+      "id": "doctor",
+      "action": "highlight",
+      "target": "appointments.btn.change-doctor",
+      "title": "Cambiar profesional",
+      "doneOnClose": true,
+      "details": "Pasá el mouse y elegí el profesional nuevo. Para varias citas a la vez, usá Operaciones en lotes."
+    },
+    {
+      "id": "calendar",
+      "action": "highlight",
+      "target": "appointments.btn.change-calendar",
+      "title": "Cambiar consultorio",
+      "skipIfMissing": true,
+      "doneOnClose": true,
+      "details": "En el mismo menú: mueve la cita a otra agenda manteniendo día y hora."
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "id": "purchases.providers.notes",
+  "title": "Anotar algo en la ficha del proveedor",
+  "module": "Compras",
+  "summary": "Pestaña Notas: texto interno.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Información",
+  "inputs": {
+    "query": "Nombre, correo o RUT"
+  },
+  "keywords": [
+    "notas del proveedor",
+    "anotar proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "purchases.providers.tab.notes",
+      "title": "Notas"
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "purchases.providers.btn.notes-edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.providers.btn.notes-save",
+      "title": "Guardar",
+      "skipIfMissing": true
+    }
+  ]
+}

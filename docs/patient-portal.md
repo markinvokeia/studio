@@ -301,6 +301,8 @@ Datos públicos de la clínica para la landing `/patient-login`. **Sin autentica
   "show_pricing": false,                      // muestra precios y duraciones
   "default_service": { "id": "48", "name": "Consulta general",
                        "duration_minutes": 30 },   // o null
+  "booking_window_unit": "days",              // "days" | "months"
+  "booking_window_value": 30,                 // 1-365 días o 1-12 meses
   "schedules": [ { "day_of_week": 1, "start_time": "09:00", "end_time": "18:00" } ]
 }
 ```
@@ -327,6 +329,7 @@ Guarda los ajustes de Configuración → Portal del Paciente. **Sólo actualiza*
   "appointments_only": false,
   "service_selection_enabled": false, "show_pricing": false,
   "default_service_id": 48,              // entero, o null ⇒ sin servicio por defecto
+  "booking_window_unit": "months", "booking_window_value": 1,
   "welcome_video_url": null, "welcome_message": null }
 ```
 Requiere el permiso `PATIENT_PORTAL_CONFIG_UPDATE`. La lectura no tiene endpoint propio: reutiliza `/api/public/clinic`, que ya devuelve estos campos.
@@ -447,6 +450,7 @@ El comportamiento de `/patient-login` depende de dos flags de `clinic`:
 | `patient_portal_service_selection` | `true` ⇒ el paciente elige servicios en un paso previo a la fecha. `false` (default) ⇒ toda reserva usa el servicio por defecto. |
 | `patient_portal_show_pricing` | `true` ⇒ se muestran precios y duraciones. Sólo presentación. |
 | `patient_portal_default_service_id` | Servicio con el que se crea la cita si el paciente no elige. |
+| `patient_portal_booking_window_unit` / `_value` | Última fecha reservable. `days` + N ⇒ hoy + N días (default 30). `months` + N ⇒ fin del mes calendario N, el actual cuenta como 1: con N = 1, sólo el mes en curso. `/appointments/upsert_noauth` lo valida siempre y `/appointments/upsert` sólo a quien tiene únicamente el rol de paciente, porque el staff agenda por el mismo webhook. Fuera de la ventana responde 422 con `error_code: booking_window_exceeded`. |
 
 **El código es siempre la puerta.** Ningún camino reserva ni entra al portal sin verificar el correo:
 

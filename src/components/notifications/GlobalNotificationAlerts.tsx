@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Clock, Headset, MessagesSquare, Pencil, UserCog, UserPlus } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, FlaskConical, Headset, Pencil, UserCog, ClipboardList, MessagesSquare, UserPlus } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { cn } from '@/lib/utils';
 import type {
   AppointmentReassignedNotification,
@@ -27,6 +28,7 @@ import type {
   StudyOrderAssignedNotification,
   StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -299,9 +301,9 @@ function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
           {t('handoffRequestedTitle')}
         </p>
         <p className="text-xl font-bold leading-tight text-foreground">
-          {item.patientName || item.phone || t('unknownPatient')}
+          {item.patientName || formatPhoneNumber(item.phone) || t('unknownPatient')}
         </p>
-        {item.phone && <p className="text-sm text-muted-foreground">{item.phone}</p>}
+        {item.phone && <p className="text-sm text-muted-foreground">{formatPhoneNumber(item.phone)}</p>}
         {item.lastMessage && (
           <p className="text-sm text-muted-foreground leading-relaxed">{item.lastMessage}</p>
         )}
@@ -443,6 +445,40 @@ function StudyOrderMessageBody({ item }: { item: StudyOrderMessageNotification }
   );
 }
 
+function LabOrderAlertBody({ item }: { item: LabOrderAlertNotification }) {
+  const t = useTranslations('Notifications');
+  const isOverdue = item.trigger !== 'enter';
+  const title = item.trigger === 'due'
+    ? t('labOrderPastDueTitle')
+    : isOverdue ? t('labOrderOverdueTitle', { stage: item.stageName }) : t('labOrderEnteredTitle', { stage: item.stageName });
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: isOverdue ? '#dc2626' : '#0284c7', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <FlaskConical className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {title}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">{item.patientName || t('unknownPatient')}</p>
+        <p className="text-sm text-muted-foreground">
+          #{item.labOrderId} · {[item.workDescription, item.laboratoryName].filter(Boolean).join(' · ')}
+        </p>
+        {item.trigger === 'dwell' && <p className="text-sm font-medium text-destructive">{t('labOrderDaysInStage', { count: item.daysInStage })}</p>}
+        {item.trigger === 'due' && (
+          <p className="text-sm font-medium text-destructive">
+            {t('labOrderDaysPastDue', { count: item.daysPastDue })} · {item.stageName}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
@@ -451,6 +487,7 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
   if (item.type === 'whatsapp_handoff_requested') return <HandoffBody item={item} />;
+  if (item.type === 'lab_order_alert') return <LabOrderAlertBody item={item} />;
   if (item.type === 'study_order_submitted') return <StudyOrderSubmittedBody item={item} />;
   if (item.type === 'study_order_status_changed') return <StudyOrderStatusBody item={item} />;
   if (item.type === 'study_order_assigned') return <StudyOrderAssignedBody item={item} />;
@@ -495,6 +532,12 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'study_order_status_changed') return tN('studyOrderStatusTitle');
     if (current.type === 'study_order_assigned') return tN('studyOrderAssignedTitle');
     if (current.type === 'study_order_message') return tN('studyOrderMessageTitle', { number: current.orderNumber });
+    if (current.type === 'lab_order_alert') {
+      if (current.trigger === 'due') return tN('labOrderPastDueTitle');
+      return current.trigger === 'dwell'
+        ? tN('labOrderOverdueTitle', { stage: current.stageName })
+        : tN('labOrderEnteredTitle', { stage: current.stageName });
+    }
     return tN('reminderDueTitle');
   }
 

@@ -1,0 +1,94 @@
+{
+  "id": "patients.history",
+  "title": "Ver la historia clínica",
+  "module": "Pacientes",
+  "summary": "Línea de tiempo con sesiones clínicas, odontogramas y citas del paciente; filtrar e imprimir.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Historia clínica",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "historia clínica",
+    "línea de tiempo",
+    "sesiones anteriores",
+    "imprimir historia",
+    "evolución",
+    "timeline"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.clinical-history"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.clinical-history",
+      "title": "Línea de tiempo",
+      "until": "patients.section.timeline"
+    },
+    {
+      "id": "timeline",
+      "action": "highlight",
+      "target": "patients.section.timeline",
+      "title": "Eventos",
+      "details": "Sesiones clínicas, odontogramas y citas, del más reciente al más antiguo. Tocá un evento para ver el detalle."
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "patients.btn.timeline-filters",
+      "title": "Filtrar",
+      "details": "Por tipo de evento (clínica, odontograma, cita) y por doctor.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "patients.btn.timeline-print",
+      "title": "Imprimir historia",
+      "details": "Imprime la anamnesis y las sesiones clínicas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "patients.btn.timeline-add",
+      "title": "Nueva sesión",
+      "details": "Agrega una sesión clínica o de odontograma.",
+      "skipIfMissing": true
+    }
+  ]
+}

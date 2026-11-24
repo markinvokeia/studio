@@ -1,0 +1,37 @@
+{
+  "id": "appointments.move",
+  "title": "Move an appointment to another day or time",
+  "summary": "Drag the appointment to another time, or move it to another day and change its duration from the menu.",
+  "module": "Calendar",
+  "keywords": [
+    "move",
+    "drag",
+    "change day",
+    "duration",
+    "lengthen",
+    "shorten",
+    "move to another day"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "open-menu",
+      "title": "Drag the appointment or right-click it",
+      "details": "Drag it to another time or room: it saves when you drop it. For another day, right-click → Move to."
+    },
+    {
+      "id": "move-to",
+      "title": "Move to",
+      "details": "Choose the day on the calendar: the time and duration are kept."
+    },
+    {
+      "id": "duration",
+      "title": "Duration",
+      "details": "Another option in the same menu: makes the appointment longer or shorter (15, 30, 45 min…). You can also stretch it from the appointment's edge."
+    }
+  ]
+}

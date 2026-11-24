@@ -4,7 +4,8 @@ import * as React from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import type { DoctorAlertStyle, UserPreferences, UserPreferencesResponse } from '@/lib/types';
+import { fetchMyPreferences } from '@/services/user-preferences';
+import type { DoctorAlertStyle, UserPreferences } from '@/lib/types';
 
 const CACHE_KEY_PREFIX = 'doctor-alert-style';
 
@@ -37,9 +38,8 @@ export function useDoctorAlertStyle(
   }, [doctorId]);
 
   const fetchAlertStyle = React.useCallback((id: string | number) => {
-    return api.get(API_ROUTES.USER_PREFERENCES)
-      .then((res: unknown) => {
-        const prefs = (res as UserPreferencesResponse | null)?.preferences;
+    return fetchMyPreferences()
+      .then((prefs) => {
         if (prefs?.alert_style === 'modal' || prefs?.alert_style === 'toast') {
           setAlertStyleState(prefs.alert_style);
           writeCachedStyle(id, prefs.alert_style);

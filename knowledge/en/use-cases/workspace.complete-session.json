@@ -1,0 +1,79 @@
+{
+  "id": "workspace.complete-session",
+  "title": "Complete an appointment's clinical session",
+  "summary": "Record the procedure, diagnosis, notes and plan for the next session; when saved, the appointment becomes completed.",
+  "module": "My Workspace",
+  "inputs": {
+    "procedure": "Procedure performed",
+    "diagnosis": "Diagnosis",
+    "notes": "Clinical notes",
+    "next_plan": "Next session plan"
+  },
+  "keywords": [
+    "clinical session",
+    "complete session",
+    "record visit",
+    "trend",
+    "procedure",
+    "diagnosis",
+    "plan",
+    "clinical note",
+    "close the appointment",
+    "discharge"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → My Workspace",
+      "details": "The doctor's view: their schedule and the clinical panel of the patient they're seeing."
+    },
+    {
+      "id": "select",
+      "title": "Choose the patient's appointment",
+      "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top."
+    },
+    {
+      "id": "open",
+      "title": "Complete clinical session",
+      "details": "If the button is disabled: there's already a session today, the appointment is on another day or the session is an odontogram one (it's edited from Odontogram)."
+    },
+    {
+      "id": "procedure",
+      "title": "Procedure",
+      "details": "What was done today. You can dictate it; the quote's treatments show as tags to check."
+    },
+    {
+      "id": "diagnosis",
+      "title": "Diagnosis"
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "plan",
+      "title": "Next session plan",
+      "details": "What's due next time: it stays as context when the next appointment is booked."
+    },
+    {
+      "id": "treatments",
+      "title": "Treatments",
+      "details": "The quote's treatments: check the ones performed today."
+    },
+    {
+      "id": "attachments",
+      "title": "Attachments",
+      "details": "Photos, X-rays or documents from this session."
+    },
+    {
+      "id": "discharge",
+      "title": "Discharge",
+      "details": "If the treatment is over, marks the patient as discharged."
+    },
+    {
+      "id": "save",
+      "title": "Save the session",
+      "details": "When saved, the appointment becomes Completed."
+    }
+  ]
+}

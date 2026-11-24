@@ -1,0 +1,69 @@
+{
+  "id": "lab-orders.change-stage",
+  "title": "Move the order to another stage",
+  "summary": "Skip stages, go back (for example, from the try-in back to the lab for an adjustment) or close the order, such as cancelling it.",
+  "module": "Clinic History",
+  "inputs": {
+    "query": "Search",
+    "laboratory": "Lab",
+    "due_date": "Due date (YYYY-MM-DD)"
+  },
+  "keywords": [
+    "another stage",
+    "back to the lab",
+    "cancel lab order",
+    "move order",
+    "skip stage",
+    "adjustment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic History → Lab Orders",
+      "details": "The jobs sent to external labs and the stage each one is in."
+    },
+    {
+      "id": "list",
+      "title": "List view"
+    },
+    {
+      "id": "search",
+      "title": "Search for the order",
+      "details": "Search by patient, job, lab or order number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the order",
+      "details": "Click it in the list. Its details open on the right."
+    },
+    {
+      "id": "menu",
+      "title": "Other stage…"
+    },
+    {
+      "id": "option",
+      "title": "Choose the stage",
+      "details": "All stages except the current one, in order. To a final stage, like Completed or Cancelled, it moves without asking."
+    },
+    {
+      "id": "laboratory",
+      "title": "Lab",
+      "details": "Only if it has no lab yet. If only one lab does that job, it comes preselected."
+    },
+    {
+      "id": "due-date",
+      "title": "Due date",
+      "details": "It comes proposed from the stage’s time limit, and the shortcuts change it with one click. If the date passes and it has not arrived, the order becomes overdue."
+    },
+    {
+      "id": "confirm-move",
+      "title": "Confirm the stage change",
+      "details": "It opens below, in the same panel. Clicking the button saves the change."
+    },
+    {
+      "id": "history",
+      "title": "Stage history",
+      "details": "Every change is recorded: who made it, when, and how long it was in the previous stage."
+    }
+  ]
+}

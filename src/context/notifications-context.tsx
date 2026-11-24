@@ -31,6 +31,7 @@ import type {
   StudyOrderAssignedNotification,
   StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
 
@@ -95,7 +96,8 @@ interface BackendNotification {
     | 'study_order_submitted'
     | 'study_order_status_changed'
     | 'study_order_assigned'
-    | 'study_order_message';
+    | 'study_order_message'
+    | 'lab_order_alert';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -302,6 +304,21 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         reason: m.reason ?? '',
       } satisfies WhatsappHandoffRequestedNotification;
 
+    case 'lab_order_alert':
+      return {
+        ...base,
+        type: 'lab_order_alert',
+        trigger: m.trigger === 'dwell' || m.trigger === 'due' ? m.trigger : 'enter',
+        labOrderId: Number(m.lab_order_id) || 0,
+        patientName: m.patient_name ?? patientName,
+        workDescription: m.work_description ?? '',
+        laboratoryName: m.laboratory_name ?? '',
+        stageName: m.stage_name ?? '',
+        stageColor: m.stage_color ?? '#64748b',
+        daysInStage: Number(m.days_in_stage) || 0,
+        daysPastDue: Number(m.days_past_due) || 0,
+      } satisfies LabOrderAlertNotification;
+
     case 'reminder':
       return {
         ...base,
@@ -493,6 +510,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     // los campos que esa forma necesita (p. ej. `created_at`), rompiendo `RelativeTime`.
     const eventType = _eventType || (data as { event_type?: string } | null)?.event_type;
     if (eventType === 'calendar_changed') return;
+    // Cambios de órdenes de laboratorio / etapas: los consume `useLabOrdersLive`.
+    if (eventType === 'lab_order_changed' || eventType === 'lab_stages_changed') return;
     try {
       const normalized = normalizeBackendNotification(data as BackendNotification);
       if (normalized) {
@@ -549,6 +568,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
     const handoffs = novel.filter((n): n is WhatsappHandoffRequestedNotification => n.type === 'whatsapp_handoff_requested');
     const orderMessages = novel.filter((n): n is StudyOrderMessageNotification => n.type === 'study_order_message');
+    const labAlerts = novel.filter((n): n is LabOrderAlertNotification => n.type === 'lab_order_alert');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -612,6 +632,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             const preview = n.excerpt || (n.attachmentCount > 0 ? tN('studyOrderMessageAttachments', { count: n.attachmentCount }) : '');
             return n.authorName ? `${n.authorName}: ${preview}` : preview;
           })(),
+      });
+    });
+      labAlerts.forEach((n) => {
+        toast({
+          title: n.trigger === 'due'
+            ? tN('labOrderPastDueTitle')
+            : n.trigger === 'dwell' ? tN('labOrderOverdueTitle', { stage: n.stageName }) : tN('labOrderEnteredTitle', { stage: n.stageName }),
+          description: [n.patientName, n.workDescription].filter(Boolean).join(' · '),
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));

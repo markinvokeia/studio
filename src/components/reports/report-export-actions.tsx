@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useHelpScope } from '@/components/help/help-scope';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, Download, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { composeHelpId } from '@/lib/help/help-id';
 
 interface ReportExportActionsProps {
   onExportPDF?: () => void;
@@ -28,6 +30,7 @@ export function ReportExportActions({
   disabled = false,
 }: ReportExportActionsProps) {
   const t = useTranslations('ReportExportActions');
+  const helpScope = useHelpScope();
 
   const handlePrint = () => {
     if (onPrint) {
@@ -40,6 +43,7 @@ export function ReportExportActions({
   return (
     <div className="flex flex-col md:flex-row items-center gap-0.5 md:gap-1.5 print:hidden">
       <Button
+        data-help-id={composeHelpId(helpScope, 'btn', 'print')}
         variant="ghost"
         onClick={handlePrint}
         disabled={disabled || isLoading}
@@ -51,6 +55,7 @@ export function ReportExportActions({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            data-help-id={composeHelpId(helpScope, 'btn', 'export')}
             variant="ghost"
             disabled={disabled || isLoading}
             className="h-7 w-7 md:h-8 md:w-auto md:px-3 gap-1 text-muted-foreground md:text-foreground md:border md:border-input md:bg-background hover:bg-accent"
@@ -62,17 +67,17 @@ export function ReportExportActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {onExportExcel && (
-            <DropdownMenuItem onClick={onExportExcel}>
+            <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'export-excel')} onClick={onExportExcel}>
               {t('exportExcel')}
             </DropdownMenuItem>
           )}
           {onExportCSV && (
-            <DropdownMenuItem onClick={onExportCSV}>
+            <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'export-csv')} onClick={onExportCSV}>
               {t('exportCSV')}
             </DropdownMenuItem>
           )}
           {onExportPDF && (
-            <DropdownMenuItem onClick={onExportPDF}>
+            <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'export-pdf')} onClick={onExportPDF}>
               {t('exportPDF')}
             </DropdownMenuItem>
           )}

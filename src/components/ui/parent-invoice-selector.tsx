@@ -30,6 +30,8 @@ interface ParentInvoiceSelectorProps {
     loadingText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 function invoiceLabel(inv: Invoice): string {
@@ -49,6 +51,7 @@ export function ParentInvoiceSelector({
     loadingText = 'Cargando...',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
 }: ParentInvoiceSelectorProps) {
     const t = useTranslations('General');
     const [open, setOpen] = React.useState(false);
@@ -150,6 +153,7 @@ export function ParentInvoiceSelector({
                 <Button
                     variant="outline"
                     role="combobox"
+                    aria-invalid={ariaInvalid}
                     className={cn('w-full justify-between', !value && 'text-muted-foreground', className)}
                     disabled={disabled}
                 >

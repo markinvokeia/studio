@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getLicenseKey, getMasterSec } from '@/lib/runtime-config';
 import type { AiAccessLevel, CreateLicenseInput, LicensePayload, SubscriptionType } from '@/lib/types';
@@ -188,6 +189,7 @@ export default function LicensesPage() {
     return () => controller.abort();
   }, [isUnlocked, licenseSecret, loadLicense, fetchAttempt, tCommon]);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<LicenseFormValues>({
     resolver: zodResolver(licenseFormSchema),
     defaultValues: {
@@ -225,11 +227,11 @@ export default function LicensesPage() {
     e.preventDefault();
     if (!secInput.trim()) return;
     if (!masterSec) {
-      setSecError('NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.');
+      setSecError(t('masterKey.notConfigured'));
       return;
     }
     if (secInput.trim() !== masterSec) {
-      setSecError('Clave incorrecta. Intente nuevamente.');
+      setSecError(t('masterKey.wrong'));
       return;
     }
     setIsUnlocked(true);
@@ -323,28 +325,28 @@ export default function LicensesPage() {
 
       {!isUnlocked ? (
         <div>
-          <Card className="w-full max-w-md shadow-sm">
+          <Card data-help-id="system.licenses.section.master-key" className="w-full max-w-md shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <KeyRound className="h-4 w-4" />
-                Clave maestra
+                {t('masterKey.prompt')}
               </CardTitle>
               <CardDescription>
-                Ingresa la clave maestra para acceder a la gestión de licencias.
+                {t('masterKey.promptDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUnlock} className="flex flex-col gap-3">
                 <Input
                   type="password"
-                  placeholder="Clave maestra..."
+                  placeholder={t('masterKey.placeholder')}
                   value={secInput}
                   onChange={e => { setSecInput(e.target.value); setSecError(''); }}
                   autoFocus
                 />
                 {secError && <p className="text-xs text-destructive">{secError}</p>}
                 <Button type="submit" disabled={!secInput.trim()} className="w-full">
-                  Verificar
+                  {t('masterKey.submit')}
                 </Button>
               </form>
             </CardContent>
@@ -382,7 +384,7 @@ export default function LicensesPage() {
           )}
 
           {canGenerate && !isFetchingLicense && !fetchError && (
-            <Card>
+            <Card data-help-id="system.licenses.section.generate-new">
               <CardHeader>
                 <CardTitle>{t('management.generateNew')}</CardTitle>
                 <CardDescription>
@@ -391,7 +393,7 @@ export default function LicensesPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit((values) => setPendingInput(values))} className="space-y-6">
+                  <form onSubmit={form.handleSubmit((values) => setPendingInput(values), onInvalidSubmit)} className="space-y-6">
                     {/* Native fieldset disables every control while the request is in flight */}
                     <fieldset disabled={generate.isPending} className="min-w-0 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -543,7 +545,7 @@ export default function LicensesPage() {
           )}
 
           {licenseKey && !generatedKey && (
-            <Card>
+            <Card data-help-id="system.licenses.section.generated-key">
               <CardHeader>
                 <CardTitle>{t('management.generatedKey')} (actual)</CardTitle>
                 <CardDescription>Clave activa actualmente en el sistema.</CardDescription>

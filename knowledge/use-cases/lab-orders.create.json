@@ -1,0 +1,178 @@
+{
+  "id": "lab-orders.create",
+  "title": "Registrar una orden de laboratorio",
+  "module": "Historia Clínica",
+  "summary": "Cargar un trabajo para el laboratorio paso a paso: paciente, servicios con piezas, laboratorio y revisión; se puede enviar en el mismo alta.",
+  "screens": [
+    "lab-orders"
+  ],
+  "inputs": {
+    "patient": "Paciente",
+    "service": "Servicio de laboratorio",
+    "teeth": "Piezas (números separados por coma, p. ej. 11, 21)",
+    "item_notes": "Nota del servicio (color, material…)",
+    "doctor": "Doctor",
+    "laboratory": "Laboratorio",
+    "notes": "Notas",
+    "urgent": "Urgente (sí/no)",
+    "send_due_date": "Fecha de entrega si se envía ahora (AAAA-MM-DD)"
+  },
+  "keywords": [
+    "nueva orden de laboratorio",
+    "crear orden",
+    "enviar trabajo al laboratorio",
+    "pedir corona",
+    "pedir protesis",
+    "registrar trabajo",
+    "crear y enviar orden"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/lab-orders",
+      "title": "Menú → Historia Clínica → Órdenes de Laboratorio",
+      "details": "Los trabajos enviados a laboratorios externos y la etapa en que está cada uno."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "lab-orders.btn.new",
+      "title": "Nueva orden",
+      "until": "lab-orders.btn.step-next"
+    },
+    {
+      "id": "patient",
+      "action": "fill",
+      "target": "lab-orders.field.patient_id",
+      "title": "Paciente",
+      "details": "Para quién es el trabajo. Desde la ficha del paciente ya viene elegido.",
+      "value": "{{values.patient}}"
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "lab-orders.field.doctor_id",
+      "title": "Doctor",
+      "details": "Quién pidió el trabajo. Le llegan los avisos de la orden. Si sos doctor, ya venís elegido.",
+      "value": "{{values.doctor}}",
+      "optional": true
+    },
+    {
+      "id": "next-work",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa al trabajo."
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "lab-orders.btn.add-service",
+      "title": "Servicio",
+      "details": "Elegí el trabajo de la lista. Podés sumar varios. La cantidad está al lado del nombre, y casi siempre es uno.",
+      "value": "{{values.service}}"
+    },
+    {
+      "id": "teeth",
+      "action": "fill",
+      "target": "lab-orders.field.items.teeth",
+      "title": "Piezas",
+      "details": "Las piezas de ese servicio: escribilas o tocalas en el odontograma de al lado. Las de la orden son la suma de todos sus servicios.",
+      "value": "{{values.teeth}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "item-notes",
+      "action": "fill",
+      "target": "lab-orders.field.items.notes",
+      "title": "Nota del servicio",
+      "details": "Color, material o cualquier indicación para el laboratorio.",
+      "value": "{{values.item_notes}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "next-laboratory",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa al laboratorio. Hace falta al menos un servicio."
+    },
+    {
+      "id": "laboratory",
+      "action": "fill",
+      "target": "lab-orders.field.laboratory_id",
+      "title": "Laboratorio",
+      "details": "Si un solo laboratorio hace ese trabajo, ya viene elegido. Si no, tocá uno de los sugeridos, o dejalo para cuando la envíes.",
+      "value": "{{values.laboratory}}",
+      "optional": true
+    },
+    {
+      "id": "next-review",
+      "action": "click",
+      "target": "lab-orders.btn.step-next",
+      "title": "Continuar",
+      "details": "Pasa a revisar la orden antes de crearla.",
+      "until": "lab-orders.btn.submit"
+    },
+    {
+      "id": "review",
+      "action": "highlight",
+      "target": "lab-orders.section.review",
+      "title": "Revisá la orden",
+      "details": "Paciente, trabajo y laboratorio. Con Editar volvés a ese paso sin perder nada."
+    },
+    {
+      "id": "send",
+      "action": "highlight",
+      "target": "lab-orders.field.send",
+      "title": "¿La enviás ahora?",
+      "details": "Guardarla para enviar después la deja en la primera etapa. Enviarla ahora la crea y la pasa a la etapa siguiente, y pide la fecha de entrega.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "send-due",
+      "action": "fill",
+      "target": "lab-orders.field.send_due_date",
+      "title": "Fecha de entrega",
+      "details": "La que prometió el laboratorio. Desde el día siguiente, si no llegó, la orden figura atrasada.",
+      "value": "{{values.send_due_date}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "lab-orders.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true
+    },
+    {
+      "id": "attachments",
+      "action": "highlight",
+      "target": "lab-orders.section.form-attachments",
+      "title": "Adjuntos",
+      "details": "Fotos, PDF o escaneos 3D para el laboratorio. Se suben al crear la orden.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "urgent",
+      "action": "fill",
+      "target": "lab-orders.toggle.urgent",
+      "title": "Urgente",
+      "details": "Si la marcás, sale primero en la lista, en el tablero y en la ficha del paciente.",
+      "value": "{{values.urgent}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "lab-orders.btn.submit",
+      "title": "Crear la orden",
+      "details": "Sin enviarla, queda en la primera etapa. Si elegiste enviarla ahora, queda en la etapa siguiente con el laboratorio y la fecha."
+    }
+  ]
+}

@@ -10,11 +10,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { PatientInstructionDialog } from '@/components/medical-instructions/patient-instruction-dialog';
 import { usePatientInstructionPrint } from '@/components/medical-instructions/patient-instruction-print-view';
+import { useHelpScope } from '@/components/help/help-scope';
 
 import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { composeHelpId } from '@/lib/help/help-id';
 import { PatientMedicalInstruction } from '@/lib/types';
 import { getDateFnsLocale } from '@/lib/locale';
 import api from '@/services/api';
@@ -32,6 +34,7 @@ interface PatientInstructionsSectionProps {
 
 export function PatientInstructionsSection({ userId, userName, createTrigger = 0, readOnly = false }: PatientInstructionsSectionProps) {
     const t = useTranslations('PatientInstructionsSection');
+    const helpScope = useHelpScope();
     const locale = useLocale();
     const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
@@ -111,7 +114,7 @@ export function PatientInstructionsSection({ userId, userName, createTrigger = 0
                         <CardTitle className="text-base font-semibold">{t('title')}</CardTitle>
                     </div>
                     {canCreate && (
-                        <Button variant="default" size="sm" onClick={handleCreate}>
+                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'mi-new')} variant="default" size="sm" onClick={handleCreate}>
                             <Plus className="h-4 w-4 mr-1" />
                             {t('newInstruction')}
                         </Button>

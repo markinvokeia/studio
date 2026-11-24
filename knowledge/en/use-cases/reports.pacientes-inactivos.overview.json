@@ -1,0 +1,58 @@
+{
+  "id": "reports.pacientes-inactivos.overview",
+  "title": "Use the Inactive Patients report",
+  "summary": "Patients who haven't come in a while, for win-back campaigns.",
+  "module": "Reports",
+  "keywords": [
+    "inactive patients",
+    "win-back",
+    "patients who don't come"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Reports → Inactive Patients",
+      "details": "Patients who haven't come in a while, for win-back campaigns."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "«No activity for more than» (months) and «Medical discharge only»."
+    },
+    {
+      "id": "generate",
+      "title": "Generate",
+      "details": "Calculates the report with the chosen filters."
+    },
+    {
+      "id": "empty",
+      "title": "No data",
+      "details": "There's no data for those filters: try another period."
+    },
+    {
+      "id": "kpis",
+      "title": "Indicators",
+      "details": "Total inactive, how many by medical discharge, how many by inactivity and how many owing."
+    },
+    {
+      "id": "results",
+      "title": "Results",
+      "details": "Each patient with their last visit; you can contact them from here."
+    },
+    {
+      "id": "table",
+      "title": "Details",
+      "details": "Sort by column by tapping the header."
+    },
+    {
+      "id": "export",
+      "title": "Export",
+      "details": "Excel, CSV or PDF with what you're viewing."
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "details": "With the clinic's letterhead."
+    }
+  ]
+}

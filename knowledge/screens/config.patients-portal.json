@@ -1,0 +1,45 @@
+{
+  "id": "config.patients-portal",
+  "status": "draft",
+  "summary": "Configuración del portal del paciente.",
+  "purpose": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida.",
+  "tips": [
+    "Sólo se ofrecen los servicios marcados como agendables online."
+  ],
+  "prerequisites": [
+    "sales.services",
+    "config.doctor-availability"
+  ],
+  "useCases": [
+    "config.patients-portal.overview"
+  ],
+  "elements": {
+    "config.patients-portal.section.access": {
+      "label": "Acceso",
+      "description": "Si el portal está habilitado y qué pueden hacer los pacientes (reservar, cancelar, ver documentos)."
+    },
+    "config.patients-portal.section.booking-services": {
+      "label": "Servicios de la reserva",
+      "description": "Qué servicios se pueden reservar en línea."
+    },
+    "config.patients-portal.section.booking-window": {
+      "label": "Hasta cuándo puede reservar el paciente",
+      "description": "Última fecha que el paciente puede elegir en el portal. No limita al personal de la clínica."
+    },
+    "config.patients-portal.field.booking-window-value": {
+      "label": "Cantidad",
+      "description": "Cuántos días o meses, según la unidad elegida."
+    },
+    "config.patients-portal.field.booking-window-unit": {
+      "label": "Unidad",
+      "description": "Días cuenta desde hoy. Meses cuenta meses calendario: con 1 sólo se puede reservar en el mes en curso."
+    },
+    "config.patients-portal.section.presentation": {
+      "label": "Presentación",
+      "description": "Textos y datos que ve el paciente."
+    },
+    "config.patients-portal.btn.save": {
+      "label": "Guardar"
+    }
+  }
+}

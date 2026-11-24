@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
@@ -59,6 +60,7 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('phone')} />
     ),
+    cell: ({ row }) => formatPhoneNumber(row.original.phone_number),
   },
   {
     accessorKey: 'is_active',

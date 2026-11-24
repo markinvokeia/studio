@@ -349,6 +349,21 @@ function weekdayIntervalsFor(day: Date, schedules: ClinicSchedule[]): Interval[]
   );
 }
 
+/** The window of an `is_open` exception, or null when it has no usable start/end. */
+function openingWindow(e: ClinicException): Interval | null {
+  const sm = timeToMinutes(e.start_time);
+  const em = endTimeToMinutes(e.end_time);
+  return sm !== null && em !== null && em > sm ? { startMin: sm, endMin: em } : null;
+}
+
+/** Windows of the day's `is_open` exceptions that carry a usable start/end. */
+function timedOpeningsFor(dayExceptions: ClinicException[]): Interval[] {
+  return dayExceptions.flatMap((e) => {
+    const window = e.is_open ? openingWindow(e) : null;
+    return window ? [window] : [];
+  });
+}
+
 /**
  * The day's open window BEFORE closing exceptions are applied: the opening
  * exceptions when there are any, otherwise the weekday schedule.
@@ -362,12 +377,7 @@ function baseIntervalsFor(
   const openings = dayExceptions.filter((e) => e.is_open);
   if (openings.length === 0) return weekdayIntervals;
 
-  const opened: Interval[] = [];
-  for (const e of openings) {
-    const sm = timeToMinutes(e.start_time);
-    const em = endTimeToMinutes(e.end_time);
-    if (sm !== null && em !== null && em > sm) opened.push({ startMin: sm, endMin: em });
-  }
+  const opened = timedOpeningsFor(dayExceptions);
   if (opened.length > 0) return mergeIntervals(opened);
   if (weekdayIntervals.length > 0) return weekdayIntervals;
   return [{ startMin: DEFAULT_BUSINESS_START_MIN, endMin: DEFAULT_BUSINESS_END_MIN }];
@@ -416,9 +426,13 @@ export type BlockedInterval = Interval & { reason: 'schedule' | 'exception'; not
  * Non-working ranges for `day` within [0, 1440] — the complement of the available
  * intervals, split by cause: time outside the schedule is `reason: 'schedule'`
  * (grey), time removed by a "cerrado" exception is `reason: 'exception'` (red
- * hatch + note). The two sets are disjoint by construction — grey is
- * `[0,1440) \ base` and red is `closures ∩ base` — so the bands never overlap
- * and `blockedKey()` stays unique even though it ignores `reason`.
+ * hatch + note). Grey is `[0,1440) \ base` minus the red bands, so the two sets
+ * are disjoint and `blockedKey()` stays unique even though it ignores `reason`.
+ *
+ * On a normal day red is `closures ∩ base`: a closure wider than the schedule only
+ * shows where the day was open. With timed openings, or no hours at all, it's the
+ * whole closure: "bloquear horario" cuts the openings it overlaps (`planSlotBlock`),
+ * so the closure no longer intersects `base` and would lose its reason otherwise.
  *
  * A closure covering the whole day still collapses into a single 0–1440 exception
  * band, so existing full-day feriados render exactly as before.
@@ -439,29 +453,426 @@ export function computeBlockedRanges(
 
   // The open window before the closures: what those closures actually take away.
   const base = baseIntervalsFor(day, schedules, dayExceptions);
-  if (base.length === 0) return [{ startMin: 0, endMin: DAY_END_MIN, reason: 'schedule' }];
 
-  const blocked: BlockedInterval[] = [];
+  // 1. Red bands, with their note.
+  const paintWhole = base.length === 0 || timedOpeningsFor(dayExceptions).length > 0;
+  const closed: BlockedInterval[] = closures.flatMap((c) => {
+    const pieces = paintWhole ? [c] : intersectWith(c, base);
+    return pieces.map(({ startMin, endMin }) => ({ startMin, endMin, reason: 'exception' as const, note: c.note || '' }));
+  });
 
-  // 1. Out-of-schedule time (the complement of `base`).
+  // 2. Out-of-schedule time (the complement of `base`), around the red bands.
+  const outOfHours: Interval[] = [];
   let cursor = 0;
   for (const it of base) {
-    if (it.startMin > cursor) blocked.push({ startMin: cursor, endMin: it.startMin, reason: 'schedule' });
+    if (it.startMin > cursor) outOfHours.push({ startMin: cursor, endMin: it.startMin });
     cursor = Math.max(cursor, it.endMin);
   }
-  if (cursor < DAY_END_MIN) blocked.push({ startMin: cursor, endMin: DAY_END_MIN, reason: 'schedule' });
+  if (cursor < DAY_END_MIN) outOfHours.push({ startMin: cursor, endMin: DAY_END_MIN });
+  const grey: BlockedInterval[] = subtractIntervals(outOfHours, closed)
+    .map(({ startMin, endMin }) => ({ startMin, endMin, reason: 'schedule' }));
 
-  // 2. Closures clipped to `base`, so the red band and its note only cover time
-  //    that was otherwise open; the rest already falls inside a grey band.
-  for (const c of closures) {
-    for (const b of base) {
-      const startMin = Math.max(c.startMin, b.startMin);
-      const endMin = Math.min(c.endMin, b.endMin);
-      if (endMin > startMin) blocked.push({ startMin, endMin, reason: 'exception', note: c.note || '' });
+  return [...grey, ...closed].sort((a, b) => a.startMin - b.startMin);
+}
+
+/**
+ * `HH:mm` for a minute of the day. 1440 (end of day) is written as `23:59`, which
+ * `endTimeToMinutes` reads back as 24:00 — a time column can't hold 24:00.
+ */
+export function minutesToTimeString(min: number): string {
+  const clamped = Math.min(Math.max(min, 0), DAY_END_MIN - 1);
+  return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`;
+}
+
+/** Pieces of `a` that fall inside any of `within` (merged, sorted). */
+function intersectWith(a: Interval, within: Interval[]): Interval[] {
+  const out: Interval[] = [];
+  for (const w of within) {
+    const startMin = Math.max(a.startMin, w.startMin);
+    const endMin = Math.min(a.endMin, w.endMin);
+    if (endMin > startMin) out.push({ startMin, endMin });
+  }
+  return out;
+}
+
+/** A closure "habilitar horario" can't change from the calendar. */
+export interface LockedClosure {
+  exception: ClinicException;
+  /** 'recurring' = it repeats (weekly/biweekly/monthly); 'otherScope' = another branch scope. */
+  reason: 'recurring' | 'otherScope';
+}
+
+/** How an editable closure ends up once the hours are enabled. */
+export interface ClosureChange {
+  exception: ClinicException;
+  /** What stays closed on that day within its hours, for display (empty = none). */
+  remaining: Interval[];
+  /** The saved rows still close part of the day, but only outside its hours. */
+  closedOutsideHours: boolean;
+  /** Other dates the closure keeps covering (0 = it only covered this day). */
+  otherDates: number;
+}
+
+/** A write against `clinic_exceptions`; `create` rows carry an empty `id`. */
+export type ExceptionWrite =
+  | { type: 'create'; exception: ClinicException }
+  | { type: 'update'; exception: ClinicException }
+  | { type: 'delete'; exception: ClinicException };
+
+export interface SlotEnablePlan {
+  /** Writes in a safe order: a failure halfway leaves the day LESS open, never more. */
+  writes: ExceptionWrite[];
+  closureChanges: ClosureChange[];
+  locked: LockedClosure[];
+  /** Whether opening exceptions are added (the range goes past the day's hours). */
+  extendsHours: boolean;
+  /** The day's available hours now, and once the writes are applied. */
+  before: Interval[];
+  resulting: Interval[];
+  changesSomething: boolean;
+}
+
+/** What cutting a time range out of one row, on one day, keeps and writes. */
+interface CarvedRow {
+  /** What is left of the row's window that day. */
+  kept: Interval[];
+  /** Other dates the row keeps covering (0 = it only covered this day). */
+  otherDates: number;
+  creates: ExceptionWrite[];
+  updates: ExceptionWrite[];
+  deletes: ExceptionWrite[];
+}
+
+/**
+ * Cuts `cut` out of a one-off row on `dayKey`. A multi-date row only loses this
+ * date and what is left that day becomes its own single-date row; otherwise the
+ * row is deleted, shrunk, or split (the second piece is created BEFORE the
+ * original shrinks to the first).
+ */
+function carveRowForDay(e: ClinicException, window: Interval, cut: Interval, dayKey: string): CarvedRow {
+  const singleDateCopy = (w: Interval): ClinicException => ({
+    ...e,
+    id: '',
+    date: dayKey,
+    dates: [dayKey],
+    recurrence: 'once',
+    start_time: minutesToTimeString(w.startMin),
+    end_time: minutesToTimeString(w.endMin),
+  });
+  const kept = subtractIntervals([window], [cut]);
+  const otherDates = Array.from(new Set((e.dates?.length ? e.dates : [e.date]).map(normalizeDateKey)))
+    .filter((d) => d && d !== dayKey)
+    .sort();
+  const carved: CarvedRow = { kept, otherDates: otherDates.length, creates: [], updates: [], deletes: [] };
+
+  if (otherDates.length > 0) {
+    for (const w of kept) carved.creates.push({ type: 'create', exception: singleDateCopy(w) });
+    carved.updates.push({ type: 'update', exception: { ...e, date: otherDates[0], dates: otherDates } });
+  } else if (kept.length === 0) {
+    carved.deletes.push({ type: 'delete', exception: e });
+  } else {
+    for (const w of kept.slice(1)) carved.creates.push({ type: 'create', exception: singleDateCopy(w) });
+    carved.updates.push({
+      type: 'update',
+      exception: {
+        ...e,
+        start_time: minutesToTimeString(kept[0].startMin),
+        end_time: minutesToTimeString(kept[0].endMin),
+      },
+    });
+  }
+  return carved;
+}
+
+export interface PlanSlotEnableOptions {
+  /** Branch the action runs for; undefined = the whole clinic. */
+  sedeId?: string;
+  /** With a single branch, clinic-wide rows ARE that branch's, so they're editable. */
+  singleBranch?: boolean;
+  /** Notes for the opening rows. */
+  openingNotes?: string;
+}
+
+/**
+ * Plans "habilitar horario": make `added` available on `day` with as few, and as
+ * honest, exception rows as possible.
+ *
+ * - One-off closures of the same scope that overlap `added` are edited in place:
+ *   deleted when fully lifted, trimmed when one edge remains, split when the
+ *   lifted range sits in the middle. A multi-date closure only loses this date;
+ *   what stays closed that day becomes its own single-date closure. What stays
+ *   closed is saved up to 00:00/24:00, NOT clipped to the day's hours: "closed
+ *   except 10–12" must still hold if the weekday schedule changes later.
+ * - Recurring closures, and closures of another scope (a clinic-wide row seen
+ *   from one branch), aren't touched: they'd change other dates or branches.
+ *   They're reported as `locked` and keep blocking their window.
+ * - If `added` goes past the day's hours, `is_open` rows are added. Openings
+ *   REPLACE the weekday schedule in the calendar (`baseIntervalsFor`) but are
+ *   UNIONED with it — and win over closures — in `get_available_users()`, so
+ *   they cover the whole new open window minus every closure that stays: both
+ *   readings then agree.
+ */
+export function planSlotEnable(
+  day: Date,
+  schedules: ClinicSchedule[],
+  exceptions: ClinicException[],
+  added: Interval,
+  { sedeId, singleBranch = false, openingNotes = '' }: PlanSlotEnableOptions = {},
+): SlotEnablePlan {
+  const dayKey = format(day, 'yyyy-MM-dd');
+  const dayExceptions = dayExceptionsFor(day, exceptions);
+  const base = baseIntervalsFor(day, schedules, dayExceptions);
+  const openWindow = mergeIntervals([...base, added]);
+
+  const isSameScope = (e: ClinicException) => {
+    if (sedeId) return String(e.sede_id ?? '') === String(sedeId) || (!e.sede_id && singleBranch);
+    return !e.sede_id;
+  };
+
+  const creates: ExceptionWrite[] = [];
+  const updates: ExceptionWrite[] = [];
+  const deletes: ExceptionWrite[] = [];
+  const closureChanges: ClosureChange[] = [];
+  const locked: LockedClosure[] = [];
+
+  for (const e of dayExceptions) {
+    if (e.is_open) continue;
+    const window = closureWindow(e);
+    if (window.endMin <= added.startMin || window.startMin >= added.endMin) continue;
+    if ((e.recurrence ?? 'once') !== 'once') {
+      locked.push({ exception: e, reason: 'recurring' });
+      continue;
     }
+    if (!isSameScope(e)) {
+      locked.push({ exception: e, reason: 'otherScope' });
+      continue;
+    }
+    const carved = carveRowForDay(e, window, added, dayKey);
+    // Saved as is; only the display is clipped to the day's (new) hours.
+    const remaining = carved.kept.flatMap((r) => intersectWith(r, openWindow));
+    closureChanges.push({
+      exception: e,
+      remaining,
+      closedOutsideHours: carved.kept.length > 0 && remaining.length === 0,
+      otherDates: carved.otherDates,
+    });
+    creates.push(...carved.creates);
+    updates.push(...carved.updates);
+    deletes.push(...carved.deletes);
   }
 
-  return blocked.sort((a, b) => a.startMin - b.startMin);
+  // The day's exceptions once the closure edits are applied.
+  const touched = new Set([...updates, ...deletes].map((w) => w.exception.id));
+  const editedDay = dayExceptionsFor(day, [
+    ...dayExceptions.filter((e) => !touched.has(e.id)),
+    ...updates.map((w) => w.exception),
+    ...creates.map((w) => w.exception),
+  ]);
+
+  const extendsHours = JSON.stringify(openWindow) !== JSON.stringify(base);
+  const openingWindows = extendsHours
+    ? subtractIntervals(
+      timedOpeningsFor(dayExceptions).length > 0 ? [added] : openWindow,
+      closuresFor(editedDay),
+    )
+    : [];
+  const openings: ExceptionWrite[] = openingWindows.map((w) => ({
+    type: 'create',
+    exception: {
+      id: '',
+      date: dayKey,
+      dates: [dayKey],
+      recurrence: 'once',
+      is_open: true,
+      start_time: minutesToTimeString(w.startMin),
+      end_time: minutesToTimeString(w.endMin),
+      sede_id: sedeId || undefined,
+      notes: openingNotes,
+    },
+  }));
+
+  const before = getAvailableIntervals(day, schedules, dayExceptions);
+  const resulting = getAvailableIntervals(day, schedules, [...editedDay, ...openings.map((w) => w.exception)]);
+
+  return {
+    writes: [...creates, ...updates, ...deletes, ...openings],
+    closureChanges,
+    locked,
+    extendsHours: openings.length > 0,
+    before,
+    resulting,
+    changesSomething: JSON.stringify(before) !== JSON.stringify(resulting),
+  };
+}
+
+/** The window "habilitar horario" proposes for a right-click at `slotMin`. */
+export function suggestEnableWindow(
+  day: Date,
+  schedules: ClinicSchedule[],
+  exceptions: ClinicException[],
+  slotMin: number,
+): Interval | null {
+  const band = computeBlockedRanges(day, schedules, exceptions)
+    .find((b) => slotMin >= b.startMin && slotMin < b.endMin);
+  if (!band) return null;
+
+  if (band.reason === 'exception') {
+    if (band.startMin > 0 || band.endMin < DAY_END_MIN) return { startMin: band.startMin, endMin: band.endMin };
+    // A whole-day closure: propose the day's usual hours.
+    const base = baseIntervalsFor(day, schedules, dayExceptionsFor(day, exceptions));
+    return base.length > 0
+      ? { startMin: base[0].startMin, endMin: base[base.length - 1].endMin }
+      : { startMin: DEFAULT_BUSINESS_START_MIN, endMin: DEFAULT_BUSINESS_END_MIN };
+  }
+
+  // Out of hours: stick to the open edge when the click is near it (extend the
+  // close or bring the opening forward), otherwise an hour from the click.
+  const NEAR_MIN = 180;
+  const startMin = band.startMin > 0 && slotMin - band.startMin <= NEAR_MIN ? band.startMin : slotMin;
+  const endMin = band.endMin < DAY_END_MIN && band.endMin - slotMin <= NEAR_MIN
+    ? band.endMin
+    : Math.min(slotMin + 60, band.endMin);
+  return { startMin, endMin };
+}
+
+/** An opening that overlaps the range to block and can't be changed from the calendar. */
+export interface LockedOpening {
+  exception: ClinicException;
+  /** 'recurring' = it repeats; 'otherScope' = it also applies to other branches. */
+  reason: 'recurring' | 'otherScope';
+}
+
+/** How an opening ends up once the range is blocked. */
+export interface OpeningChange {
+  exception: ClinicException;
+  /** What stays open from this row on that day (empty = nothing). */
+  remaining: Interval[];
+  /** Other dates the opening keeps covering (0 = it only covered this day). */
+  otherDates: number;
+}
+
+export interface SlotBlockPlan {
+  /** Writes in a safe order: the closure first, so a failure never leaves it more open. */
+  writes: ExceptionWrite[];
+  openingChanges: OpeningChange[];
+  /** While any is left the closure wouldn't hold for the WhatsApp agent: don't save. */
+  locked: LockedOpening[];
+  /** The day's available hours now, and once the writes are applied. */
+  before: Interval[];
+  resulting: Interval[];
+  changesSomething: boolean;
+}
+
+export interface PlanSlotBlockOptions {
+  /** Branch the closure is for; undefined = the whole clinic. */
+  sedeId?: string;
+  /** With a single branch, clinic-wide rows ARE that branch's, so they're editable. */
+  singleBranch?: boolean;
+  /** Notes for the closing row. */
+  notes?: string;
+}
+
+/**
+ * Plans "bloquear horario": a one-off closure of `blocked` on `day`.
+ *
+ * The closure alone isn't enough. In `get_available_users()` an `is_open` row WINS
+ * over a closure, while in the calendar the closure wins, so an opening left over
+ * the range would show closed here and stay bookable for the WhatsApp agent. And
+ * "habilitar horario" writes openings for the day's whole window, so this is the
+ * usual case on a day that was enabled before. Overlapping openings are cut:
+ *
+ * - One-off openings inside the closure's scope are carved like `planSlotEnable`
+ *   does with closures.
+ * - Recurring openings, and clinic-wide ones seen from one branch of many, can't be
+ *   cut without changing other dates or branches: they're reported as `locked`.
+ * - A branch's own opening IS inside a clinic-wide closure, which is why this takes
+ *   the whole clinic's `exceptions`, not the ones the calendar paints for the scope.
+ */
+export function planSlotBlock(
+  day: Date,
+  schedules: ClinicSchedule[],
+  exceptions: ClinicException[],
+  blocked: Interval,
+  { sedeId, singleBranch = false, notes = '' }: PlanSlotBlockOptions = {},
+): SlotBlockPlan {
+  const dayKey = format(day, 'yyyy-MM-dd');
+  const dayExceptions = dayExceptionsFor(day, exceptions);
+
+  const creates: ExceptionWrite[] = [];
+  const updates: ExceptionWrite[] = [];
+  const deletes: ExceptionWrite[] = [];
+  const openingChanges: OpeningChange[] = [];
+  const locked: LockedOpening[] = [];
+
+  for (const e of dayExceptions) {
+    if (!e.is_open) continue;
+    // Untimed openings open nothing in the backend, so there's nothing to cut.
+    const window = openingWindow(e);
+    if (!window || window.endMin <= blocked.startMin || window.startMin >= blocked.endMin) continue;
+    // Another branch's opening doesn't apply to this branch's closure.
+    if (sedeId && e.sede_id && String(e.sede_id) !== String(sedeId)) continue;
+    if ((e.recurrence ?? 'once') !== 'once') {
+      locked.push({ exception: e, reason: 'recurring' });
+      continue;
+    }
+    if (sedeId && !e.sede_id && !singleBranch) {
+      locked.push({ exception: e, reason: 'otherScope' });
+      continue;
+    }
+    const carved = carveRowForDay(e, window, blocked, dayKey);
+    openingChanges.push({ exception: e, remaining: carved.kept, otherDates: carved.otherDates });
+    creates.push(...carved.creates);
+    updates.push(...carved.updates);
+    deletes.push(...carved.deletes);
+  }
+
+  const closure: ClinicException = {
+    id: '',
+    date: dayKey,
+    dates: [dayKey],
+    recurrence: 'once',
+    is_open: false,
+    start_time: minutesToTimeString(blocked.startMin),
+    end_time: minutesToTimeString(blocked.endMin),
+    sede_id: sedeId || undefined,
+    notes,
+  };
+
+  const touched = new Set([...updates, ...deletes].map((w) => w.exception.id));
+  const applied = [
+    ...dayExceptions.filter((e) => !touched.has(e.id)),
+    ...updates.map((w) => w.exception),
+    ...creates.map((w) => w.exception),
+    closure,
+  ];
+  const before = getAvailableIntervals(day, schedules, filterExceptionsForSede(dayExceptions, sedeId));
+  const resulting = getAvailableIntervals(day, schedules, filterExceptionsForSede(applied, sedeId));
+
+  return {
+    writes: [{ type: 'create', exception: closure }, ...creates, ...updates, ...deletes],
+    openingChanges,
+    locked,
+    before,
+    resulting,
+    // A cut opening counts even if the calendar already showed it closed: the
+    // WhatsApp agent didn't.
+    changesSomething: openingChanges.length > 0 || JSON.stringify(before) !== JSON.stringify(resulting),
+  };
+}
+
+/**
+ * The window "bloquear horario" proposes for a right-click at `slotMin`: an hour
+ * from the click, within the open stretch it falls in. Null if it isn't open.
+ */
+export function suggestBlockWindow(
+  day: Date,
+  schedules: ClinicSchedule[],
+  exceptions: ClinicException[],
+  slotMin: number,
+): Interval | null {
+  const open = getAvailableIntervals(day, schedules, exceptions)
+    .find((i) => slotMin >= i.startMin && slotMin < i.endMin);
+  return open ? { startMin: slotMin, endMin: Math.min(slotMin + 60, open.endMin) } : null;
 }
 
 /**

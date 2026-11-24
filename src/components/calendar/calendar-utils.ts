@@ -28,6 +28,8 @@ import {
   HOUR_SLOT_HEIGHT,
   HOURS_IN_DAY,
   DEFAULT_SLOT_DURATION,
+  FINE_SLOT_THRESHOLD_MINUTES,
+  MIN_GRID_STEP_MINUTES,
   MINUTES_IN_DAY,
 } from './calendar-constants';
 
@@ -518,6 +520,9 @@ export function generateTimeSlots(count = 24): string[] {
  * (6 per hour) clicking the 13:00 hour yields 13:00/13:10/.../13:50; with 20-min
  * slots (3 per hour) it yields 13:00/13:20/13:40.
  *
+ * Usa el paso de la rejilla (`gridStepMinutes`), no el slot: con slots de 5 min las
+ * líneas están cada 15, y un clic tiene que caer en el inicio de la celda que se ve.
+ *
  * `y` se acota al día antes de convertir. Con un clic nunca se sale de la caja,
  * pero al arrastrar el puntero sí: sin la cota, una `y` negativa da `hour = -1` y
  * `set(day, { hours: -1 })` cae callado en el día anterior a las 23:00, y una `y`
@@ -528,13 +533,24 @@ export function slotTimeFromOffset(
   hourSlotHeight: number,
   slotMinutes = 15,
 ): { hour: number; minute: number } {
-  const safeSlot = slotMinutes > 0 ? slotMinutes : 15;
+  const safeSlot = gridStepMinutes(slotMinutes > 0 ? slotMinutes : 15);
   const slotsPerHour = Math.max(1, Math.round(60 / safeSlot));
   const safeY = Math.max(0, Math.min(y, HOURS_IN_DAY * hourSlotHeight - 1));
   const hour = Math.min(HOURS_IN_DAY - 1, Math.floor(safeY / hourSlotHeight));
   const slotPx = hourSlotHeight / slotsPerHour;
   const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((safeY % hourSlotHeight) / slotPx)));
   return { hour, minute: idx * safeSlot };
+}
+
+/**
+ * Paso de la rejilla visible (líneas, clic en un hueco vacío, duración de una cita
+ * nueva) para una duración de slot dada. Coincide con el slot salvo en los slots
+ * finos (5 min), que solo afinan el encaje del arrastre: ahí la rejilla se queda en
+ * cuartos de hora para no llenar la hora de líneas.
+ */
+export function gridStepMinutes(slotMinutes: number = DEFAULT_SLOT_DURATION): number {
+  const safeSlot = slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+  return safeSlot < FINE_SLOT_THRESHOLD_MINUTES ? MIN_GRID_STEP_MINUTES : safeSlot;
 }
 
 // ---------------------------------------------------------------------------

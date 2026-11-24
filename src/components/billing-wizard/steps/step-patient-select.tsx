@@ -2,8 +2,11 @@
 
 import * as React from 'react';
 import { UserIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
 import { UserSelector } from '@/components/ui/user-selector';
 import type { User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 interface StepPatientSelectProps {
   selectedPatient: User | null;
@@ -17,11 +20,13 @@ export function StepPatientSelect({
   onPatientChange,
   readonlyPatient,
 }: StepPatientSelectProps) {
+  const t = useTranslations('BillingWizard.patient');
+
   if (readonlyPatient) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border bg-muted/30 px-4 py-3 space-y-1">
-          <p className="text-xs text-muted-foreground">Paciente para este cobro</p>
+          <p className="text-xs text-muted-foreground">{t('forThisBilling')}</p>
         </div>
         <div className="rounded-lg border bg-background px-4 py-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 shrink-0">
@@ -30,7 +35,7 @@ export function StepPatientSelect({
           <div className="min-w-0">
             <p className="text-sm font-semibold">{readonlyPatient.name}</p>
             {readonlyPatient.phone && (
-              <p className="text-xs text-muted-foreground">{readonlyPatient.phone}</p>
+              <p className="text-xs text-muted-foreground">{formatPhoneNumber(readonlyPatient.phone)}</p>
             )}
             {readonlyPatient.email && (
               <p className="text-xs text-muted-foreground">{readonlyPatient.email}</p>
@@ -45,13 +50,13 @@ export function StepPatientSelect({
     <div className="space-y-4">
       <div className="rounded-lg border bg-muted/30 px-4 py-3">
         <p className="text-xs text-muted-foreground">
-          Selecciona el paciente al que deseas facturar. Si no existe, puedes crearlo directamente desde el selector.
+          {t('hint')}
         </p>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Paciente
+          {t('label')}
         </label>
         <UserSelector
           filterType="PACIENTE"
@@ -59,8 +64,8 @@ export function StepPatientSelect({
           value={selectedPatient?.id}
           selectedUserName={selectedPatient?.name}
           onValueChange={(_, user) => { if (user) onPatientChange(user); }}
-          placeholder="Buscar o crear paciente..."
-          triggerText="Seleccionar paciente"
+          placeholder={t('searchPlaceholder')}
+          triggerText={t('selectTrigger')}
         />
       </div>
 
@@ -72,7 +77,7 @@ export function StepPatientSelect({
           <div className="min-w-0">
             <p className="text-sm font-semibold">{selectedPatient.name}</p>
             {selectedPatient.phone_number && (
-              <p className="text-xs text-muted-foreground">{selectedPatient.phone_number}</p>
+              <p className="text-xs text-muted-foreground">{formatPhoneNumber(selectedPatient.phone_number)}</p>
             )}
             {selectedPatient.email && (
               <p className="text-xs text-muted-foreground">{selectedPatient.email}</p>

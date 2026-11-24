@@ -22,6 +22,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { Calendar as CalendarType, Sede } from '@/lib/types';
@@ -155,6 +156,7 @@ export default function CalendarsPage() {
     const { data: sedes, error: sedesError } = useDataLoader(getActiveSedes, [] as Sede[]);
     const [isSedeOpen, setIsSedeOpen] = React.useState(false);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<CalendarFormValues>({
         resolver: zodResolver(calendarFormSchema(tValidation)),
         defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: true, sede_id: '' },
@@ -321,7 +323,7 @@ export default function CalendarsPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.calendars.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none">
@@ -337,13 +339,13 @@ export default function CalendarsPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedCalendar && !isEditing && activeTab === 'details' && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="config.calendars.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('dialog.edit')}</span>
                             </Button>
                         )}
                         {selectedCalendar && !isEditing && activeTab === 'details' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.delete')} onClick={() => { setDeletingCalendar(selectedCalendar); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="config.calendars.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.delete')} onClick={() => { setDeletingCalendar(selectedCalendar); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -373,7 +375,7 @@ export default function CalendarsPage() {
                     <CalendarAccessTab calendarId={selectedCalendar.id} canManage={canManageAccess} />
                 ) : (
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -512,7 +514,7 @@ export default function CalendarsPage() {
                         <DialogTitle>{t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">

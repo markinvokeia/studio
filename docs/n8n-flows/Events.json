@@ -1,0 +1,118 @@
+{
+  "name": "Events",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "event_type"
+            },
+            {
+              "name": "user_ids",
+              "type": "array"
+            },
+            {
+              "name": "channels",
+              "type": "array"
+            },
+            {
+              "name": "payload",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c1dc20e8-4a28-435f-b740-ff07b70f0463",
+      "name": "Event Push"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVENT_PUSHER_URL }}/events/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.EVENT_PUSHER_N8N_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $env.CLIENT_ID }}"
+            },
+            {
+              "name": "event_type",
+              "value": "={{ $json.event_type }}"
+            },
+            {
+              "name": "user_ids",
+              "value": "={{ $json.user_ids || [] }}"
+            },
+            {
+              "name": "channels",
+              "value": "={{ $json.channels || [] }}"
+            },
+            {
+              "name": "payload",
+              "value": "={{ $json.payload || {} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "ec23ca88-9244-4517-a765-53dc05e29485",
+      "name": "HTTP Request",
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Event Push": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b13df8bb-c35d-4934-a417-060b1fb6a7f5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "W5SZnwkaTigFrHO6",
+  "tags": []
+}

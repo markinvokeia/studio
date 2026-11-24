@@ -1,0 +1,36 @@
+{
+  "id": "cashier.session-history",
+  "title": "View a cash session's details",
+  "summary": "Open a closed session (the most recent) and see its cash count, differences, movements and counts, and print the closing.",
+  "module": "Cash register",
+  "keywords": [
+    "cash sessions",
+    "cash history",
+    "previous closings",
+    "cash difference",
+    "reprint closing",
+    "previous cash count"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Sessions",
+      "details": "Each opening and closing, with who was responsible and their differences."
+    },
+    {
+      "id": "row",
+      "title": "The most recent session",
+      "details": "Tap the row (or the eye) to see its details."
+    },
+    {
+      "id": "details",
+      "title": "Session details",
+      "details": "User, cash register, opening and closing; opening and closing bill counts; the movements; and the reconciliation per payment method: system, declared and difference."
+    },
+    {
+      "id": "print",
+      "title": "Print closing",
+      "details": "Reprints the closing report."
+    }
+  ]
+}

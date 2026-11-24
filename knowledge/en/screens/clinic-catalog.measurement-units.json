@@ -1,0 +1,55 @@
+{
+  "id": "clinic-catalog.measurement-units",
+  "summary": "Units that service doses are recorded in (U, ml, mg, cc…).",
+  "purpose": "Each aesthetic service needs a unit: it shows next to each quantity on the aesthetic record, and its step sets how much the + and − buttons change when marking.",
+  "tips": [
+    "A unit in use isn't deleted: it becomes inactive and old sessions keep showing it."
+  ],
+  "elements": {
+    "clinic-catalog.measurement-units.btn.new": {
+      "label": "New unit",
+      "description": "Adds a unit with its name, symbol, code and step."
+    },
+    "clinic-catalog.measurement-units.section.table": {
+      "label": "Units",
+      "description": "All the clinic's units; only active ones are offered when setting up a service."
+    },
+    "clinic-catalog.measurement-units.section.first-row": {
+      "label": "First in the list",
+      "description": "Each row shows the symbol, code, step and whether the unit is active."
+    },
+    "clinic-catalog.measurement-units.btn.edit": {
+      "label": "Edit",
+      "description": "Changes that unit's details or makes it inactive."
+    },
+    "clinic-catalog.measurement-units.btn.delete": {
+      "label": "Delete",
+      "description": "If it's in use, it becomes inactive instead of being deleted."
+    },
+    "clinic-catalog.measurement-units.btn.delete-confirm": {
+      "label": "Confirm"
+    },
+    "clinic-catalog.measurement-units.field.name": {
+      "label": "Name"
+    },
+    "clinic-catalog.measurement-units.field.symbol": {
+      "label": "Symbol",
+      "description": "What shows next to each quantity."
+    },
+    "clinic-catalog.measurement-units.field.code": {
+      "label": "Code",
+      "description": "Unique identifier: letters, numbers, hyphen and underscore."
+    },
+    "clinic-catalog.measurement-units.field.step": {
+      "label": "Quantity step",
+      "description": "How much + and − change when marking: 1 for whole units, 0.05 for ml."
+    },
+    "clinic-catalog.measurement-units.field.isActive": {
+      "label": "Active",
+      "description": "Inactive ones aren't offered when setting up services."
+    },
+    "clinic-catalog.measurement-units.btn.submit": {
+      "label": "Save"
+    }
+  }
+}

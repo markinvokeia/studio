@@ -1,0 +1,92 @@
+{
+  "id": "onboarding.business",
+  "title": "Cargar los datos de la clínica",
+  "module": "Configuración del negocio",
+  "summary": "Nombre comercial, contacto, RUT y moneda principal. El logo sale en presupuestos, facturas y en el portal de pacientes.",
+  "screens": [
+    "config.clinics"
+  ],
+  "inputs": {
+    "name": "Nombre comercial de la clínica",
+    "email": "Correo de contacto",
+    "phone": "Teléfono con código de país",
+    "rut": "RUT / identificación fiscal"
+  },
+  "keywords": [
+    "clínica",
+    "negocio",
+    "logo",
+    "moneda",
+    "rut",
+    "datos de la empresa"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/clinics",
+      "title": "Abro los datos de la clínica"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.clinics.field.clinic-name",
+      "value": "{{values.name}}",
+      "title": "Nombre de la clínica",
+      "description": "Es el nombre que ven tus pacientes en mensajes, presupuestos y facturas.",
+      "details": "Aparece en recordatorios, presupuestos, facturas y en el portal de pacientes. Podés cambiarlo cuando quieras: los documentos nuevos toman el nombre nuevo."
+    },
+    {
+      "id": "logo",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-logo",
+      "title": "Subí el logo",
+      "description": "Elegí una imagen cuadrada (PNG o JPG). Se usa en los documentos impresos y en el portal.",
+      "optional": true,
+      "details": "Si no subís logo, los documentos salen sólo con el nombre. Se recomienda PNG con fondo transparente."
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "config.clinics.field.clinic-email",
+      "value": "{{values.email}}",
+      "title": "Correo de contacto",
+      "optional": true,
+      "details": "Es el correo de contacto que ven los pacientes. Las notificaciones salen igual aunque lo dejes vacío."
+    },
+    {
+      "id": "phone",
+      "action": "fill",
+      "target": "config.clinics.field.clinic-phone",
+      "value": "{{values.phone}}",
+      "title": "Teléfono",
+      "optional": true,
+      "details": "Se muestra en el portal y en los mensajes al paciente para que puedan comunicarse con la clínica."
+    },
+    {
+      "id": "rut",
+      "action": "fill",
+      "target": "config.clinics.field.clinic-rut",
+      "value": "{{values.rut}}",
+      "title": "RUT",
+      "optional": true,
+      "details": "Necesario para emitir facturas. Sin RUT podés trabajar igual, pero los comprobantes salen sin identificación fiscal."
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "config.clinics.field.clinic-currency",
+      "title": "Moneda principal",
+      "description": "Es la moneda en la que se emiten precios, presupuestos y la caja. Si también cobrás en otra, elegila como moneda secundaria.",
+      "details": "Define la moneda de precios, presupuestos y caja. Cambiarla después no convierte lo ya cargado; la moneda secundaria muestra la conversión al cobrar."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.clinics.btn.save",
+      "title": "Revisá y guardá",
+      "description": "Cuando esté todo bien, pulsá Guardar. Yo nunca guardo por vos.",
+      "details": "Guarda los datos de la clínica. Hasta que no guardes, nada de lo que completé queda registrado."
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "id": "system.alert-categories.edit",
+  "title": "Editar la categoría",
+  "module": "Sistema",
+  "summary": "Cambiar una categoría existente.",
+  "screens": [
+    "system.alert-categories"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar categoría",
+    "modificar categoría"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-categories",
+      "title": "Menú → Sistema → Categorías de Alertas",
+      "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.alert-categories.filter.search",
+      "title": "Buscá la categoría",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.alert-categories.section.first-row",
+      "title": "Elegí la categoría",
+      "until": "system.alert-categories.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "system.alert-categories.btn.edit",
+      "title": "Editar",
+      "until": "system.alert-categories.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "system.alert-categories.field.name",
+      "title": "Nombre",
+      "skipIfMissing": true
+    },
+    {
+      "id": "code",
+      "action": "highlight",
+      "target": "system.alert-categories.field.code",
+      "title": "Código",
+      "details": "Identificador interno, sin espacios.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "color",
+      "action": "highlight",
+      "target": "system.alert-categories.field.color",
+      "title": "Color",
+      "skipIfMissing": true
+    },
+    {
+      "id": "icon",
+      "action": "highlight",
+      "target": "system.alert-categories.field.icon",
+      "title": "Ícono",
+      "skipIfMissing": true
+    },
+    {
+      "id": "internal_category_id",
+      "action": "highlight",
+      "target": "system.alert-categories.field.internal_category_id",
+      "title": "Categoría interna",
+      "details": "A qué módulo pertenece.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.alert-categories.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

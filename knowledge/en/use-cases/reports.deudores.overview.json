@@ -1,0 +1,64 @@
+{
+  "id": "reports.deudores.overview",
+  "title": "Use the Debtors report",
+  "summary": "Patients' debt by age: a collections tool.",
+  "module": "Reports",
+  "keywords": [
+    "debtors",
+    "who owes",
+    "patient debt",
+    "collections"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Reports → Debtors",
+      "details": "Patients' debt by age: a collections tool."
+    },
+    {
+      "id": "currency-filter",
+      "title": "Currency",
+      "details": "Only if the clinic works with two currencies: all or one."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "Currency, age and minimum debt."
+    },
+    {
+      "id": "generate",
+      "title": "Generate",
+      "details": "Calculates the report with the chosen filters."
+    },
+    {
+      "id": "empty",
+      "title": "No data",
+      "details": "There's no data for those filters: try another period."
+    },
+    {
+      "id": "kpis",
+      "title": "Indicators",
+      "details": "Total debt, number of debtors, overdue more than 90 days and current 0-30 days."
+    },
+    {
+      "id": "results",
+      "title": "Results",
+      "details": "Each debtor with their debt by age bracket."
+    },
+    {
+      "id": "table",
+      "title": "Details",
+      "details": "Sort by column by tapping the header."
+    },
+    {
+      "id": "export",
+      "title": "Export",
+      "details": "Excel, CSV or PDF with what you're viewing."
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "details": "With the clinic's letterhead."
+    }
+  ]
+}

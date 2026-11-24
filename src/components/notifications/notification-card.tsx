@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   ArrowRight,
   Bell,
@@ -25,6 +24,7 @@ import {
   Users,
   X,
   Zap,
+  FlaskConical,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
@@ -42,6 +43,7 @@ import { acknowledgeStudyOrder } from '@/services/study-orders';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import { getSalesServices } from '@/services/services';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
@@ -60,11 +62,13 @@ import type {
   StudyOrderAssignedNotification,
   StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function RelativeTime({ iso }: { iso: string }) {
+  const locale = useLocale();
   const [label, setLabel] = React.useState('');
   React.useEffect(() => {
     // The API sends a 'Z'-suffixed string but the wall-clock digits are already local
@@ -73,11 +77,11 @@ function RelativeTime({ iso }: { iso: string }) {
     // here by the client's UTC offset (3h in GMT-3).
     const localIso = iso.replace('Z', '');
     const update = () =>
-      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: es }));
+      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: getDateFnsLocale(locale) }));
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
-  }, [iso]);
+  }, [iso, locale]);
   return <span className="text-[10px] text-muted-foreground">{label}</span>;
 }
 
@@ -90,13 +94,14 @@ function CardWrapper({
   onDismiss: () => void;
   accent: string;
 }) {
+  const t = useTranslations('Notifications');
   return (
     <div className={cn('relative rounded-xl border border-border bg-card p-4 shadow-sm', accent)}>
       <button
         type="button"
         onClick={onDismiss}
         className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-60 hover:opacity-100 hover:bg-accent transition-opacity"
-        aria-label="Descartar"
+        aria-label={t('dismiss')}
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -250,14 +255,15 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       // Prefer AI-detected current-session services with catalog-resolved names;
       // fall back to appointment.services when no AI services are available.
       const preloadedItems = aiCurrentServices.length > 0
-        ? aiCurrentServices.map((svc) => {
+        ? aiCurrentServices.map((svc, index) => {
             const catalogService = catalogResponse?.items.find(
               (s) => String(s.id) === String(svc.service_id),
             );
             const price = catalogService?.price ?? svc.unit_price ?? 0;
             const qty = svc.quantity ?? 1;
             return {
-              tempId: svc.service_id!,
+              // Con el índice: el mismo servicio puede venir dos veces.
+              tempId: `${svc.service_id}-${index}`,
               service_id: svc.service_id!,
               service_name: catalogService?.name ?? svc.service_name ?? svc.descripcion ?? '',
               unit_price: price,
@@ -265,8 +271,8 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
               total: price * qty,
             };
           })
-        : (appointment.services ?? []).map((svc) => ({
-            tempId: svc.id,
+        : (appointment.services ?? []).map((svc, index) => ({
+            tempId: `${svc.id}-${index}`,
             service_id: svc.id,
             service_name: svc.name,
             unit_price: svc.price || 0,
@@ -406,7 +412,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {t('dischargedUntil', {
                   date: (() => {
                     try {
-                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: es });
+                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: getDateFnsLocale(locale) });
                     } catch {
                       return notification.discharge.appointment_date;
                     }
@@ -883,7 +889,7 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold text-foreground truncate">
-              {patientName || phone || t('unknownPatient')}
+              {patientName || formatPhoneNumber(phone) || t('unknownPatient')}
             </span>
             <RelativeTime iso={createdAt} />
           </div>
@@ -892,7 +898,7 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
 
           {phone && (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              {t('handoffPhone')}: <span className="font-medium text-foreground">{phone}</span>
+              {t('handoffPhone')}: <span className="font-medium text-foreground">{formatPhoneNumber(phone)}</span>
             </p>
           )}
 
@@ -937,6 +943,61 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
               {t('actionViewPatient')}
             </Button>
           )}
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+function LabOrderAlertCard({ notification }: { notification: LabOrderAlertNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const isOverdue = notification.trigger !== 'enter';
+
+  const handleView = () => {
+    closePanel();
+    dismissNotification(notification.id);
+    router.push(`/${locale}/lab-orders?order=${notification.labOrderId}`);
+  };
+
+  return (
+    <CardWrapper
+      onDismiss={() => dismissNotification(notification.id)}
+      accent={isOverdue ? 'border-l-[3px] border-l-destructive/60' : 'border-l-[3px] border-l-sky-500/60'}
+    >
+      <div className="flex items-start gap-3 pr-6">
+        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full', isOverdue ? 'bg-destructive/10' : 'bg-sky-500/10')}>
+          <FlaskConical className={cn('h-3.5 w-3.5', isOverdue ? 'text-destructive' : 'text-sky-600')} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">{notification.patientName || t('unknownPatient')}</span>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className={cn('mt-0.5 text-[11px] font-medium', isOverdue ? 'text-destructive' : 'text-sky-700 dark:text-sky-400')}>
+            {notification.trigger === 'due'
+              ? t('labOrderPastDueTitle')
+              : isOverdue
+                ? t('labOrderOverdueTitle', { stage: notification.stageName })
+                : t('labOrderEnteredTitle', { stage: notification.stageName })}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            #{notification.labOrderId} · {[notification.workDescription, notification.laboratoryName].filter(Boolean).join(' · ')}
+          </p>
+          {notification.trigger === 'dwell' && (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{t('labOrderDaysInStage', { count: notification.daysInStage })}</p>
+          )}
+          {notification.trigger === 'due' && (
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {t('labOrderDaysPastDue', { count: notification.daysPastDue })} · {notification.stageName}
+            </p>
+          )}
+          <Button variant="outline" size="sm" className="mt-3 h-7 w-full justify-start gap-2 text-[11px]" onClick={handleView}>
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t('actionViewLabOrder')}
+          </Button>
         </div>
       </div>
     </CardWrapper>
@@ -1263,5 +1324,7 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <StudyOrderAssignedCard notification={notification} />;
     case 'study_order_message':
       return <StudyOrderMessageCard notification={notification} />;
+    case 'lab_order_alert':
+      return <LabOrderAlertCard notification={notification} />;
   }
 }

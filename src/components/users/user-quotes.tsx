@@ -27,6 +27,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useFinanceTableSorting } from '@/hooks/use-finance-sort-order';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import {
   buildDiscountedDocument,
   computeDiscountAmount,
@@ -42,6 +43,7 @@ import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem, Invoice } from '@/lib/types';
 import { fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
+import { TeethPicker, ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { formatDisplayDate, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -67,31 +69,31 @@ import { formatMoney } from '@/lib/currency';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 /** El tope de descuento es un dato de runtime, así que el esquema es una fábrica. */
-const buildItemSchema = (maxDiscountPct: number) => z.object({
-  service_id: z.string().min(1, 'Selecciona un servicio'),
-  quantity: z.coerce.number().min(1, 'Mínimo 1'),
-  unit_price: z.coerce.number().min(0, 'Precio inválido'),
+const buildItemSchema = (maxDiscountPct: number, v: (key: string) => string) => z.object({
+  service_id: z.string().min(1, v('selectService')),
+  quantity: z.coerce.number().min(1, v('minOne')),
+  unit_price: z.coerce.number().min(0, v('invalidPrice')),
   tooth_number: z.coerce.number().optional(),
   discount_mode: z.enum(['percent', 'amount']).nullish(),
   discount_value: z.coerce.number().min(0).nullish(),
 }).superRefine((values, ctx) => {
   const base = computeGrossTotal(values.unit_price, values.quantity);
   if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: v('discountExceeded') });
   }
 });
 type ItemFormValues = z.infer<ReturnType<typeof buildItemSchema>>;
 
-const buildQuoteEditSchema = (maxDiscountPct: number) => z.object({
+const buildQuoteEditSchema = (maxDiscountPct: number, v: (key: string) => string) => z.object({
   currency: currencySchema,
-  exchange_rate: z.coerce.number().min(0.0001, 'Tasa de cambio inválida'),
+  exchange_rate: z.coerce.number().min(0.0001, v('invalidExchangeRate')),
   notes: z.string().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
-    service_id: z.string().min(1, 'Selecciona un servicio'),
+    service_id: z.string().min(1, v('selectService')),
     service_name: z.string().optional(),
-    quantity: z.coerce.number().int().min(1, 'Mínimo 1'),
-    unit_price: z.coerce.number().min(0, 'Precio inválido'),
+    quantity: z.coerce.number().int().min(1, v('minOne')),
+    unit_price: z.coerce.number().min(0, v('invalidPrice')),
     total: z.coerce.number().min(0),
     tooth_number: z.coerce.number().int().optional().or(z.literal('')),
     discount_mode: z.enum(['percent', 'amount']).nullish(),
@@ -104,12 +106,12 @@ const buildQuoteEditSchema = (maxDiscountPct: number) => z.object({
   (values.items ?? []).forEach((item, index) => {
     const base = computeGrossTotal(item.unit_price, item.quantity);
     if (!isDiscountWithinLimit(base, { mode: item.discount_mode, value: item.discount_value }, maxDiscountPct)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: 'Supera el descuento máximo permitido' });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: v('discountExceeded') });
     }
   });
   const grossTotal = roundCurrency((values.items ?? []).reduce((sum, item) => sum + computeGrossTotal(item.unit_price, item.quantity), 0));
   if (!isDiscountWithinLimit(grossTotal, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: v('discountExceeded') });
   }
 });
 type QuoteEditFormValues = z.infer<ReturnType<typeof buildQuoteEditSchema>>;
@@ -383,7 +385,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Seleccionar fila"
+        aria-label={t('General.selectRow')}
         onClick={(e) => e.stopPropagation()}
       />
     ),
@@ -516,6 +518,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
 
 // ── Item total display (read-only, computed from quantity × unit_price) ───────
 function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useForm<ItemFormValues>>; applyDiscount: boolean }) {
+  const t = useTranslations('UserQuotes');
   const quantity = useWatch({ control: form.control, name: 'quantity' }) ?? 0;
   const unitPrice = useWatch({ control: form.control, name: 'unit_price' }) ?? 0;
   const discountMode = useWatch({ control: form.control, name: 'discount_mode' });
@@ -528,7 +531,7 @@ function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useFo
   const formatted = formatMoney(total, getClinicCurrency());
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">Total</label>
+      <label className="text-sm font-medium">{t('totalLabel')}</label>
       <Input value={formatted} readOnly disabled className="bg-muted text-muted-foreground cursor-not-allowed" />
     </div>
   );
@@ -588,6 +591,7 @@ interface UserQuotesProps {
 export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange, refreshTrigger }: UserQuotesProps) {
   const t = useTranslations();
   const tQuotes = useTranslations('QuotesPage');
+  const tValidation = useTranslations('DocumentValidation');
   const { toast } = useToast();
   const { code: clinicCurrency } = useCurrencySettings();
   const { activeCashSession } = useAuth();
@@ -986,7 +990,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   }, [activeCashSession]);
 
   const discounts = useDiscountSettings();
-  const quoteEditSchema = React.useMemo(() => buildQuoteEditSchema(discounts.maxPct), [discounts.maxPct]);
+  const quoteEditSchema = React.useMemo(() => buildQuoteEditSchema(discounts.maxPct, tValidation), [discounts.maxPct, tValidation]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const quoteEditForm = useForm<QuoteEditFormValues>({ resolver: zodResolver(quoteEditSchema) });
   const { fields: editItemFields, append: appendEditItem, remove: removeEditItem, update: updateEditItem } = useFieldArray({
     control: quoteEditForm.control,
@@ -1148,7 +1153,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   };
 
   // ── Item form ────────────────────────────────────────────────────────────────
-  const itemSchema = React.useMemo(() => buildItemSchema(discounts.maxPct), [discounts.maxPct]);
+  const itemSchema = React.useMemo(() => buildItemSchema(discounts.maxPct, tValidation), [discounts.maxPct, tValidation]);
   const itemForm = useForm<ItemFormValues>({ resolver: zodResolver(itemSchema) });
 
   React.useEffect(() => {
@@ -1264,7 +1269,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           }
         >
           <Zap className="h-3.5 w-3.5" />
-          Cobrar
+          {t('BillingWizard.actions.collect')}
         </Button>
       )}
       {showInvoiceFromOrderButton && (
@@ -1573,14 +1578,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
               <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
                 <TabsList className="gap-1 rounded-xl border border-border bg-muted/30 p-1 h-auto">
-                  <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Ítems</TabsTrigger>
+                  <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">{t('UserQuotes.tabs.items')}</TabsTrigger>
                   <TabsTrigger value="facturas" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5" onClick={() => !quoteDetailInvoices.length && loadQuoteDetailInvoices(selectedQuote.id)}>
                     <FileText className="h-3.5 w-3.5" />
-                    Facturas
+                    {t('UserQuotes.tabs.invoices')}
                   </TabsTrigger>
                   <TabsTrigger value="pagos" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5" onClick={() => !quoteDetailPayments.length && loadQuoteDetailPayments(selectedQuote.id)}>
                     <CreditCard className="h-3.5 w-3.5" />
-                    Pagos
+                    {t('UserQuotes.tabs.payments')}
                   </TabsTrigger>
                   <TabsTrigger value="clinic-sessions" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
                     <Stethoscope className="h-3.5 w-3.5" />
@@ -1858,7 +1863,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
         <DialogContent maxWidth="4xl" confirmOnClose isDirty={quoteEditForm.formState.isDirty}>
           <Form {...quoteEditForm}>
-            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
+            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
               <DialogHeader>
                 <DialogTitle>{t('UserQuotes.dialogs.editQuote.title')}</DialogTitle>
                 <DialogDescription>{t('UserQuotes.dialogs.editQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
@@ -2028,17 +2033,20 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                   <td className="p-1">
                                     <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                       <FormItem>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            min={11}
-                                            max={85}
-                                            placeholder="—"
-                                            {...field}
-                                            value={field.value ?? ''}
-                                            onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
-                                          />
-                                        </FormControl>
+                                        <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              min={11}
+                                              max={85}
+                                              placeholder="—"
+                                              className="pl-7"
+                                              {...field}
+                                              value={field.value ?? ''}
+                                              onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                            />
+                                          </FormControl>
+                                        </ToothInputWithPicker>
                                         <FormMessage />
                                       </FormItem>
                                     )} />
@@ -2158,7 +2166,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <DialogDescription>{t('UserQuotes.dialogs.itemDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(handleSubmitItem)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
+            <form onSubmit={itemForm.handleSubmit(handleSubmitItem, onInvalidSubmit)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
@@ -2220,9 +2228,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UserQuotes.dialogs.itemDialog.toothNumberOptional')}</FormLabel>
-                      <FormControl>
-                        <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                      </FormControl>
+                      <div className="flex gap-1.5">
+                        <FormControl>
+                          <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                        </FormControl>
+                        <TeethPicker mode="single" value={field.value == null ? '' : String(field.value)} onChange={(next) => field.onChange(next === '' ? undefined : next)} />
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )} />

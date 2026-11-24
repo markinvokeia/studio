@@ -1,0 +1,55 @@
+{
+  "id": "system.users.overview",
+  "title": "Tour Users",
+  "summary": "Everyone who signs in to the system (doctors, receptionists, administration) with their roles.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "users",
+    "user",
+    "view user"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Users",
+      "details": "Everyone who signs in to the system (doctors, receptionists, administration) with their roles."
+    },
+    {
+      "id": "search",
+      "title": "Find the user"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the user"
+    },
+    {
+      "id": "detail",
+      "title": "Record"
+    },
+    {
+      "id": "tab-details",
+      "title": "Details"
+    },
+    {
+      "id": "tab-roles",
+      "title": "Roles",
+      "details": "Which roles they have: each role adds permissions."
+    },
+    {
+      "id": "tab-logs",
+      "title": "Logs",
+      "details": "What they did in the system."
+    },
+    {
+      "id": "tab-signature",
+      "title": "Signature"
+    },
+    {
+      "id": "tab-preferences",
+      "title": "Preferences"
+    }
+  ]
+}

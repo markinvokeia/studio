@@ -1,0 +1,16 @@
+{
+  "id": "system.communication-history",
+  "summary": "Communication history.",
+  "purpose": "Messages sent to patients by email and WhatsApp, with their delivery status.",
+  "elements": {
+    "system.communication-history.section.first-row": {
+      "label": "The most recent"
+    },
+    "system.communication-history.section.row": {
+      "label": "Record"
+    },
+    "system.communication-history.section.detail": {
+      "label": "Details"
+    }
+  }
+}

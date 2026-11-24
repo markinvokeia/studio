@@ -1,0 +1,29 @@
+{
+  "id": "system.notification-settings.overview",
+  "title": "Configurar Notificaciones",
+  "module": "Sistema",
+  "summary": "Los canales y categorías de las notificaciones internas del sistema.",
+  "screens": [
+    "system.notification-settings"
+  ],
+  "keywords": [
+    "notificaciones",
+    "avisos internos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/notification-settings",
+      "title": "Menú → Sistema → Notificaciones",
+      "details": "Los canales y categorías de las notificaciones internas del sistema."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.notification-settings.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

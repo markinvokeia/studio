@@ -1,0 +1,30 @@
+{
+  "id": "cashier.miscellaneous-transactions",
+  "summary": "Cash income and expenses that aren't patient payments.",
+  "purpose": "Small expenses (cleaning, stationery, shipping), cash withdrawals or contributions, with their category (which defines whether it's income or expense), payment method and receipt. They are recorded in the open cash session.",
+  "tips": [
+    "You need an open cash register to record a movement.",
+    "Only movements from the open cash session can be edited or deleted.",
+    "Income in green, expenses in red."
+  ],
+  "elements": {
+    "cashier.miscellaneous-transactions.section.first-row": {
+      "label": "Most recent movement"
+    },
+    "cashier.miscellaneous-transactions.section.row": {
+      "label": "Movement"
+    },
+    "cashier.miscellaneous-transactions.btn.row-actions": {
+      "label": "Actions"
+    },
+    "cashier.miscellaneous-transactions.btn.row-edit": {
+      "label": "Edit"
+    },
+    "cashier.miscellaneous-transactions.btn.row-delete": {
+      "label": "Delete"
+    },
+    "cashier.miscellaneous-transactions.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    }
+  }
+}

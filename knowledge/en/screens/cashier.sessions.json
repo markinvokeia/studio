@@ -1,0 +1,28 @@
+{
+  "id": "cashier.sessions",
+  "summary": "Cash session history.",
+  "purpose": "Every opening and closing with who did it, cash register, counts, movements and reconciliation (system vs. declared) per payment method.",
+  "tips": [
+    "A closing difference is recorded along with who closed it."
+  ],
+  "elements": {
+    "cashier.sessions.section.first-row": {
+      "label": "Most recent session"
+    },
+    "cashier.sessions.section.row": {
+      "label": "Session"
+    },
+    "cashier.sessions.btn.row-view": {
+      "label": "View details"
+    },
+    "cashier.sessions.btn.row-print": {
+      "label": "Print"
+    },
+    "cashier.sessions.section.details": {
+      "label": "Session details"
+    },
+    "cashier.sessions.btn.print-closing": {
+      "label": "Print closing"
+    }
+  }
+}

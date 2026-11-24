@@ -1,0 +1,50 @@
+{
+  "id": "config.patient-groups.members",
+  "title": "Agregar pacientes y servicios a un grupo",
+  "module": "Configuración de Negocio",
+  "summary": "Pestañas Pacientes y Servicios del grupo: quiénes están y qué servicios cuentan para sus reportes.",
+  "screens": [
+    "config.patient-groups"
+  ],
+  "keywords": [
+    "pacientes del grupo",
+    "agregar paciente al grupo",
+    "servicios del grupo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/patient-groups",
+      "title": "Menú → Configuración de Negocio → Grupos de Pacientes"
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.patient-groups.section.first-row",
+      "title": "Elegí el grupo",
+      "until": "config.patient-groups.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "patients",
+      "action": "click",
+      "target": "config.patient-groups.tab.patients",
+      "title": "Pacientes",
+      "details": "Agregá o quitá pacientes del grupo."
+    },
+    {
+      "id": "services",
+      "action": "click",
+      "target": "config.patient-groups.tab.services",
+      "title": "Servicios",
+      "details": "Los servicios que pertenecen al grupo, para reportar lo producido y cobrado."
+    },
+    {
+      "id": "info",
+      "action": "click",
+      "target": "config.patient-groups.tab.info",
+      "title": "Información"
+    }
+  ]
+}

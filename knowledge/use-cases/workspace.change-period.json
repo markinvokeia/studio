@@ -1,0 +1,91 @@
+{
+  "id": "workspace.change-period",
+  "title": "Ver las citas de otro día, período o calendario",
+  "module": "Mi Consultorio",
+  "summary": "Cambiar el día o el período de la agenda y ver las citas de un calendario en vez de las asignadas a vos.",
+  "screens": [
+    "workspace"
+  ],
+  "inputs": {
+    "period": "today | tomorrow | week | next7 | month | nextMonth | prevMonth",
+    "calendar": "Nombre del calendario"
+  },
+  "keywords": [
+    "otro dia",
+    "mañana",
+    "semana",
+    "periodo",
+    "mes",
+    "calendario",
+    "consultorio",
+    "asignadas a mi",
+    "mis calendarios"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/workspace",
+      "title": "Menú → Mi Consultorio",
+      "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende."
+    },
+    {
+      "id": "date",
+      "action": "click",
+      "target": "workspace.filter.date",
+      "title": "Día o período",
+      "details": "Hoy, mañana, esta semana, los próximos 7 días, este mes… o un día o período del calendario."
+    },
+    {
+      "id": "date-pick",
+      "action": "click",
+      "target": "workspace.filter.date-{{values.period}}",
+      "title": "Período elegido",
+      "optional": true
+    },
+    {
+      "id": "date-options",
+      "action": "highlight",
+      "target": "workspace.section.date-options",
+      "title": "Elegí el día o el período",
+      "details": "Un día muestra su agenda; un período agrupa las citas por día. Los días que no son hoy son de sólo lectura para la sesión clínica.",
+      "skipIfMissing": true,
+      "doneOnClose": true
+    },
+    {
+      "id": "today",
+      "action": "highlight",
+      "target": "workspace.btn.today",
+      "title": "Hoy",
+      "details": "Vuelve a la agenda de hoy.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "assigned",
+      "action": "highlight",
+      "target": "workspace.tab.assigned",
+      "title": "Asignadas a mí",
+      "details": "Sólo las citas en las que sos el profesional.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "calendars",
+      "action": "click",
+      "target": "workspace.tab.calendars",
+      "title": "Mis calendarios",
+      "skipIfMissing": true,
+      "details": "Las citas de un consultorio al que tenés acceso, sean tuyas o de otro profesional."
+    },
+    {
+      "id": "calendar",
+      "action": "fill",
+      "target": "workspace.filter.calendar",
+      "value": "{{values.calendar}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true,
+      "title": "Elegí el calendario",
+      "details": "El consultorio o agenda cuyas citas querés ver."
+    }
+  ]
+}

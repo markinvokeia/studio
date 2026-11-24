@@ -32,6 +32,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -140,6 +141,7 @@ export default function PrescriptionTemplatesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<TemplateFormValues>({
         resolver: zodResolver(templateFormSchema(t)),
     });
@@ -200,7 +202,7 @@ export default function PrescriptionTemplatesPage() {
 
     const handleEdit = (template: PrescriptionTemplate) => {
         setEditingTemplate(template);
-        form.reset({ ...template });
+        form.reset({ ...template, description: template.description ?? '', content_html: template.content_html ?? '' });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -280,9 +282,9 @@ export default function PrescriptionTemplatesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="config.prescription-templates.btn.row-edit" onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>}
                             <DropdownMenuSeparator />
-                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem data-help-id="config.prescription-templates.btn.row-delete" onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -346,7 +348,7 @@ export default function PrescriptionTemplatesPage() {
 
     const rightPanel = selectedTemplate ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.prescription-templates.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><Pill className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -355,12 +357,12 @@ export default function PrescriptionTemplatesPage() {
                     </div>
                     <div className="flex gap-1 flex-none">
                         {canUpdate && (
-                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
+                            <Button data-help-id="config.prescription-templates.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
                                 <Pencil className="h-4 w-4 mr-1" />{t('columns.edit')}
                             </Button>
                         )}
                         {canDelete && (
-                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
+                            <Button data-help-id="config.prescription-templates.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -410,7 +412,7 @@ export default function PrescriptionTemplatesPage() {
                         <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form id="template-form" onSubmit={form.handleSubmit(save.run)} className="space-y-4 py-4 px-6 max-h-[85vh] overflow-y-auto">
+                        <form id="template-form" onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4 py-4 px-6 max-h-[85vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

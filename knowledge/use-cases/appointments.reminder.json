@@ -1,0 +1,90 @@
+{
+  "id": "appointments.reminder",
+  "title": "Crear un recordatorio o una nota en la agenda",
+  "module": "Agenda",
+  "summary": "Tareas internas (llamar al laboratorio) o notas silenciosas en la agenda de la clínica.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "title": "Título del recordatorio",
+    "description": "Detalle",
+    "date": "Fecha AAAA-MM-DD",
+    "time": "Hora HH:MM"
+  },
+  "keywords": [
+    "recordatorio",
+    "nota",
+    "tarea",
+    "aviso interno",
+    "recordar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "appointments.btn.create-menu",
+      "title": "Crear"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "appointments.btn.new-reminder",
+      "title": "Recordatorio",
+      "details": "Para una nota silenciosa elegí Nota en el mismo menú."
+    },
+    {
+      "id": "title",
+      "action": "fill",
+      "target": "appointments.field.reminder-title",
+      "value": "{{values.title}}",
+      "title": "Título",
+      "details": "Qué hay que hacer. Se ve en la agenda."
+    },
+    {
+      "id": "description",
+      "action": "fill",
+      "target": "appointments.field.reminder-description",
+      "value": "{{values.description}}",
+      "optional": true,
+      "title": "Descripción"
+    },
+    {
+      "id": "date",
+      "action": "fill",
+      "target": "appointments.field.reminder-date",
+      "value": "{{values.date}}",
+      "title": "Fecha"
+    },
+    {
+      "id": "time",
+      "action": "fill",
+      "target": "appointments.field.reminder-time",
+      "value": "{{values.time}}",
+      "optional": true,
+      "title": "Hora",
+      "details": "Sin hora si marcás Todo el día."
+    },
+    {
+      "id": "repeat",
+      "action": "highlight",
+      "target": "appointments.field.reminder-repeat",
+      "title": "Repetir",
+      "skipIfMissing": true,
+      "details": "Opcional: se repite cada día, semana o mes hasta una fecha o una cantidad de veces."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.submit",
+      "title": "Guardar el recordatorio"
+    }
+  ]
+}

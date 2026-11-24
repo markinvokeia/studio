@@ -1,0 +1,117 @@
+{
+  "id": "onboarding.first-appointment",
+  "title": "Agendar un turno de prueba",
+  "module": "Agenda",
+  "summary": "Un turno de prueba confirma que sedes, consultorios, profesionales, disponibilidad y servicios funcionan juntos.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "patient": "Nombre del paciente",
+    "doctor": "Nombre del profesional",
+    "date": "Fecha AAAA-MM-DD",
+    "time": "Hora HH:MM",
+    "calendar": "Consultorio"
+  },
+  "keywords": [
+    "turno",
+    "cita",
+    "agendar",
+    "agenda",
+    "reservar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Abro la agenda"
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "appointments.btn.create-menu",
+      "title": "Menú Crear",
+      "details": "Desde acá se crean citas, recordatorios y notas."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "appointments.btn.new-appointment",
+      "title": "Nueva cita",
+      "details": "Abre el formulario de cita nueva."
+    },
+    {
+      "id": "patient",
+      "action": "fill",
+      "target": "appointments.field.patient",
+      "title": "Elegí el paciente",
+      "description": "Buscalo por nombre, documento o teléfono. Si no existe, lo podés crear desde acá.",
+      "details": "Obligatorio. Buscalo por nombre, documento o teléfono.",
+      "value": "{{values.patient}}",
+      "ask": true
+    },
+    {
+      "id": "services",
+      "action": "highlight",
+      "target": "appointments.field.services",
+      "title": "Servicio",
+      "description": "El servicio define la duración del turno.",
+      "optional": true,
+      "details": "El servicio define la duración del turno. Sin servicio el turno usa la duración por defecto de la agenda."
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "appointments.field.doctor",
+      "title": "Profesional",
+      "details": "Sólo se ofrecen los profesionales con disponibilidad en ese horario.",
+      "value": "{{values.doctor}}",
+      "ask": true
+    },
+    {
+      "id": "calendar",
+      "action": "fill",
+      "target": "appointments.field.calendar",
+      "title": "Consultorio",
+      "details": "El consultorio donde se atiende. Si el profesional tiene uno por defecto, ya viene elegido.",
+      "value": "{{values.calendar}}",
+      "ask": true
+    },
+    {
+      "id": "date",
+      "action": "fill",
+      "target": "appointments.field.date",
+      "title": "Fecha",
+      "details": "Fecha del turno.",
+      "value": "{{values.date}}",
+      "ask": true
+    },
+    {
+      "id": "time",
+      "action": "fill",
+      "target": "appointments.field.time",
+      "title": "Hora",
+      "description": "Si el horario está fuera de la disponibilidad del profesional o de la sede, la agenda te avisa.",
+      "details": "Si queda fuera de la disponibilidad del profesional o del horario de la sede, la agenda te avisa antes de guardar.",
+      "value": "{{values.time}}",
+      "ask": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.save",
+      "title": "Guardar el turno",
+      "description": "Revisá los datos y pulsá Guardar. Con esto ya está lo mínimo.",
+      "details": "Guarda el turno. Si el paciente tiene teléfono, recibe la confirmación y los recordatorios configurados."
+    },
+    {
+      "id": "future-confirm",
+      "action": "confirm",
+      "target": "appointments.btn.future-confirm",
+      "title": "Confirmar la nueva hora",
+      "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+      "skipIfMissing": true
+    }
+  ]
+}

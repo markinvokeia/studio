@@ -1,0 +1,68 @@
+{
+  "id": "sales.payment-methods.create",
+  "title": "Crear un método de pago",
+  "module": "Ventas",
+  "summary": "Alta de un medio de cobro o pago.",
+  "screens": [
+    "sales.payment-methods"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "code": "Código"
+  },
+  "keywords": [
+    "nuevo método de pago",
+    "agregar tarjeta",
+    "agregar transferencia"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/payment-methods",
+      "title": "Menú → Ventas → Métodos de Pago",
+      "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "sales.payment-methods.btn.new",
+      "title": "Crear",
+      "until": "sales.payment-methods.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "sales.payment-methods.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "sales.payment-methods.field.code",
+      "title": "Código",
+      "details": "Corto, para reportes (EFE, TC, TRF).",
+      "value": "{{values.code}}"
+    },
+    {
+      "id": "is_cash_equivalent",
+      "action": "highlight",
+      "target": "sales.payment-methods.field.is_cash_equivalent",
+      "title": "Equivale a efectivo",
+      "details": "Si lo marcás, suma al arqueo de caja como el efectivo."
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "sales.payment-methods.field.is_active",
+      "title": "Activo"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.payment-methods.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

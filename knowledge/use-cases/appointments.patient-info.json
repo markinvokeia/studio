@@ -1,0 +1,55 @@
+{
+  "id": "appointments.patient-info",
+  "title": "Ver la ficha, la historia o la cuenta del paciente desde la cita",
+  "module": "Agenda",
+  "summary": "Desde el menú de la cita: historia clínica, imágenes, estado de cuenta, historial de citas y datos.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "historia clinica",
+    "ficha del paciente",
+    "estado de cuenta",
+    "deuda",
+    "imagenes",
+    "archivos",
+    "datos del paciente",
+    "historial de citas"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Clic derecho sobre la cita",
+      "until": [
+        "appointments.btn.patient-menu"
+      ],
+      "blocking": true,
+      "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita."
+    },
+    {
+      "id": "patient",
+      "action": "highlight",
+      "target": "appointments.btn.patient-menu",
+      "title": "El paciente",
+      "until": "appointments.btn.patient-history",
+      "details": "Pasá el mouse por el nombre del paciente."
+    },
+    {
+      "id": "options",
+      "action": "highlight",
+      "target": "appointments.btn.patient-history",
+      "title": "Elegí qué ver",
+      "doneOnClose": true,
+      "details": "Estado de cuenta (lo que debe y pagó), Historia clínica, Imágenes y archivos, Historial de citas y Datos del paciente."
+    }
+  ]
+}

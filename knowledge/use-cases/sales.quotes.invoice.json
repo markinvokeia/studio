@@ -1,0 +1,77 @@
+{
+  "id": "sales.quotes.invoice",
+  "title": "Facturar un presupuesto",
+  "module": "Ventas",
+  "summary": "Generar la factura de lo pendiente de un presupuesto confirmado.",
+  "screens": [
+    "sales.quotes"
+  ],
+  "inputs": {
+    "query": "Número o paciente"
+  },
+  "keywords": [
+    "facturar presupuesto",
+    "pasar a factura",
+    "generar factura"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/quotes",
+      "title": "Menú → Ventas → Presupuestos",
+      "details": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.quotes.filter.search",
+      "title": "Buscá el presupuesto",
+      "details": "Por número o por paciente.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.quotes.section.first-row",
+      "title": "Abrí el presupuesto",
+      "details": "Tocá el presupuesto en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "sales.quotes.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "pending",
+      "action": "highlight",
+      "target": "sales.quotes.section.detail-header",
+      "title": "Pendiente de facturar",
+      "details": "El botón Facturar aparece sólo si el presupuesto está confirmado y le queda algo por facturar."
+    },
+    {
+      "id": "invoice",
+      "action": "click",
+      "target": "sales.quotes.btn.invoice",
+      "title": "Facturar",
+      "details": "Factura lo pendiente del presupuesto: elegís qué servicios y cuánto, y queda una factura en borrador.",
+      "until": "sales.quotes.section.billing",
+      "skipIfMissing": true
+    },
+    {
+      "id": "billing",
+      "action": "highlight",
+      "target": "sales.quotes.section.billing",
+      "title": "Qué facturar",
+      "details": "Elegí los servicios y montos pendientes, el vencimiento y notas. Lo ya facturado no se repite.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.quotes.btn.billing-submit",
+      "title": "Crear factura",
+      "details": "Queda en borrador en Facturas; confirmala para poder cobrarla.",
+      "skipIfMissing": true
+    }
+  ]
+}

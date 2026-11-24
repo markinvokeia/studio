@@ -21,6 +21,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -151,6 +152,7 @@ export default function AlertCategoriesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingCategory, setDeletingCategory] = React.useState<AlertCategory | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),
     });
@@ -369,7 +371,7 @@ export default function AlertCategoriesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.alert-categories.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none" style={selectedCategory?.color ? { backgroundColor: `${selectedCategory.color}20`, color: selectedCategory.color } : {}}>
@@ -381,13 +383,13 @@ export default function AlertCategoriesPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedCategory && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="system.alert-categories.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('columns.edit')}</span>
                             </Button>
                         )}
                         {selectedCategory && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                            <Button data-help-id="system.alert-categories.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                                 aria-label={t('deleteDialog.confirm')}
                                 onClick={() => {
                                     if (selectedCategory.rules_count && selectedCategory.rules_count > 0) {
@@ -413,7 +415,7 @@ export default function AlertCategoriesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />

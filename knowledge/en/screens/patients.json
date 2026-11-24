@@ -1,0 +1,1213 @@
+{
+  "id": "patients",
+  "summary": "Patient list and their full record: details, clinical history and finances.",
+  "purpose": "Find, register and edit patients. The record gathers everything about the patient: details and notes, medical history, clinical timeline (including aesthetic sessions), treatment plans, instructions and prescriptions, documents, and their account (quotes, invoices and payments). From «Create» and «More actions» you log sessions, take payments, book and message them.",
+  "tips": [
+    "A phone with country code enables WhatsApp reminders.",
+    "A dependent patient (minor) has a responsible contact: email and WhatsApp go to that contact.",
+    "If the guardian's phone or email is already on the record of a relative in their care when you save, choose «is a dependent of this person»: the contact moves to their record and the relative gets linked, with no temporary numbers.",
+    "Allergies and ailments from the medical history show as an alert in the record's header.",
+    "The Finance section shows as an account ledger (Custom) or in tabs (Normal), depending on your Preferences.",
+    "Quick payment, prepayment and payments need an open cash register.",
+    "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first.",
+    "The aesthetic session saves on its own and resumes at the first step still missing. Once closed it is read-only and only accepts amendments.",
+    "In aesthetics, a service can't be marked without a signature. Without clinical photo authorization the camera locks and the session can close without photos.",
+    "The maximum per session, minimum interval and expired lot warnings inform you, but don't block.",
+    "A payment can cover invoices in the clinic's other currency at the cash register's exchange rate: the register keeps the original amount and currency, and the invoice gets the converted amount. A payment with conversion can't leave a leftover."
+  ],
+  "elements": {
+    "patients.section.adopt-dependents": {
+      "label": "Relative in this person's care",
+      "description": "Appears when the phone or email being saved belongs to a record that can become a dependent of this person."
+    },
+    "patients.btn.adopt-dependents": {
+      "label": "Is a dependent of this person",
+      "description": "Saves, moves the repeated phone or email to this record and links the relative as a dependent."
+    },
+    "patients.btn.new": {
+      "label": "Create",
+      "description": "Registers a new patient."
+    },
+    "patients.btn.refresh": {
+      "label": "Refresh"
+    },
+    "patients.filter.search": {
+      "label": "Search",
+      "description": "By name, email or ID."
+    },
+    "patients.btn.filters": {
+      "label": "Filters",
+      "description": "Registration period and status (debtors, active)."
+    },
+    "patients.section.filters": {
+      "label": "Filter options"
+    },
+    "patients.filter.option-allTime": {
+      "label": "All"
+    },
+    "patients.filter.option-today": {
+      "label": "Today",
+      "description": "Patients registered today."
+    },
+    "patients.filter.option-week": {
+      "label": "This week"
+    },
+    "patients.filter.option-month": {
+      "label": "This month"
+    },
+    "patients.filter.option-debtors": {
+      "label": "Debtors only",
+      "description": "Patients with an outstanding balance."
+    },
+    "patients.filter.option-active": {
+      "label": "Active only",
+      "description": "Hides deactivated ones."
+    },
+    "patients.section.first-row": {
+      "label": "First patient in the list"
+    },
+    "patients.section.row": {
+      "label": "Patient",
+      "description": "Tap it to open their record."
+    },
+    "patients.field.name": {
+      "label": "First and last name"
+    },
+    "patients.field.phone": {
+      "label": "Phone",
+      "description": "With country code: reminders and WhatsApp."
+    },
+    "patients.field.email": {
+      "label": "Email",
+      "description": "Sending quotes, invoices and emails."
+    },
+    "patients.field.identity_document_type": {
+      "label": "Document type"
+    },
+    "patients.field.identity_document": {
+      "label": "ID",
+      "description": "Avoids duplicates and is used when invoicing."
+    },
+    "patients.field.birth_date": {
+      "label": "Date of birth",
+      "description": "Shows the age and enables the birthday greeting."
+    },
+    "patients.field.sex": {
+      "label": "Sex"
+    },
+    "patients.field.mutual_society_id": {
+      "label": "Mutual society or plan",
+      "description": "For agreement prices and billing."
+    },
+    "patients.field.doctor_id": {
+      "label": "Default doctor",
+      "description": "Doctor suggested when booking with them."
+    },
+    "patients.field.is_dependent": {
+      "label": "Dependent patient",
+      "description": "Minor or person in someone's care: notifications go to the responsible contact."
+    },
+    "patients.field.responsible_contact_id": {
+      "label": "Responsible contact",
+      "description": "Guardian or relative who receives the notifications."
+    },
+    "patients.field.address": {
+      "label": "Address"
+    },
+    "patients.field.is_active": {
+      "label": "Active"
+    },
+    "patients.field.notes": {
+      "label": "Notes"
+    },
+    "patients.btn.submit": {
+      "label": "Save"
+    },
+    "patients.section.header": {
+      "label": "Record header",
+      "description": "Name, status, discharge and responsible contact."
+    },
+    "patients.btn.alerts": {
+      "label": "Clinical alerts",
+      "description": "Allergies and ailments from the medical history."
+    },
+    "patients.section.contact": {
+      "label": "Contact",
+      "description": "Age, ID, phone and email."
+    },
+    "patients.btn.create-menu": {
+      "label": "Create",
+      "description": "Clinical, financial and scheduling."
+    },
+    "patients.btn.new-session": {
+      "label": "Clinical session"
+    },
+    "patients.btn.new-odontogram": {
+      "label": "Odontogram session"
+    },
+    "patients.btn.new-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Opens the clinical record with a new periodontal chart: guided probing, site by site."
+    },
+    "patients.btn.new-indication": {
+      "label": "Medical instruction"
+    },
+    "patients.btn.new-prescription": {
+      "label": "Prescription"
+    },
+    "patients.btn.new-document": {
+      "label": "ID"
+    },
+    "patients.btn.quick-bill": {
+      "label": "Quick payment",
+      "description": "Invoices and charges in one step."
+    },
+    "patients.btn.new-quote": {
+      "label": "Quote"
+    },
+    "patients.btn.new-invoice": {
+      "label": "Invoice"
+    },
+    "patients.btn.new-prepaid": {
+      "label": "Prepayment",
+      "description": "Money on account."
+    },
+    "patients.btn.new-appointment": {
+      "label": "Appointment"
+    },
+    "patients.btn.more-menu": {
+      "label": "More actions",
+      "description": "Communication, status and preferences."
+    },
+    "patients.btn.email": {
+      "label": "Send email"
+    },
+    "patients.btn.whatsapp": {
+      "label": "WhatsApp"
+    },
+    "patients.btn.whatsapp-reminder": {
+      "label": "Send reminder",
+      "description": "Approved WhatsApp template."
+    },
+    "patients.btn.discharge": {
+      "label": "Discharge / Readmit",
+      "description": "Readmit removes the discharge as soon as you tap it."
+    },
+    "patients.btn.toggle-active": {
+      "label": "Activate / Deactivate",
+      "description": "Applies as soon as you tap it."
+    },
+    "patients.btn.preferences": {
+      "label": "Preferences"
+    },
+    "patients.tab.info": {
+      "label": "Information"
+    },
+    "patients.tab.clinical": {
+      "label": "Clinical history"
+    },
+    "patients.tab.financial": {
+      "label": "Finance"
+    },
+    "patients.tab.details": {
+      "label": "Details"
+    },
+    "patients.tab.notes": {
+      "label": "Notes",
+      "description": "Internal, non-clinical notes."
+    },
+    "patients.tab.preferences": {
+      "label": "Preferences"
+    },
+    "patients.tab.anamnesis": {
+      "label": "Medical history"
+    },
+    "patients.tab.clinical-history": {
+      "label": "Timeline"
+    },
+    "patients.tab.treatment-plans": {
+      "label": "Treatment plans"
+    },
+    "patients.tab.lab-orders": {
+      "label": "Lab",
+      "description": "The patient’s lab orders and the stage each one is in. Overdue ones are shown in red."
+    },
+    "patients.section.lab-orders": {
+      "label": "Lab orders",
+      "description": "The patient’s orders in two groups: “In progress”, with the stage progress, and “Finished”, collapsed. Click a card to open its detail with the history."
+    },
+    "patients.btn.new-lab-order": {
+      "label": "New order",
+      "description": "Records a job sent to the lab for this patient. It starts in the initial stage."
+    },
+    "patients.section.lab-order-alerts": {
+      "label": "Lab alerts",
+      "description": "Overdue, due within 7 days or without a lab. Shown only when there are any; one click filters “In progress”, another click clears it."
+    },
+    "patients.section.lab-orders-in-progress": {
+      "label": "In progress",
+      "description": "Orders that haven’t reached a final stage yet, with the stage progress, days in the stage and the upcoming or past due date."
+    },
+    "patients.section.lab-orders-finished": {
+      "label": "Finished",
+      "description": "Orders in a final stage (delivered, cancelled…), with the date they got there and how many days it took in total. Expands with a click."
+    },
+    "patients.btn.lab-order-next-stage": {
+      "label": "Move to the next stage",
+      "description": "Moves the order to the following stage without opening the detail. If it has no lab and the stage needs one, it first asks where it is sent."
+    },
+    "patients.btn.open-lab-orders": {
+      "label": "View in Lab orders",
+      "description": "Opens the Lab orders module in list view, filtered by this patient."
+    },
+    "patients.tab.medical-instructions": {
+      "label": "Instructions",
+      "description": "Medical instructions and prescriptions."
+    },
+    "patients.tab.documents": {
+      "label": "Documents"
+    },
+    "patients.tab.instructions": {
+      "label": "Instructions"
+    },
+    "patients.tab.prescriptions": {
+      "label": "Prescriptions"
+    },
+    "patients.tab.quotes": {
+      "label": "Quotes"
+    },
+    "patients.tab.invoices": {
+      "label": "Invoices"
+    },
+    "patients.tab.payments": {
+      "label": "Payments"
+    },
+    "patients.detail.section.first-row": {
+      "label": "First document in the tab"
+    },
+    "patients.detail.section.row": {
+      "label": "ID"
+    },
+    "patients.section.notes": {
+      "label": "Notes"
+    },
+    "patients.btn.notes-edit": {
+      "label": "Edit notes"
+    },
+    "patients.field.notes-text": {
+      "label": "Note"
+    },
+    "patients.btn.notes-save": {
+      "label": "Save note"
+    },
+    "patients.section.finance-view": {
+      "label": "Finance view",
+      "description": "Normal (tabs) or Custom (account ledger). Saved as soon as you tap it."
+    },
+    "patients.btn.finance-view-tabs": {
+      "label": "Normal"
+    },
+    "patients.btn.finance-view-unified": {
+      "label": "Custom"
+    },
+    "patients.section.calendar-prefs": {
+      "label": "Calendar preferences"
+    },
+    "patients.section.anamnesis-personal": {
+      "label": "Personal history"
+    },
+    "patients.section.anamnesis-medications": {
+      "label": "Medication"
+    },
+    "patients.section.anamnesis-family": {
+      "label": "Family history"
+    },
+    "patients.section.anamnesis-allergies": {
+      "label": "Allergies",
+      "description": "Shown as an alert on the record."
+    },
+    "patients.section.anamnesis-habits": {
+      "label": "Habits"
+    },
+    "patients.btn.anamnesis-add-personal": {
+      "label": "Add personal history"
+    },
+    "patients.btn.anamnesis-add-medication": {
+      "label": "Add medication"
+    },
+    "patients.btn.anamnesis-add-family": {
+      "label": "Add family history"
+    },
+    "patients.btn.anamnesis-add-allergy": {
+      "label": "Add allergy"
+    },
+    "patients.section.timeline": {
+      "label": "Timeline",
+      "description": "Sessions, odontograms and appointments."
+    },
+    "patients.btn.timeline-print": {
+      "label": "Print history"
+    },
+    "patients.btn.timeline-filters": {
+      "label": "Filter events"
+    },
+    "patients.btn.timeline-add": {
+      "label": "New session"
+    },
+    "patients.btn.timeline-add-clinical": {
+      "label": "Clinical session"
+    },
+    "patients.btn.timeline-add-odontogram": {
+      "label": "Odontogram"
+    },
+    "patients.btn.timeline-add-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Probing at 6 sites per tooth (depth, bleeding, gingival margin, furcations and mobility). It saves automatically and is closed with a signature."
+    },
+    "patients.section.odontogram-create": {
+      "label": "New odontogram session"
+    },
+    "patients.field.session-date": {
+      "label": "Session date"
+    },
+    "patients.field.session-doctor": {
+      "label": "Doctor"
+    },
+    "patients.field.session-procedure": {
+      "label": "Procedure",
+      "description": "What was done."
+    },
+    "patients.field.session-diagnosis": {
+      "label": "Diagnosis"
+    },
+    "patients.field.session-notes": {
+      "label": "Notes"
+    },
+    "patients.field.session-next-plan": {
+      "label": "Next session plan"
+    },
+    "patients.field.session-treatments": {
+      "label": "Treatments",
+      "description": "Those from the quote performed today."
+    },
+    "patients.field.session-attachments": {
+      "label": "Attachments"
+    },
+    "patients.field.session-discharge": {
+      "label": "Discharge"
+    },
+    "patients.btn.rx-new": {
+      "label": "New prescription"
+    },
+    "patients.field.rx-template": {
+      "label": "Prescription template"
+    },
+    "patients.field.rx-date": {
+      "label": "Date"
+    },
+    "patients.field.rx-doctor": {
+      "label": "Doctor"
+    },
+    "patients.field.rx-diagnosis": {
+      "label": "Diagnosis"
+    },
+    "patients.field.rx-notes": {
+      "label": "Notes"
+    },
+    "patients.btn.rx-add-medication": {
+      "label": "Add medication"
+    },
+    "patients.field.rx-medication": {
+      "label": "Medication"
+    },
+    "patients.field.rx-dosage": {
+      "label": "Dose"
+    },
+    "patients.field.rx-frequency": {
+      "label": "Frequency"
+    },
+    "patients.field.rx-duration": {
+      "label": "Duration (days)"
+    },
+    "patients.field.rx-quantity": {
+      "label": "Quantity"
+    },
+    "patients.field.rx-instructions": {
+      "label": "Instructions"
+    },
+    "patients.btn.rx-print": {
+      "label": "Print prescription"
+    },
+    "patients.btn.mi-new": {
+      "label": "New instruction"
+    },
+    "patients.field.mi-date": {
+      "label": "Date"
+    },
+    "patients.field.mi-tooth": {
+      "label": "Tooth"
+    },
+    "patients.field.mi-doctor": {
+      "label": "Doctor"
+    },
+    "patients.field.mi-template": {
+      "label": "Template"
+    },
+    "patients.field.mi-content": {
+      "label": "Content"
+    },
+    "patients.btn.mi-save": {
+      "label": "Save instruction"
+    },
+    "patients.section.documents": {
+      "label": "Documents"
+    },
+    "patients.btn.documents-add": {
+      "label": "Add document"
+    },
+    "patients.field.documents-file": {
+      "label": "File",
+      "description": "PDF, image or Word, up to 10 MB."
+    },
+    "patients.btn.documents-upload": {
+      "label": "Upload"
+    },
+    "patients.section.treatment-plans": {
+      "label": "Treatment plans"
+    },
+    "patients.btn.plans-create-appointment": {
+      "label": "Book appointment"
+    },
+    "patients.btn.plans-historical": {
+      "label": "View finished"
+    },
+    "patients.section.ledger-toolbar": {
+      "label": "Period, search and currency"
+    },
+    "patients.section.ledger": {
+      "label": "Account ledger",
+      "description": "Quotes, treatments and payments with their balance."
+    },
+    "patients.btn.ledger-statement": {
+      "label": "Account statement"
+    },
+    "patients.btn.ledger-print": {
+      "label": "Print summary"
+    },
+    "patients.btn.ledger-add-quote": {
+      "label": "Add quote"
+    },
+    "patients.btn.ledger-add-treatment": {
+      "label": "Add treatment"
+    },
+    "patients.btn.ledger-add-payment": {
+      "label": "Record payment"
+    },
+    "patients.section.finance-summary": {
+      "label": "Financial summary",
+      "description": "Invoiced, paid, debt and balance."
+    },
+    "patients.btn.finance-statement": {
+      "label": "Account statement"
+    },
+    "patients.btn.finance-print": {
+      "label": "Print summary"
+    },
+    "billing-wizard.section.wizard": {
+      "label": "Payment wizard"
+    },
+    "patients.field.created_at": {
+      "label": "Date"
+    },
+    "patients.field.due_date": {
+      "label": "Due date"
+    },
+    "patients.field.currency": {
+      "label": "Currency"
+    },
+    "patients.field.sede_id": {
+      "label": "Branch"
+    },
+    "patients.field.payment_amount": {
+      "label": "Amount"
+    },
+    "patients.field.payment_method_id": {
+      "label": "Payment method"
+    },
+    "patients.field.email-to": {
+      "label": "To"
+    },
+    "patients.field.email-subject": {
+      "label": "Subject"
+    },
+    "patients.field.email-body": {
+      "label": "Message"
+    },
+    "patients.btn.email-send": {
+      "label": "Send"
+    },
+    "patients.field.whatsapp-phone": {
+      "label": "Phone"
+    },
+    "patients.field.whatsapp-message": {
+      "label": "Message"
+    },
+    "patients.btn.whatsapp-open": {
+      "label": "Open WhatsApp"
+    },
+    "patients.field.whatsapp-template": {
+      "label": "Template"
+    },
+    "patients.btn.whatsapp-template-send": {
+      "label": "Send"
+    },
+    "patients.section.discharge": {
+      "label": "Discharge"
+    },
+    "patients.field.discharge-options": {
+      "label": "Quick options"
+    },
+    "patients.btn.discharge-1m": {
+      "label": "1 month"
+    },
+    "patients.btn.discharge-3m": {
+      "label": "3 months"
+    },
+    "patients.btn.discharge-6m": {
+      "label": "6 months"
+    },
+    "patients.btn.discharge-12m": {
+      "label": "12 months"
+    },
+    "patients.field.discharge-date": {
+      "label": "Discharge date"
+    },
+    "patients.btn.discharge-save": {
+      "label": "Save discharge"
+    },
+    "patients.btn.add-item": {
+      "label": "Add item",
+      "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line."
+    },
+    "patients.btn.prepaid-confirm": {
+      "label": "Confirm pre-payment",
+      "description": "Second confirmation of the pre-payment: accepting it records the credit balance."
+    },
+    "patients.section.odontogram-dictation": {
+      "label": "Dictate findings",
+      "description": "Bar to dictate or type what you see (“caries OM en 16, corona indicada en 14”). Invoke proposes it on the teeth and nothing is recorded until you confirm."
+    },
+    "patients.field.odontogram-dictation": {
+      "label": "Dictated text",
+      "description": "Tooth, condition, surfaces and status: “indicada”, “existente” or “hoy”. Accepts ranges for bridges (“del 24 al 26”)."
+    },
+    "patients.btn.odontogram-propose": {
+      "label": "Propose",
+      "description": "Turns the text into dashed proposals on the teeth; anything already recorded is dropped automatically."
+    },
+    "patients.btn.odontogram-confirm-proposals": {
+      "label": "Confirm all",
+      "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything."
+    },
+    "patients.section.odontogram-inspector": {
+      "label": "Tooth inspector",
+      "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has (change a mark's status from its menu). With no tooth, the conditions to activate and the state of the whole mouth."
+    },
+    "patients.field.odontogram-record-as": {
+      "label": "Record as",
+      "description": "Indicated (red, to do), Existing (blue, already there) or Done today (green, done in this session). Sets the color and status of what you mark."
+    },
+    "patients.section.odontogram-tiles": {
+      "label": "Frequent conditions",
+      "description": "Tapping a condition makes it active: every tooth or surface you tap on the odontogram gets it, until you release it with Esc or by tapping it again. If a tooth was already selected, it is recorded there too."
+    },
+    "patients.field.odontogram-search": {
+      "label": "Search condition",
+      "description": "The whole condition catalog, by name or code, filtered by category."
+    },
+    "patients.btn.new-aesthetic": {
+      "label": "Aesthetic session",
+      "description": "Creates an aesthetic session: consent, photos, treatment and closing."
+    },
+    "patients.btn.timeline-add-aesthetic": {
+      "label": "Aesthetics",
+      "description": "New aesthetic session from the timeline."
+    },
+    "patients.btn.timeline-open-odontogram": {
+      "label": "View odontogram",
+      "description": "Opens the odontogram on that session; the arrows step through earlier and later sessions to compare how the mouth changed."
+    },
+    "patients.btn.timeline-open-aesthetic": {
+      "label": "Continue session",
+      "description": "Opens the aesthetic session; a closed or void one, read-only."
+    },
+    "aesthetic-session.section.header": {
+      "label": "Aesthetic session",
+      "description": "Session header: patient, session number and the four steps."
+    },
+    "aesthetic-session.btn.step-consent": {
+      "label": "Consent step",
+      "description": "Today's services and signature."
+    },
+    "aesthetic-session.btn.step-photos": {
+      "label": "Today's photos step",
+      "description": "Photos per view and comparison."
+    },
+    "aesthetic-session.btn.step-treatment": {
+      "label": "Treatment step",
+      "description": "Map with the marks. Locked until a consent is signed."
+    },
+    "aesthetic-session.btn.step-close": {
+      "label": "Closing step",
+      "description": "What was applied, charge, next appointment and closing."
+    },
+    "aesthetic-session.section.progress": {
+      "label": "Status and progress",
+      "description": "Session status, percentage (25% per step), last save and what is missing."
+    },
+    "aesthetic-session.section.session-data": {
+      "label": "Date and doctor",
+      "description": "Session date (not in the future) and who performs it."
+    },
+    "aesthetic-session.section.services": {
+      "label": "Today's services",
+      "description": "Aesthetic services to perform and the status of their consents."
+    },
+    "aesthetic-session.btn.from-last-session": {
+      "label": "Last session",
+      "description": "Adds the services from the previous session."
+    },
+    "aesthetic-session.btn.reuse": {
+      "label": "Use earlier signature",
+      "description": "Reuses an already signed consent for that service."
+    },
+    "aesthetic-session.section.consent-text": {
+      "label": "Consent text",
+      "description": "The service's text with the patient details. What was signed is stored as is, with a SHA-256 fingerprint."
+    },
+    "aesthetic-session.section.signature": {
+      "label": "Signature",
+      "description": "Authorizations, who signs and the signature."
+    },
+    "aesthetic-session.field.risksExplained": {
+      "label": "Risks explained",
+      "description": "Required to sign."
+    },
+    "aesthetic-session.field.allowsClinicalPhotos": {
+      "label": "Photos for the clinical record",
+      "description": "Without this authorization the camera stays locked and the session can close without photos."
+    },
+    "aesthetic-session.field.allowsMarketingPhotos": {
+      "label": "Marketing photos",
+      "description": "Optional."
+    },
+    "aesthetic-session.field.signerName": {
+      "label": "Who signs",
+      "description": "The patient or their guardian."
+    },
+    "aesthetic-session.section.signature-pad": {
+      "label": "Signature area",
+      "description": "With a finger, stylus or mouse."
+    },
+    "aesthetic-session.btn.sign": {
+      "label": "Sign",
+      "description": "Signs all pending services at once."
+    },
+    "aesthetic-session.btn.treat-signed": {
+      "label": "Mark the signed ones",
+      "description": "Goes to the treatment of the signed services, even if others are unsigned."
+    },
+    "aesthetic-session.btn.to-photos": {
+      "label": "Continue to photos",
+      "description": "Enabled once every service is signed."
+    },
+    "aesthetic-session.section.photo-views": {
+      "label": "Photo views",
+      "description": "Front, left and right profile."
+    },
+    "aesthetic-session.section.photo-stage": {
+      "label": "Photo of the view",
+      "description": "Today's photo and the comparison with another session."
+    },
+    "aesthetic-session.btn.photo-take": {
+      "label": "Take photo",
+      "description": "Camera with a framing guide and the last photo see-through."
+    },
+    "aesthetic-session.btn.photo-upload": {
+      "label": "Upload photo",
+      "description": "From the device."
+    },
+    "aesthetic-session.btn.photo-align": {
+      "label": "Align photo",
+      "description": "Fits the photo to the map so the zones match."
+    },
+    "aesthetic-session.section.compare-modes": {
+      "label": "Comparison mode",
+      "description": "Slider, side by side or overlaid."
+    },
+    "aesthetic-session.btn.compare-initial": {
+      "label": "Compare with the first one",
+      "description": "Compares with the first session."
+    },
+    "aesthetic-session.section.photo-history": {
+      "label": "Earlier sessions",
+      "description": "Photos of this view in other sessions."
+    },
+    "aesthetic-session.btn.to-treatment": {
+      "label": "Continue to treatment"
+    },
+    "aesthetic-session.section.views": {
+      "label": "Region, view and background",
+      "description": "Face or body, the view and the background (model or today's photo)."
+    },
+    "aesthetic-session.section.tools": {
+      "label": "Tools",
+      "description": "Select, point, area, line, undo, redo, zones and the previous session's marks."
+    },
+    "aesthetic-session.section.map": {
+      "label": "Map",
+      "description": "Where what was applied is marked; the zone is detected on its own."
+    },
+    "aesthetic-session.section.layers": {
+      "label": "Services",
+      "description": "Active service, total and visibility. Locked without a signature."
+    },
+    "aesthetic-session.section.mark-editor": {
+      "label": "Mark details",
+      "description": "Quantity, zone, depth, technique, note, mirror and its own product or lot. The maximum, interval and expired lot warnings don't block."
+    },
+    "aesthetic-session.section.panel": {
+      "label": "Side panel",
+      "description": "Summary, notes and per-zone history."
+    },
+    "aesthetic-session.tab.summary": {
+      "label": "Summary",
+      "description": "Each service with its total, marks, product and lot."
+    },
+    "aesthetic-session.tab.notes": {
+      "label": "Notes",
+      "description": "Timestamped notes, with dictation and frequent phrases."
+    },
+    "aesthetic-session.tab.history": {
+      "label": "History",
+      "description": "What was applied to each zone in earlier sessions."
+    },
+    "aesthetic-session.section.layer-supply": {
+      "label": "Product and lot",
+      "description": "Entered once per service and apply to all its marks."
+    },
+    "aesthetic-session.btn.to-close": {
+      "label": "Go to closing"
+    },
+    "aesthetic-session.section.missing": {
+      "label": "What is missing",
+      "description": "Notices that lead to the step that solves them."
+    },
+    "aesthetic-session.section.applied": {
+      "label": "Treatment applied",
+      "description": "Services, zones, totals, lots used and today's photos."
+    },
+    "aesthetic-session.section.session-summary": {
+      "label": "Session summary",
+      "description": "Text kept on the timeline."
+    },
+    "aesthetic-session.section.billing": {
+      "label": "Charge",
+      "description": "Charge the session; then, the linked invoice with its balance and payments."
+    },
+    "aesthetic-session.section.follow-up": {
+      "label": "Aftercare and next appointment",
+      "description": "Send the aftercare by WhatsApp and schedule the suggested follow-up."
+    },
+    "aesthetic-session.btn.activity": {
+      "label": "Activity",
+      "description": "Who did what and when in the session."
+    },
+    "aesthetic-session.btn.void": {
+      "label": "Void session",
+      "description": "With a reason; it stays read-only, nothing is deleted."
+    },
+    "aesthetic-session.field.void-reason": {
+      "label": "Reason for voiding"
+    },
+    "aesthetic-session.btn.void-confirm": {
+      "label": "Confirm voiding"
+    },
+    "aesthetic-session.btn.close-session": {
+      "label": "Close session",
+      "description": "Enabled with everything signed, the photo and complete marks."
+    },
+    "aesthetic-session.btn.close-confirm": {
+      "label": "Confirm closing",
+      "description": "It becomes read-only."
+    },
+    "aesthetic-session.section.amendments": {
+      "label": "Amendments",
+      "description": "Corrections to a closed session, without erasing the original."
+    },
+    "patients.field.payment_exchange_rate": {
+      "label": "Exchange rate",
+      "description": "Units of the primary currency per unit of the secondary one. It comes from the open cash register and can be changed; on a historical payment it has to be typed in."
+    },
+    "perio-session.section.header": {
+      "label": "Periodontal chart header",
+      "description": "Patient, chart number, date and doctor; the four steps, progress and status."
+    },
+    "perio-session.btn.step-probe": {
+      "label": "Step 1 · Probing",
+      "description": "Depth and bleeding, gingival margin, furcations and mobility (in a screening, the six sextants)."
+    },
+    "perio-session.btn.step-evolution": {
+      "label": "Step 2 · Progress",
+      "description": "Comparison with the patient's earlier periodontal charts."
+    },
+    "perio-session.btn.step-diagnosis": {
+      "label": "Step 3 · Diagnosis",
+      "description": "Suggested stability, 2017 classification, risk and plan; the doctor confirms them."
+    },
+    "perio-session.btn.step-close": {
+      "label": "Step 4 · Closing",
+      "description": "Patient report, billing, next visit, notes and signature."
+    },
+    "perio-session.section.progress": {
+      "label": "Progress and status",
+      "description": "Percentage complete (probing is 90% and the confirmed diagnosis 10%), status of the chart and autosave."
+    },
+    "perio-session.btn.missing": {
+      "label": "What is missing",
+      "description": "What is missing to move on. Tap it: it highlights the missing sites in amber or takes you to the next step."
+    },
+    "perio-session.section.footer": {
+      "label": "Step footer",
+      "description": "Back and next, always in the same place; on the closing step, what is missing to sign."
+    },
+    "perio-session.section.banner": {
+      "label": "Exam bar",
+      "description": "Exam type, the exam used as a guide, what came from the odontogram, settings and dictation."
+    },
+    "perio-session.field.exam-type": {
+      "label": "Exam type",
+      "description": "Initial diagnosis, re-evaluation or maintenance (full probing); PSR/BPE screening (one code per sextant); implants only (only implants are probed)."
+    },
+    "perio-session.btn.settings": {
+      "label": "Periodontal chart settings",
+      "description": "The clinic's probing order, margin sign and maintenance intervals. Those who edit the system settings can change them."
+    },
+    "perio-session.section.settings": {
+      "label": "Settings",
+      "description": "Applies to the whole clinic. Order: by arch or buccal first. Sign: recession positive or negative (stored the same way). Maintenance months per risk."
+    },
+    "perio-session.btn.settings-save": {
+      "label": "Save settings",
+      "description": "Saves the settings for the whole clinic."
+    },
+    "perio-session.section.voice": {
+      "label": "Dictation",
+      "description": "What was last understood, the active line of marks, what is pending confirmation, the microphone and the commands."
+    },
+    "perio-session.btn.dictate": {
+      "label": "Dictate",
+      "description": "Turns the microphone on (Chrome or Edge). Each phrase is applied as soon as it is said; “stop dictation” turns it off."
+    },
+    "perio-session.field.voice-command": {
+      "label": "Command",
+      "description": "To type the command instead of dictating it; Enter applies it. The / key brings the focus here."
+    },
+    "perio-session.btn.voice-help": {
+      "label": "Voice commands",
+      "description": "The list of what can be said, in Spanish and in English."
+    },
+    "perio-session.section.voice-question": {
+      "label": "Dictation question",
+      "description": "What dictation needs you to confirm before doing it: changing a tooth status, copying from the previous exam, discarding the dictation, or what the AI understood when it is not sure or used a number that was not said (marked “AI”). Answer by saying “yes” or “no”; any other phrase leaves it unanswered."
+    },
+    "perio-session.btn.voice-yes": {
+      "label": "Yes",
+      "description": "Does what it asks (what is written stays as dictation not confirmed yet)."
+    },
+    "perio-session.btn.voice-no": {
+      "label": "No",
+      "description": "Changes nothing."
+    },
+    "perio-session.section.voice-answer": {
+      "label": "Answer",
+      "description": "The answer to a spoken question (“what was 16 before?”, “read 16”, “what is missing?”). Writes nothing."
+    },
+    "perio-session.field.voice-replies": {
+      "label": "Reply aloud",
+      "description": "Reads the dictation questions and answers aloud. The microphone does not listen while it speaks. Off by default and remembered in this browser."
+    },
+    "perio-session.field.voice-toggle-key": {
+      "label": "Microphone key",
+      "description": "A key (or a foot pedal acting as a key) that turns dictation on and off. Remembered in this browser. With the microphone off, holding Ctrl+Space says one phrase."
+    },
+    "perio-session.section.voice-pending": {
+      "label": "Pending confirmation",
+      "description": "Sites dictated or copied from the previous exam that are not confirmed yet (underlined in violet). The chart cannot be signed with anything pending."
+    },
+    "perio-session.btn.voice-confirm": {
+      "label": "Confirm",
+      "description": "Keeps the dictated or copied values."
+    },
+    "perio-session.btn.voice-discard": {
+      "label": "Discard",
+      "description": "Puts every dictated or copied site back as it was."
+    },
+    "perio-session.section.passes": {
+      "label": "Passes",
+      "description": "The three rounds of probing, each with its progress: depth and bleeding, gingival margin, furcations and mobility."
+    },
+    "perio-session.btn.pass-ps": {
+      "label": "Depth and bleeding",
+      "description": "Depth of each site; bleeding, suppuration and plaque with B, S and P."
+    },
+    "perio-session.btn.pass-mg": {
+      "label": "Gingival margin",
+      "description": "Margin of each site: positive is recession, negative enlargement (or the other way round, per the settings)."
+    },
+    "perio-session.btn.pass-fm": {
+      "label": "Furcations and mobility",
+      "description": "Mobility (0 to III) and the furcation grade of each entry, per tooth."
+    },
+    "perio-session.btn.copy-ps": {
+      "label": "Start from the previous exam (depth)",
+      "description": "Fills the empty depths, with their bleeding, suppuration and plaque, with the previous exam's. It stays pending confirmation."
+    },
+    "perio-session.btn.copy-mg": {
+      "label": "Start from the previous exam (margin)",
+      "description": "Fills the empty margins with the previous exam's. It stays pending confirmation."
+    },
+    "perio-session.btn.copy-fm": {
+      "label": "Start from the previous exam (furcations and mobility)",
+      "description": "Fills the missing mobility and furcations with the previous exam's."
+    },
+    "perio-session.btn.copy-all": {
+      "label": "Copy everything from the previous exam",
+      "description": "The three passes at once. It never overwrites what was measured today."
+    },
+    "perio-session.section.focus": {
+      "label": "Which arch is shown",
+      "description": "Follows the probe (shows where it is measuring), upper, lower or both. When the arch changes, the view moves by itself."
+    },
+    "perio-session.field.show-guide": {
+      "label": "Show the previous exam as a guide",
+      "description": "Its values in grey in empty cells and its curve dashed. Enter records that value as measured today."
+    },
+    "perio-session.btn.undo": {
+      "label": "Undo",
+      "description": "The last change (Ctrl+Z). Redo with Ctrl+Y. Keeps up to 60 steps."
+    },
+    "perio-session.section.chart": {
+      "label": "Periodontal chart",
+      "description": "Each arch with its outer face on top and its inner face below: blue margin curve, red pocket-bottom curve and the BOP, GM and PD rows. Tap a cell to measure there."
+    },
+    "perio-session.section.guide-bar": {
+      "label": "What to record now",
+      "description": "The tooth, site and value that goes next, the progress of the pass and the keyboard shortcuts."
+    },
+    "perio-session.section.legend": {
+      "label": "Legend",
+      "description": "What each colour and symbol of the chart means."
+    },
+    "perio-session.section.inspector": {
+      "label": "Inspector",
+      "description": "Exam indicators, the active tooth with its table, the keypad, the tooth history and its note."
+    },
+    "perio-session.field.tooth-status": {
+      "label": "Tooth status",
+      "description": "Present, missing, pontic or implant. Missing teeth and pontics are not probed."
+    },
+    "perio-session.section.tooth-table": {
+      "label": "Tooth table",
+      "description": "PD, GM and CAL of each site per face, with the previous value small, and the bleeding, suppuration and plaque buttons."
+    },
+    "perio-session.section.keypad": {
+      "label": "Keypad",
+      "description": "Digits, delete, +1, “Same as before” and, on the margin pass, the minus sign."
+    },
+    "perio-session.section.marks": {
+      "label": "Marks",
+      "description": "Bleeding, suppuration and plaque: they go to the site with the dashed ring (the last one measured or the one you tapped)."
+    },
+    "perio-session.field.tooth-note": {
+      "label": "Tooth note",
+      "description": "Free text for this tooth, for example an X-ray follow-up."
+    },
+    "perio-session.btn.next-probe": {
+      "label": "Next: Progress",
+      "description": "Goes to step 2."
+    },
+    "perio-session.section.sextants": {
+      "label": "Sextants",
+      "description": "One code per sextant: that of the worst site (0 to 4, X with fewer than two teeth) and the asterisk. Keyboard: 0–4 or X code it and move on."
+    },
+    "perio-session.section.psr-legend": {
+      "label": "PSR/BPE codes",
+      "description": "What each code and the asterisk mean."
+    },
+    "perio-session.section.evolution-controls": {
+      "label": "How to compare",
+      "description": "Slider, overlay or changes; arch; curves or map; animation."
+    },
+    "perio-session.btn.evolution-play": {
+      "label": "Play the progress",
+      "description": "Moves from one exam to the next, from the compared one to today."
+    },
+    "perio-session.section.evolution-chart": {
+      "label": "Comparison",
+      "description": "The earlier chart and today's, in the chosen mode."
+    },
+    "perio-session.section.compare-with": {
+      "label": "Compare today with…",
+      "description": "The patient's exams with their date and bleeding; tap one to compare it with today."
+    },
+    "perio-session.section.trends": {
+      "label": "Trends",
+      "description": "Bleeding, plaque, sites of 5 mm or more, mean PD and CAL in each session, with the difference against the compared exam."
+    },
+    "perio-session.section.worse": {
+      "label": "Worse",
+      "description": "Sites that lost 2 mm or more of depth or attachment. Tap one to see it."
+    },
+    "perio-session.section.better": {
+      "label": "Better",
+      "description": "Sites that gained 2 mm or more."
+    },
+    "perio-session.btn.next-evolution": {
+      "label": "Go to diagnosis",
+      "description": "Goes to step 3."
+    },
+    "perio-session.section.evolution-empty": {
+      "label": "No earlier exam",
+      "description": "It is the patient's first periodontal chart: progress shows from the next one."
+    },
+    "perio-session.section.evolution-screening": {
+      "label": "Codes per session",
+      "description": "In a screening, the codes of each sextant, session by session."
+    },
+    "perio-session.section.dx-today": {
+      "label": "How it is today",
+      "description": "Stable, stable with inflammation or unstable, with the list that supports it and whether the therapy endpoints are met."
+    },
+    "perio-session.section.dx-inputs": {
+      "label": "Data not from the probing",
+      "description": "Teeth lost to periodontitis, X-ray bone loss, age, cigarettes per day and diabetes. They carry over to the next chart."
+    },
+    "perio-session.section.dx-classification": {
+      "label": "AAP/EFP 2017 classification",
+      "description": "Periodontitis case, stage (from the initial exam; it does not go down), extent and grade, each with its reason. What is changed by hand is marked."
+    },
+    "perio-session.section.dx-risk": {
+      "label": "Risk of progression",
+      "description": "Lang & Tonetti hexagon with six parameters, the risk and the suggested maintenance interval."
+    },
+    "perio-session.section.dx-plan": {
+      "label": "Plan by steps",
+      "description": "The EFP steps the probing calls for, each with its checkbox and Today or Later."
+    },
+    "perio-session.section.dx-implants": {
+      "label": "Implants",
+      "description": "In “implants only”: the suggested status of each implant (healthy, mucositis or peri-implantitis) and the maintenance interval."
+    },
+    "perio-session.section.dx-screening": {
+      "label": "Screening result",
+      "description": "The highest code, what it means, what to do and which sextants need a full periodontal chart."
+    },
+    "perio-session.btn.confirm-diagnosis": {
+      "label": "Confirm diagnosis",
+      "description": "Puts the diagnosis in the clinical record. It is enabled once probing is complete; if something changes afterwards, it has to be confirmed again."
+    },
+    "perio-session.btn.next-diagnosis": {
+      "label": "Go to closing",
+      "description": "Goes to step 4."
+    },
+    "perio-session.section.report": {
+      "label": "Patient report",
+      "description": "A summary in plain words: how their gums are, bleeding and pockets against the first check-up, and one tip."
+    },
+    "perio-session.btn.report-copy": {
+      "label": "Copy",
+      "description": "Copies the report text."
+    },
+    "perio-session.btn.report-whatsapp": {
+      "label": "WhatsApp",
+      "description": "Opens the message to send it by WhatsApp (needs the patient's phone)."
+    },
+    "perio-session.btn.report-print": {
+      "label": "Print",
+      "description": "The report with both arches, ready to print."
+    },
+    "perio-session.btn.report-email": {
+      "label": "Send",
+      "description": "Opens the email with the report (needs the patient's email; uses the PERIO_REPORT_EMAIL template if it exists)."
+    },
+    "perio-session.section.billing": {
+      "label": "Today's billing",
+      "description": "What the plan marks Today; once charged, the linked invoice with its payments."
+    },
+    "perio-session.btn.charge": {
+      "label": "Charge",
+      "description": "Opens the billing wizard; the invoice is linked to the periodontal chart."
+    },
+    "perio-session.field.no-charge": {
+      "label": "Nothing to charge today",
+      "description": "To close without invoicing."
+    },
+    "perio-session.section.next-visit": {
+      "label": "Next visit",
+      "description": "Reinstrumentation (in 1 to 2 weeks) or maintenance (at the risk interval), with the suggested date."
+    },
+    "perio-session.btn.book": {
+      "label": "Book",
+      "description": "Opens the schedule with the patient, date and reason filled in."
+    },
+    "perio-session.btn.book-later": {
+      "label": "Schedule later",
+      "description": "Keeps the suggested date; the maintenance reminder uses it."
+    },
+    "perio-session.section.notes": {
+      "label": "Session notes",
+      "description": "Free text of the periodontal chart."
+    },
+    "perio-session.section.indices": {
+      "label": "Today's indices",
+      "description": "The ten indicators of the exam (natural teeth)."
+    },
+    "perio-session.section.checklist": {
+      "label": "What is missing to sign",
+      "description": "Probing, diagnosis, billing, next visit and confirmed dictated or copied values. What is pending can be tapped."
+    },
+    "perio-session.btn.sign": {
+      "label": "Sign and close",
+      "description": "Enabled once everything is settled; once closed, it is read-only."
+    },
+    "perio-session.btn.sign-confirm": {
+      "label": "Sign and close (confirm)",
+      "description": "Confirms the signature: the chart goes into the clinical record."
+    },
+    "perio-session.section.amendments": {
+      "label": "Amendments",
+      "description": "Corrections of a closed chart: the exam does not change; the text is added with author and date."
+    },
+    "perio-session.btn.amend": {
+      "label": "Amend",
+      "description": "Adds an amendment: what is corrected and why."
+    },
+    "patients.btn.timeline-open-perio": {
+      "label": "Continue or view periodontal chart",
+      "description": "Opens the periodontal chart: continue if open, view if closed."
+    },
+    "patients.btn.timeline-compare-perio": {
+      "label": "Compare with today",
+      "description": "Opens the latest periodontal chart on Progress, compared with this one."
+    },
+    "patients.btn.timeline-delete-perio": {
+      "label": "Delete periodontal chart",
+      "description": "Only if it is not closed; a closed one is clinical record."
+    },
+    "patients.btn.timeline-row-perio": {
+      "label": "Periodontal chart on the timeline",
+      "description": "Tap it to expand it: preview, exam type, diagnosis, indices and buttons."
+    }
+  }
+}

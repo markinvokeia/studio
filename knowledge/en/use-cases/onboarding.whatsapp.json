@@ -1,0 +1,36 @@
+{
+  "id": "onboarding.whatsapp",
+  "title": "Turn on the WhatsApp agent",
+  "summary": "The agent confirms appointments and replies to patients over WhatsApp. It's turned on here; the Invoke team connects the number.",
+  "module": "Integrations",
+  "keywords": [
+    "whatsapp",
+    "agent",
+    "bot",
+    "messages",
+    "ycloud"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "I'm opening the WhatsApp agent"
+    },
+    {
+      "id": "enable",
+      "title": "Turn on the agent",
+      "details": "On: the agent replies to patients, confirms and reschedules appointments. Off: messages are left for the team to handle.",
+      "description": "With the agent on, it replies to patients and confirms appointments by itself."
+    },
+    {
+      "id": "hours",
+      "title": "Agent office hours",
+      "details": "If you turn it on, outside office hours the agent replies with the message you set up instead of handling it.",
+      "description": "Optional: limit the hours the agent replies and what it says after hours."
+    },
+    {
+      "id": "save",
+      "title": "Save changes",
+      "details": "Saves the agent's settings. Changes apply to new messages."
+    }
+  ]
+}

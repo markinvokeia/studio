@@ -30,10 +30,12 @@ import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
+import { useHelpScope } from '@/components/help/help-scope';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import {
     buildDiscountedDocument,
     computeDiscountAmount,
@@ -43,6 +45,7 @@ import {
     roundCurrency,
 } from '@/lib/discounts';
 import { Clinic, DiscountMode, Quote, TreatmentDetail, User } from '@/lib/types';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,6 +57,7 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { ToothInputWithPicker } from '@/components/dental/teeth-picker';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 /**
@@ -166,6 +170,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession, activeSede } = useAuth();
+    const helpScope = useHelpScope();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -175,6 +180,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const discounts = useDiscountSettings();
 
     const schema = React.useMemo(() => quoteFormSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<QuoteFormValues>({
         resolver: zodResolver(schema),
         mode: 'onBlur',
@@ -438,7 +444,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
                         <DialogBody className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
@@ -593,7 +599,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 <CardHeader>
                                     <div className="flex justify-between items-center">
                                         <CardTitle>{t('quoteDialog.items.title')}</CardTitle>
-                                        <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>
+                                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'add-item')} type="button" size="sm" variant="outline" onClick={handleAddItem}>
                                             {t('quoteDialog.addItem')}
                                         </Button>
                                     </div>
@@ -704,11 +710,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                         <FormField control={form.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">{t('quoteDialog.items.toothNumber')}</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="number" placeholder="-" {...field}
-                                                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                                                                    />
-                                                                </FormControl>
+                                                                <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                    <FormControl>
+                                                                        <Input className="pl-7" type="number" placeholder="-" {...field}
+                                                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                                                                        />
+                                                                    </FormControl>
+                                                                </ToothInputWithPicker>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -832,11 +840,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                         <td className="p-1">
                                                             <FormField control={form.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormControl>
-                                                                        <Input type="number" placeholder="-" {...field}
-                                                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
-                                                                        />
-                                                                    </FormControl>
+                                                                    <ToothInputWithPicker value={field.value} onChange={(next) => field.onChange(next === '' ? '' : Number(next))}>
+                                                                        <FormControl>
+                                                                            <Input className="pl-7" type="number" placeholder="-" {...field}
+                                                                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                                                                            />
+                                                                        </FormControl>
+                                                                    </ToothInputWithPicker>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />

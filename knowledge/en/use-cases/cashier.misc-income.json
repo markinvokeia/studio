@@ -1,0 +1,137 @@
+{
+  "id": "cashier.misc-income",
+  "title": "Record cash income",
+  "summary": "Money coming in that isn't a patient payment (contribution for change, refund, small sale).",
+  "module": "Cash register",
+  "inputs": {
+    "category": "Category name",
+    "beneficiary": "Name",
+    "date": "Date YYYY-MM-DD",
+    "payment_method": "Payment method (e.g. Cash)",
+    "amount": "Amount (number)",
+    "currency": "Currency",
+    "description": "Description",
+    "reference": "Receipt no.",
+    "tags": "Tags separated by commas"
+  },
+  "keywords": [
+    "income",
+    "cash in",
+    "contribution",
+    "refund",
+    "deposit into cash register"
+  ],
+  "steps": [
+    {
+      "id": "closed",
+      "title": "Open the cash register first",
+      "details": "Movements are recorded in the open cash session: I'll guide you through opening it and then we'll come back."
+    },
+    {
+      "id": "o-go",
+      "title": "Menu → Cashier → Cashier",
+      "details": "Today's cash register: opening, movements and closing."
+    },
+    {
+      "id": "o-point",
+      "title": "Choose the cash register to open",
+      "details": "Each physical cash register (front desk, another branch) is opened separately. If you already have a cash register open, the others are disabled."
+    },
+    {
+      "id": "o-rate",
+      "title": "Exchange rate",
+      "details": "Only if the clinic works with two currencies: today's exchange rate to convert between them. It's fetched automatically; you can correct it."
+    },
+    {
+      "id": "o-currency",
+      "title": "Main currency",
+      "details": "The currency the cash register is kept in."
+    },
+    {
+      "id": "o-next-config",
+      "title": "Next",
+      "details": "Moves on to counting the cash."
+    },
+    {
+      "id": "o-prefill",
+      "title": "Fill in the count"
+    },
+    {
+      "id": "o-count",
+      "title": "Count the opening cash",
+      "details": "How many bills and coins of each denomination are in the cash register when opening; the total shows at the top. «Fill with last closing» copies what was left at the previous closing; «Fill with 0» if the cash register starts empty."
+    },
+    {
+      "id": "o-next",
+      "title": "Next",
+      "details": "If there's more than one currency, each one is counted."
+    },
+    {
+      "id": "o-summary",
+      "title": "Review the opening",
+      "details": "Cash register, user, date, currency, exchange rate and the total counted per currency (with its breakdown)."
+    },
+    {
+      "id": "o-confirm",
+      "title": "Confirm and open",
+      "details": "From now on payments, provider payments and miscellaneous movements are recorded in this cash register."
+    },
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Miscellaneous Transactions",
+      "details": "Money in and out that isn't a patient payment: small expenses, withdrawals, contributions."
+    },
+    {
+      "id": "new",
+      "title": "New transaction"
+    },
+    {
+      "id": "category",
+      "title": "Category",
+      "details": "The category defines whether it's income. Example: «Partner contribution». Categories are created in Cashier → Product and Services Categories."
+    },
+    {
+      "id": "beneficiary",
+      "title": "Who hands it over",
+      "details": "Example: «Dr. Lucía Pereira»."
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "method",
+      "title": "Payment method",
+      "details": "Cash moves the cash register's cash on hand; with another method it's recorded but doesn't change the count."
+    },
+    {
+      "id": "amount",
+      "title": "Amount",
+      "details": "Example: 5000."
+    },
+    {
+      "id": "currency",
+      "title": "Currency"
+    },
+    {
+      "id": "description",
+      "title": "Description",
+      "details": "Example: «Cash contribution for change»."
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "details": "Invoice or ticket number of the receipt."
+    },
+    {
+      "id": "tags",
+      "title": "Tags",
+      "details": "Separated by commas, to group them in reports."
+    },
+    {
+      "id": "save",
+      "title": "Create",
+      "details": "It stays in the open cash session as income."
+    }
+  ]
+}

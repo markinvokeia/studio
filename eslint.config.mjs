@@ -1,6 +1,8 @@
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 
 const eslintConfig = [
+  // La config de Next no cubre .cjs: sin esto, las reglas de abajo rompen ESLint al llegar a uno.
+  { ignores: ['**/*.cjs'] },
   ...coreWebVitals,
   {
     rules: {
@@ -8,6 +10,16 @@ const eslintConfig = [
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/static-components': 'off',
       'react/no-unescaped-entities': 'off',
+    },
+  },
+  {
+    // Mascota de Invoke: librería entregada por Claude Design (dibujo y animaciones con
+    // refs/Date.now en render a propósito). Se integra sin reescribirla; ver su README.
+    files: ['src/components/invoke-mascot/**'],
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    rules: {
+      'react-hooks/refs': 'off',
+      'react-hooks/purity': 'off',
     },
   },
 ];

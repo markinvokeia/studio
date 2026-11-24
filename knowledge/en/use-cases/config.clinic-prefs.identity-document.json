@@ -1,0 +1,45 @@
+{
+  "id": "config.clinic-prefs.identity-document",
+  "title": "Require the patient's ID document",
+  "module": "Business Setup",
+  "summary": "Clinic Preferences → ID document: required in the patient record and/or for an appointment to move to certain statuses.",
+  "keywords": [
+    "id document",
+    "identity document",
+    "require document",
+    "mandatory document",
+    "complete appointment",
+    "block status"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Clinic Preferences"
+    },
+    {
+      "id": "section",
+      "title": "ID document",
+      "details": "Two independent options: one for the patient record and one for appointment statuses."
+    },
+    {
+      "id": "required",
+      "title": "Require ID document",
+      "details": "On: the patient record can't be saved without a document. Off (default) it can stay empty."
+    },
+    {
+      "id": "warn",
+      "title": "Require it to change an appointment's status",
+      "details": "On: the appointment can't move to the chosen statuses if the patient has no document. When turned on it starts with \"Completed\". Cancelling is never blocked."
+    },
+    {
+      "id": "statuses",
+      "title": "Statuses that require it",
+      "details": "Tick the statuses that ask for it. When it's blocked, a notice shows up with a shortcut to the patient's details to add it."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It applies to the whole clinic: calendar, My Workspace and the patient portal."
+    }
+  ]
+}

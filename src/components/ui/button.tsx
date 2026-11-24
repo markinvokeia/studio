@@ -1,9 +1,13 @@
+"use client"
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useAutoHelpId } from "@/components/help/help-scope"
+import { HELP_ID_ATTR } from "@/lib/help/help-id"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -49,6 +53,8 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    // El botón que confirma un formulario es el "OK" humano de las guías: id fijo `btn.submit`.
+    const helpId = useAutoHelpId("btn", props.type === "submit" ? "submit" : undefined)
     const spinner = <Loader2 className="animate-spin" aria-hidden="true" />
     let content = children
     if (loading && !asChild) {
@@ -60,6 +66,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
+        {...{ [HELP_ID_ATTR]: helpId }}
         {...props}
       >
         {content}

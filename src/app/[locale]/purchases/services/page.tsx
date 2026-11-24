@@ -29,6 +29,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
@@ -277,6 +278,7 @@ export default function ServicesPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [statusFilter, setStatusFilter] = React.useState<ServiceStatusFilter>('all');
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const createForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
     defaultValues: defaultServiceFormValues(),
@@ -440,7 +442,7 @@ export default function ServicesPage() {
         rightPanel={
           selectedService && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex-none p-4 pb-2">
+              <CardHeader data-help-id="purchases.services.section.detail" className="flex-none p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {selectedService.color
@@ -454,7 +456,7 @@ export default function ServicesPage() {
                   </div>
                   <div className="flex items-center gap-0.5 ml-2 flex-none">
                     {canDeleteProduct && (
-                      <button type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                      <button data-help-id="purchases.services.btn.delete" type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -473,7 +475,7 @@ export default function ServicesPage() {
                   <div className="flex-1 overflow-auto mt-4">
                     <TabsContent value="details" className="m-0">
                       <Form {...detailForm} key={selectedService.id}>
-                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-3">
+                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-3">
                           {detailError && (
                             <Alert variant="destructive">
                               <AlertTriangle className="h-4 w-4" />
@@ -534,7 +536,7 @@ export default function ServicesPage() {
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
-            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-3 py-4 px-6">
                 {createError && (
                   <Alert variant="destructive">
@@ -561,7 +563,7 @@ export default function ServicesPage() {
             <AlertDialogDescription>{t('deleteDialog.description', { name: deletingService?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction data-help-id="purchases.services.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

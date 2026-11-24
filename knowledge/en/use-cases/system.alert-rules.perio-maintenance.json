@@ -1,0 +1,97 @@
+{
+  "id": "system.alert-rules.perio-maintenance",
+  "title": "Create the periodontal maintenance reminder",
+  "summary": "Alert rule that warns (and can message the patient) when maintenance is due.",
+  "module": "System",
+  "inputs": {
+    "category": "Alert category name (e.g. Appointments)"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "maintenance reminder",
+    "alert rule",
+    "periodontal maintenance"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Rules",
+      "details": "What creates an alert and when."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "A new rule."
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "How it shows in the Alerts Center."
+    },
+    {
+      "id": "code",
+      "title": "Code",
+      "details": "A unique code for the rule."
+    },
+    {
+      "id": "category",
+      "title": "Category",
+      "details": "The Alerts Center group, for example the one for patient reminders."
+    },
+    {
+      "id": "source",
+      "title": "Source",
+      "details": "The v_alert_perio_maintenance view: one row per patient with their latest closed chart and the date maintenance is due."
+    },
+    {
+      "id": "idfield",
+      "title": "ID field",
+      "details": "“id”: it is the patient (so the automatic sending knows who to message)."
+    },
+    {
+      "id": "user",
+      "title": "User field",
+      "details": "“patient_id”."
+    },
+    {
+      "id": "event",
+      "title": "Event date",
+      "details": "“due_date”: when maintenance is due."
+    },
+    {
+      "id": "conditions",
+      "title": "Condition",
+      "details": "Add one: column due_date, operator “=” and value {{TODAY}}. Without it the rule does not filter by date."
+    },
+    {
+      "id": "before",
+      "title": "Days before the event",
+      "details": "How far ahead to warn: with 14, the alert comes 14 days before maintenance."
+    },
+    {
+      "id": "recurrence",
+      "title": "Recurrence",
+      "details": "Daily: every day it looks for the maintenance that is due."
+    },
+    {
+      "id": "whatsapp",
+      "title": "WhatsApp template (optional)",
+      "details": "To message the patient: a patient-type template. Sending is turned on by “Send SMS automatically”."
+    },
+    {
+      "id": "email",
+      "title": "Email template (optional)",
+      "details": "With “Send email automatically” and the global alert email switch. Only patient and clinic variables."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "From the next day, the alert engine creates a warning for each patient whose maintenance is due."
+    }
+  ]
+}

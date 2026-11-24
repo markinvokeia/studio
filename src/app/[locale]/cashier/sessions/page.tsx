@@ -426,7 +426,7 @@ export default function CashSessionsPage() {
             </Card>
 
             <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-                <DialogContent maxWidth="6xl">
+                <DialogContent data-help-id="cashier.sessions.section.details" maxWidth="6xl">
                     {selectedSession && (
                         <>
                             <DialogHeader>
@@ -445,7 +445,7 @@ export default function CashSessionsPage() {
                             </div>
                             {selectedSession?.estado === 'CLOSE' && (
                                 <DialogFooter>
-                                    <Button onClick={() => handlePrintClose(selectedSession)} disabled={isPrintingClose}>
+                                    <Button data-help-id="cashier.sessions.btn.print-closing" onClick={() => handlePrintClose(selectedSession)} disabled={isPrintingClose}>
                                         {isPrintingClose ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                                         {t('printClosingReport')}
                                     </Button>
