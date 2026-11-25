@@ -1,5 +1,5 @@
 {
- "version": "2f00173eb8cad0b5",
+ "version": "18afee5eb173f426",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -944,6 +944,11 @@
   {
    "code": "LICENSING_VIEW",
    "constant": "LICENSING_PERMISSIONS.VIEW"
+  },
+  {
+   "code": "LICENSING_VIEW_EXPIRATION_NOTICE",
+   "constant": "LICENSING_PERMISSIONS.VIEW_EXPIRATION_NOTICE",
+   "description": "Aviso de licencia por vencer / vencida"
   },
   {
    "code": "LICENSING_VIEW_MENU",

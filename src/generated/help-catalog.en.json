@@ -1,5 +1,5 @@
 {
- "version": "67cc0c69f809afa6",
+ "version": "a6be2d8cc734613c",
  "locale": "en",
  "journey": [
   {
@@ -945,6 +945,11 @@
   {
    "code": "LICENSING_VIEW",
    "constant": "LICENSING_PERMISSIONS.VIEW"
+  },
+  {
+   "code": "LICENSING_VIEW_EXPIRATION_NOTICE",
+   "constant": "LICENSING_PERMISSIONS.VIEW_EXPIRATION_NOTICE",
+   "description": "Aviso de licencia por vencer / vencida"
   },
   {
    "code": "LICENSING_VIEW_MENU",

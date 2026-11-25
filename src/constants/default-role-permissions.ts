@@ -602,6 +602,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'REPORTS_GESTION_VIEW',
     'REPORTS_EXPORT_PDF',
     'REPORTS_EXPORT_EXCEL',
+    // Licencia - aviso de vencimiento
+    'LICENSING_VIEW_EXPIRATION_NOTICE',
     // Global + Sticky Notes
     ...GLOBAL_BASIC,
     ...STICKY_NOTES_ALL,
@@ -751,6 +753,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     // TV Display - lectura
     'TV_DISPLAY_VIEW_MENU',
     'TV_DISPLAY_VIEW_SCREEN',
+    // Licencia - aviso de vencimiento
+    'LICENSING_VIEW_EXPIRATION_NOTICE',
     ...GLOBAL_BASIC,
     ...STICKY_NOTES_ALL,
   ],
@@ -843,6 +847,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'REPORTS_PACIENTES_VIEW',
     'REPORTS_AGENDA_VIEW',
     'REPORTS_EXPORT_PDF',
+    // Licencia - aviso de vencimiento
+    'LICENSING_VIEW_EXPIRATION_NOTICE',
     ...GLOBAL_BASIC,
     ...STICKY_NOTES_ALL,
   ],

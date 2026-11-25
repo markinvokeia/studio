@@ -22,7 +22,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { routeToHelpScope } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
-import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
+import { DASHBOARD_PERMISSIONS, LICENSING_PERMISSIONS } from '@/constants/permissions';
 import { useLicenseStore } from '@/stores/license-store';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
@@ -197,6 +197,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const locale = useLocale();
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { isExpired, isExpiringSoon, daysLeft } = useLicenseStore();
 
   const isInvokeUser = user?.email?.endsWith('@invokeia.com') ?? false;
@@ -241,7 +242,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           <Header />
         </div>
         {isExpired && isInvokeUser && <LicenseExpiredBanner />}
-        {isExpiringSoon && !isExpired && (
+        {isExpiringSoon && !isExpired && hasPermission(LICENSING_PERMISSIONS.VIEW_EXPIRATION_NOTICE) && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
         {/* overflow visible: la mascota escondida detrás del panel se asoma por el margen de arriba o de abajo. */}

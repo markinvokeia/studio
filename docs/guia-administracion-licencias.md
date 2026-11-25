@@ -61,6 +61,7 @@ Permiso requerido: SUBSCRIPTIONS_VIEW_MENU
 | Ver menú | `LICENSING_VIEW_MENU` | Muestra el ítem en el sidebar |
 | Ver licencia | `LICENSING_VIEW` | Accede a la página |
 | Generar licencia | `LICENSING_GENERATE` | Muestra el formulario de generación |
+| Ver aviso de vencimiento | `LICENSING_VIEW_EXPIRATION_NOTICE` | Muestra el aviso de licencia por vencer o vencida (sección 10) |
 | Ver suscripciones | `SUBSCRIPTIONS_VIEW_MENU` + `SUBSCRIPTIONS_VIEW` | Accede al historial |
 
 Los roles **Administrador** (id=4) y **Gerente** (id=37) tienen todos estos permisos asignados por defecto (ver `030_20260529_licensing-tables-and-permissions.sql`).
@@ -237,6 +238,7 @@ Cuando un usuario intenta crear un registro y se alcanzó el límite de la licen
 ### 10.1 Banner de vencimiento próximo
 
 - **Cuándo aparece:** cuando restan **5 días o menos** para la fecha de fin
+- **Quién lo ve:** los roles con el permiso `LICENSING_VIEW_EXPIRATION_NOTICE` (por defecto administración, gerencia, Super Admin y recepción/secretaría)
 - **Dónde:** barra amarilla en la parte superior del contenido, en todas las páginas autenticadas
 - **Componente:** `LicenseExpirationBanner` en `PrivateRoute.tsx`
 
@@ -244,7 +246,8 @@ Cuando un usuario intenta crear un registro y se alcanzó el límite de la licen
 
 - **Cuándo aparece:** cuando la fecha de fin ya pasó (`daysLeft <= 0`)
 - **Dónde:** overlay `absolute inset-0` sobre todo el contenido, en todas las páginas autenticadas
-- **Excepción:** el usuario `system@invokeia.com` no ve el overlay y puede operar normalmente
+- **Contenido:** con el permiso `LICENSING_VIEW_EXPIRATION_NOTICE` se muestra el motivo y el contacto para renovar; sin él, un mensaje neutro de sistema no disponible. El bloqueo es igual para todos
+- **Excepción:** los usuarios `@invokeia.com` no ven el overlay (ven una barra roja) y pueden operar normalmente
 - **Componente:** `LicenseExpiredScreen` en `PrivateRoute.tsx`
 
 ---

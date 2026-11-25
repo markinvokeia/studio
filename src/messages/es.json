@@ -9831,6 +9831,10 @@
       "contact": "Contacto:",
       "banner": "⚠ LICENCIA EXPIRADA — El acceso de los usuarios está bloqueado. Renovar:"
     },
+    "unavailable": {
+      "title": "Sistema no disponible",
+      "description": "El sistema no está disponible en este momento. Contactá a la administración de la clínica."
+    },
     "expiringSoon": {
       "message": "Su licencia vence en {days} día(s). Por favor contacte a"
     },

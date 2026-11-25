@@ -725,6 +725,8 @@ export const LICENSING_PERMISSIONS = {
   VIEW_MENU: 'LICENSING_VIEW_MENU',
   VIEW:      'LICENSING_VIEW',
   GENERATE:  'LICENSING_GENERATE',
+  /** Aviso de licencia por vencer / vencida */
+  VIEW_EXPIRATION_NOTICE: 'LICENSING_VIEW_EXPIRATION_NOTICE',
 } as const;
 
 export type LicensingPermission = (typeof LICENSING_PERMISSIONS)[keyof typeof LICENSING_PERMISSIONS];
