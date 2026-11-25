@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
@@ -72,7 +74,14 @@ interface PendingOrder {
     order_number: string;
     patient_name: string;
     source?: StudyOrderListItem['source'];
+    source_intake_id?: string | null;
+    doctor_id?: string | null;
+    referring_doctor_name?: string | null;
 }
+
+/** Sin odontólogo: se confirma solo si quien lo hace lo acepta (las de WhatsApp o importadas no lo piden). */
+const lacksDoctor = (order: PendingOrder | null) => !!order && order.source !== 'whatsapp' && !order.source_intake_id
+    && !order.doctor_id && !order.referring_doctor_name?.trim();
 
 export interface StudyOrdersScreenProps {
     scope: StudyOrderScope;
@@ -596,7 +605,12 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [sorting, setSorting] = React.useState<SortingState>([{ id: 'order_number', desc: true }]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-    const [pendingSubmit, setPendingSubmit] = React.useState<PendingOrder | null>(null);
+    const [pendingSubmit, setPendingSubmitOrder] = React.useState<PendingOrder | null>(null);
+    const [confirmWithoutDoctor, setConfirmWithoutDoctor] = React.useState(false);
+    const setPendingSubmit = React.useCallback((order: PendingOrder | null) => {
+        setConfirmWithoutDoctor(false);
+        setPendingSubmitOrder(order);
+    }, []);
     const [pendingDelete, setPendingDelete] = React.useState<PendingOrder | null>(null);
     const [pendingDeliver, setPendingDeliver] = React.useState<PendingOrder | null>(null);
     const [pendingCancel, setPendingCancel] = React.useState<PendingOrder | null>(null);
@@ -849,7 +863,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             case 'schedule': void handleSchedule(order.id); break;
             case 'cancel': setPendingCancel(order); break;
         }
-    }, [handleMarkPending, handleSchedule]);
+    }, [handleMarkPending, handleSchedule, setPendingSubmit]);
 
     const boardCapabilities = React.useMemo<BoardCapabilities>(() => ({
         submit: canSubmit,
@@ -1073,16 +1087,29 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                         <AlertDialogTitle>{t('submitDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('submitDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
+                    {lacksDoctor(pendingSubmit) && (
+                        <div className="flex items-start gap-2 rounded-lg border p-3">
+                            <Checkbox
+                                id="confirm-without-doctor"
+                                className="mt-0.5"
+                                checked={confirmWithoutDoctor}
+                                onCheckedChange={(checked) => setConfirmWithoutDoctor(checked === true)}
+                            />
+                            <Label htmlFor="confirm-without-doctor" className="cursor-pointer text-sm font-normal leading-snug">
+                                {t('submitDialog.withoutDoctor')}
+                            </Label>
+                        </div>
+                    )}
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('submitDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
-                            disabled={isMutating}
+                            disabled={isMutating || (lacksDoctor(pendingSubmit) && !confirmWithoutDoctor)}
                             onClick={() => {
                                 const order = pendingSubmit;
                                 setPendingSubmit(null);
                                 if (order) {
                                     void runMutation(
-                                        () => submitStudyOrder(order.id),
+                                        () => submitStudyOrder(order.id, { withoutDoctor: confirmWithoutDoctor }),
                                         t('toast.submittedTitle'),
                                         t('toast.submittedDescription', { number: order.order_number }),
                                     );

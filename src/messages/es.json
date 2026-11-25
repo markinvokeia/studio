@@ -11744,16 +11744,18 @@
       "doctorSearch": "Buscar doctor…",
       "doctorPick": "Elegir doctor",
       "withoutDoctor": "Sin doctor del sistema",
-      "referringDoctorHelp": "La orden queda a nombre de este doctor: la ve en \"Mis órdenes\" y recibe los avisos. Si quien la firma no usa el sistema, marcá \"Sin doctor del sistema\".",
+      "referringDoctorHelp": "La orden queda a nombre de este doctor: la ve en \"Mis Órdenes\" y recibe los avisos. Podés dejarlo para después: se pide al confirmar. Si quien la firma no usa el sistema, marcá \"Sin doctor del sistema\".",
       "referringDoctorName": "Doctor según la orden",
-      "referringDoctorNameHelp": "Como figura en el papel. Es solo una referencia: no se vincula a ningún usuario."
+      "referringDoctorNameHelp": "Como figura en el papel. Es solo una referencia: no se vincula a ningún usuario.",
+      "sedePick": "Elegir sede"
     },
     "submitDialog": {
       "title": "¿Confirmar la orden?",
       "description": "Queda confirmada y la clínica recibe el aviso en el momento. Después no vas a poder editarla.",
       "confirm": "Confirmar",
       "cancel": "Volver",
-      "replaces": "Además, la orden {number} se va a anular y sus citas pasan a esta."
+      "replaces": "Además, la orden {number} se va a anular y sus citas pasan a esta.",
+      "withoutDoctor": "La orden no tiene odontólogo. Confirmar sin odontólogo."
     },
     "deleteDialog": {
       "title": "¿Eliminar el borrador?",
@@ -11814,7 +11816,10 @@
       "patientNameRequired": "El nombre del paciente es obligatorio",
       "itemsRequired": "Seleccioná al menos un estudio",
       "reasonRequired": "El motivo es obligatorio",
-      "doctorRequired": "Elegí el doctor derivador o marcá \"Sin doctor del sistema\"."
+      "doctorRequired": "Elegí el doctor derivador o marcá \"Sin doctor del sistema\".",
+      "patientRequired": "Elegí el paciente de la lista.",
+      "sedeRequired": "Elegí la sede.",
+      "frontRequired": "Adjuntá el frente de la orden."
     },
     "noAccess": "No tenés permisos para ver las órdenes de estudio.",
     "wizard": {
@@ -11914,7 +11919,10 @@
         "delivery_methods": "Entrega",
         "clinical_notes": "Notas clínicas",
         "services_added": "Estudios agregados",
-        "services_removed": "Estudios quitados"
+        "services_removed": "Estudios quitados",
+        "doctor": "Odontólogo",
+        "order_front": "Frente de la orden",
+        "order_back": "Dorso de la orden"
       },
       "emptyValue": "vacío",
       "automatic": "automático",
@@ -12260,6 +12268,23 @@
         "confirm": "Cambiar estado",
         "cancel": "Volver"
       }
+    },
+    "images": {
+      "title": "Orden en papel",
+      "front": "Frente",
+      "back": "Dorso",
+      "optional": "opcional",
+      "attach": "Adjuntar imagen",
+      "attachSide": "Adjuntar {side}",
+      "takePhoto": "Sacar foto",
+      "replace": "Reemplazar",
+      "remove": "Quitar",
+      "view": "Ver {side}",
+      "help": "JPG, PNG, WEBP o PDF de hasta 10 MB.",
+      "invalidType": "Formato no admitido. Usá JPG, PNG, WEBP o PDF.",
+      "invalidSize": "El archivo está vacío o supera los 10 MB.",
+      "saveFailed": "La orden quedó guardada, pero no se pudo guardar esta imagen: {side}. Guardá de nuevo para reintentar.",
+      "formHint": "Elegí el paciente y la sede, y adjuntá el frente. Los estudios se pueden cargar después."
     }
   },
   "StudyOrderBooking": {

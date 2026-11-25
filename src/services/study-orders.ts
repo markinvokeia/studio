@@ -14,6 +14,8 @@ import type {
     StudyOrderFollowerAction,
     StudyOrderFollowersResult,
     StudyOrderFormOptions,
+    StudyOrderImage,
+    StudyOrderImageSide,
     StudyOrderMessageKind,
     StudyOrderMessagePostResult,
     StudyOrderImportStatus,
@@ -173,8 +175,8 @@ export async function upsertStudyOrder(payload: StudyOrderUpsertPayload): Promis
 }
 
 /** Envía la orden a la clínica. A partir de acá deja de ser editable. */
-export async function submitStudyOrder(id: string): Promise<StudyOrderSubmitResult> {
-    const raw = await api.post(API_ROUTES.STUDY_ORDERS.SUBMIT, { id });
+export async function submitStudyOrder(id: string, options?: { withoutDoctor?: boolean }): Promise<StudyOrderSubmitResult> {
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.SUBMIT, { id, ...(options?.withoutDoctor ? { without_doctor: true } : {}) });
     return unwrap<StudyOrderSubmitResult>(raw).data;
 }
 
@@ -329,6 +331,42 @@ export async function getStudyOrderFollowerCandidates(orderId: string, signal?: 
     const raw = await api.get(API_ROUTES.STUDY_ORDERS.FOLLOWER_CANDIDATES, { id: orderId }, undefined, { signal });
     const { data } = unwrap<StudyOrderFollower[]>(raw);
     return Array.isArray(data) ? data : [];
+}
+
+/** Frente y dorso de una orden. Los mismos límites que valida el flujo de n8n. */
+export const STUDY_ORDER_IMAGE_LIMITS = {
+    maxBytes: 10 * 1024 * 1024,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+} as const;
+
+/** Guarda el frente o el dorso de un borrador (reemplaza al anterior). Devuelve las imágenes de la orden. */
+export async function uploadStudyOrderImage(orderId: string, side: StudyOrderImageSide, file: File): Promise<StudyOrderImage[]> {
+    const form = new FormData();
+    form.append('order_id', orderId);
+    form.append('side', side);
+    form.append('file', file, file.name);
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.IMAGE_UPLOAD, form, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+    return unwrap<{ images: StudyOrderImage[] }>(raw).data.images ?? [];
+}
+
+/** Quita el frente o el dorso de un borrador. Devuelve las imágenes que quedan. */
+export async function deleteStudyOrderImage(orderId: string, side: StudyOrderImageSide): Promise<StudyOrderImage[]> {
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.IMAGE_DELETE, { order_id: orderId, side }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+    return unwrap<{ images: StudyOrderImage[] }>(raw).data.images ?? [];
+}
+
+const studyOrderImageKey = (orderId: string, fileId: string) => `study-order-image:${orderId}:${fileId}`;
+
+/** Cargador de las imágenes de una orden (con caché: reemplazar una imagen le cambia el id). */
+export function studyOrderImageLoader(orderId: string) {
+    return Object.assign(
+        (fileId: string, signal: AbortSignal) => cachedBlob(
+            studyOrderImageKey(orderId, fileId),
+            (fetchSignal) => api.getBlob(API_ROUTES.STUDY_ORDERS.IMAGE_FILE, { order_id: orderId, id: fileId }, undefined, { signal: fetchSignal }),
+            signal,
+        ),
+        { peekUrl: (fileId: string) => peekBlobUrl(studyOrderImageKey(orderId, fileId)) },
+    );
 }
 
 /** Límites de una importación (los mismos que valida el backend). */

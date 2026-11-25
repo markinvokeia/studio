@@ -4710,6 +4710,16 @@ export interface StudyOrderEvent {
   created_at: string;
 }
 
+export type StudyOrderImageSide = 'front' | 'back';
+
+/** Frente o dorso de una orden cargada a mano (public.attachments). */
+export interface StudyOrderImage {
+  id: string;
+  side: StudyOrderImageSide;
+  file_name: string;
+  mime_type?: string | null;
+}
+
 export interface StudyOrder {
   id: string;
   order_number: string;
@@ -4749,6 +4759,10 @@ export interface StudyOrder {
   created_at: string;
   updated_at?: string | null;
   items: StudyOrderItem[];
+  /** La cargó el odontólogo para sí mismo: sin los requisitos de la orden que carga la clínica. */
+  created_by_doctor?: boolean | null;
+  /** Frente y dorso, si se adjuntaron. */
+  images?: StudyOrderImage[];
   appointments?: StudyOrderAppointment[];
   /** Ficha del paciente, cuando la orden ya está vinculada a una. */
   patient?: StudyOrderPatient | null;

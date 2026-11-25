@@ -75,3 +75,10 @@ Endpoints nuevos: `GET /study-orders/board`, `POST /study-orders/assign` y `GET 
 3. Publicar el frontend. Los tres pasos van juntos.
 
 Los flujos del agente de WhatsApp todavía usan el estado `submitted`: no activarlos hasta adaptarlos.
+
+### Orden manual con frente y dorso (C09.1a)
+
+- **Requisitos de la orden que carga la clínica:** paciente con ficha, sede y frente desde el borrador. Estudios y odontólogo pueden quedar para después; se exigen al confirmar (o se acepta confirmar sin odontólogo). No aplica a las órdenes de WhatsApp, importadas o cargadas por el odontólogo para sí mismo.
+- **Imágenes:** `attachments` con `source_name` `study_order_front` / `study_order_back` y `source_id` = la orden. Solo se cambian en Borrador; cada cambio deja un evento `updated` en la actividad. Generador: `scripts/n8n/generate-study-order-image-workflows.mjs`.
+- **Ficha del paciente:** pestaña Órdenes de estudio. Los borradores los ve quien tiene `STUDY_ORDERS_VIEW_ALL` o el odontólogo de la orden, y desde ahí se pueden editar.
+- **Despliegue, sin migración:** importar los nuevos `study-orders-image-upload`, `-image-delete` y `-image-file`, reimportar `study-orders-list`, `-board`, `-detail`, `-upsert` y `-submit`, y publicar el frontend.

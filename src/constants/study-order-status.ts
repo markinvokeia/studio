@@ -42,12 +42,12 @@ export function normalizeStudyOrderStatus(value: unknown): StudyOrderStatus {
 
 /**
  * Qué partes del módulo se muestran. C02.1 (25-nov-2026) entrega la ficha y los nueve estados con su
- * historial; lo demás está construido pero llega en otros cortes: para mostrarlo, poner `true`.
+ * historial; C09.1a (26-nov-2026), la orden manual con frente y dorso y su pestaña en la ficha del paciente; lo demás está construido pero llega en otros cortes: para mostrarlo, poner `true`.
  * El tipo es `boolean` a propósito: con literales, TypeScript marcaría código muerto.
  */
 export const STUDY_ORDERS_FEATURES: Record<
   | 'whatsapp' | 'importOrder' | 'review' | 'originals' | 'chatter' | 'assign' | 'acknowledge' | 'overdue'
-  | 'bookingLink' | 'sessions' | 'reschedule' | 'print' | 'patientPortal' | 'relatedTabs',
+  | 'bookingLink' | 'sessions' | 'reschedule' | 'print' | 'patientPortal' | 'patientTab' | 'doctorTab',
   boolean
 > = {
   /** Órdenes que entran por WhatsApp y filtro de origen. */
@@ -75,6 +75,8 @@ export const STUDY_ORDERS_FEATURES: Record<
   print: false,
   /** "Mis órdenes" en el portal del paciente. */
   patientPortal: false,
-  /** Pestaña de órdenes en las fichas de paciente y de doctor (C09.1a). */
-  relatedTabs: false,
+  /** Pestaña de órdenes en la ficha del paciente (C09.1a). */
+  patientTab: true,
+  /** Pestaña de órdenes en la ficha del doctor. */
+  doctorTab: false,
 };

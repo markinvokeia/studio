@@ -302,7 +302,7 @@ export default function DoctorsPage() {
   const { user: currentUser } = useAuth();
   // Con VIEW_ALL se ven las órdenes de cualquier doctor; con VIEW_MINE sólo las
   // propias, así que el tab aparece únicamente en la ficha de uno mismo.
-  const canViewDoctorStudyOrders = STUDY_ORDERS_FEATURES.relatedTabs && !!selectedUser && (
+  const canViewDoctorStudyOrders = STUDY_ORDERS_FEATURES.doctorTab && !!selectedUser && (
     hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL) ||
     (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(currentUser?.id) === String(selectedUser.id))
   );

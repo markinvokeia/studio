@@ -25,6 +25,7 @@ import { ReviewActionsProvider, ReviewLocateProvider, useOriginalFocus } from '.
 import { ReviewFieldEditor, type ReviewFieldEditorProps } from './review-field-editor';
 import { PATIENT_STEP, resolveReviewTarget, resolveReviewTargets } from './review-targets';
 import { StudyOrderChatter } from './study-order-chatter';
+import { StudyOrderImageFields, STUDY_ORDER_IMAGE_SIDES, type PendingOrderImages } from './study-order-images';
 import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
 import { useReviewItemActions } from './use-review-item-actions';
 import { StudyOrderSection } from './study-order-section';
@@ -40,9 +41,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { fetchBookingSedes, type BookingSede } from '@/services/patient-booking';
 import {
+    deleteStudyOrderImage,
     getStudyOrder,
     getStudyOrderFormOptions,
     submitStudyOrder,
+    uploadStudyOrderImage,
     upsertStudyOrder,
     whatsappIntakeFileLoader,
 } from '@/services/study-orders';
@@ -50,6 +53,8 @@ import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type {
     StudyOrderCatalogService,
     StudyOrderFormOptions,
+    StudyOrderImage,
+    StudyOrderImageSide,
     StudyOrderOption,
     StudyOrderReviewItem,
     StudyOrderSection as Section,
@@ -234,9 +239,26 @@ export function StudyOrderWizard({
         navigation: focusNavigation, focusNextPending,
     } = useOriginalFocus(reviewItems, openOriginals);
 
+    /** Frente y dorso: lo guardado y lo elegido sin guardar. */
+    const [images, setImages] = React.useState<StudyOrderImage[]>([]);
+    const [pendingImages, setPendingImages] = React.useState<PendingOrderImages>({});
+    const changeImage = React.useCallback((side: StudyOrderImageSide, value: File | 'remove' | undefined) => {
+        setPendingImages((prev) => ({ ...prev, [side]: value }));
+    }, []);
+    /**
+     * Orden creada cuyas imágenes no terminaron de subir: reintentar guarda sobre esta, sin
+     * duplicarla, y al cerrar se abre igual.
+     */
+    const [createdId, setCreatedId] = React.useState<string | null>(null);
+    /** Cargada por la clínica a mano: exige paciente con ficha, sede y frente; el resto, al confirmar. */
+    const [createdByDoctor, setCreatedByDoctor] = React.useState(false);
+    const isClinicOrder = canChooseDoctor && !sourceIntakeId && !createdByDoctor;
+
     const scrollRef = React.useRef<HTMLDivElement>(null);
     /** Bloqueo síncrono del guardado: el estado tarda un render y un doble clic duplicaría la orden. */
     const savingRef = React.useRef(false);
+    /** Se guardó algo y el formulario sigue abierto (falló una imagen): al cerrar, quien lo abrió recarga. */
+    const savedPartiallyRef = React.useRef(false);
 
     const resetForm = React.useCallback(() => {
         setAutoFilled({ document: false, phone: false, email: false });
@@ -248,6 +270,8 @@ export function StudyOrderWizard({
         setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
         setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); clearOriginalFocus();
         setReviewItems([]); setReplacesOrderNumber(null);
+        setCreatedByDoctor(false);
+        setImages([]); setPendingImages({}); setCreatedId(null); savedPartiallyRef.current = false;
     }, [clearOriginalFocus]);
 
     React.useEffect(() => {
@@ -299,6 +323,11 @@ export function StudyOrderWizard({
                         teeth: order.regions ?? {},
                     });
                     // Borrador que salió de una derivación de WhatsApp: los originales siguen a mano.
+                    setImages(order.images ?? []);
+                    setCreatedByDoctor(order.created_by_doctor === true);
+                    setDoctorId(order.doctor_id ?? '');
+                    setDoctorName(order.doctor_name ?? '');
+                    setWithoutDoctor(!order.doctor_id && !!order.referring_doctor_name);
                     setReferringDoctorName(order.referring_doctor_name ?? '');
                     setSourceIntakeId(order.source_intake_id ?? '');
                     setReviewItems(order.review_items ?? []);
@@ -514,7 +543,7 @@ export function StudyOrderWizard({
         }));
 
         return {
-            id: orderId ?? undefined,
+            id: orderId ?? createdId ?? undefined,
             patient_id: patientId || null,
             patient_name: patientName.trim(),
             patient_document: patientDocument.trim(),
@@ -527,31 +556,40 @@ export function StudyOrderWizard({
             clinical_notes: clinicalNotes.trim(),
             preferred_sede_id: sedeId || null,
             items,
-            // Doctor derivador: solo al crear. Al editar un borrador el backend conserva el suyo.
-            ...(isCreating && canChooseDoctor
-                ? (withoutDoctor ? { without_doctor: true } : { doctor_id: doctorId })
+            // Doctor derivador: se puede dejar para después. Sin él se manda explícito, para que la
+            // orden no quede a nombre de quien la carga. Los borradores de WhatsApp o importados
+            // conservan el suyo.
+            ...(isClinicOrder
+                ? (doctorId ? { doctor_id: doctorId } : { without_doctor: true })
                 : {}),
             ...(referringDoctorName.trim() ? { referring_doctor_name: referringDoctorName.trim() } : {}),
         };
-    }, [orderId, patientId, patientName, patientDocument, patientEmail, patientPhone,
+    }, [orderId, createdId, patientId, patientName, patientDocument, patientEmail, patientPhone,
         selection, texts, deliveryMethods, clinicalNotes, sedeId,
-        isCreating, canChooseDoctor, withoutDoctor, doctorId, referringDoctorName]);
+        isClinicOrder, doctorId, referringDoctorName]);
 
     const handleSave = React.useCallback(async (submitAfterSave: boolean) => {
         if (savingRef.current) return;
         setError(null);
-        if (!patientName.trim()) {
+        if (!isClinicOrder && !patientName.trim()) {
             setError(t('validation.patientNameRequired'));
             goTo(0);
             return;
         }
-        // Sin esto la orden quedaría a nombre de quien la carga, como si fuera el derivador.
-        if (isCreating && canChooseDoctor && !withoutDoctor && !doctorId) {
-            setError(t('validation.doctorRequired'));
-            goTo(0);
-            return;
+        if (isClinicOrder) {
+            const fail = (key: 'patientRequired' | 'sedeRequired' | 'frontRequired' | 'doctorRequired') => {
+                setError(t(`validation.${key}`));
+                goTo(0);
+            };
+            if (!patientId) return fail('patientRequired');
+            if (!sedeId) return fail('sedeRequired');
+            const hasFront = pendingImages.front instanceof File || images.some((image) => image.side === 'front');
+            if (!hasFront) return fail('frontRequired');
+            // El odontólogo se puede dejar para después, pero no más allá de confirmar.
+            if (submitAfterSave && !doctorId && !withoutDoctor && !referringDoctorName.trim()) return fail('doctorRequired');
         }
-        if (totalSelected === 0) {
+        // El borrador de la clínica se guarda sin estudios; confirmarlo los exige.
+        if (totalSelected === 0 && (!isClinicOrder || submitAfterSave)) {
             setError(t('validation.itemsRequired'));
             return;
         }
@@ -560,10 +598,31 @@ export function StudyOrderWizard({
         setIsSaving(true);
         try {
             const saved = await upsertStudyOrder(buildPayload());
+            if (isCreating) setCreatedId(saved.id);
+            savedPartiallyRef.current = true;
+
+            // Las imágenes van después de la orden (necesitan su id). Si una falla, la orden ya está
+            // guardada: se avisa y guardar de nuevo reintenta solo lo que falta.
+            for (const side of STUDY_ORDER_IMAGE_SIDES) {
+                const change = pendingImages[side];
+                if (!change) continue;
+                try {
+                    setImages(change === 'remove'
+                        ? await deleteStudyOrderImage(saved.id, side)
+                        : await uploadStudyOrderImage(saved.id, side, change));
+                    changeImage(side, undefined);
+                } catch (err) {
+                    const detail = err instanceof Error ? err.message : '';
+                    setError([t('images.saveFailed', { side: t(`images.${side}`) }), detail].filter(Boolean).join(' '));
+                    goTo(0);
+                    return;
+                }
+            }
+
             if (submitAfterSave) {
                 // Guardar primero y enviar después: el envío nunca se hace sobre
                 // una versión vieja de lo que el doctor tiene en pantalla.
-                const submitted = await submitStudyOrder(saved.id);
+                const submitted = await submitStudyOrder(saved.id, { withoutDoctor: isClinicOrder && withoutDoctor });
                 const moved = Number(submitted.moved_appointments ?? 0);
                 const extra = [
                     submitted.resolved_handoff ? t('toast.handoffResolved') : '',
@@ -582,6 +641,7 @@ export function StudyOrderWizard({
                 });
             }
             onSaved?.(isCreating ? { id: saved.id, patientName: patientName.trim() } : undefined);
+            savedPartiallyRef.current = false;
             onOpenChange(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : t('toast.genericError'));
@@ -589,8 +649,16 @@ export function StudyOrderWizard({
             savingRef.current = false;
             setIsSaving(false);
         }
-    }, [patientName, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo,
-        isCreating, canChooseDoctor, withoutDoctor, doctorId]);
+    }, [patientName, patientId, sedeId, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo,
+        isCreating, isClinicOrder, withoutDoctor, doctorId, referringDoctorName, images, pendingImages, changeImage]);
+
+    /** Mientras guarda no se cierra. Si la orden quedó creada sin todas sus imágenes, se abre igual. */
+    const handleOpenChange = React.useCallback((next: boolean) => {
+        if (!next && savingRef.current) return;
+        if (!next && createdId) onSaved?.({ id: createdId, patientName: patientName.trim() });
+        else if (!next && orderId && savedPartiallyRef.current) onSaved?.();
+        onOpenChange(next);
+    }, [createdId, orderId, onSaved, onOpenChange, patientName]);
 
     /** Puntos pendientes de un paso, arriba de su contenido, para marcarlos ahí mismo. */
     const renderStepReview = (stepKey: string) => {
@@ -763,7 +831,7 @@ export function StudyOrderWizard({
         <ReviewActionsProvider value={orderId ? reviewActions : null}>
         <ResizableSheet
             open={open}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             defaultWidth={980}
             minWidth={560}
             maxWidth={1400}
@@ -784,7 +852,8 @@ export function StudyOrderWizard({
                         <SheetDescription className="truncate text-sm text-muted-foreground">
                             {totalSelected > 0
                                 ? t('form.selectedCount', { count: totalSelected })
-                                : t('form.noServicesSelected')}
+                                : isClinicOrder && isCreating ? t('images.formHint') : t('form.noServicesSelected')
+}
                         </SheetDescription>
                     </div>
                     {orderId && chatterEnabled && (
@@ -1009,14 +1078,14 @@ export function StudyOrderWizard({
                             )}
                             {renderStepReview(PATIENT_STEP)}
 
-                            {isCreating && canChooseDoctor && (
+                            {isClinicOrder && (
                                 <div className="space-y-2">
                                     <Label className="text-sm font-semibold">{t('form.referringDoctor')}</Label>
                                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                                         <DoctorSelector
                                             value={doctorId}
                                             selectedDoctorName={doctorName}
-                                            disabled={withoutDoctor}
+                                                disabled={withoutDoctor}
                                             className="w-full sm:w-80"
                                             placeholder={t('form.doctorSearch')}
                                             triggerText={t('form.doctorPick')}
@@ -1063,6 +1132,7 @@ export function StudyOrderWizard({
                                 <div className="space-y-1.5 sm:col-span-2">
                                     <Label className="flex items-center gap-1.5">
                                         {t('form.patientName')}
+                                        {isClinicOrder && <span className="text-destructive" aria-hidden="true">*</span>}
                                         <ReviewFlag items={reviewTargets.patientFields.get('name')} />
                                     </Label>
                                     <UserSelector
@@ -1080,24 +1150,27 @@ export function StudyOrderWizard({
                                         {t('form.patientDocument')}
                                         <ReviewFlag items={reviewTargets.patientFields.get('document')} />
                                     </Label>
-                                    <Input id="so-doc" value={patientDocument} onChange={(e) => { setPatientDocument(e.target.value); markManual('document'); }} />
+                                    <Input id="so-doc" className="h-10" value={patientDocument} onChange={(e) => { setPatientDocument(e.target.value); markManual('document'); }} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="so-phone" className="flex items-center gap-1.5">
                                         {t('form.patientPhone')}
                                         <ReviewFlag items={reviewTargets.patientFields.get('phone')} />
                                     </Label>
-                                    <Input id="so-phone" value={patientPhone} onChange={(e) => { setPatientPhone(e.target.value); markManual('phone'); }} />
+                                    <Input id="so-phone" className="h-10" value={patientPhone} onChange={(e) => { setPatientPhone(e.target.value); markManual('phone'); }} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="so-email">{t('form.patientEmail')}</Label>
-                                    <Input id="so-email" type="email" value={patientEmail} onChange={(e) => { setPatientEmail(e.target.value); markManual('email'); }} />
+                                    <Label htmlFor="so-email" className="flex items-center gap-1.5">{t('form.patientEmail')}</Label>
+                                    <Input id="so-email" className="h-10" type="email" value={patientEmail} onChange={(e) => { setPatientEmail(e.target.value); markManual('email'); }} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>{t('form.preferredSede')}</Label>
+                                    <Label className="flex items-center gap-1.5">
+                                        {t('form.preferredSede')}
+                                        {isClinicOrder && <span className="text-destructive" aria-hidden="true">*</span>}
+                                    </Label>
                                     <Select value={sedeId} onValueChange={setSedeId}>
                                         <SelectTrigger>
-                                            <SelectValue placeholder={t('form.preferredSedePlaceholder')} />
+                                            <SelectValue placeholder={t(isClinicOrder ? 'form.sedePick' : 'form.preferredSedePlaceholder')} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {sedes.map((sede) => (
@@ -1107,6 +1180,17 @@ export function StudyOrderWizard({
                                     </Select>
                                 </div>
                             </div>
+
+                            {isClinicOrder && (
+                                <StudyOrderImageFields
+                                    orderId={orderId ?? createdId ?? ''}
+                                    images={images}
+                                    pending={pendingImages}
+                                    onChange={changeImage}
+                                    frontRequired
+                                    disabled={isSaving}
+                                />
+                            )}
 
                             {(options?.delivery.length ?? 0) > 0 && (
                                 <div className="space-y-2">
@@ -1260,6 +1344,13 @@ export function StudyOrderWizard({
                             </>
                         ) : (
                             <>
+                                {/* El borrador de la clínica se puede guardar desde el primer paso, sin estudios. */}
+                                {isFirst && isClinicOrder && !isLoading && steps.length > 2 && (
+                                    <Button variant="outline" className="px-3 sm:px-4" onClick={() => void handleSave(false)} loading={isSaving}>
+                                        <span className="sm:hidden">{t('form.saveDraftShort')}</span>
+                                        <span className="hidden sm:inline">{t('form.saveDraft')}</span>
+                                    </Button>
+                                )}
                                 <Button
                                     variant="ghost"
                                     className="px-3 sm:px-4"

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { StudyOrderDetailPanel } from '@/components/study-orders/study-order-detail-panel';
 import { StudyOrderStatusBadge } from '@/components/study-orders/study-order-status-badge';
+import { StudyOrderWizard } from '@/components/study-orders/study-order-wizard';
 
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -39,7 +40,8 @@ export interface RelatedStudyOrdersProps {
  *    `scope=patient`; sin ese permiso cae a las propias.
  *  - Doctor: con VIEW_ALL, las de la clínica; con VIEW_MINE, las propias.
  *
- * Es de consulta: la orden se abre acá mismo, en sólo lectura. Para operarla
+ * Es de consulta: la orden se abre acá mismo, en sólo lectura; en la ficha del paciente, un borrador
+ * se puede editar. Para operarla
  * (agendar, anular, revisar…) hay un atajo a la bandeja, que sólo aparece
  * cuando quien mira puede operarla allá.
  */
@@ -61,13 +63,17 @@ export function RelatedStudyOrders({ patientId, doctorId }: RelatedStudyOrdersPr
     const [total, setTotal] = React.useState(0);
     const [isLoading, setIsLoading] = React.useState(true);
     const [openOrder, setOpenOrder] = React.useState<StudyOrderListItem | null>(null);
+    /** Borrador que se edita desde la ficha del paciente. */
+    const [editing, setEditing] = React.useState<{ id: string; order_number: string } | null>(null);
+    const [isEditOpen, setIsEditOpen] = React.useState(false);
+    const [refreshKey, setRefreshKey] = React.useState(0);
     const requestRef = React.useRef(0);
 
-    const load = React.useCallback(async () => {
+    const load = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
         // Sólo la última respuesta escribe: cambiar de paciente rápido no puede
         // dejar en pantalla las órdenes del anterior.
         const requestId = ++requestRef.current;
-        setIsLoading(true);
+        if (!silent) setIsLoading(true);
         const result = await getStudyOrders({ scope, patientId, doctorId, limit: LIMIT, sort: 'submitted_at:desc' });
         if (requestId !== requestRef.current) return;
         setOrders(result.items);
@@ -129,10 +135,27 @@ export function RelatedStudyOrders({ patientId, doctorId }: RelatedStudyOrdersPr
                         orderId={openOrder.id}
                         scope={canViewAll ? 'clinic' : 'mine'}
                         readOnly
+                        refreshKey={refreshKey}
+                        onEdit={patientId && (canViewAll || String(openOrder.doctor_id) === String(user?.id))
+                            ? (order) => {
+                                setEditing({ id: order.id, order_number: order.order_number });
+                                setIsEditOpen(true);
+                            }
+                            : undefined}
                         onClose={() => setOpenOrder(null)}
                         onPrint={(order) => void handlePrint(order.id)}
                     />
                 </div>
+                <StudyOrderWizard
+                    open={isEditOpen}
+                    onOpenChange={setIsEditOpen}
+                    orderId={editing?.id}
+                    orderNumber={editing?.order_number}
+                    onSaved={() => {
+                        setRefreshKey((k) => k + 1);
+                        void load({ silent: true });
+                    }}
+                />
             </div>
         );
     }

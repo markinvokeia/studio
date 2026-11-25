@@ -171,7 +171,7 @@ export function PatientDetailSheet({
   const showFinancialTab = !isDoctorMode && canViewFinancialTab;
   // Órdenes de estudio: mismo criterio que la ficha de Pacientes — acceso al paciente.
   // También en modo doctor: es donde el médico consulta qué estudios tiene su paciente.
-  const showStudyOrdersTab = STUDY_ORDERS_FEATURES.relatedTabs && hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
+  const showStudyOrdersTab = STUDY_ORDERS_FEATURES.patientTab && hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
   // In doctor mode the workspace owns write access (it gates by appointment
   // date), so the permission check only applies to the default/quick-view mode.
   const isReadOnly = readOnly || (!isDoctorMode && !canWriteClinical);

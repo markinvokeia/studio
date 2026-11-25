@@ -26,7 +26,7 @@ import {
     ACKNOWLEDGE_SQL, ASSIGN_SQL, ASSIGNEES_SQL, BOARD_COLUMNS, BOARD_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL, NOTIFY_ASSIGNEE_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
-    RECOMPUTE_SQL, RESCHEDULE_SQL, STATUS_SQL, SUBMIT_SQL, UPSERT_SQL,
+    RECOMPUTE_SQL, RESCHEDULE_SQL, STATUS_SQL, SUBMIT_CLINIC_SQL, UPSERT_SQL,
     RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
     CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL,
 } from './study-orders-sql.mjs';
@@ -305,7 +305,7 @@ return [{ json: { __data: rows[0].data } }];`),
 workflows.push({
     file: 'study-orders-upsert.json',
     name: 'Study Orders - Upsert',
-    sticky: `## POST /study-orders/upsert\n\nCrea (sin \`id\`) o actualiza (con \`id\`) una orden **en borrador**.\n\n**Body**\n\`\`\`json\n{ "id": "uuid opcional", "doctor_id": "sólo con CREATE_FOR_DOCTOR",\n  "patient_id": null, "patient_name": "Juan Pérez", "patient_document": "4123456",\n  "patient_email": "", "patient_phone": "099...",\n  "regions": { "RX-INTRA": ["16","17"] },\n  "section_modifiers": { "CONEBEAM": { "indicacion_clinica": ["est-tipo-implante"] } },\n  "texts": { "aclaracion": "..." }, "delivery_methods": ["impreso"],\n  "clinical_notes": "", "preferred_sede_id": "3",\n  "items": [{ "service_id": "48", "service_name": "Periapical",\n              "section_code": "RX-INTRA", "sort_order": 0, "modifiers": {} }] }\n\`\`\`\n\nLas líneas se **reemplazan enteras** en cada guardado: eso hace idempotente al upsert.\n\n**409** si la orden ya no está en borrador o no le pertenece al sujeto.`,
+    sticky: `## POST /study-orders/upsert\n\nCrea (sin \`id\`) o actualiza (con \`id\`) una orden **en borrador**.\n\n**Body**\n\`\`\`json\n{ "id": "uuid opcional", "doctor_id": "sólo con CREATE_FOR_DOCTOR",\n  "patient_id": null, "patient_name": "Juan Pérez", "patient_document": "4123456",\n  "patient_email": "", "patient_phone": "099...",\n  "regions": { "RX-INTRA": ["16","17"] },\n  "section_modifiers": { "CONEBEAM": { "indicacion_clinica": ["est-tipo-implante"] } },\n  "texts": { "aclaracion": "..." }, "delivery_methods": ["impreso"],\n  "clinical_notes": "", "preferred_sede_id": "3",\n  "items": [{ "service_id": "48", "service_name": "Periapical",\n              "section_code": "RX-INTRA", "sort_order": 0, "modifiers": {} }] }\n\`\`\`\n\nLas líneas se **reemplazan enteras** en cada guardado: eso hace idempotente al upsert. \`items\` puede ir vacío: se exige al confirmar.\n\n**400** si la clínica carga la orden sin paciente vinculado o sin sede.\n\n**409** si la orden ya no está en borrador o no le pertenece al sujeto.`,
     method: 'POST',
     path: 'study-orders/upsert',
     id: 'upsert',
@@ -317,10 +317,8 @@ const b = $json.body || {};
 const name = (b.patient_name || '').toString().trim();
 if (!name) return [{ json: { __error: true, __code: 400, __message: 'patient_name es requerido' } }];
 
+// Sin estudios se puede guardar el borrador: al confirmar hace falta al menos uno.
 const items = Array.isArray(b.items) ? b.items : [];
-if (items.length === 0) {
-  return [{ json: { __error: true, __code: 400, __message: 'La orden necesita al menos un estudio' } }];
-}
 for (const it of items) {
   if (!it.service_id || !it.section_code) {
     return [{ json: { __error: true, __code: 400, __message: 'Cada línea necesita service_id y section_code' } }];
@@ -368,6 +366,8 @@ return [{ json: { user_id: String(userId), payload: JSON.stringify(payload) } }]
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
 const id = rows[0]?.id;
+const missing = { patient: 'Elegí el paciente de la orden', sede: 'Elegí la sede de la orden' }[rows[0]?.missing];
+if (missing) return [{ json: { __error: true, __code: 400, __message: missing } }];
 if (!id) {
   return [{ json: { __error: true, __code: 409,
     __message: 'La orden no se puede modificar: ya fue enviada o no te pertenece' } }];
@@ -380,7 +380,7 @@ return [{ json: { __data: { id }, __changes: Array.isArray(rows[0].changes) ? ro
 workflows.push({
     file: 'study-orders-submit.json',
     name: 'Study Orders - Submit',
-    sticky: `## POST /study-orders/submit\n\nConfirma la orden (Borrador → Confirmada). A partir de acá es **inmutable**. El renglón del historial (quién y cuándo) lo escribe la base.\n\n**Body:** \`{ "id": "uuid" }\`\n\n**409** si ya fue enviada, si no le pertenece al sujeto, si no tiene ninguna línea o si le quedan puntos a revisar bloqueantes (borrador creado al derivar desde WhatsApp).\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
+    sticky: `## POST /study-orders/submit\n\nConfirma la orden (Borrador → Confirmada). A partir de acá es **inmutable**. El renglón del historial (quién y cuándo) lo escribe la base.\n\n**Body:** \`{ "id": "uuid", "without_doctor": false }\` (\`without_doctor\` = confirmar sin odontólogo).\n\n**409** si a una orden cargada por la clínica le falta paciente, sede, frente u odontólogo, si ya fue enviada, si no le pertenece al sujeto, si no tiene ninguna línea o si le quedan puntos a revisar bloqueantes (borrador creado al derivar desde WhatsApp).\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
     method: 'POST',
     path: 'study-orders/submit',
     id: 'submit',
@@ -389,9 +389,10 @@ const userId = $json.jwtPayload?.userId;
 if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
 const id = ($json.body?.id || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
-return [{ json: { user_id: String(userId), id } }];`.trim(),
-    sql: SUBMIT_SQL,
-    replacement: '={{ [ $json.user_id, $json.id ] }}',
+const withoutDoctor = $json.body?.without_doctor;
+return [{ json: { user_id: String(userId), id, without_doctor: String(withoutDoctor === true || withoutDoctor === 'true') } }];`.trim(),
+    sql: SUBMIT_CLINIC_SQL,
+    replacement: '={{ [ $json.user_id, $json.id, $json.without_doctor ] }}',
     notify: {
         sql: NOTIFY_RECEPTION_SQL,
         to: 'recepción',
@@ -406,6 +407,15 @@ if (!rows.length || !rows[0].id) {
       __message: pendingReview === 1
         ? 'La orden no se puede confirmar: queda 1 punto sin revisar contra el original'
         : 'La orden no se puede confirmar: quedan ' + pendingReview + ' puntos sin revisar contra el original' } }];
+  }
+  const missing = {
+    patient: 'falta elegir el paciente',
+    sede: 'falta elegir la sede',
+    front: 'falta adjuntar el frente de la orden',
+    doctor: 'falta el odontólogo (o marcar que no tiene)',
+  }[rows[0]?.missing];
+  if (missing) {
+    return [{ json: { __error: true, __code: 409, __message: 'La orden no se puede confirmar: ' + missing } }];
   }
   return [{ json: { __error: true, __code: 409,
     __message: 'La orden no se puede confirmar: ya no es un borrador, no te pertenece o no tiene estudios' } }];

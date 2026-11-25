@@ -43,7 +43,7 @@ export function DoctorDetailSheet({
   const { hasPermission } = usePermissions();
   // Mismo criterio que Config > Doctores: con VIEW_ALL las de cualquier doctor;
   // con VIEW_MINE sólo en la ficha propia (en la de otro saldría vacío).
-  const canViewStudyOrders = STUDY_ORDERS_FEATURES.relatedTabs && (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL)
+  const canViewStudyOrders = STUDY_ORDERS_FEATURES.doctorTab && (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL)
     || (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(user?.id) === String(doctorId)));
 
   const tabs: VerticalTab[] = [

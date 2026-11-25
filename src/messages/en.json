@@ -11744,16 +11744,18 @@
       "doctorSearch": "Search doctor…",
       "doctorPick": "Choose doctor",
       "withoutDoctor": "No doctor in the system",
-      "referringDoctorHelp": "The order is assigned to this doctor: they see it in \"My orders\" and receive its notifications. If whoever signed it does not use the system, check \"No doctor in the system\".",
+      "referringDoctorHelp": "The order is assigned to this doctor: they see it in \"My orders\" and receive its notifications. You can leave it for later: it is required to confirm. If whoever signed it does not use the system, check \"No doctor in the system\".",
       "referringDoctorName": "Doctor on the order",
-      "referringDoctorNameHelp": "As written on the paper. Reference only: it is not linked to any user."
+      "referringDoctorNameHelp": "As written on the paper. Reference only: it is not linked to any user.",
+      "sedePick": "Choose location"
     },
     "submitDialog": {
       "title": "Confirm the order?",
       "description": "It becomes confirmed and the clinic is notified immediately. You will not be able to edit it afterwards.",
       "confirm": "Confirm",
       "cancel": "Back",
-      "replaces": "Also, order {number} will be cancelled and its appointments move to this one."
+      "replaces": "Also, order {number} will be cancelled and its appointments move to this one.",
+      "withoutDoctor": "The order has no dentist. Confirm without a dentist."
     },
     "deleteDialog": {
       "title": "Delete the draft?",
@@ -11814,7 +11816,10 @@
       "patientNameRequired": "Patient name is required",
       "itemsRequired": "Select at least one study",
       "reasonRequired": "A reason is required",
-      "doctorRequired": "Choose the referring doctor or check \"No doctor in the system\"."
+      "doctorRequired": "Choose the referring doctor or check \"No doctor in the system\".",
+      "patientRequired": "Choose the patient from the list.",
+      "sedeRequired": "Choose the location.",
+      "frontRequired": "Attach the front of the order."
     },
     "noAccess": "You do not have permission to view study orders.",
     "wizard": {
@@ -11914,7 +11919,10 @@
         "delivery_methods": "Delivery",
         "clinical_notes": "Clinical notes",
         "services_added": "Studies added",
-        "services_removed": "Studies removed"
+        "services_removed": "Studies removed",
+        "doctor": "Dentist",
+        "order_front": "Front of the order",
+        "order_back": "Back of the order"
       },
       "emptyValue": "empty",
       "automatic": "automatic",
@@ -12260,6 +12268,23 @@
         "confirm": "Change status",
         "cancel": "Back"
       }
+    },
+    "images": {
+      "title": "Paper order",
+      "front": "Front",
+      "back": "Back",
+      "optional": "optional",
+      "attach": "Attach image",
+      "attachSide": "Attach {side}",
+      "takePhoto": "Take photo",
+      "replace": "Replace",
+      "remove": "Remove",
+      "view": "View {side}",
+      "help": "JPG, PNG, WEBP or PDF up to 10 MB.",
+      "invalidType": "Unsupported format. Use JPG, PNG, WEBP or PDF.",
+      "invalidSize": "The file is empty or larger than 10 MB.",
+      "saveFailed": "The order was saved, but this image could not be saved: {side}. Save again to retry.",
+      "formHint": "Choose the patient and location, and attach the front. Studies can be added later."
     }
   },
   "StudyOrderBooking": {

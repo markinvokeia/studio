@@ -16,6 +16,7 @@ import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { isStudyOrderAssignable } from './study-order-assign-dialog';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderChatter } from './study-order-chatter';
+import { StudyOrderImages } from './study-order-images';
 import { StudyOrderPeople } from './study-order-people';
 import { StudyOrderReferralLine } from './study-order-referral-line';
 import { countPendingBlocking } from './study-order-review-list';
@@ -36,7 +37,7 @@ import { STUDY_ORDERS_FEATURES, isStudyOrderCancellable, isStudyOrderOpen } from
 import { useStudyOrderChatterMode } from '@/hooks/use-study-order-chatter-source';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn, formatDateTime, formatDisplayDate } from '@/lib/utils';
-import type { StudyOrder, StudyOrderFormOptions } from '@/lib/types';
+import type { StudyOrder, StudyOrderFormOptions, StudyOrderImage } from '@/lib/types';
 import { getStudyOrder, getStudyOrderFormOptions } from '@/services/study-orders';
 
 /**
@@ -97,6 +98,9 @@ export interface StudyOrderDetailPanelProps {
     /** Texto del botón "Volver" a pantalla entera ("Volver al tablero", "Volver a la lista"). */
     backLabel?: string;
 }
+
+/** Estable: las miniaturas se recargan si cambia la lista. */
+const NO_IMAGES: StudyOrderImage[] = [];
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
     if (value === null || value === undefined || value === '') return null;
@@ -324,9 +328,9 @@ export function StudyOrderDetailPanel({
             }
         }
 
-        // En consulta sólo queda imprimir: el link y registrar sesión no dependen de
-        // un callback, así que hay que sacarlos acá.
-        return readOnly ? actions.filter((action) => action.key === 'print') : actions;
+        // En consulta quedan imprimir y, si quien lo muestra lo ofrece, editar el borrador: el link y
+        // registrar sesión no dependen de un callback, así que hay que sacarlos acá.
+        return readOnly ? actions.filter((action) => action.key === 'print' || action.key === 'edit') : actions;
     }, [order, scope, hasPermission, t, onEdit, onDelete, onAcknowledge, onReschedule, onCancel, onPrint, onAssign, readOnly]);
 
     if (isLoading) {
@@ -511,6 +515,7 @@ export function StudyOrderDetailPanel({
                             )}
                             <StudyOrderStepper order={order} />
                             <OrderTab order={order} />
+                            <StudyOrderImages orderId={order.id} images={order.images ?? NO_IMAGES} />
                         </>
                     )}
 

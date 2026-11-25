@@ -199,11 +199,11 @@ base AS (
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
             THEN true
             -- Ficha del paciente: quien puede abrirla ve todas sus órdenes, no sólo las que derivó.
-            -- Los borradores ajenos siguen fuera: todavía no son una orden.
+            -- Los borradores los ve quien tiene la bandeja (para reabrirlos desde la ficha) o su doctor.
             WHEN a.scope = 'patient' AND a.patient_id IS NOT NULL
                  AND ((SELECT can_view_patient FROM perms) OR (SELECT can_view_all FROM perms))
             THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR so.source_intake_id IS NOT NULL
-                  OR b.doctor_id = $1::uuid)
+                  OR b.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
             ELSE b.doctor_id = $1::uuid
        END${withBucket ? BUCKET_FILTER : ''}
        AND (a.search = '' OR lower(b.patient_name) LIKE lower(a.search) || '%'
@@ -320,6 +320,24 @@ SELECT coalesce(json_agg(json_build_object(
      WHERE (SELECT col FROM args) = '' OR s.status = (SELECT col FROM args)
   ) c;`;
 
+/**
+ * Imágenes de la orden cargada a mano: `attachments` con source_name study_order_front o
+ * study_order_back y source_id = la orden. De cada lado vale la última (al reemplazar, la anterior
+ * se borra después de guardar la nueva).
+ */
+const orderImagesJson = (orderExpr) => `coalesce((
+             SELECT json_agg(json_build_object(
+                      'id', im.id::text, 'side', im.side, 'file_name', im.file_name,
+                      'mime_type', im.mime_type) ORDER BY im.side DESC)
+               FROM (SELECT DISTINCT ON (at.source_name)
+                            at.id, replace(at.source_name, 'study_order_', '') AS side,
+                            at.file_name, at.mime_type
+                       FROM public.attachments at
+                      WHERE at.source_name IN ('study_order_front', 'study_order_back')
+                        AND at.source_id = ${orderExpr}::text
+                      ORDER BY at.source_name, at.id DESC) im
+           ), '[]'::json)`;
+
 export const DETAIL_SQL = `
 -- $1 userId (del token)  $2 id de la orden
 WITH ${PERMS_WITH_PATIENT_CTE}
@@ -394,6 +412,10 @@ SELECT row_to_json(o) AS data
                     ) ORDER BY i.sort_order, i.service_name)
                FROM public.study_order_items i WHERE i.study_order_id = so.id
            ), '[]'::json) AS items,
+           -- La cargó el odontólogo para sí mismo: no lleva los requisitos de la orden de la clínica.
+           (so.source = 'portal' AND so.created_by = so.doctor_id) AS created_by_doctor,
+           -- Frente y dorso de la orden cargada a mano (C09.1a).
+           ${orderImagesJson('so.id')} AS images,
            -- Lo que el agente de WhatsApp no tuvo claro al leer la orden, con su revisión
            -- (study_orders.review_items, migración 126).
            coalesce(so.review_items, '[]'::jsonb) AS review_items,
@@ -556,7 +578,7 @@ vals AS (
 -- Foto previa de lo que se registra en el historial del chatter ("Teléfono: 099… → 098…"). El
 -- CTE ve la fila como estaba antes de la sentencia, igual que \`prev\` en ASSIGN_SQL.
 before AS (
-    SELECT so.patient_name, so.patient_document, so.patient_phone, so.patient_email,
+    SELECT so.doctor_id, so.patient_name, so.patient_document, so.patient_phone, so.patient_email,
            so.preferred_sede_id, so.clinical_notes, so.referring_doctor_name, so.delivery_methods,
            coalesce((SELECT array_agg(i.service_name::text ORDER BY i.service_name)
                        FROM public.study_order_items i
@@ -564,6 +586,21 @@ before AS (
       FROM public.study_orders so, vals v
      WHERE v.id IS NOT NULL
        AND so.id = v.id::uuid
+),
+-- Orden que carga la clínica a mano: paciente con ficha y sede son obligatorios desde el borrador.
+-- Las del agente y las importadas (source_intake_id) no: se completan al revisarlas.
+missing AS (
+    SELECT CASE WHEN v.patient_id IS NULL        THEN 'patient'
+                WHEN v.preferred_sede_id IS NULL THEN 'sede' END AS field
+      FROM vals v
+     WHERE (SELECT can_create_for_doctor FROM perms)
+       AND v.source = 'portal'
+       AND v.source_intake_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM public.study_orders so
+                        WHERE v.id IS NOT NULL AND so.id = v.id::uuid
+                          AND (so.source <> 'portal' OR so.source_intake_id IS NOT NULL
+                               -- La cargó el odontólogo para sí mismo.
+                               OR so.created_by = so.doctor_id))
 ),
 updated AS (
     UPDATE public.study_orders so
@@ -579,12 +616,22 @@ updated AS (
            clinical_notes    = v.clinical_notes,
            preferred_sede_id = v.preferred_sede_id::int,
            referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name),
+           -- El odontólogo puede quedar para después: se cambia mientras sea borrador, si el body lo
+           -- trae y con CREATE_FOR_DOCTOR.
+           doctor_id         = CASE
+                                 WHEN (SELECT can_create_for_doctor FROM perms)
+                                  AND (coalesce((SELECT body ->> 'doctor_id' FROM p), '') <> ''
+                                       OR coalesce((SELECT body ->> 'without_doctor' FROM p), '') IN ('true', 't', '1'))
+                                 THEN (SELECT doctor_id FROM resolved)
+                                 ELSE so.doctor_id
+                               END,
            updated_by        = $1::uuid
       FROM vals v
      WHERE v.id IS NOT NULL
        AND so.id = v.id::uuid
        AND so.status = 'draft'
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       AND NOT EXISTS (SELECT 1 FROM missing WHERE field IS NOT NULL)
     RETURNING so.id
 ),
 inserted AS (
@@ -600,6 +647,7 @@ inserted AS (
            v.source, v.referring_doctor_name, v.source_intake_id::uuid
       FROM vals v
      WHERE v.id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM missing WHERE field IS NOT NULL)
     RETURNING id
 ),
 target AS (
@@ -654,6 +702,15 @@ tracked AS (
                    (SELECT string_agg(coalesce(o.label, d.code), ', ' ORDER BY d.code)
                       FROM jsonb_array_elements_text(v.delivery_methods) AS d(code)
                       LEFT JOIN public.study_order_options o ON o.option_kind = 'delivery' AND o.code = d.code)),
+               (11, 'doctor',
+                   (SELECT u.name::text FROM public.users u WHERE u.id = b.doctor_id),
+                   (SELECT u.name::text FROM public.users u WHERE u.id = CASE
+                                 WHEN (SELECT can_create_for_doctor FROM perms)
+                                  AND (coalesce((SELECT body ->> 'doctor_id' FROM p), '') <> ''
+                                       OR coalesce((SELECT body ->> 'without_doctor' FROM p), '') IN ('true', 't', '1'))
+                                 THEN (SELECT doctor_id FROM resolved)
+                                 ELSE b.doctor_id
+                               END)),
                (8, 'clinical_notes',        b.clinical_notes,              v.clinical_notes),
                (9, 'services_added', NULL::text,
                    (SELECT string_agg(n.name, ', ' ORDER BY n.name)
@@ -671,13 +728,38 @@ tracked AS (
        AND EXISTS (SELECT 1 FROM updated)
 )
 SELECT (SELECT id::text FROM target) AS id,
+       (SELECT field FROM missing)   AS missing,
        (SELECT count(*) FROM items)  AS items_written,
        coalesce((SELECT jsonb_agg(jsonb_build_object('field', t.field,
                                                      'old', left(t.old_value, 300),
                                                      'new', left(t.new_value, 300)) ORDER BY t.ord)
                    FROM tracked t), '[]'::jsonb) AS changes;`;
 
-export const SUBMIT_SQL = `
+/**
+ * Lo primero que le falta a una orden cargada a mano por la clínica para poder confirmarse. Quedan
+ * fuera las del agente, las importadas y las que el odontólogo cargó para sí mismo.
+ */
+const MISSING_TO_CONFIRM_CTE = `
+missing AS (
+    SELECT CASE
+             WHEN so.patient_id IS NULL        THEN 'patient'
+             WHEN so.preferred_sede_id IS NULL THEN 'sede'
+             WHEN NOT EXISTS (SELECT 1 FROM public.attachments at
+                               WHERE at.source_name = 'study_order_front' AND at.source_id = so.id::text)
+                                               THEN 'front'
+             WHEN so.doctor_id IS NULL
+              AND coalesce(trim(so.referring_doctor_name), '') = ''
+              AND $3::text IS DISTINCT FROM 'true' THEN 'doctor'
+           END AS field
+      FROM public.study_orders so
+     WHERE so.id = $2::uuid
+       AND so.status = 'draft'
+       AND so.source = 'portal'
+       AND so.source_intake_id IS NULL
+       AND so.created_by IS DISTINCT FROM so.doctor_id
+),`;
+
+const submitSql = ({ clinicRules }) => `
 -- $1 userId (token)  $2 id
 -- Sella el envío. El WHERE es el candado: una orden que ya salió de borrador,
 -- o que no es del sujeto, no actualiza nada y el flujo responde 409.
@@ -691,8 +773,11 @@ export const SUBMIT_SQL = `
 --
 -- Puntos a revisar BLOQUEANTES (el borrador que se crea al derivar): mientras quede alguno
 -- pendiente la orden no sale. Siempre devuelve una fila: con id nulo y pending_review > 0, el
--- flujo responde 409 diciendo cuántos faltan.
-WITH ${PERMS_CTE},
+-- flujo responde 409 diciendo cuántos faltan.${clinicRules ? `
+--
+-- $3 'true' = quien confirma acepta que la orden no tiene odontólogo.
+-- missing: lo que el borrador puede dejar para después pero la confirmación exige.` : ''}
+WITH ${PERMS_CTE},${clinicRules ? MISSING_TO_CONFIRM_CTE : ''}
 pending_review AS (
     SELECT 1 FROM public.study_orders so2, jsonb_array_elements(coalesce(so2.review_items, '[]'::jsonb)) r
      WHERE so2.id = $2::uuid
@@ -707,7 +792,8 @@ updated AS (
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
        AND EXISTS (SELECT 1 FROM public.study_order_items i
                     WHERE i.study_order_id = so.id AND i.is_cancelled = false)
-       AND NOT EXISTS (SELECT 1 FROM pending_review)
+       AND NOT EXISTS (SELECT 1 FROM pending_review)${clinicRules ? `
+       AND NOT EXISTS (SELECT 1 FROM missing WHERE field IS NOT NULL)` : ''}
     RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id
 ),
 intake AS (
@@ -760,10 +846,16 @@ SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitte
        (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,
        (SELECT count(*) FROM moved) AS moved_appointments,
        coalesce((SELECT status FROM synced), CASE WHEN u.id IS NOT NULL THEN 'confirmed' END) AS status,
-       (SELECT count(*) FROM pending_review) AS pending_review
+       (SELECT count(*) FROM pending_review) AS pending_review${clinicRules ? `,
+       (SELECT field FROM missing) AS missing` : ''}
   FROM (SELECT 1) one
   LEFT JOIN updated u ON true
   LEFT JOIN public.users d ON d.id = u.doctor_id;`;
+
+/** El agente de WhatsApp confirma con esta: sin los requisitos de la orden manual. */
+export const SUBMIT_SQL = submitSql({ clinicRules: false });
+/** POST /study-orders/submit. */
+export const SUBMIT_CLINIC_SQL = submitSql({ clinicRules: true });
 
 /**
  * Registra los puntos a revisar de una orden (lo que el agente de WhatsApp no tuvo claro al
@@ -2366,3 +2458,79 @@ SELECT coalesce(json_agg(json_build_object('id', u.id::text, 'name', u.name, 'em
  WHERE EXISTS (SELECT 1 FROM ord)
    AND NOT EXISTS (SELECT 1 FROM public.study_order_followers f
                     WHERE f.study_order_id = $2::uuid AND f.user_id = c.user_id);`;
+
+// ── Frente y dorso de la orden cargada a mano (generate-study-order-image-workflows.mjs) ──────────
+
+export const IMAGE_GATE_SQL = `
+-- $1 userId (token)  $2 id de la orden  $3 lado (front | back)
+-- La orden si se le pueden cambiar las imágenes (borrador y el mismo alcance que editarla), con las
+-- que ya tiene de ese lado.
+WITH ${PERMS_CTE}
+SELECT so.id::text AS order_id, so.order_number,
+       coalesce((SELECT json_agg(json_build_object('id', at.id::text, 'file_name', at.file_name) ORDER BY at.id DESC)
+                   FROM public.attachments at
+                  WHERE at.source_name = 'study_order_' || $3::text
+                    AND at.source_id = so.id::text), '[]'::json) AS previous
+  FROM public.study_orders so
+ WHERE so.id = $2::uuid
+   AND so.status = 'draft'
+   AND EXISTS (
+       SELECT 1
+         FROM public.user_roles ur
+         JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+         JOIN public.permissions p       ON p.id = rp.permission_id
+        WHERE ur.user_id = $1::uuid
+          AND ur.is_active IS NOT FALSE
+          AND p.code IN ('STUDY_ORDERS_CREATE', 'STUDY_ORDERS_UPDATE'))
+   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms));`;
+
+export const IMAGE_RESULT_SQL = `
+-- $1 userId  $2 id de la orden  $3 lado  $4 acción (upload | delete)  $5 imágenes previas (JSON)
+-- Subir: comprueba que la nueva quedó guardada (una que no estaba antes). Quitar: que ya no queda
+-- ninguna. Si se cumplió, deja el renglón en la actividad. Devuelve las imágenes como quedaron.
+WITH prev AS (
+    SELECT e ->> 'id' AS id, e ->> 'file_name' AS file_name, ord
+      FROM jsonb_array_elements($5::jsonb) WITH ORDINALITY AS x(e, ord)
+),
+now_there AS (
+    SELECT at.id, at.file_name
+      FROM public.attachments at
+     WHERE at.source_name = 'study_order_' || $3::text
+       AND at.source_id = $2::text
+),
+added AS (
+    SELECT n.id, n.file_name FROM now_there n
+     WHERE n.id::text NOT IN (SELECT id FROM prev)
+     ORDER BY n.id DESC LIMIT 1
+),
+outcome AS (
+    SELECT CASE WHEN $4::text = 'upload' THEN EXISTS (SELECT 1 FROM added)
+                ELSE NOT EXISTS (SELECT 1 FROM now_there) END AS ok
+),
+logged AS (
+    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)
+    SELECT ($2::text)::uuid, 'updated', $1::uuid, 'user',
+           jsonb_build_object('changes', jsonb_build_array(jsonb_build_object(
+               'field', 'order_' || $3::text,
+               'old', (SELECT file_name FROM prev ORDER BY ord LIMIT 1),
+               'new', (SELECT file_name FROM added))))
+      FROM outcome
+     WHERE ok AND ($4::text = 'upload' OR EXISTS (SELECT 1 FROM prev))
+    RETURNING 1
+)
+SELECT (SELECT ok FROM outcome) AS ok,
+       (SELECT count(*) FROM logged) AS logged,
+       ${orderImagesJson('$2')} AS images;`;
+
+export const IMAGE_FILE_SQL = `
+-- $1 userId (token)  $2 id de la orden  $3 id del adjunto
+-- El archivo tiene que ser de esa orden y quien lo pide poder abrirla (misma regla que DETAIL_SQL).
+WITH ${PERMS_WITH_PATIENT_CTE}
+SELECT at.drive_file_id, at.file_name, at.mime_type
+  FROM public.attachments at
+  JOIN public.study_orders so ON so.id::text = at.source_id
+ WHERE at.id = $3::int
+   AND at.source_name IN ('study_order_front', 'study_order_back')
+   AND at.source_id = $2::text
+   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)
+        OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'));`;

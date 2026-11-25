@@ -224,6 +224,7 @@ export function EventDetail({ event }: { event: StudyOrderEvent }) {
 const TRACKED_FIELDS = [
     'patient_name', 'patient_document', 'patient_phone', 'patient_email', 'preferred_sede',
     'referring_doctor_name', 'delivery_methods', 'clinical_notes', 'services_added', 'services_removed',
+    'doctor', 'order_front', 'order_back',
 ] as const;
 
 /** La metadata viene de la base: se valida la forma antes de pintarla. */

@@ -1,0 +1,576 @@
+{
+  "name": "Study Orders - Image Delete",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/images/delete (generado)\n\nQuita el frente o el dorso de una orden **en borrador** (también de Drive).\n\n**Body:** `{ \"order_id\": \"uuid\", \"side\": \"front\" | \"back\" }`\n\n**409** si no es un borrador o no se puede editar.\n\nNo editar a mano: `scripts/n8n/generate-study-order-image-workflows.mjs`.",
+        "height": 320,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ],
+      "id": "img-del-1",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/images/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "img-del-2",
+      "name": "Webhook",
+      "webhookId": "study-orders-img-delete",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst b = $json.body || {};\nconst orderId = (b.order_id || '').toString().trim();\nconst side = (b.side || '').toString().trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];\nif (!['front', 'back'].includes(side)) return [{ json: { __error: true, __code: 400, __message: 'side debe ser front o back' } }];\nreturn [{ json: { user_id: String(userId), order_id: orderId, side } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "img-del-3",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "img-del-4-cond",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "img-del-4",
+      "name": "¿Datos OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 500, message: $json.__message || \"No se pudo completar la operación\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 500 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        260
+      ],
+      "id": "img-del-5",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 id de la orden  $3 lado (front | back)\n-- La orden si se le pueden cambiar las imágenes (borrador y el mismo alcance que editarla), con las\n-- que ya tiene de ese lado.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule,\n           bool_or(p.code = 'STUDY_ORDERS_DELIVER')  AS can_deliver\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n)\nSELECT so.id::text AS order_id, so.order_number,\n       coalesce((SELECT json_agg(json_build_object('id', at.id::text, 'file_name', at.file_name) ORDER BY at.id DESC)\n                   FROM public.attachments at\n                  WHERE at.source_name = 'study_order_' || $3::text\n                    AND at.source_id = so.id::text), '[]'::json) AS previous\n  FROM public.study_orders so\n WHERE so.id = $2::uuid\n   AND so.status = 'draft'\n   AND EXISTS (\n       SELECT 1\n         FROM public.user_roles ur\n         JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n         JOIN public.permissions p       ON p.id = rp.permission_id\n        WHERE ur.user_id = $1::uuid\n          AND ur.is_active IS NOT FALSE\n          AND p.code IN ('STUDY_ORDERS_CREATE', 'STUDY_ORDERS_UPDATE'))\n   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms));",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.order_id, $json.side ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        0
+      ],
+      "id": "img-del-6",
+      "name": "Permiso",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "img-del-7-cond",
+              "leftValue": "={{ !!$json.order_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "img-del-7",
+      "name": "¿Editable?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 409, message: \"No se pueden cambiar las imágenes: la orden ya no es un borrador o no tenés permiso\", data: null } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        260
+      ],
+      "id": "img-del-8",
+      "name": "Responder 409"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "img-del-9-cond",
+              "leftValue": "={{ ($json.previous || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "img-del-9",
+      "name": "¿Hay imagen?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.previous.map((p) => ({ json: { attachment_id: String(p.id) } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -120
+      ],
+      "id": "img-del-10",
+      "name": "Separar"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "DELETE",
+            "attachment_id": "={{ $json.attachment_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "attachment_id",
+              "displayName": "attachment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        -120
+      ],
+      "id": "img-del-11",
+      "name": "Borrar Adjunto",
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "img-del-12",
+      "name": "Juntar"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId  $2 id de la orden  $3 lado  $4 acción (upload | delete)  $5 imágenes previas (JSON)\n-- Subir: comprueba que la nueva quedó guardada (una que no estaba antes). Quitar: que ya no queda\n-- ninguna. Si se cumplió, deja el renglón en la actividad. Devuelve las imágenes como quedaron.\nWITH prev AS (\n    SELECT e ->> 'id' AS id, e ->> 'file_name' AS file_name, ord\n      FROM jsonb_array_elements($5::jsonb) WITH ORDINALITY AS x(e, ord)\n),\nnow_there AS (\n    SELECT at.id, at.file_name\n      FROM public.attachments at\n     WHERE at.source_name = 'study_order_' || $3::text\n       AND at.source_id = $2::text\n),\nadded AS (\n    SELECT n.id, n.file_name FROM now_there n\n     WHERE n.id::text NOT IN (SELECT id FROM prev)\n     ORDER BY n.id DESC LIMIT 1\n),\noutcome AS (\n    SELECT CASE WHEN $4::text = 'upload' THEN EXISTS (SELECT 1 FROM added)\n                ELSE NOT EXISTS (SELECT 1 FROM now_there) END AS ok\n),\nlogged AS (\n    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)\n    SELECT ($2::text)::uuid, 'updated', $1::uuid, 'user',\n           jsonb_build_object('changes', jsonb_build_array(jsonb_build_object(\n               'field', 'order_' || $3::text,\n               'old', (SELECT file_name FROM prev ORDER BY ord LIMIT 1),\n               'new', (SELECT file_name FROM added))))\n      FROM outcome\n     WHERE ok AND ($4::text = 'upload' OR EXISTS (SELECT 1 FROM prev))\n    RETURNING 1\n)\nSELECT (SELECT ok FROM outcome) AS ok,\n       (SELECT count(*) FROM logged) AS logged,\n       coalesce((\n             SELECT json_agg(json_build_object(\n                      'id', im.id::text, 'side', im.side, 'file_name', im.file_name,\n                      'mime_type', im.mime_type) ORDER BY im.side DESC)\n               FROM (SELECT DISTINCT ON (at.source_name)\n                            at.id, replace(at.source_name, 'study_order_', '') AS side,\n                            at.file_name, at.mime_type\n                       FROM public.attachments at\n                      WHERE at.source_name IN ('study_order_front', 'study_order_back')\n                        AND at.source_id = $2::text\n                      ORDER BY at.source_name, at.id DESC) im\n           ), '[]'::json) AS images;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Datos').first().json.user_id, $('Permiso').first().json.order_id, $('Validar Datos').first().json.side, 'delete', JSON.stringify($('Permiso').first().json.previous || []) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2160,
+        0
+      ],
+      "id": "img-del-13",
+      "name": "Resultado",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nif (row.ok !== true) return [{ json: { __error: true, __code: 502, __message: 'No se pudo quitar la imagen. Probá de nuevo.' } }];\nreturn [{ json: { __data: { images: row.images || [] }, __message: 'Imagen quitada' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "img-del-14",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "img-del-15-cond",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        0
+      ],
+      "id": "img-del-15",
+      "name": "¿Guardado?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2880,
+        0
+      ],
+      "id": "img-del-16",
+      "name": "Responder OK"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos OK?": {
+      "main": [
+        [
+          {
+            "node": "Permiso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Permiso": {
+      "main": [
+        [
+          {
+            "node": "¿Editable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Editable?": {
+      "main": [
+        [
+          {
+            "node": "¿Hay imagen?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 409",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay imagen?": {
+      "main": [
+        [
+          {
+            "node": "Separar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Juntar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar": {
+      "main": [
+        [
+          {
+            "node": "Borrar Adjunto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar Adjunto": {
+      "main": [
+        [
+          {
+            "node": "Juntar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Guardado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Guardado?": {
+      "main": [
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

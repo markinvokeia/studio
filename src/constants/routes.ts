@@ -629,6 +629,12 @@ export const API_ROUTES = {
         FOLLOWER_CANDIDATES: '/study-orders/followers/candidates',
         /** Original (foto o PDF) recibido por WhatsApp: GET ?intake_id=&id= devuelve el archivo. */
         WHATSAPP_INTAKE_FILE:    '/study-orders/whatsapp-intakes/file',
+        /** Frente o dorso de un borrador (multipart): order_id, side ('front' | 'back') y file. Reemplaza al anterior. */
+        IMAGE_UPLOAD:  '/study-orders/images/upload',
+        /** { order_id, side } */
+        IMAGE_DELETE:  '/study-orders/images/delete',
+        /** GET ?order_id=&id= devuelve el archivo. */
+        IMAGE_FILE:    '/study-orders/images/file',
         /** Importar una orden subiendo sus fotos o PDF (multipart). Responde 202 con el intake. */
         IMPORT:        '/study-orders/import',
         /** GET ?intake_id= : estado de la lectura de una orden importada. */
