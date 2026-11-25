@@ -4415,27 +4415,22 @@ export type PatientAiQueryResponse = {
 // ─── Órdenes de estudio ──────────────────────────────────────────────────────
 
 /**
- * Estado persistido de la orden. Son cuatro y cada uno corresponde a un acto
- * humano. El avance operativo (agendada, parcial, en curso) NO se guarda acá:
- * se deriva de las citas — ver `StudyOrderBoardStatus`.
+ * Los nueve estados de la orden (migración 179). De `scheduled` a `completed` los mueven las citas;
+ * el resto, una persona. Ver `src/constants/study-order-status.ts`.
  */
-export type StudyOrderStatus = 'draft' | 'submitted' | 'completed' | 'cancelled';
-
-/**
- * Estado derivado que alimenta la bandeja de la clínica. Lo calcula la vista
- * `v_study_orders_board` cruzando las líneas con las citas, de modo que quitar
- * un servicio de una cita devuelve la línea a `unscheduled` sin que nadie tenga
- * que sincronizar nada.
- */
-export type StudyOrderBoardStatus =
+export type StudyOrderStatus =
   | 'draft'
-  | 'new'                  // enviada, la clínica todavía no la tomó
-  | 'unscheduled'          // tomada, sin ninguna cita
-  | 'partially_scheduled'  // algunas líneas con cita
-  | 'scheduled'            // todas las líneas con cita
-  | 'in_progress'          // alguna línea ya atendida
+  | 'confirmed'
+  | 'pending_scheduling'
+  | 'scheduled'
+  | 'patient_present'
+  | 'in_execution'
   | 'completed'
+  | 'delivered'
   | 'cancelled';
+
+/** El estado con el que se agrupa la bandeja: hoy es el mismo que el guardado. */
+export type StudyOrderBoardStatus = StudyOrderStatus;
 
 /** Tipo de opción del formulario, tal como vive en `study_order_options`. */
 export type StudyOrderOptionKind = 'modifier' | 'text' | 'region_group' | 'delivery';
@@ -4541,6 +4536,19 @@ export interface StudyOrderAppointment {
  * Ficha del paciente que acompaña al detalle de la orden. Sólo datos básicos:
  * la pestaña sirve para saber a quién se atiende, no cuánto debe.
  */
+/** Odontólogo derivador con cuenta en Invoke. */
+export interface StudyOrderDoctor {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  alternative_phone?: string | null;
+  identity_document?: string | null;
+  rut?: string | null;
+  address?: string | null;
+  is_active?: boolean;
+}
+
 export interface StudyOrderPatient {
   id: string;
   name: string;
@@ -4563,7 +4571,12 @@ export type StudyOrderEventType =
   | 'scheduled' | 'rescheduled' | 'appointment_updated' | 'appointment_cancelled'
   | 'session_saved' | 'completed' | 'reopened' | 'cancelled'
   | 'link_created' | 'patient_booked' | 'review_updated'
-  | 'assigned' | 'unassigned';
+  | 'assigned' | 'unassigned'
+  /** Cambio de estado: `metadata.from` → `metadata.to`. */
+  | 'status_changed';
+
+/** En calidad de qué actuó quien generó el evento. */
+export type StudyOrderActorRole = 'clinic' | 'doctor' | 'patient' | 'assistant' | 'system';
 
 /** Por dónde entró la orden: la creó un usuario en el portal o el agente de WhatsApp a partir de una foto o PDF. */
 export type StudyOrderSource = 'portal' | 'whatsapp';
@@ -4691,6 +4704,7 @@ export interface StudyOrderEvent {
   actor_id?: string | null;
   actor_kind: 'user' | 'patient' | 'system';
   actor_name?: string | null;
+  actor_role?: StudyOrderActorRole | null;
   appointment_id?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at: string;
@@ -4730,6 +4744,7 @@ export interface StudyOrder {
   acknowledged_by?: string | null;
   completed_at?: string | null;
   cancelled_at?: string | null;
+  delivered_at?: string | null;
   cancellation_reason?: string | null;
   created_at: string;
   updated_at?: string | null;
@@ -4737,6 +4752,8 @@ export interface StudyOrder {
   appointments?: StudyOrderAppointment[];
   /** Ficha del paciente, cuando la orden ya está vinculada a una. */
   patient?: StudyOrderPatient | null;
+  /** Odontólogo derivador, cuando está vinculado. */
+  doctor?: StudyOrderDoctor | null;
   /** Línea de tiempo, del evento más viejo al más nuevo. */
   events?: StudyOrderEvent[];
   /** Lo que el agente de WhatsApp no tuvo claro al leer la orden, con su revisión. */

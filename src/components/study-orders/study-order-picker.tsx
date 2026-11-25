@@ -33,12 +33,13 @@ import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 
 /** Las que faltan agendar primero; dentro de cada grupo, lo más nuevo arriba. */
 const STATUS_RANK: Record<StudyOrderBoardStatus, number> = {
-    new: 0,
-    unscheduled: 0,
-    partially_scheduled: 1,
-    scheduled: 2,
-    in_progress: 3,
-    completed: 4,
+    confirmed: 0,
+    pending_scheduling: 0,
+    scheduled: 1,
+    patient_present: 2,
+    in_execution: 2,
+    completed: 3,
+    delivered: 4,
     draft: 5,
     cancelled: 6,
 };

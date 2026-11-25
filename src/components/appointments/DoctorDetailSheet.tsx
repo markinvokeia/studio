@@ -1,5 +1,6 @@
 'use client';
 
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { formatPhoneNumber } from '@/lib/phone-text';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
@@ -42,8 +43,8 @@ export function DoctorDetailSheet({
   const { hasPermission } = usePermissions();
   // Mismo criterio que Config > Doctores: con VIEW_ALL las de cualquier doctor;
   // con VIEW_MINE sólo en la ficha propia (en la de otro saldría vacío).
-  const canViewStudyOrders = hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL)
-    || (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(user?.id) === String(doctorId));
+  const canViewStudyOrders = STUDY_ORDERS_FEATURES.relatedTabs && (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL)
+    || (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(user?.id) === String(doctorId)));
 
   const tabs: VerticalTab[] = [
     { id: 'appointments', icon: CalendarDays, label: tAppts('title') },

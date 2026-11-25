@@ -18,6 +18,7 @@ import { referralLabel } from './study-order-referral-line';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
+import { STUDY_ORDERS_FEATURES, STUDY_ORDER_STATUSES, isAppointmentDrivenStatus, isStudyOrderCancellable } from '@/constants/study-order-status';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import type { StudyOrderAssignedFilter, StudyOrderBoardStatus, StudyOrderListItem } from '@/lib/types';
 import { getStudyOrderBoard, type StudyOrderOrigin, type StudyOrderScope } from '@/services/study-orders';
@@ -25,27 +26,25 @@ import { getStudyOrderBoard, type StudyOrderOrigin, type StudyOrderScope } from 
 /**
  * Vista "Estados" de la bandeja: una columna por estado de la orden, en el orden en que avanza.
  *
- * El estado no se guarda: lo deriva el backend de las citas. Por eso arrastrar una tarjeta no
- * cambia una columna en la base sino que dispara la acción real que lleva a ese estado (enviar,
- * tomar, agendar, anular), con sus mismas confirmaciones y permisos. Las columnas que dependen
- * de que se atiendan las citas (En curso, Completada) no aceptan tarjetas: se llenan solas.
+ * Arrastrar una tarjeta dispara la acción real que lleva a ese estado (confirmar, pasar a agenda
+ * pendiente, agendar, entregar, anular), con sus mismas confirmaciones y permisos. Las columnas que
+ * dependen de la cita (Paciente presente, En ejecución, Estudio completado) no aceptan tarjetas.
  */
 
 /** Columnas en el orden lógico en que avanza una orden. */
-export const BOARD_COLUMNS: StudyOrderBoardStatus[] = [
-    'draft', 'new', 'unscheduled', 'partially_scheduled', 'scheduled', 'in_progress', 'completed', 'cancelled',
-];
+export const BOARD_COLUMNS: StudyOrderBoardStatus[] = STUDY_ORDER_STATUSES;
 
 /** Color de cada columna (franja superior y punto). */
 const COLUMN_ACCENT: Record<StudyOrderBoardStatus, string> = {
-    draft:               'bg-slate-400',
-    new:                 'bg-sky-500',
-    unscheduled:         'bg-amber-500',
-    partially_scheduled: 'bg-orange-500',
-    scheduled:           'bg-primary',
-    in_progress:         'bg-blue-500',
-    completed:           'bg-emerald-500',
-    cancelled:           'bg-destructive',
+    draft:              'bg-slate-400',
+    confirmed:          'bg-sky-500',
+    pending_scheduling: 'bg-amber-500',
+    scheduled:          'bg-primary',
+    patient_present:    'bg-cyan-500',
+    in_execution:       'bg-blue-500',
+    completed:          'bg-emerald-500',
+    delivered:          'bg-teal-700',
+    cancelled:          'bg-destructive',
 };
 
 /**
@@ -53,24 +52,27 @@ const COLUMN_ACCENT: Record<StudyOrderBoardStatus, string> = {
  * cantidad (en negro) se lea siempre, también en modo oscuro.
  */
 const COLUMN_COUNT_FILL: Record<StudyOrderBoardStatus, string> = {
-    draft:               'bg-slate-200',
-    new:                 'bg-sky-200',
-    unscheduled:         'bg-amber-200',
-    partially_scheduled: 'bg-orange-200',
-    scheduled:           'bg-violet-200',
-    in_progress:         'bg-blue-200',
-    completed:           'bg-emerald-200',
-    cancelled:           'bg-red-200',
+    draft:              'bg-slate-200',
+    confirmed:          'bg-sky-200',
+    pending_scheduling: 'bg-amber-200',
+    scheduled:          'bg-violet-200',
+    patient_present:    'bg-cyan-200',
+    in_execution:       'bg-blue-200',
+    completed:          'bg-emerald-200',
+    delivered:          'bg-teal-200',
+    cancelled:          'bg-red-200',
 };
 
 /** Acción que dispara soltar una tarjeta en otra columna. */
-export type BoardMove = 'submit' | 'acknowledge' | 'schedule' | 'cancel';
+export type BoardMove = 'submit' | 'markPending' | 'schedule' | 'deliver' | 'cancel';
 
 /** Qué puede hacer quien mira el tablero (ya resuelto con permisos y alcance). */
 export interface BoardCapabilities {
     submit: boolean;
-    acknowledge: boolean;
+    /** Pasar de confirmada a agenda pendiente. */
+    markPending: boolean;
     schedule: boolean;
+    deliver: boolean;
     /** Anular. En Mis Órdenes, solo mientras la clínica no la tomó. */
     cancel: boolean;
     isClinic: boolean;
@@ -84,26 +86,26 @@ export function boardMoveFor(order: StudyOrderListItem, target: StudyOrderBoardS
     const from = order.board_status;
     if (target === from) return null;
     if (target === 'cancelled') {
-        if (order.status !== 'submitted' || !caps.cancel) return null;
+        if (!isStudyOrderCancellable(order.status) || !caps.cancel) return null;
         // El derivador solo puede anular lo que la clínica todavía no tomó.
         return caps.isClinic || !order.acknowledged_at ? 'cancel' : null;
     }
-    if (from === 'draft' && target === 'new') return caps.submit ? 'submit' : null;
-    if (from === 'new' && target === 'unscheduled') return caps.acknowledge ? 'acknowledge' : null;
-    if (['new', 'unscheduled', 'partially_scheduled'].includes(from)
-        && (target === 'partially_scheduled' || target === 'scheduled')) {
+    if (from === 'draft' && target === 'confirmed') return caps.submit ? 'submit' : null;
+    if (from === 'confirmed' && target === 'pending_scheduling') return caps.markPending ? 'markPending' : null;
+    if ((from === 'confirmed' || from === 'pending_scheduling') && target === 'scheduled') {
         return caps.schedule ? 'schedule' : null;
     }
+    if (from === 'completed' && target === 'delivered') return caps.deliver ? 'deliver' : null;
     return null;
 }
 
 /** Por qué no se puede soltar ahí (clave de traducción de `board.blocked`). */
 function blockedReason(order: StudyOrderListItem, target: StudyOrderBoardStatus): 'appointments' | 'backwards' | 'permission' {
-    if (target === 'in_progress' || target === 'completed') return 'appointments';
+    if (isAppointmentDrivenStatus(target)) return 'appointments';
     const fromIndex = BOARD_COLUMNS.indexOf(order.board_status);
     const toIndex = BOARD_COLUMNS.indexOf(target);
     if (target !== 'cancelled' && toIndex < fromIndex) return 'backwards';
-    if (order.board_status === 'cancelled' || order.board_status === 'completed') return 'backwards';
+    if (order.board_status === 'cancelled' || order.board_status === 'delivered') return 'backwards';
     return 'permission';
 }
 
@@ -498,6 +500,7 @@ interface BoardCardBodyProps {
 function BoardCardBody({ order, scope, summary, onAssign, className }: BoardCardBodyProps) {
     const t = useTranslations('StudyOrdersPage');
     const reviewPending = Number(order.review_pending) || 0;
+    const isOverdue = STUDY_ORDERS_FEATURES.overdue && order.is_overdue;
     return (
         <article className={cn('space-y-1.5 rounded-md border bg-card p-2.5 text-sm shadow-sm transition-shadow hover:shadow-md', className)}>
             <div className="flex items-center gap-1.5">
@@ -511,11 +514,11 @@ function BoardCardBody({ order, scope, summary, onAssign, className }: BoardCard
             {order.items_summary && (
                 <p className="line-clamp-2 text-xs text-muted-foreground">{order.items_summary}</p>
             )}
-            {(order.source === 'whatsapp' || reviewPending > 0 || order.is_overdue) && (
+            {(order.source === 'whatsapp' || reviewPending > 0 || isOverdue) && (
                 <div className="flex flex-wrap items-center gap-1">
                     <WhatsappSourceBadge source={order.source} />
                     <ReviewPendingBadge count={order.review_pending} />
-                    {order.is_overdue && (
+                    {isOverdue && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
                             <AlertTriangle className="h-3 w-3" aria-hidden="true" />
                             {t('status.overdue')}
@@ -531,7 +534,7 @@ function BoardCardBody({ order, scope, summary, onAssign, className }: BoardCard
                     </span>
                 )}
             </div>
-            {scope === 'clinic' && <ReviewerRow name={order.assigned_to_name} onAssign={onAssign} />}
+            {STUDY_ORDERS_FEATURES.assign && scope === 'clinic' && <ReviewerRow name={order.assigned_to_name} onAssign={onAssign} />}
         </article>
     );
 }
@@ -651,7 +654,7 @@ function OrderSummaryPopover({ order, scope, onOpen, onAssign }: OrderSummaryPop
                     }))}
                     {row(t('board.fields.sede'), order.preferred_sede_name)}
                     {row(t('board.fields.submitted'), order.submitted_at ? formatDisplayDate(order.submitted_at) : null)}
-                    {scope === 'clinic' && row(t('board.fields.assigned'), order.assigned_to_name || t('board.unassigned'))}
+                    {STUDY_ORDERS_FEATURES.assign && scope === 'clinic' && row(t('board.fields.assigned'), order.assigned_to_name || t('board.unassigned'))}
                     {reviewPending > 0 && row(t('board.fields.review'), t('review.pendingCount', { count: reviewPending }))}
                 </dl>
                 <div className="flex gap-2">

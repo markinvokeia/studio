@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 
 import { OrderFileGallery } from './order-file-gallery';
-import { ActorLabel, EVENT_STYLES, EventDetail, TONE_CLASSES } from './study-order-timeline';
+import { EVENT_STYLES, EventActor, EventDetail, TONE_CLASSES } from './study-order-timeline';
 
 import { useEventStreamSubscription } from '@/context/event-stream-context';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
@@ -702,7 +702,7 @@ function EventEntry({ event }: { event: StudyOrderEvent }) {
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
                 <p className="flex flex-wrap items-baseline gap-x-1.5 text-xs text-muted-foreground">
-                    <ActorLabel event={event} />
+                    <EventActor event={event} />
                     <time dateTime={event.created_at} title={formatDateTime(event.created_at)}>{timeOf(event.created_at)}</time>
                 </p>
                 <p className="text-sm leading-snug">

@@ -36,7 +36,8 @@ perms AS (
            bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,
            bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,
            bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,
-           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule
+           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule,
+           bool_or(p.code = 'STUDY_ORDERS_DELIVER')  AS can_deliver
       FROM public.user_roles ur
       JOIN public.role_permissions rp ON rp.role_id = ur.role_id
       JOIN public.permissions p       ON p.id = rp.permission_id
@@ -65,6 +66,18 @@ perms AS (
        AND ur.is_active IS NOT FALSE
        AND (p.code LIKE 'STUDY_ORDERS_%' OR p.code = 'PATIENTS_VIEW_DETAIL')
 )`;
+
+/**
+ * En calidad de qué actuó quien generó el evento: paciente, sistema, asistente (rol agente_ia), el
+ * odontólogo de la orden o la clínica. `doctorExpr` = el doctor de la orden; `ev` = el evento.
+ */
+const eventActorRole = (doctorExpr) => `CASE
+                          WHEN ev.actor_kind <> 'user' THEN ev.actor_kind
+                          WHEN ev.actor_id IS NULL THEN 'system'
+                          WHEN ev.actor_id = ${doctorExpr} THEN 'doctor'
+                          WHEN EXISTS (SELECT 1 FROM public.user_roles eur JOIN public.roles er ON er.id = eur.role_id
+                                        WHERE eur.user_id = ev.actor_id AND lower(trim(er.name)) = 'agente_ia') THEN 'assistant'
+                          ELSE 'clinic' END`;
 
 export const OPTIONS_SQL = `
 -- Catálogo del formulario. Las secciones son las categorías sembradas por
@@ -133,17 +146,17 @@ const INBOX_ARGS = `
 /** Filtro por bucket de la lista (`board_status` del query). El tablero no lo usa: muestra todos. */
 const BUCKET_FILTER = `
        AND (a.board_status = 'all' OR CASE a.board_status
-             WHEN 'new'       THEN b.board_status = 'new'
-             WHEN 'pending'   THEN b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
+             -- Confirmadas que nadie de la clínica tomó todavía.
+             WHEN 'new'       THEN b.board_status = 'confirmed' AND b.acknowledged_at IS NULL
+             WHEN 'pending'   THEN b.board_status IN ('confirmed', 'pending_scheduling')
              WHEN 'overdue'   THEN (b.has_past_due_appointment
-                                    OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
+                                    OR (b.board_status IN ('confirmed', 'pending_scheduling')
                                         AND b.hours_since_submitted > a.sla_hours))
-             WHEN 'scheduled' THEN b.board_status IN ('scheduled', 'partially_scheduled')
-             WHEN 'completed' THEN b.board_status = 'completed'
              WHEN 'drafts'    THEN b.status = 'draft'
              WHEN 'review'    THEN EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) r
                                             WHERE r ->> 'status' = 'pending')
-             ELSE true END)`;
+             -- Cualquier otro valor es uno de los nueve estados.
+             ELSE b.board_status = a.board_status END)`;
 
 /**
  * CTE `base` de la bandeja: las órdenes que ve el sujeto (alcance y permisos) con los filtros
@@ -164,7 +177,7 @@ base AS (
            so.assigned_at,
            se.name AS preferred_sede_name,
            (b.has_past_due_appointment
-            OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
+            OR (b.board_status IN ('confirmed', 'pending_scheduling')
                 AND b.hours_since_submitted > a.sla_hours)) AS is_overdue,
            (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)
               FROM public.study_order_items i
@@ -181,12 +194,10 @@ base AS (
      WHERE
        -- Autorización: sólo con VIEW_ALL se ve la bandeja completa. Pedir
        -- scope=clinic sin el permiso devuelve igual las órdenes propias.
-       -- Los borradores son de su doctor, salvo los que salen de leer los originales: los que
-       -- crea el agente de WhatsApp al derivar y los que recepción importa subiendo fotos o PDF
-       -- (source_intake_id). No tienen doctor y son trabajo de recepción. Las importadas quedan
-       -- con source = 'portal': mirar solo source las dejaba invisibles mientras eran borrador.
+       -- La clínica ve también todos los borradores: toda orden nace en borrador y queda pendiente
+       -- de que una persona la revise y la confirme (RF-04).
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
-            THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR so.source_intake_id IS NOT NULL)
+            THEN true
             -- Ficha del paciente: quien puede abrirla ve todas sus órdenes, no sólo las que derivó.
             -- Los borradores ajenos siguen fuera: todavía no son una orden.
             WHEN a.scope = 'patient' AND a.patient_id IS NOT NULL
@@ -260,11 +271,10 @@ SELECT (SELECT count(*) FROM base) AS total,
        ), '[]'::json) AS items;`;
 
 /**
- * Columnas del tablero (vista Estados), en el orden en que avanza una orden. Es el `board_status`
- * DERIVADO de v_study_orders_board (las citas mandan), no study_orders.status.
+ * Columnas del tablero (vista Estados): los nueve estados, en el orden en que avanza una orden.
  */
-export const BOARD_COLUMNS = ['draft', 'new', 'unscheduled', 'partially_scheduled', 'scheduled',
-                              'in_progress', 'completed', 'cancelled'];
+export const BOARD_COLUMNS = ['draft', 'confirmed', 'pending_scheduling', 'scheduled', 'patient_present',
+                              'in_execution', 'completed', 'delivered', 'cancelled'];
 
 export const BOARD_SQL = `
 -- $1 = userId del token.  $2 = filtros como JSON.
@@ -321,6 +331,7 @@ SELECT row_to_json(o) AS data
            so.regions, so.section_modifiers, so.texts, so.delivery_methods,
            so.clinical_notes, so.preferred_sede_id::text, se.name AS preferred_sede_name,
            so.submitted_at, so.acknowledged_at, so.completed_at, so.cancelled_at,
+           so.delivered_at,
            so.cancellation_reason, so.created_at, so.updated_at,
            so.source, so.referring_doctor_name, so.source_intake_id::text,
            -- Responsable en la clínica (migración 129).
@@ -344,7 +355,7 @@ SELECT row_to_json(o) AS data
                      'replaces_order_number', (
                          SELECT o2.order_number FROM public.study_orders o2
                           WHERE o2.id = wi.study_order_id AND o2.id <> so.id
-                            AND o2.status IN ('draft', 'submitted')
+                            AND public.study_order_transition_allowed(o2.status, 'cancelled')
                             AND so.status = 'draft'
                             AND wi.status = 'handed_off' AND wi.resolved_at IS NULL),
                      'files', coalesce((
@@ -453,13 +464,22 @@ SELECT row_to_json(o) AS data
               LEFT JOIN public.mutual_societies ms ON ms.id = pu.mutual_society_id
               LEFT JOIN public.users pd ON pd.id = pu.doctor_id
              WHERE pu.id = so.patient_id) AS patient,
+           -- Odontólogo derivador con cuenta. Sin cuenta, lo que dice el papel va en
+           -- referring_doctor_name.
+           (SELECT json_build_object(
+                     'id', du.id::text, 'name', du.name, 'email', du.email,
+                     'phone_number', du.phone_number, 'alternative_phone', du.alternative_phone,
+                     'identity_document', du.identity_document, 'rut', du.rut,
+                     'address', du.address, 'is_active', du.is_active)
+              FROM public.users du
+             WHERE du.id = so.doctor_id) AS doctor,
            -- Línea de tiempo. Del más viejo al más nuevo: se lee como se leería
            -- el relato de lo que fue pasando.
            coalesce((
              SELECT json_agg(json_build_object(
                       'id', ev.id::text, 'event_type', ev.event_type,
                       'actor_id', ev.actor_id::text, 'actor_kind', ev.actor_kind,
-                      'actor_name', au.name,
+                      'actor_name', au.name, 'actor_role', ${eventActorRole('so.doctor_id')},
                       'appointment_id', ev.appointment_id::text,
                       'metadata', ev.metadata, 'created_at', ev.created_at)
                     ORDER BY ev.created_at, ev.id)
@@ -681,7 +701,7 @@ pending_review AS (
 ),
 updated AS (
     UPDATE public.study_orders so
-       SET status = 'submitted', submitted_at = ${NOW}
+       SET status = 'confirmed', submitted_at = ${NOW}, updated_by = $1::uuid
      WHERE so.id = $2::uuid
        AND so.status = 'draft'
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
@@ -709,12 +729,12 @@ resolved_intake AS (
 ),
 replaced AS (
     UPDATE public.study_orders so
-       SET status = 'cancelled', cancelled_at = ${NOW},
+       SET status = 'cancelled', cancelled_at = ${NOW}, updated_by = $1::uuid,
            cancellation_reason = 'Reemplazada por la orden ' || i.order_number || ' (derivación de WhatsApp)'
       FROM intake i
      WHERE so.id = i.old_order_id
        AND so.id <> i.new_order_id
-       AND so.status IN ('draft', 'submitted')
+       AND public.study_order_transition_allowed(so.status, 'cancelled')
        -- Anular la orden del agente exige el mismo permiso que anularla desde la bandeja.
        AND coalesce((SELECT can_cancel FROM perms), false)
     RETURNING so.id, i.new_order_id, i.order_number AS new_order_number
@@ -727,15 +747,11 @@ moved AS (
        AND a.status NOT IN ('canceled', 'cancelled', 'deleted')
     RETURNING a.id
 ),
-replaced_event AS (
-    -- Bitácora de la orden anulada: queda dicho por cuál se reemplazó y cuántas citas se movieron.
-    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)
-    SELECT r.id, 'cancelled', $1::uuid, 'user',
-           jsonb_build_object('reason', 'replaced', 'replaced_by_order_id', r.new_order_id::text,
-                              'replaced_by_order_number', r.new_order_number,
-                              'moved_appointments', (SELECT count(*) FROM moved))
-      FROM replaced r
-    RETURNING id
+-- Las citas que llegaron de la orden reemplazada pueden dejarla ya agendada.
+synced AS MATERIALIZED (
+    SELECT public.study_order_sync(u.id, $1::uuid) AS status
+      FROM updated u
+     WHERE (SELECT count(*) FROM moved) > 0
 )
 SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitted_at,
        d.name AS doctor_name,
@@ -743,6 +759,7 @@ SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitte
        (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,
        (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,
        (SELECT count(*) FROM moved) AS moved_appointments,
+       coalesce((SELECT status FROM synced), CASE WHEN u.id IS NOT NULL THEN 'confirmed' END) AS status,
        (SELECT count(*) FROM pending_review) AS pending_review
   FROM (SELECT 1) one
   LEFT JOIN updated u ON true
@@ -903,12 +920,12 @@ SELECT d.id::text, (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handof
   FROM del d;`;
 
 export const ACKNOWLEDGE_SQL = `
--- $1 userId (token)  $2 id. Saca la orden del bucket "nuevas".
+-- $1 userId (token)  $2 id. Marca que la clínica tomó la orden: no cambia el estado.
 WITH ${PERMS_CTE}
 UPDATE public.study_orders so
-   SET acknowledged_at = ${NOW}, acknowledged_by = $1::uuid
+   SET acknowledged_at = ${NOW}, acknowledged_by = $1::uuid, updated_by = $1::uuid
  WHERE so.id = $2::uuid
-   AND so.status = 'submitted'
+   AND so.status NOT IN ('draft', 'delivered', 'cancelled')
    AND so.acknowledged_at IS NULL
    AND (SELECT can_acknowledge FROM perms)
 RETURNING so.id::text, so.acknowledged_at;`;
@@ -1038,19 +1055,50 @@ export const CANCEL_SQL = `
 -- $1 userId (token)  $2 id  $3 motivo
 --
 -- Dos caminos distintos, a propósito:
---   · Con STUDY_ORDERS_CANCEL (la clínica) se puede anular en cualquier momento.
+--   · Con STUDY_ORDERS_CANCEL (la clínica) se puede anular mientras no esté en ejecución.
 --   · El derivador puede anular lo suyo SÓLO mientras la clínica no la haya
 --     tomado. Una vez tomada, alguien ya empezó a trabajarla y la baja tiene que
 --     pasar por la clínica. La UI muestra el botón deshabilitado, pero la regla
 --     vive acá: un botón gris no es control de acceso.
 WITH ${PERMS_CTE}
 UPDATE public.study_orders so
-   SET status = 'cancelled', cancelled_at = ${NOW}, cancellation_reason = $3
+   SET status = 'cancelled', cancelled_at = ${NOW}, cancellation_reason = $3, updated_by = $1::uuid
  WHERE so.id = $2::uuid
-   AND so.status IN ('draft', 'submitted')
+   AND public.study_order_transition_allowed(so.status, 'cancelled')
    AND ((SELECT can_cancel FROM perms)
         OR (so.doctor_id = $1::uuid AND so.acknowledged_at IS NULL))
 RETURNING so.id::text, so.order_number, so.cancelled_at;`;
+
+/**
+ * Cambio de estado a mano. Solo dos pasos se hacen así: pasar a agenda pendiente y entregar. Los
+ * demás tienen su acción (confirmar, anular) o los mueve la cita. Siempre devuelve una fila si la
+ * orden existe y se puede ver, con el motivo por el que no se aplicó; el flujo lo traduce a 409/403.
+ */
+export const STATUS_SQL = `
+-- $1 userId (token)  $2 id  $3 estado pedido
+WITH ${PERMS_CTE},
+cur AS (
+    SELECT so.id, so.order_number, so.status::text AS status
+      FROM public.study_orders so
+     WHERE so.id = $2::uuid
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       FOR UPDATE
+),
+chk AS (
+    SELECT c.*,
+           public.study_order_transition_allowed(c.status, $3::text) AS allowed,
+           ($3::text = 'delivered' OR ($3::text = 'pending_scheduling' AND c.status = 'confirmed')) AS manual,
+           coalesce(CASE $3::text
+             WHEN 'delivered'          THEN (SELECT can_deliver FROM perms)
+             WHEN 'pending_scheduling' THEN (SELECT can_schedule OR can_acknowledge FROM perms)
+           END, false) AS permitted
+      FROM cur c
+)
+SELECT chk.id::text, chk.order_number, chk.status AS from_status, $3::text AS to_status,
+       chk.allowed, chk.manual, chk.permitted,
+       CASE WHEN chk.allowed AND chk.manual AND chk.permitted
+            THEN public.study_order_set_status(chk.id, $3::text, $1::uuid) END AS status
+  FROM chk;`;
 
 export const RESCHEDULE_SQL = `
 -- $1 userId (token)  $2 payload { appointment_id, order_id, start, end }
@@ -1160,8 +1208,7 @@ export const NOTIFY_DOCTOR_SQL = `
 -- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita
 --      una notificación de lo que acaba de hacer. Vacío = avisar igual.
 -- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de
--- la vista, no el persistido: al doctor le importa "agendada" o "completada",
--- que es lo que ve la clínica, no el 'submitted' de la columna.
+-- la vista, el mismo que ve la clínica.
 --
 -- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo
 -- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las
@@ -1215,7 +1262,11 @@ v AS (
     SELECT (body ->> 'order_id')::uuid      AS order_id,
            (body ->> 'appointment_id')::int AS appointment_id
       FROM b
-)
+),
+prev AS (
+    SELECT so.status::text AS status FROM public.study_orders so, v WHERE so.id = v.order_id
+),
+linked AS (
 UPDATE public.appointments a
    SET study_order_id = v.order_id,
        updated_at     = ${NOW}
@@ -1226,9 +1277,18 @@ UPDATE public.appointments a
    AND EXISTS (
        SELECT 1 FROM public.study_orders so
         WHERE so.id = v.order_id
+          -- No se agenda lo que todavía nadie confirmó ni lo que ya terminó. Volver a atar una
+          -- cita que ya era de la orden (se editó) sí pasa.
+          AND (so.status NOT IN ('draft', 'delivered', 'cancelled') OR a.study_order_id = v.order_id)
           AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)
    )
-RETURNING a.id::text, a.study_order_id::text;`;
+RETURNING a.id, a.study_order_id
+)
+-- El estado se recalcula en la misma sentencia, en nombre de quien agendó.
+SELECT l.id::text, l.study_order_id::text, (SELECT status FROM prev) AS old_status,
+       public.study_order_sync(l.study_order_id, $1::uuid, 'user', l.id) AS status
+  FROM linked l
+ WHERE (SELECT count(*) FROM linked) > 0;`;
 
 export const BY_APPOINTMENT_SQL = `
 -- $1 userId (token)  $2 id de la cita.
@@ -1270,38 +1330,26 @@ SELECT so.id::text        AS id,
 export const RECOMPUTE_SQL = `
 -- $1 userId (token)  $2 payload { id, change }
 --
--- Recalcula el estado PERSISTIDO de la orden contra el estado real de sus citas.
+-- Lleva la orden al estado que dicen sus citas (study_order_sync) en nombre del usuario del token.
+-- Borrador, entregada y cancelada no se tocan: son decisiones humanas.
 --
--- El estado operativo (nueva / sin agendar / parcial / agendada / en curso) no
--- se toca acá: lo deriva v_study_orders_board de las citas y se corrige solo.
--- Cancelar una cita ya devuelve sus líneas a "sin agendar" sin que nadie
--- ejecute nada. Lo único que hay que persistir es el cierre, que sí es un hecho
--- con fecha: todas las líneas atendidas -> 'completed'. Y su reverso, porque si
--- la cita de una orden ya cerrada se cancela o se borra, dejar el 'completed'
--- sería mentir: vuelve a 'submitted' y se limpia completed_at.
---
--- 'draft' y 'cancelled' no se tocan nunca: son decisiones humanas y un recálculo
--- no las revierte.
---
--- El parámetro 'change' lo pone quien llama, porque quien llama es el único que
--- sabe qué pasó. Al cancelar una cita no hay transición persistida que detectar
--- -- la orden sigue 'submitted' -- y aun así el derivador tiene que enterarse.
--- Si el recálculo sí produjo una transición, esa gana sobre lo que dijo el
--- llamador. Vacío = no se notifica.
+-- El parámetro 'change' lo pone quien llama: es el único que sabe qué pasó (se canceló una cita, se
+-- guardó una sesión). Si el recálculo cierra o reabre la orden, eso gana. Vacío = no se notifica.
 WITH ${PERMS_CTE},
 b AS (
     SELECT $2::jsonb AS body
 ),
 v AS (
-    SELECT (body ->> 'id')::uuid                AS order_id,
-           coalesce(body ->> 'change', '')::text AS hint
+    SELECT (body ->> 'id')::uuid                 AS order_id,
+           coalesce(body ->> 'change', '')::text AS hint,
+           NULLIF(body ->> 'appointment_id', '')::int AS appointment_id
       FROM b
 ),
 tgt AS (
-    SELECT so.id, so.status
+    SELECT so.id, so.status::text AS old_status
       FROM public.study_orders so, v
      WHERE so.id = v.order_id
-       AND so.status IN ('submitted', 'completed')
+       AND so.status NOT IN ('draft', 'delivered', 'cancelled')
        AND ( (SELECT can_schedule FROM perms)
              OR (SELECT can_view_all FROM perms)
              OR so.doctor_id = $1::uuid
@@ -1311,40 +1359,19 @@ tgt AS (
                          WHERE a.study_order_id = so.id
                            AND a.technician_id = $1::uuid) )
 ),
-target AS (
-    SELECT tgt.id,
-           tgt.status AS old_status,
-           CASE WHEN bo.items_total > 0 AND bo.items_completed = bo.items_total
-                THEN 'completed' ELSE 'submitted' END AS new_status,
-           bo.board_status
-      FROM tgt
-      JOIN public.v_study_orders_board bo ON bo.id = tgt.id
-),
-upd AS (
-    UPDATE public.study_orders so
-       SET status       = target.new_status,
-           completed_at = CASE WHEN target.new_status = 'completed' THEN ${NOW} ELSE NULL END,
-           updated_at   = ${NOW}
-      FROM target
-     WHERE so.id = target.id
-       AND so.status IS DISTINCT FROM target.new_status
-    RETURNING so.id
+synced AS MATERIALIZED (
+    SELECT tgt.id, tgt.old_status,
+           public.study_order_sync(tgt.id, $1::uuid, 'user', v.appointment_id) AS new_status
+      FROM tgt, v
 )
-SELECT target.id::text     AS id,
-       target.old_status   AS old_status,
-       target.new_status   AS new_status,
-       -- Es el estado ANTES de este recálculo: los CTE leen el snapshot previo
-       -- a la sentencia, así que la vista todavía no ve el UPDATE de arriba. Va
-       -- para diagnóstico. El estado que le llega al doctor lo re-consulta el
-       -- aviso, que corre en una sentencia aparte y sí ve el resultado.
-       target.board_status AS board_status_before,
-       EXISTS (SELECT 1 FROM upd) AS changed,
+SELECT s.id::text, s.old_status, s.new_status,
+       s.old_status <> s.new_status AS changed,
        CASE
-           WHEN EXISTS (SELECT 1 FROM upd) AND target.new_status = 'completed' THEN 'completed'
-           WHEN EXISTS (SELECT 1 FROM upd)                                     THEN 'reopened'
+           WHEN s.old_status <> s.new_status AND s.new_status = 'completed' THEN 'completed'
+           WHEN s.old_status <> s.new_status AND s.old_status = 'completed' THEN 'reopened'
            ELSE (SELECT hint FROM v)
        END AS change
-  FROM target;`;
+  FROM synced s;`;
 
 export const RECONCILE_SQL = `
 -- Sin parámetros: corre como el sistema, desde un cron.
@@ -1357,23 +1384,45 @@ export const RECONCILE_SQL = `
 --
 -- Devuelve una fila por orden corregida, para que el nodo siguiente notifique.
 -- Sin nada que corregir devuelve cero filas y ahí se corta la ejecución.
-WITH state AS (
-    SELECT o.id,
-           CASE WHEN b.items_total > 0 AND b.items_completed = b.items_total
-                THEN 'completed' ELSE 'submitted' END AS target
+WITH stale AS MATERIALIZED (
+    SELECT o.id, o.status::text AS old_status
       FROM public.study_orders o
-      JOIN public.v_study_orders_board b ON b.id = o.id
-     WHERE o.status IN ('submitted', 'completed')
+     WHERE o.status NOT IN ('draft', 'delivered', 'cancelled')
+       AND o.status <> public.study_order_status_from_appointments(o.id, o.status)
+),
+synced AS MATERIALIZED (
+    SELECT st.id, st.old_status, public.study_order_sync(st.id, NULL, 'system') AS new_status
+      FROM stale st
 )
-UPDATE public.study_orders o
-   SET status       = state.target,
-       completed_at = CASE WHEN state.target = 'completed' THEN ${NOW} ELSE NULL END,
-       updated_at   = ${NOW}
-  FROM state
- WHERE o.id = state.id
-   AND o.status IS DISTINCT FROM state.target
-RETURNING o.id::text AS order_id,
-          CASE WHEN state.target = 'completed' THEN 'completed' ELSE 'reopened' END AS change;`;
+SELECT s.id::text AS order_id, s.old_status, s.new_status,
+       -- Al derivador solo se le avisa el cierre y su reverso, igual que en /recompute.
+       CASE WHEN s.new_status = 'completed' THEN 'completed'
+            WHEN s.old_status = 'completed' THEN 'reopened'
+            ELSE '' END AS change
+  FROM synced s;`;
+
+/**
+ * Nodo de /appointments/update_status: después de cambiar la cita, lleva su orden al estado que
+ * corresponde en nombre del usuario del token. Sin orden asociada no devuelve filas.
+ */
+export const SYNC_APPOINTMENT_SQL = `
+-- $1 id de la cita  $2 userId (token; vacío = sistema)
+WITH prev AS MATERIALIZED (
+    SELECT so.id, so.status::text AS old_status
+      FROM public.appointments a
+      JOIN public.study_orders so ON so.id = a.study_order_id
+     WHERE a.id = $1::int
+),
+synced AS MATERIALIZED (
+    SELECT p.id, p.old_status,
+           public.study_order_sync_appointment($1::int, NULLIF($2::text, '')::uuid) AS new_status
+      FROM prev p
+)
+SELECT s.id::text AS order_id, s.old_status, s.new_status,
+       CASE WHEN s.old_status <> s.new_status AND s.new_status = 'completed' THEN 'completed'
+            WHEN s.old_status <> s.new_status AND s.old_status = 'completed' THEN 'reopened'
+            ELSE '' END AS change
+  FROM synced s;`;
 
 export const BOOKING_TOKEN_SQL = `
 -- $1 userId (token)  $2 payload { order_id, token_hash, expires_at, max_uses }
@@ -1401,7 +1450,7 @@ allowed AS (
     SELECT so.id
       FROM public.study_orders so, v
      WHERE so.id = v.order_id
-       AND so.status = 'submitted'
+       AND so.status IN ('confirmed', 'pending_scheduling', 'scheduled', 'patient_present', 'in_execution')
        -- Sin ficha de paciente no hay a nombre de quién crear la cita.
        AND so.patient_id IS NOT NULL
        AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)
@@ -1418,7 +1467,11 @@ INSERT INTO public.study_order_booking_tokens
        (study_order_id, token_hash, expires_at, max_uses, created_by)
 SELECT allowed.id, v.token_hash, v.expires_at, v.max_uses, $1::uuid
   FROM allowed, v
-RETURNING id::text, study_order_id::text AS order_id, expires_at, max_uses;`;
+RETURNING id::text, study_order_id::text AS order_id, expires_at, max_uses,
+          -- Con el link en manos del paciente, una orden confirmada queda en agenda pendiente.
+          (SELECT public.study_order_set_status(so.id, 'pending_scheduling', $1::uuid)
+             FROM public.study_orders so
+            WHERE so.id = study_order_booking_tokens.study_order_id AND so.status = 'confirmed') AS status;`;
 
 export const PUBLIC_DETAIL_SQL = `
 -- $1 = sha256 del token que trae el paciente en el link.
@@ -1467,7 +1520,7 @@ SELECT so.id::text          AS id,
   JOIN t ON t.study_order_id = so.id
   LEFT JOIN public.users d  ON d.id  = so.doctor_id
   LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
- WHERE so.status = 'submitted';`;
+ WHERE so.status IN ('confirmed', 'pending_scheduling', 'scheduled', 'patient_present', 'in_execution');`;
 
 export const PUBLIC_BOOK_SQL = `
 -- $1 = sha256 del token.  $2 payload { calendar_source_id, start, end, summary }
@@ -1508,7 +1561,7 @@ o AS (
     SELECT so.id, so.patient_id, so.doctor_id, so.order_number
       FROM public.study_orders so
       JOIN t ON t.study_order_id = so.id
-     WHERE so.status = 'submitted'
+     WHERE so.status IN ('confirmed', 'pending_scheduling', 'scheduled', 'patient_present', 'in_execution')
        AND so.patient_id IS NOT NULL
 ),
 ins AS (
@@ -1571,8 +1624,12 @@ bump AS (
 SELECT ins.id::text          AS appointment_id,
        o.id::text            AS order_id,
        o.order_number        AS order_number,
-       (SELECT count(*) FROM svc) AS services_linked
-  FROM ins, o;`;
+       (SELECT count(*) FROM svc) AS services_linked,
+       -- El autor del cambio de estado es el paciente: reservó por el link, sin cuenta.
+       public.study_order_sync(o.id, NULL, 'patient', ins.id) AS status
+  FROM ins, o
+ -- Obliga a que las líneas de la cita ya estén escritas antes de recalcular.
+ WHERE (SELECT count(*) FROM svc) >= 0;`;
 
 export const LOG_EVENT_SQL = `
 -- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }
@@ -2055,7 +2112,7 @@ SELECT json_build_object(
              SELECT json_agg(json_build_object(
                       'id', ev.id::text, 'event_type', ev.event_type,
                       'actor_id', ev.actor_id::text, 'actor_kind', ev.actor_kind,
-                      'actor_name', au.name,
+                      'actor_name', au.name, 'actor_role', ${eventActorRole('o.doctor_id')},
                       'appointment_id', ev.appointment_id::text,
                       'metadata', ev.metadata, 'created_at', ev.created_at)
                     ORDER BY ev.created_at DESC, ev.id)

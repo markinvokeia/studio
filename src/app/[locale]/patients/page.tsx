@@ -65,6 +65,7 @@ import {
   type UserFormValues,
 } from '@/components/patients/patient-form-utils';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
 import { formatPhoneNumber } from '@/lib/phone-text';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
@@ -527,7 +528,7 @@ export default function UsersPage() {
   const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   // Órdenes de estudio: las ve todo el que accede a la ficha del paciente, sin
   // importar si tiene permisos de órdenes (el backend lo resuelve con scope=patient).
-  const canViewStudyOrdersTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
+  const canViewStudyOrdersTab = STUDY_ORDERS_FEATURES.relatedTabs && hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
 
   // Clinical content is read-only unless the role can actually write it. The
   // clinical viewers don't check permissions themselves — they take `readOnly`.

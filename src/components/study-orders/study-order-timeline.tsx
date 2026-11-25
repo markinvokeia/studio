@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import {
-    Ban, CalendarClock, CalendarPlus, CalendarX, CheckCircle2, FilePlus2,
+    ArrowRight, Ban, CalendarClock, CalendarPlus, CalendarX, CheckCircle2, FilePlus2,
     Inbox, Link2, ListChecks, Pencil, RotateCcw, Send, Stethoscope, UserMinus, UserPlus, UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { normalizeStudyOrderStatus } from '@/constants/study-order-status';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { StudyOrderEvent, StudyOrderEventType, StudyOrderFieldChange } from '@/lib/types';
 
@@ -48,6 +49,7 @@ export const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
     review_updated:        { icon: ListChecks,    tone: 'neutral' },
     assigned:              { icon: UserPlus,      tone: 'accent' },
     unassigned:            { icon: UserMinus,     tone: 'neutral' },
+    status_changed:        { icon: ArrowRight,    tone: 'accent' },
 };
 
 export const TONE_CLASSES: Record<EventStyle['tone'], string> = {
@@ -109,7 +111,7 @@ export function StudyOrderTimeline({ events }: StudyOrderTimelineProps) {
                                 {style ? t(`event.${event.event_type}` as never) : event.event_type}
                             </p>
                             <p className="mt-0.5 text-xs text-muted-foreground">
-                                <ActorLabel event={event} />
+                                <EventActor event={event} />
                                 {' · '}
                                 <time dateTime={event.created_at}>{formatDateTime(event.created_at)}</time>
                             </p>
@@ -128,6 +130,36 @@ export function ActorLabel({ event }: { event: StudyOrderEvent }) {
     if (event.actor_name) return <span className="font-medium text-foreground">{event.actor_name}</span>;
     if (event.actor_kind === 'patient') return <>{t('actorPatient')}</>;
     return <>{t('actorSystem')}</>;
+}
+
+/** Roles que el front sabe nombrar: un valor nuevo del backend se omite en vez de romper. */
+const ACTOR_ROLES = ['clinic', 'doctor', 'assistant'];
+
+/** Quién y en calidad de qué: "Ana Pérez · Clínica". */
+export function EventActor({ event }: { event: StudyOrderEvent }) {
+    const t = useTranslations('StudyOrdersPage.timeline');
+    return (
+        <>
+            <ActorLabel event={event} />
+            {event.actor_name && event.actor_role && ACTOR_ROLES.includes(event.actor_role) && (
+                <> · {t(`role.${event.actor_role}` as never)}</>
+            )}
+        </>
+    );
+}
+
+/** Cambio de estado: "Confirmada → Agendada". */
+function StatusChange({ event }: { event: StudyOrderEvent }) {
+    const t = useTranslations('StudyOrdersPage');
+    const meta = event.metadata ?? {};
+    return (
+        <p className="mt-1 text-xs text-muted-foreground">
+            <span>{t(`status.${normalizeStudyOrderStatus(meta.from)}`)}</span>
+            <span aria-hidden="true"> → </span>
+            <span className="font-medium text-foreground">{t(`status.${normalizeStudyOrderStatus(meta.to)}`)}</span>
+            {meta.automatic === true && <span className="italic"> · {t('timeline.automatic')}</span>}
+        </p>
+    );
 }
 
 /**
@@ -156,11 +188,13 @@ export function EventDetail({ event }: { event: StudyOrderEvent }) {
     // Edición de la orden: qué campos cambiaron, "anterior → nuevo" (como el tracking de Odoo).
     const changes = event.event_type === 'updated' ? readFieldChanges(meta.changes) : [];
 
+    const isStatusChange = event.event_type === 'status_changed';
     const hasSummary = !!(reason || toStart || procedure || reviewStatus || assignee || previousAssignee);
-    if (!hasSummary && changes.length === 0) return null;
+    if (!hasSummary && !isStatusChange && changes.length === 0) return null;
 
     return (
         <>
+            {isStatusChange && <StatusChange event={event} />}
             {changes.length > 0 && <FieldChanges changes={changes} />}
             {hasSummary && (
                 <p className="mt-1 text-xs text-muted-foreground">

@@ -347,7 +347,7 @@ function StudyOrderSubmittedBody({ item }: { item: StudyOrderSubmittedNotificati
 
 /** Ver la nota en notification-card.tsx: lista cerrada para no romper con un valor nuevo. */
 const STUDY_ORDER_CHANGE_KEYS = new Set([
-  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled',
+  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled', 'delivered',
 ]);
 
 function StudyOrderStatusBody({ item }: { item: StudyOrderStatusChangedNotification }) {

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CalendarPlus, Inbox, Pencil, Send, Trash2, UserPlus, UserRound, XCircle } from 'lucide-react';
+import { CalendarPlus, Inbox, PackageCheck, Pencil, Send, Trash2, UserPlus, UserRound, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -13,6 +13,7 @@ import { WhatsappSourceBadge } from '@/components/study-orders/whatsapp-source-b
 import { ReviewPendingBadge } from '@/components/study-orders/review-pending-badge';
 import { isStudyOrderAssignable } from '@/components/study-orders/study-order-assign-dialog';
 
+import { STUDY_ORDERS_FEATURES, isStudyOrderCancellable, isStudyOrderOpen } from '@/constants/study-order-status';
 import { formatDisplayDate } from '@/lib/utils';
 import type { StudyOrderListItem } from '@/lib/types';
 
@@ -34,6 +35,7 @@ export interface StudyOrderColumnsProps {
     onAcknowledge?: (order: StudyOrderListItem) => void;
     onSchedule?: (order: StudyOrderListItem) => void;
     onCancel?: (order: StudyOrderListItem) => void;
+    onDeliver?: (order: StudyOrderListItem) => void;
     /** Asignar quién la revisa. El padre ya resolvió el permiso; sin él no se ofrece. */
     onAssign?: (order: StudyOrderListItem) => void;
 }
@@ -104,6 +106,7 @@ export const StudyOrderColumnsWrapper = ({
     onAcknowledge,
     onSchedule,
     onCancel,
+    onDeliver,
     onAssign,
 }: StudyOrderColumnsProps): ColumnDef<StudyOrderListItem>[] => {
     const t = useTranslations('StudyOrdersPage.columns');
@@ -155,7 +158,10 @@ export const StudyOrderColumnsWrapper = ({
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} />,
             cell: ({ row }) => (
                 <div className="min-w-0 leading-snug">
-                    <div className="line-clamp-2 text-sm">{row.original.doctor_name ?? '—'}</div>
+                    <div className="line-clamp-2 text-sm">{row.original.doctor_name ?? row.original.referring_doctor_name ?? '—'}</div>
+                    {!row.original.doctor_id && row.original.referring_doctor_name && (
+                        <div className="truncate text-[11px] text-muted-foreground">{t('doctorOnOrder')}</div>
+                    )}
                     {row.original.preferred_sede_name && (
                         <div className="truncate text-[11px] text-muted-foreground">
                             {row.original.preferred_sede_name}
@@ -229,7 +235,7 @@ export const StudyOrderColumnsWrapper = ({
             cell: ({ row }) => {
                 const order = row.original;
                 const isDraft = order.status === 'draft';
-                const isSubmitted = order.status === 'submitted';
+                const isOpen = isStudyOrderOpen(order.status);
                 const isClinic = scope === 'clinic';
 
                 return (
@@ -241,13 +247,16 @@ export const StudyOrderColumnsWrapper = ({
                         {isDraft && onSubmit && (
                             <RowAction label={tActions('submit')} icon={Send} onClick={() => onSubmit(order)} />
                         )}
-                        {isClinic && isSubmitted && !order.acknowledged_at && onAcknowledge && (
+                        {isClinic && isOpen && !order.acknowledged_at && STUDY_ORDERS_FEATURES.acknowledge && onAcknowledge && (
                             <RowAction label={tActions('acknowledge')} icon={Inbox} onClick={() => onAcknowledge(order)} />
                         )}
                         {/* Una orden con todas sus líneas agendadas se gestiona
                             desde el calendario: acá deja de ofrecerse. */}
-                        {isClinic && isSubmitted && order.board_status !== 'scheduled' && onSchedule && (
+                        {isClinic && isOpen && Number(order.items_scheduled) < Number(order.items_total) && onSchedule && (
                             <RowAction label={tActions('schedule')} icon={CalendarPlus} onClick={() => onSchedule(order)} />
+                        )}
+                        {isClinic && order.status === 'completed' && onDeliver && (
+                            <RowAction label={tActions('deliver')} icon={PackageCheck} onClick={() => onDeliver(order)} />
                         )}
                         {isClinic && onAssign && isStudyOrderAssignable(order) && (
                             <RowAction
@@ -259,7 +268,7 @@ export const StudyOrderColumnsWrapper = ({
                         {isDraft && onDelete && (
                             <RowAction label={tActions('delete')} icon={Trash2} onClick={() => onDelete(order)} destructive />
                         )}
-                        {isSubmitted && onCancel && (
+                        {isStudyOrderCancellable(order.status) && onCancel && (
                             <RowAction
                                 label={tActions('cancel')}
                                 icon={XCircle}

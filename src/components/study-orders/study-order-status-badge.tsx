@@ -6,26 +6,28 @@ import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { cn } from '@/lib/utils';
 import type { StudyOrderBoardStatus } from '@/lib/types';
 
 /**
- * Badge del estado derivado de la orden, más el pin de "atrasada".
+ * Badge del estado de la orden, más el pin de "atrasada".
  *
  * "Atrasada" es ortogonal al estado, no un estado más: una orden puede estar
- * parcialmente agendada Y atrasada al mismo tiempo. Por eso va como un segundo
+ * en agenda pendiente Y atrasada al mismo tiempo. Por eso va como un segundo
  * indicador y no reemplaza al badge.
  */
 
 const VARIANT_BY_STATUS: Record<StudyOrderBoardStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'info' | 'warning'> = {
-    draft:               'outline',
-    new:                 'info',
-    unscheduled:         'warning',
-    partially_scheduled: 'warning',
-    scheduled:           'default',
-    in_progress:         'warning',
-    completed:           'success',
-    cancelled:           'destructive',
+    draft:              'outline',
+    confirmed:          'info',
+    pending_scheduling: 'warning',
+    scheduled:          'default',
+    patient_present:    'info',
+    in_execution:       'warning',
+    completed:          'success',
+    delivered:          'success',
+    cancelled:          'destructive',
 };
 
 export interface StudyOrderStatusBadgeProps {
@@ -47,9 +49,9 @@ export function StudyOrderStatusBadge({
     const t = useTranslations('StudyOrdersPage.status');
 
     const showProgress =
-        status === 'partially_scheduled' &&
-        typeof itemsScheduled === 'number' &&
-        typeof itemsTotal === 'number';
+        status === 'pending_scheduling' &&
+        Number(itemsScheduled) > 0 &&
+        Number(itemsTotal) > 0;
 
     return (
         <div className={cn('flex items-center gap-1.5', className)}>
@@ -57,7 +59,7 @@ export function StudyOrderStatusBadge({
                 {t(status)}
                 {showProgress && <span className="ml-1 tabular-nums opacity-80">{itemsScheduled}/{itemsTotal}</span>}
             </Badge>
-            {isOverdue && (
+            {STUDY_ORDERS_FEATURES.overdue && isOverdue && (
                 <span
                     className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
                     title={t('overdue')}

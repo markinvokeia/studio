@@ -328,25 +328,25 @@ SELECT o FROM jsonb_array_elements($orders$[
   {"doc": 1, "pat": 1, "st": "draft", "age": 3, "items": ["opt", "telerradio-perfil"], "mods": {"telerradio-perfil": {"tecnica": ["frankfort", "labios-reposo"]}}, "dl": ["email-medio"], "notes": "Borrador del doctor: falta enviar.", "n": 1},
   {"doc": null, "pat": 2, "st": "draft", "age": 5, "src": "whatsapp", "ref": "Dr. Felipe Korn", "items": ["cirugia-ortognatica"], "notes": "Receta manuscrita: planificación virtual para cirugía ortognática bimaxilar.", "review": [{"code": "handoff_reason", "field": "low_confidence", "label": "Lectura dudosa", "value": null, "confidence": null, "detail": "Orden manuscrita, sin formulario.", "section_code": null}, {"code": "low_confidence", "field": "items.ci-orden:svc:cirugia-ortognatica", "label": "Estudio: Planeamiento cirugía ortognática", "value": "Planificación virtual", "confidence": 0.62, "detail": null, "section_code": "OTROS-SRV"}, {"code": "low_confidence", "field": "patient.document", "label": "Documento del paciente", "value": "Último dígito dudoso", "confidence": 0.55, "detail": null, "section_code": null}], "n": 2},
   {"doc": null, "pat": 3, "st": "draft", "age": 20, "src": "whatsapp", "ref": "Dra. Andrea Pintos", "items": ["tomo-piezas"], "reg": {"CONEBEAM": ["21", "22", "23", "24"]}, "txt": {"tomo-elementos-sueltos": "Canino retenido pieza 23"}, "review": [{"code": "handoff_reason", "field": "low_confidence", "label": "Lectura dudosa", "value": null, "confidence": null, "detail": "Piezas marcadas sin casilla de tamaño.", "section_code": null}, {"code": "low_confidence", "field": "regions.CONEBEAM", "label": "Piezas", "value": "21, 22, 23, 24", "confidence": 0.71, "detail": null, "section_code": "CONEBEAM"}, {"code": "possibly_incomplete", "field": "missing_other_side", "label": "Puede faltar otra cara u hoja de la orden", "value": null, "confidence": null, "detail": null, "section_code": null}], "n": 3},
-  {"doc": 1, "pat": 4, "st": "submitted", "age": 2, "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "txt": {"indiacion-opt": "Ortodoncia"}, "dl": ["imagencloud", "email-medio"], "notes": "Documentación para ortodoncia.", "n": 4},
-  {"doc": 2, "pat": 5, "st": "submitted", "age": 6, "items": ["tomo-piezas"], "reg": {"CONEBEAM": ["26"]}, "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-endodoncia"]}}, "txt": {"interes-estudio-tomo": "Retratamiento de conducto. ¿Raíz MV con luz hacia apical o atrésica? ¿Fractura a nivel cervical?"}, "dl": ["email-medio", "medcloud"], "notes": "URGENTE", "n": 5},
-  {"doc": 3, "pat": 6, "st": "submitted", "age": 90, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa"], "txt": {"implante-ubicacion": "Maxilar inferior, 8 implantes"}, "dl": ["email-medio"], "notes": "Ya tiene tomografía. Orden demorada, sin tomar.", "n": 6},
-  {"doc": 4, "pat": null, "name": "Rosario Echenique", "st": "submitted", "age": 10, "items": ["periapical", "bitewing"], "reg": {"RX-INTRA": ["16", "46"]}, "dl": ["impreso"], "notes": "Paciente sin vincular a una ficha.", "n": 7},
-  {"doc": 4, "pat": 7, "st": "submitted", "age": 30, "ack": 24, "asg": 1, "items": ["maxilar-completo", "mandibula-completa"], "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-atm"]}}, "txt": {"interes-estudio-tomo": "ATM bilateral. Apertura disminuida, dolor al movimiento y luxaciones a repetición."}, "dl": ["imagencloud"], "n": 8},
-  {"doc": 1, "pat": 8, "st": "submitted", "age": 120, "ack": 110, "asg": 2, "items": ["periapical-completo", "opt"], "dl": ["impreso", "email-medio"], "n": 9},
-  {"doc": 2, "pat": 9, "st": "submitted", "age": 160, "ack": 150, "items": ["rm-atm", "craneo-completo"], "notes": "No asistió a la cita anterior.", "appts": [{"d": -2, "t": "09:00", "s": "no_show", "items": ["craneo-completo"], "tech": 1, "cal": 1}], "n": 10},
-  {"doc": 3, "pat": 10, "st": "submitted", "age": 70, "ack": 66, "asg": 1, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa", "mandibula-completa"], "reg": {"CONEBEAM": ["36", "37", "46", "47"]}, "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-implante"]}}, "appts": [{"d": 2, "t": "09:00", "s": "confirmed", "items": ["mandibula-completa", "servicio-escaneo"], "tech": 1, "cal": 1}], "n": 11},
-  {"doc": 1, "pat": 11, "st": "submitted", "age": 60, "ack": 50, "items": ["opt", "telerradio-perfil", "modelo-digital-informe"], "mods": {"telerradio-perfil": {"tecnica": ["labios-reposo"]}}, "appts": [{"d": 3, "t": "09:30", "s": "scheduled", "items": ["opt", "telerradio-perfil"], "tech": null, "cal": 1}], "n": 12},
-  {"doc": 2, "pat": 12, "st": "submitted", "age": 48, "ack": 40, "asg": 2, "items": ["periapical"], "reg": {"RX-INTRA": ["26"]}, "appts": [{"d": 1, "t": "10:00", "s": "confirmed", "items": ["periapical"], "tech": 1, "cal": 1}], "n": 13},
-  {"doc": 1, "pat": 13, "st": "submitted", "age": 40, "ack": 30, "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "notes": "Menor a cargo de un responsable.", "appts": [{"d": 1, "t": "10:20", "s": "scheduled", "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "tech": 2, "cal": 2}], "n": 14},
-  {"doc": 4, "pat": 14, "st": "submitted", "age": 44, "ack": 36, "items": ["opt"], "notes": "Paciente SIN documento: sirve para probar el bloqueo al completar la cita.", "appts": [{"d": 0, "t": "09:30", "s": "confirmed", "items": ["opt"], "tech": 1, "cal": 1}], "n": 15},
-  {"doc": 3, "pat": 15, "st": "submitted", "age": 200, "ack": 190, "items": ["bio-mandibula"], "notes": "Cita pasada sin cerrar.", "appts": [{"d": -1, "t": "10:30", "s": "confirmed", "items": ["bio-mandibula"], "tech": 2, "cal": 2}], "n": 16},
-  {"doc": null, "pat": 16, "st": "submitted", "age": 26, "ack": 26, "src": "whatsapp", "ref": "Dra. Nadia Mena", "items": ["opt", "periapical"], "reg": {"RX-INTRA": ["11"]}, "review": [{"code": "no_signature", "field": "has_signature", "label": "La orden no tiene firma visible", "value": null, "confidence": null, "detail": null, "section_code": null}], "notblock": true, "notes": "Agendada por el asistente de WhatsApp.", "appts": [{"d": 4, "t": "09:00", "s": "scheduled", "items": ["opt", "periapical"], "tech": null, "cal": 1}], "n": 17},
-  {"doc": 3, "pat": 1, "st": "submitted", "age": 200, "ack": 190, "asg": 1, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa"], "txt": {"implante-ubicacion": "36 y 46"}, "appts": [{"d": -3, "t": "09:00", "s": "completed", "items": ["servicio-escaneo"], "tech": 1, "cal": 2, "ses": 1}, {"d": 5, "t": "09:00", "s": "scheduled", "items": ["servicio-planeamiento", "guia-fresa"], "tech": 3, "cal": 1}], "n": 18},
-  {"doc": 1, "pat": 5, "st": "submitted", "age": 260, "ack": 250, "items": ["escaneo-ortodoncia-placas", "opt"], "mods": {"escaneo-ortodoncia-placas": {"arcada": ["escaneo-superior", "escaneo-inferior"], "espesor": ["escaneo-placa-040"], "borde": ["escaneo-festoneado"]}}, "appts": [{"d": -4, "t": "09:30", "s": "completed", "items": ["opt"], "tech": 2, "cal": 1, "ses": 1}], "n": 19},
+  {"doc": 1, "pat": 4, "st": "confirmed", "age": 2, "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "txt": {"indiacion-opt": "Ortodoncia"}, "dl": ["imagencloud", "email-medio"], "notes": "Documentación para ortodoncia.", "n": 4},
+  {"doc": 2, "pat": 5, "st": "confirmed", "age": 6, "items": ["tomo-piezas"], "reg": {"CONEBEAM": ["26"]}, "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-endodoncia"]}}, "txt": {"interes-estudio-tomo": "Retratamiento de conducto. ¿Raíz MV con luz hacia apical o atrésica? ¿Fractura a nivel cervical?"}, "dl": ["email-medio", "medcloud"], "notes": "URGENTE", "n": 5},
+  {"doc": 3, "pat": 6, "st": "confirmed", "age": 90, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa"], "txt": {"implante-ubicacion": "Maxilar inferior, 8 implantes"}, "dl": ["email-medio"], "notes": "Ya tiene tomografía. Orden demorada, sin tomar.", "n": 6},
+  {"doc": 4, "pat": null, "name": "Rosario Echenique", "st": "confirmed", "age": 10, "items": ["periapical", "bitewing"], "reg": {"RX-INTRA": ["16", "46"]}, "dl": ["impreso"], "notes": "Paciente sin vincular a una ficha.", "n": 7},
+  {"doc": 4, "pat": 7, "st": "confirmed", "age": 30, "ack": 24, "asg": 1, "items": ["maxilar-completo", "mandibula-completa"], "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-atm"]}}, "txt": {"interes-estudio-tomo": "ATM bilateral. Apertura disminuida, dolor al movimiento y luxaciones a repetición."}, "dl": ["imagencloud"], "n": 8},
+  {"doc": 1, "pat": 8, "st": "confirmed", "age": 120, "ack": 110, "asg": 2, "items": ["periapical-completo", "opt"], "dl": ["impreso", "email-medio"], "n": 9},
+  {"doc": 2, "pat": 9, "st": "confirmed", "age": 160, "ack": 150, "items": ["rm-atm", "craneo-completo"], "notes": "No asistió a la cita anterior.", "appts": [{"d": -2, "t": "09:00", "s": "no_show", "items": ["craneo-completo"], "tech": 1, "cal": 1}], "n": 10},
+  {"doc": 3, "pat": 10, "st": "confirmed", "age": 70, "ack": 66, "asg": 1, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa", "mandibula-completa"], "reg": {"CONEBEAM": ["36", "37", "46", "47"]}, "sec": {"CONEBEAM": {"indicacion_clinica": ["est-tipo-implante"]}}, "appts": [{"d": 2, "t": "09:00", "s": "confirmed", "items": ["mandibula-completa", "servicio-escaneo"], "tech": 1, "cal": 1}], "n": 11},
+  {"doc": 1, "pat": 11, "st": "confirmed", "age": 60, "ack": 50, "items": ["opt", "telerradio-perfil", "modelo-digital-informe"], "mods": {"telerradio-perfil": {"tecnica": ["labios-reposo"]}}, "appts": [{"d": 3, "t": "09:30", "s": "scheduled", "items": ["opt", "telerradio-perfil"], "tech": null, "cal": 1}], "n": 12},
+  {"doc": 2, "pat": 12, "st": "confirmed", "age": 48, "ack": 40, "asg": 2, "items": ["periapical"], "reg": {"RX-INTRA": ["26"]}, "appts": [{"d": 0, "t": "08:30", "s": "arrived", "items": ["periapical"], "tech": 1, "cal": 1}], "n": 13},
+  {"doc": 1, "pat": 13, "st": "confirmed", "age": 40, "ack": 30, "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "notes": "Menor a cargo de un responsable.", "appts": [{"d": 1, "t": "10:20", "s": "scheduled", "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "tech": 2, "cal": 2}], "n": 14},
+  {"doc": 4, "pat": 14, "st": "confirmed", "age": 44, "ack": 36, "items": ["opt"], "notes": "Paciente SIN documento: sirve para probar el bloqueo al completar la cita.", "appts": [{"d": 0, "t": "09:30", "s": "confirmed", "items": ["opt"], "tech": 1, "cal": 1}], "n": 15},
+  {"doc": 3, "pat": 15, "st": "confirmed", "age": 200, "ack": 190, "items": ["bio-mandibula"], "notes": "Cita pasada sin cerrar.", "appts": [{"d": -1, "t": "10:30", "s": "confirmed", "items": ["bio-mandibula"], "tech": 2, "cal": 2}], "n": 16},
+  {"doc": null, "pat": 16, "st": "confirmed", "age": 26, "ack": 26, "src": "whatsapp", "ref": "Dra. Nadia Mena", "items": ["opt", "periapical"], "reg": {"RX-INTRA": ["11"]}, "review": [{"code": "no_signature", "field": "has_signature", "label": "La orden no tiene firma visible", "value": null, "confidence": null, "detail": null, "section_code": null}], "notblock": true, "notes": "Agendada por el asistente de WhatsApp.", "appts": [{"d": 4, "t": "09:00", "s": "scheduled", "items": ["opt", "periapical"], "tech": null, "cal": 1}], "n": 17},
+  {"doc": 3, "pat": 1, "st": "confirmed", "age": 200, "ack": 190, "asg": 1, "items": ["servicio-escaneo", "servicio-planeamiento", "guia-fresa"], "txt": {"implante-ubicacion": "36 y 46"}, "appts": [{"d": -3, "t": "09:00", "s": "completed", "items": ["servicio-escaneo"], "tech": 1, "cal": 2, "ses": 1}, {"d": 5, "t": "09:00", "s": "scheduled", "items": ["servicio-planeamiento", "guia-fresa"], "tech": 3, "cal": 1}], "n": 18},
+  {"doc": 1, "pat": 5, "st": "confirmed", "age": 260, "ack": 250, "items": ["escaneo-ortodoncia-placas", "opt"], "mods": {"escaneo-ortodoncia-placas": {"arcada": ["escaneo-superior", "escaneo-inferior"], "espesor": ["escaneo-placa-040"], "borde": ["escaneo-festoneado"]}}, "appts": [{"d": -4, "t": "09:30", "s": "completed", "items": ["opt"], "tech": 2, "cal": 1, "ses": 1}], "n": 19},
   {"doc": 2, "pat": 3, "st": "completed", "age": 420, "ack": 410, "asg": 1, "items": ["periapical", "bitewing"], "reg": {"RX-INTRA": ["36"]}, "appts": [{"d": -9, "t": "10:00", "s": "completed", "items": ["periapical", "bitewing"], "tech": 1, "cal": 1, "ses": 1}], "n": 20},
   {"doc": 1, "pat": 8, "st": "completed", "age": 560, "ack": 550, "asg": 2, "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet", "telerradio-perfil"], "dl": ["imagencloud"], "appts": [{"d": -12, "t": "09:00", "s": "completed", "items": ["opt", "ft-oclusal-2", "ft-llave-oclusion", "ft-oclusion-frente", "ft-overjet"], "tech": 2, "cal": 2, "ses": 1}, {"d": -10, "t": "09:00", "s": "completed", "items": ["telerradio-perfil"], "tech": 1, "cal": 1, "ses": 1}], "n": 21},
-  {"doc": 4, "pat": 12, "st": "completed", "age": 800, "ack": 790, "items": ["maxilar-completo"], "appts": [{"d": -18, "t": "10:30", "s": "completed", "items": ["maxilar-completo"], "tech": 3, "cal": 1, "ses": 1}], "n": 22},
+  {"doc": 4, "pat": 12, "st": "completed", "age": 800, "ack": 790, "items": ["maxilar-completo"], "delivered": true, "appts": [{"d": -18, "t": "10:30", "s": "completed", "items": ["maxilar-completo"], "tech": 3, "cal": 1, "ses": 1}], "n": 22},
   {"doc": 2, "pat": 6, "st": "cancelled", "age": 190, "ack": 180, "items": ["opt"], "cancel": "El paciente se realizó el estudio en otro centro.", "appts": [{"d": -3, "t": "10:30", "s": "cancelled", "items": ["opt"], "tech": 1, "cal": 1}], "n": 23},
   {"doc": 3, "pat": 9, "st": "cancelled", "age": 60, "items": ["placas-blanqueamiento"], "mods": {"placas-blanqueamiento": {"arcada": ["placas-superior", "placas-inferior"], "borde": ["placas-recto"]}}, "cancel": "Orden duplicada.", "n": 24}
 ]$orders$::jsonb) AS o;
@@ -379,7 +379,8 @@ BEGIN
                               created_by, created_at, updated_at, source, referring_doctor_name,
                               assigned_to, assigned_at, assigned_by)
     VALUES ('OE-DEMO-' || lpad(o ->> 'n', 4, '0'), v_doc, pat.id, pat.name, pat.doc, pat.email, pat.phone,
-            v_status, coalesce(o -> 'reg', '{}'), coalesce(o -> 'sec', '{}'), coalesce(o -> 'txt', '{}'), coalesce(o -> 'dl', '[]'),
+            -- Las realizadas entran confirmadas y avanzan con sus citas (migración 179).
+            CASE WHEN v_status = 'completed' THEN 'confirmed' ELSE v_status END, coalesce(o -> 'reg', '{}'), coalesce(o -> 'sec', '{}'), coalesce(o -> 'txt', '{}'), coalesce(o -> 'dl', '[]'),
             o ->> 'notes', c.sede_id,
             CASE WHEN v_status <> 'draft' THEN v_sub END, v_acked, CASE WHEN v_acked IS NOT NULL THEN v_ack END,
             CASE WHEN v_status = 'cancelled' THEN c.now_local - interval '20 hours' END, o ->> 'cancel',
@@ -411,8 +412,8 @@ BEGIN
     INSERT INTO study_order_events (study_order_id, event_type, actor_id, actor_kind, created_at)
     VALUES (v_id, 'created', coalesce(v_doc, v_recep), 'user', v_sub - interval '10 minutes');
     IF v_status <> 'draft' THEN
-      INSERT INTO study_order_events (study_order_id, event_type, actor_id, actor_kind, created_at)
-      VALUES (v_id, 'submitted', coalesce(v_doc, v_recep), 'user', v_sub);
+      INSERT INTO study_order_events (study_order_id, event_type, actor_id, actor_kind, created_at, metadata)
+      VALUES (v_id, 'status_changed', coalesce(v_doc, v_recep), 'user', v_sub, '{"from": "draft", "to": "confirmed"}');
     END IF;
     IF v_acked IS NOT NULL THEN
       INSERT INTO study_order_events (study_order_id, event_type, actor_id, actor_kind, created_at)
@@ -473,12 +474,29 @@ BEGIN
       END IF;
     END LOOP;
 
-    IF v_status = 'completed' THEN
-      UPDATE study_orders SET completed_at = v_last WHERE id = v_id;
-      INSERT INTO study_order_events (study_order_id, event_type, actor_kind, created_at) VALUES (v_id, 'completed', 'system', v_last);
-    ELSIF v_status = 'cancelled' THEN
+    IF v_status = 'cancelled' THEN
       INSERT INTO study_order_events (study_order_id, event_type, actor_id, actor_kind, created_at, metadata)
-      VALUES (v_id, 'cancelled', v_recep, 'user', c.now_local - interval '20 hours', jsonb_build_object('reason', o ->> 'cancel'));
+      VALUES (v_id, 'status_changed', v_recep, 'user', c.now_local - interval '20 hours',
+              jsonb_build_object('from', 'confirmed', 'to', 'cancelled', 'reason', o ->> 'cancel'));
+    ELSIF v_status <> 'draft' AND o -> 'appts' IS NOT NULL THEN
+      -- El estado y su historial salen de las citas, como en uso real.
+      PERFORM study_order_sync(v_id, v_ack, 'user');
+      IF (o ->> 'delivered')::boolean THEN
+        PERFORM study_order_set_status(v_id, 'delivered', v_ack, 'user');
+        UPDATE study_orders SET delivered_at = v_last + interval '1 day' WHERE id = v_id;
+      END IF;
+      UPDATE study_orders SET completed_at = v_last WHERE id = v_id AND completed_at IS NOT NULL;
+      -- Las fechas del historial, en el momento que corresponde y no en el de la carga.
+      UPDATE study_order_events e
+         SET created_at = CASE e.metadata ->> 'to'
+               WHEN 'scheduled'          THEN least(v_acked + interval '1 hour', v_start - interval '1 hour')
+               WHEN 'pending_scheduling' THEN least(v_acked + interval '1 hour', v_start - interval '1 hour')
+               WHEN 'patient_present'    THEN least(v_start, coalesce(v_last, v_start)) - interval '5 minutes'
+               WHEN 'in_execution'       THEN least(v_start, coalesce(v_last, v_start))
+               WHEN 'completed'          THEN v_last
+               WHEN 'delivered'          THEN v_last + interval '1 day'
+               ELSE e.created_at END
+       WHERE e.study_order_id = v_id AND e.event_type = 'status_changed';
     END IF;
   END LOOP;
 

@@ -26,7 +26,7 @@ import {
     ACKNOWLEDGE_SQL, ASSIGN_SQL, ASSIGNEES_SQL, BOARD_COLUMNS, BOARD_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL, NOTIFY_ASSIGNEE_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
-    RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
+    RECOMPUTE_SQL, RESCHEDULE_SQL, STATUS_SQL, SUBMIT_SQL, UPSERT_SQL,
     RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
     CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL,
 } from './study-orders-sql.mjs';
@@ -380,7 +380,7 @@ return [{ json: { __data: { id }, __changes: Array.isArray(rows[0].changes) ? ro
 workflows.push({
     file: 'study-orders-submit.json',
     name: 'Study Orders - Submit',
-    sticky: `## POST /study-orders/submit\n\nEnvía la orden a la clínica. A partir de acá es **inmutable**.\n\n**Body:** \`{ "id": "uuid" }\`\n\n**409** si ya fue enviada, si no le pertenece al sujeto, si no tiene ninguna línea o si le quedan puntos a revisar bloqueantes (borrador creado al derivar desde WhatsApp).\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
+    sticky: `## POST /study-orders/submit\n\nConfirma la orden (Borrador → Confirmada). A partir de acá es **inmutable**. El renglón del historial (quién y cuándo) lo escribe la base.\n\n**Body:** \`{ "id": "uuid" }\`\n\n**409** si ya fue enviada, si no le pertenece al sujeto, si no tiene ninguna línea o si le quedan puntos a revisar bloqueantes (borrador creado al derivar desde WhatsApp).\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
     method: 'POST',
     path: 'study-orders/submit',
     id: 'submit',
@@ -390,7 +390,6 @@ if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin
 const id = ($json.body?.id || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 return [{ json: { user_id: String(userId), id } }];`.trim(),
-    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'submitted', actor_id: $('Validar Datos').first().json.user_id }) }}` },
     sql: SUBMIT_SQL,
     replacement: '={{ [ $json.user_id, $json.id ] }}',
     notify: {
@@ -405,13 +404,13 @@ if (!rows.length || !rows[0].id) {
   if (pendingReview > 0) {
     return [{ json: { __error: true, __code: 409,
       __message: pendingReview === 1
-        ? 'La orden no se puede enviar: queda 1 punto sin revisar contra el original'
-        : 'La orden no se puede enviar: quedan ' + pendingReview + ' puntos sin revisar contra el original' } }];
+        ? 'La orden no se puede confirmar: queda 1 punto sin revisar contra el original'
+        : 'La orden no se puede confirmar: quedan ' + pendingReview + ' puntos sin revisar contra el original' } }];
   }
   return [{ json: { __error: true, __code: 409,
-    __message: 'La orden no se puede enviar: ya fue enviada, no te pertenece o no tiene estudios' } }];
+    __message: 'La orden no se puede confirmar: ya no es un borrador, no te pertenece o no tiene estudios' } }];
 }
-return [{ json: { __data: rows[0], __message: 'Orden enviada' } }];`),
+return [{ json: { __data: rows[0], __message: 'Orden confirmada' } }];`),
 });
 
 // ── 6. DELETE /study-orders/delete ───────────────────────────────────────────
@@ -442,7 +441,7 @@ return [{ json: { __data: { id: rows[0].id }, __message: 'Borrador eliminado' } 
 workflows.push({
     file: 'study-orders-acknowledge.json',
     name: 'Study Orders - Acknowledge',
-    sticky: `## POST /study-orders/acknowledge\n\nLa clínica "toma" la orden: la saca del bucket **nuevas** y la pasa a **sin agendar**.\n\nEs el paso de revisión previa. No es un estado persistido: se guarda \`acknowledged_at\` y la vista \`v_study_orders_board\` deriva el resto.\n\n**Body:** \`{ "id": "uuid" }\` · Requiere STUDY_ORDERS_ACKNOWLEDGE.`,
+    sticky: `## POST /study-orders/acknowledge\n\nLa clínica "toma" la orden: guarda \`acknowledged_at\`. **No cambia el estado**; a partir de ahí el derivador ya no puede anularla.\n\n**Body:** \`{ "id": "uuid" }\` · Requiere STUDY_ORDERS_ACKNOWLEDGE.`,
     method: 'POST',
     path: 'study-orders/acknowledge',
     id: 'ack',
@@ -463,7 +462,7 @@ return [{ json: { user_id: String(userId), id } }];`.trim(),
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
-    __message: 'La orden ya fue tomada, no está enviada, o no tenés permiso' } }];
+    __message: 'La orden ya fue tomada, no está confirmada, o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Orden tomada' } }];`),
 });
@@ -534,7 +533,7 @@ return [{ json: { __data: rows[0]?.items ?? [] } }];`),
 workflows.push({
     file: 'study-orders-cancel.json',
     name: 'Study Orders - Cancel',
-    sticky: `## POST /study-orders/cancel\n\nAnula la orden con motivo obligatorio.\n\n**Body:** \`{ "id": "uuid", "reason": "texto" }\`\n\nDos caminos: con STUDY_ORDERS_CANCEL (la clínica) se anula en cualquier momento; el derivador anula lo suyo **sólo mientras no haya sido tomada** (\`acknowledged_at IS NULL\`). Después de eso la baja pasa por la clínica.`,
+    sticky: `## POST /study-orders/cancel\n\nAnula la orden con motivo obligatorio.\n\n**Body:** \`{ "id": "uuid", "reason": "texto" }\`\n\nDos caminos: con STUDY_ORDERS_CANCEL (la clínica) se anula mientras no esté en ejecución, completada o entregada; el derivador anula lo suyo **sólo mientras no haya sido tomada** (\`acknowledged_at IS NULL\`). Después de eso la baja pasa por la clínica.`,
     method: 'POST',
     path: 'study-orders/cancel',
     id: 'cancel',
@@ -547,7 +546,6 @@ const reason = (b.reason || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 if (!reason) return [{ json: { __error: true, __code: 400, __message: 'El motivo de anulación es requerido' } }];
 return [{ json: { user_id: String(userId), id, reason } }];`.trim(),
-    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'cancelled', actor_id: $('Validar Datos').first().json.user_id, metadata: { reason: $('Validar Datos').first().json.reason || '' } }) }}` },
     sql: CANCEL_SQL,
     replacement: '={{ [ $json.user_id, $json.id, $json.reason ] }}',
     // Dos destinatarios: el derivador —salvo que haya sido él quien anuló— y la
@@ -573,6 +571,48 @@ if (!rows.length) {
     __message: 'La orden no se puede anular: ya fue tomada por la clínica, no está en un estado anulable, o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Orden anulada' } }];`),
+});
+
+// ── 8b. POST /study-orders/status ────────────────────────────────────────────
+workflows.push({
+    file: 'study-orders-status.json',
+    name: 'Study Orders - Status',
+    sticky: `## POST /study-orders/status\n\nCambia a mano el estado de la orden. El usuario sale del token y queda en el historial (\`status_changed\`).\n\n**Body:** \`{ "id": "uuid", "status": "delivered" }\`\n\nSólo dos pasos son manuales: **pending_scheduling** (desde Confirmada; STUDY_ORDERS_SCHEDULE o STUDY_ORDERS_ACKNOWLEDGE) y **delivered** (desde Estudio completado; STUDY_ORDERS_DELIVER). Confirmar y anular tienen su endpoint; los demás los mueve la cita.\n\n**409** si la matriz \`study_order_transition_allowed\` no admite el paso · **403** sin permiso · **404** si no la puede ver.`,
+    method: 'POST',
+    path: 'study-orders/status',
+    id: 'status',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const id = (b.id || '').toString().trim();
+const status = (b.status || '').toString().trim();
+const STATES = ${JSON.stringify(BOARD_COLUMNS)};
+if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
+if (!STATES.includes(status)) return [{ json: { __error: true, __code: 400, __message: 'Estado desconocido: ' + status } }];
+return [{ json: { user_id: String(userId), id, status } }];`.trim(),
+    sql: STATUS_SQL,
+    replacement: '={{ [ $json.user_id, $json.id, $json.status ] }}',
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: `={{ [ $('Validar Datos').first().json.id, $('Validar Datos').first().json.status, $('Validar Datos').first().json.user_id ] }}`,
+        eventType: 'study_order_status_changed',
+    },
+    format: formatCode(`
+const r = rows[0];
+if (!r) return [{ json: { __error: true, __code: 404, __message: 'La orden no existe o no la podés ver' } }];
+if (!r.status) {
+  const L = { draft: 'Borrador', confirmed: 'Confirmada', pending_scheduling: 'Agenda pendiente', scheduled: 'Agendada',
+    patient_present: 'Paciente presente', in_execution: 'En ejecución', completed: 'Estudio completado',
+    delivered: 'Entregada', cancelled: 'Cancelada' };
+  if (!r.allowed) return [{ json: { __error: true, __code: 409,
+    __message: 'Cambio de estado no permitido: ' + L[r.from_status] + ' → ' + L[r.to_status] } }];
+  if (!r.manual) return [{ json: { __error: true, __code: 409,
+    __message: 'El paso a ' + L[r.to_status] + ' no se hace a mano: lo produce su propia acción o la cita' } }];
+  return [{ json: { __error: true, __code: 403, __message: 'No tenés permiso para pasar la orden a ' + L[r.to_status] } }];
+}
+return [{ json: { __data: { id: r.id, order_number: r.order_number, from_status: r.from_status, status: r.status },
+                  __message: 'Estado actualizado' } }];`),
 });
 
 // ── 9. POST /study-orders/reschedule ─────────────────────────────────────────
@@ -692,7 +732,7 @@ return [{ json: { __data: rows[0] ?? null } }];`),
 workflows.push({
     file: 'study-orders-recompute.json',
     name: 'Study Orders - Recompute',
-    sticky: `## POST /study-orders/recompute\n\nRecalcula el estado de la orden contra sus citas y avisa al derivador.\n\n**Body:** \`{ "id": "uuid", "change": "appointment_cancelled" }\` — \`change\` es opcional.\n\n**Qué persiste:** sólo el cierre. Todas las líneas atendidas → \`completed\`; y su reverso, si la cita de una orden cerrada se cancela vuelve a \`submitted\`. El estado operativo (sin agendar / parcial / agendada) lo deriva \`v_study_orders_board\` y se corrige solo.\n\n**Por qué \`change\` lo manda el cliente:** al cancelar una cita no hay transición persistida que detectar — la orden sigue \`submitted\` — y aun así el derivador tiene que enterarse. Si el recálculo sí produjo una transición, esa gana.\n\n**Idempotente y fire-and-forget:** llamarlo de más no cambia nada y, sin cambio que contar, no notifica.`,
+    sticky: `## POST /study-orders/recompute\n\nRecalcula el estado de la orden contra sus citas y avisa al derivador.\n\n**Body:** \`{ "id": "uuid", "change": "appointment_cancelled" }\` — \`change\` es opcional.\n\n**Qué hace:** lleva la orden al estado que dicen sus citas (\`study_order_sync\`), paso a paso y en nombre del usuario del token. Borrador, entregada y cancelada no se tocan.\n\n**Por qué \`change\` lo manda el cliente:** es el único que sabe qué pasó. Si el recálculo cierra o reabre la orden, eso gana.\n\n**Idempotente y fire-and-forget:** llamarlo de más no cambia nada y, sin cambio que contar, no notifica.`,
     method: 'POST',
     path: 'study-orders/recompute',
     id: 'recomp',
@@ -715,8 +755,8 @@ const LOG_ONLY = ['session_saved'];
 const hint = (b.change || '').toString().trim();
 const change = ALLOWED.includes(hint) ? hint : '';
 
-// El id de la cita viaja aparte del payload SQL: la consulta no lo usa, pero
-// la bitácora sí, para poder decir "se canceló la cita del 10 a las 14".
+// El id de la cita va a la bitácora, para poder decir "se canceló la cita del 10
+// a las 14", y al historial de estados.
 const apptId = (b.appointment_id || '').toString().trim();
 
 return [{ json: {
@@ -726,29 +766,10 @@ return [{ json: {
   // bitacora usa change, y el de aviso usa notify_change, que va vacio en los
   // eventos log-only.
   notify_change: LOG_ONLY.includes(change) ? '' : change,
-  payload: JSON.stringify({ id, change }),
+  payload: JSON.stringify({ id, change, appointment_id: /^\\d+$/.test(apptId) ? apptId : '' }),
 } }];`.trim(),
-    // DOS renglones, no uno.
-    //
-    // Un guardado de sesión clínica que además cierra la orden es dos hechos:
-    // alguien registró el estudio, y la orden quedó completa. El SQL devuelve un
-    // solo `change` —la transición pisa al hint— así que si se registrara sólo
-    // eso, la línea de tiempo diría "se completaron los estudios" y se perdería
-    // QUIÉN los hizo, que es justamente lo que hay que auditar.
-    //
-    // El primero anota la acción de quien llamó, con su actor. El segundo, la
-    // transición persistida, y sólo si hubo. Cuando coinciden en el tiempo se
-    // ven los dos, en orden.
-    event: [
-        {
-            name: 'Registrar acción',
-            replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}`,
-        },
-        {
-            name: 'Registrar cierre',
-            replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: $('Formatear Respuesta').first().json.__data?.changed ? $('Formatear Respuesta').first().json.__data?.change : '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}`,
-        },
-    ],
+    // La acción de quien llamó. El cambio de estado lo anota la base, con el mismo actor.
+    event: { name: 'Registrar acción', replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}` },
     sql: RECOMPUTE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -767,7 +788,7 @@ return [{ json: { __data: rows[0] ?? null } }];`),
 workflows.push({
     file: 'study-orders-booking-token.json',
     name: 'Study Orders - Booking Token',
-    sticky: `## POST /study-orders/booking-token\n\nGenera el link con el que el paciente elige horario, sin cuenta.\n\n**Body:** \`{ "order_id": "uuid", "days_valid": 7, "max_uses": 1 }\`\n\n**Devuelve el token en claro UNA sola vez.** En la base se guarda sólo el sha256, igual que \`users.login_code\` del portal de pacientes: si alguien lee la tabla, no puede usar los links.\n\n**Generar uno nuevo revoca los anteriores** de esa orden — un link viejo circulando por WhatsApp es una puerta que nadie recuerda cerrar.\n\n**409** si la orden no está enviada o todavía no tiene ficha de paciente.`,
+    sticky: `## POST /study-orders/booking-token\n\nGenera el link con el que el paciente elige horario, sin cuenta.\n\n**Body:** \`{ "order_id": "uuid", "days_valid": 7, "max_uses": 1 }\`\n\n**Devuelve el token en claro UNA sola vez.** En la base se guarda sólo el sha256, igual que \`users.login_code\` del portal de pacientes: si alguien lee la tabla, no puede usar los links.\n\n**Generar uno nuevo revoca los anteriores** de esa orden — un link viejo circulando por WhatsApp es una puerta que nadie recuerda cerrar.\n\n**409** si la orden no está confirmada, ya terminó o todavía no tiene ficha de paciente.`,
     method: 'POST',
     path: 'study-orders/booking-token',
     id: 'btok',
@@ -809,7 +830,7 @@ return [{ json: {
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
-    __message: 'No se pudo generar el link: la orden no está enviada, no tiene ficha de paciente, o no tenés permiso' } }];
+    __message: 'No se pudo generar el link: la orden no está confirmada, no tiene ficha de paciente, o no tenés permiso' } }];
 }
 // El token en claro se devuelve acá y no vuelve a existir en ningún lado.
 return [{ json: { __data: { ...rows[0], token: $('Validar Datos').first().json.token_clear },
@@ -1122,14 +1143,14 @@ function reconcileWorkflow() {
     return {
         name: 'Study Orders - Reconcile (cron)',
         nodes: [
-            stickyNode('recon-doc', `## Cron de reconciliación\n\nCorre cada 2 horas y corrige las órdenes cuyo estado persistido no refleja sus citas.\n\n**Por qué existe:** \`/study-orders/recompute\` lo llama el front al guardar una sesión clínica y al cancelar una cita, pero el front no siempre llega — la pestaña se cierra, la red se corta, o el estado de la cita cambia por un camino que no lo invoca. Sin esto, una orden puede quedarse en "en curso" para siempre y el derivador nunca se entera de que sus estudios están listos.\n\nSin nada que corregir devuelve cero filas y la ejecución se corta ahí: no notifica de más.`, [-560, -180], 380),
+            stickyNode('recon-doc', `## Cron de reconciliación\n\nCorre cada 15 minutos y corrige las órdenes cuyo estado no refleja sus citas. El historial lo firma **Sistema**.\n\n**Por qué existe:** el estado lo mueven \`/appointments/update_status\`, \`/study-orders/link-appointment\` y \`/study-orders/recompute\` con el usuario real, pero una cita puede cambiar por un camino que no pasa por ahí (Google, agente, edición directa).\n\nSin nada que corregir devuelve cero filas y la ejecución se corta ahí: no notifica de más.`, [-560, -180], 380),
             {
-                parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 2 }] } },
+                parameters: { rule: { interval: [{ field: 'minutes', minutesInterval: 15 }] } },
                 type: 'n8n-nodes-base.scheduleTrigger',
                 typeVersion: 1.2,
                 position: [0, 0],
                 id: 'recon-cron',
-                name: 'Cada 2 horas',
+                name: 'Cada 15 minutos',
             },
             {
                 parameters: { operation: 'executeQuery', query: RECONCILE_SQL, options: {} },
@@ -1142,32 +1163,13 @@ function reconcileWorkflow() {
                 onError: 'continueRegularOutput',
             },
             {
-                // El cron también deja su renglón en la bitácora, con actor
-                // 'system': en la línea de tiempo se distingue de una corrección
-                // hecha por una persona.
-                parameters: {
-                    operation: 'executeQuery',
-                    query: LOG_EVENT_SQL,
-                    options: {
-                        queryReplacement: "={{ JSON.stringify({ order_id: $json.order_id, event_type: $json.change, actor_kind: 'system' }) }}",
-                    },
-                },
-                type: 'n8n-nodes-base.postgres',
-                typeVersion: 2.6,
-                position: [480, 180],
-                id: 'recon-event',
-                name: 'Registrar evento',
-                credentials: PG_CREDENTIAL,
-                onError: 'continueRegularOutput',
-            },
-            {
                 // Corre una vez por orden corregida. Se reusa el mismo SQL de
                 // aviso que los demás flujos, así el doctor recibe la tarjeta
                 // idéntica venga de donde venga.
                 parameters: {
                     operation: 'executeQuery',
                     query: NOTIFY_DOCTOR_SQL,
-                    options: { queryReplacement: '={{ [ $json.order_id, $json.change, \'\' ] }}' },
+                    options: { queryReplacement: '={{ [ $json.order_id || \'\', $json.change || \'\', \'\' ] }}' },
                 },
                 type: 'n8n-nodes-base.postgres',
                 typeVersion: 2.6,
@@ -1201,9 +1203,8 @@ function reconcileWorkflow() {
             },
         ],
         connections: {
-            'Cada 2 horas': { main: [[{ node: 'Reconciliar', type: 'main', index: 0 }]] },
+            'Cada 15 minutos': { main: [[{ node: 'Reconciliar', type: 'main', index: 0 }]] },
             Reconciliar:    { main: [[
-                { node: 'Registrar evento', type: 'main', index: 0 },
                 { node: 'Notificar', type: 'main', index: 0 },
             ]] },
             Notificar:      { main: [[{ node: '¿Hay a quién avisar?', type: 'main', index: 0 }]] },
@@ -1542,6 +1543,6 @@ for (const wf of workflows) {
 
 writeFileSync(join(OUT_DIR, 'study-orders-reconcile.json'),
     JSON.stringify(reconcileWorkflow(), null, 2) + '\n');
-console.log('  CRON   cada 2 horas               → study-orders-reconcile.json');
+console.log('  CRON   cada 15 minutos            → study-orders-reconcile.json');
 
 console.log(`\n${workflows.length + 1} workflows escritos en n8n-workflows/`);

@@ -10,6 +10,7 @@ import { useEventStreamSubscription, useRegisterEventChannels } from '@/context/
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeStudyOrderStatus } from '@/constants/study-order-status';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { getChannelsForRoles } from '@/constants/notification-channels';
 import { api } from '@/services/api';
@@ -26,7 +27,6 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
-  StudyOrderBoardStatus,
   StudyOrderStatusChangedNotification,
   StudyOrderAssignedNotification,
   StudyOrderMessageNotification,
@@ -232,7 +232,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         orderId: String(m.order_id ?? ''),
         orderNumber: String(m.order_number ?? ''),
         patientName: String(m.patient_name ?? ''),
-        boardStatus: (m.board_status ?? 'new') as StudyOrderBoardStatus,
+        boardStatus: normalizeStudyOrderStatus(m.board_status),
         change: String(m.change ?? ''),
         cancellationReason: m.cancellation_reason ?? null,
       } satisfies StudyOrderStatusChangedNotification;
@@ -245,7 +245,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         orderNumber: String(m.order_number ?? ''),
         patientName: String(m.patient_name ?? ''),
         itemsSummary: String(m.items_summary ?? ''),
-        boardStatus: (m.board_status ?? 'new') as StudyOrderBoardStatus,
+        boardStatus: normalizeStudyOrderStatus(m.board_status),
         assignedByName: String(m.assigned_by_name ?? ''),
         source: m.source ?? null,
       } satisfies StudyOrderAssignedNotification;

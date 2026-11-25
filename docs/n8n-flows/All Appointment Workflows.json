@@ -6430,7 +6430,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { appointment_id, status, cancellation_reason, cancellation_note, changed_by, note, acknowledge_missing_identity_document } = body || {};\n\n// Normalize US/UK spelling and casing.\nconst raw = String(status ?? '').toLowerCase().trim();\nconst normalized = raw === 'canceled' ? 'cancelled' : raw;\n\nconst VALID = ['pending','scheduled','confirmed','arrived', 'arrived_late','in_progress','completed','no_show','cancelled', 'deleted'];\nconst VALID_REASONS = ['late','in_time','no_notice','by_doctor','by_clinic','other'];\n\nif (!appointment_id) throw new Error('appointment_id is required');\nif (!VALID.includes(normalized)) throw new Error(`Invalid status: ${status}`);\n\n// Cancellation reason validation\nlet reason = cancellation_reason ? String(cancellation_reason).toLowerCase().trim() : null;\nlet cnote = cancellation_note ? String(cancellation_note).trim() : null;\n\nif (normalized === 'cancelled') {\n  if (!reason) throw new Error(\"cancellation_reason is required when status='cancelled'\");\n  if (reason === 'reschedule') throw new Error(\"reason 'reschedule' can only be set by the reschedule endpoint\");\n  if (!VALID_REASONS.includes(reason)) throw new Error(`Invalid cancellation_reason: ${cancellation_reason}`);\n  if (reason === 'other' && (!cnote || cnote.length === 0)) throw new Error(\"cancellation_note is required when cancellation_reason='other'\");\n  if (reason !== 'other') cnote = null;\n} else {\n  // Not cancelled: clear any incoming reason/note to keep the row consistent.\n  reason = null;\n  cnote = null;\n}\n\nreturn [{ json: {\n  appointment_id: String(appointment_id),\n  status: normalized,\n  cancellation_reason: reason,\n  cancellation_note: cnote,\n  changed_by: changed_by ? String(changed_by) : null,\n  note: note ? String(note) : null,\n  // El usuario ya vio la advertencia de documento faltante y confirmó.\n  acknowledge_missing_identity_document: acknowledge_missing_identity_document === true || acknowledge_missing_identity_document === 'true',\n} }];"
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { appointment_id, status, cancellation_reason, cancellation_note, note, acknowledge_missing_identity_document } = body || {};\n\n// Normalize US/UK spelling and casing.\nconst raw = String(status ?? '').toLowerCase().trim();\nconst normalized = raw === 'canceled' ? 'cancelled' : raw;\n\nconst VALID = ['pending','scheduled','confirmed','arrived', 'arrived_late','in_progress','completed','no_show','cancelled', 'deleted'];\nconst VALID_REASONS = ['late','in_time','no_notice','by_doctor','by_clinic','other'];\n\nif (!appointment_id) throw new Error('appointment_id is required');\nif (!VALID.includes(normalized)) throw new Error(`Invalid status: ${status}`);\n\n// Cancellation reason validation\nlet reason = cancellation_reason ? String(cancellation_reason).toLowerCase().trim() : null;\nlet cnote = cancellation_note ? String(cancellation_note).trim() : null;\n\nif (normalized === 'cancelled') {\n  if (!reason) throw new Error(\"cancellation_reason is required when status='cancelled'\");\n  if (reason === 'reschedule') throw new Error(\"reason 'reschedule' can only be set by the reschedule endpoint\");\n  if (!VALID_REASONS.includes(reason)) throw new Error(`Invalid cancellation_reason: ${cancellation_reason}`);\n  if (reason === 'other' && (!cnote || cnote.length === 0)) throw new Error(\"cancellation_note is required when cancellation_reason='other'\");\n  if (reason !== 'other') cnote = null;\n} else {\n  // Not cancelled: clear any incoming reason/note to keep the row consistent.\n  reason = null;\n  cnote = null;\n}\n\nreturn [{ json: {\n  appointment_id: String(appointment_id),\n  status: normalized,\n  cancellation_reason: reason,\n  cancellation_note: cnote,\n  // Quién cambia el estado: siempre el usuario del token, nunca el body.\n  changed_by: $input.first().json.jwtPayload?.userId ? String($input.first().json.jwtPayload.userId) : null,\n  note: note ? String(note) : null,\n  // El usuario ya vio la advertencia de documento faltante y confirmó.\n  acknowledge_missing_identity_document: acknowledge_missing_identity_document === true || acknowledge_missing_identity_document === 'true',\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -6529,8 +6529,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Atomic update + audit insert. Cancellation_reason/note travel together.\nWITH updated AS (\n  UPDATE appointments\n  SET status              = '{{ $json.to_status }}',\n      cancellation_reason = NULLIF('{{ $json.cancellation_reason }}', 'null'),\n      cancellation_note   = NULLIF('{{ $json.cancellation_note }}', 'null'),\n      updated_at          = NOW()\n  WHERE id::text = '{{ $json.appointment_id }}'\n  RETURNING id::text AS id, status, cancellation_reason\n)\nINSERT INTO appointment_status_log (appointment_id, from_status, to_status, cancellation_reason, cancellation_note, changed_by, note)\nSELECT\n  '{{ $json.appointment_id }}',\n  '{{ $json.from_status }}',\n  '{{ $json.to_status }}',\n  NULLIF('{{ $json.cancellation_reason }}', 'null'),\n  NULLIF('{{ $json.cancellation_note }}', 'null'),\n  NULLIF('{{ $json.changed_by }}', 'null'),\n  NULLIF('{{ $json.note }}', 'null')\nFROM updated\nRETURNING appointment_id, from_status, to_status, cancellation_reason, changed_at::text AS changed_at;",
-        "options": {}
+        "query": "-- Cambio de estado + bitácora en una sentencia. $1 = payload JSON: nada se interpola en el SQL.\nWITH p AS (\n  SELECT $1::jsonb AS b\n),\nupdated AS (\n  UPDATE appointments\n  SET status              = (SELECT b ->> 'to_status' FROM p),\n      cancellation_reason = (SELECT b ->> 'cancellation_reason' FROM p),\n      cancellation_note   = (SELECT b ->> 'cancellation_note' FROM p),\n      updated_by          = coalesce(NULLIF((SELECT b ->> 'changed_by' FROM p), '')::uuid, updated_by),\n      updated_at          = NOW()\n  WHERE id::text = (SELECT b ->> 'appointment_id' FROM p)\n  RETURNING id::text AS id\n)\nINSERT INTO appointment_status_log (appointment_id, from_status, to_status, cancellation_reason, cancellation_note, changed_by, note)\nSELECT p.b ->> 'appointment_id', p.b ->> 'from_status', p.b ->> 'to_status',\n       p.b ->> 'cancellation_reason', p.b ->> 'cancellation_note', p.b ->> 'changed_by', p.b ->> 'note'\nFROM updated, p\nRETURNING appointment_id, from_status, to_status, cancellation_reason, changed_at::text AS changed_at;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json) ] }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -6549,7 +6551,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all().filter(r => r.json.appointment_id);\nif (rows.length === 0) throw new Error('Update failed — no rows returned');\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  code: 200,\n  appointment_id: r.appointment_id,\n  from_status: r.from_status,\n  status: r.to_status,\n  cancellation_reason: r.cancellation_reason || null,\n  changed_at: r.changed_at,\n} }];"
+        "jsCode": "const rows = $('Apply Update + Log').all().filter(r => r.json.appointment_id);\nif (rows.length === 0) throw new Error('Update failed — no rows returned');\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  code: 200,\n  appointment_id: r.appointment_id,\n  from_status: r.from_status,\n  status: r.to_status,\n  cancellation_reason: r.cancellation_reason || null,\n  changed_at: r.changed_at,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -11177,6 +11179,118 @@
       "name": "Push availability_changed (exception delete)",
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id de la cita  $2 userId (token; vacío = sistema)\nWITH prev AS MATERIALIZED (\n    SELECT so.id, so.status::text AS old_status\n      FROM public.appointments a\n      JOIN public.study_orders so ON so.id = a.study_order_id\n     WHERE a.id = $1::int\n),\nsynced AS MATERIALIZED (\n    SELECT p.id, p.old_status,\n           public.study_order_sync_appointment($1::int, NULLIF($2::text, '')::uuid) AS new_status\n      FROM prev p\n)\nSELECT s.id::text AS order_id, s.old_status, s.new_status,\n       CASE WHEN s.old_status <> s.new_status AND s.new_status = 'completed' THEN 'completed'\n            WHEN s.old_status <> s.new_status AND s.old_status = 'completed' THEN 'reopened'\n            ELSE '' END AS change\n  FROM synced s;",
+        "options": {
+          "queryReplacement": "={{ [ $('Check Current Status').first().json.appointment_id, $('Check Current Status').first().json.changed_by || '' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -28528,
+        10868
+      ],
+      "id": "so-sync-status",
+      "name": "Sync Study Order",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita\n--      una notificación de lo que acaba de hacer. Vacío = avisar igual.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, el mismo que ve la clínica.\n--\n-- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo\n-- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las\n-- que trae por REST, así que necesita id, type, status, metadata y created_at;\n-- con sólo el user_id la normalización devuelve null y el aviso se descarta en\n-- silencio — la notificación queda en la base y recién aparece al refrescar.\n-- Es la convención de los flujos de citas, que ya devuelven la fila entera.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'source',        so.source,\n           'referring_doctor_name', so.referring_doctor_name,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       (now() AT TIME ZONE 'America/Montevideo')\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\n   AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [ $json.order_id || '00000000-0000-0000-0000-000000000000', $json.change || '', $('Check Current Status').first().json.changed_by || '' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -28308,
+        11028
+      ],
+      "id": "so-sync-notify",
+      "name": "Notify Referring Doctor",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-sync-cond",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -28088,
+        11028
+      ],
+      "id": "so-sync-if",
+      "name": "IF: ¿Derivador avisado?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_status_changed",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -27868,
+        11028
+      ],
+      "id": "so-sync-push",
+      "name": "Push study_order_status_changed",
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {
@@ -13270,12 +13384,7 @@
       "main": [
         [
           {
-            "node": "Build Response",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Get appointment data",
+            "node": "Sync Study Order",
             "type": "main",
             "index": 0
           }
@@ -14589,6 +14698,45 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Sync Study Order": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Referring Doctor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Referring Doctor": {
+      "main": [
+        [
+          {
+            "node": "IF: ¿Derivador avisado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: ¿Derivador avisado?": {
+      "main": [
+        [
+          {
+            "node": "Push study_order_status_changed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

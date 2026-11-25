@@ -183,7 +183,13 @@ export async function cancelStudyOrder(id: string, reason: string): Promise<Stud
     return unwrap<StudyOrder>(raw).data;
 }
 
-/** Marca que la clínica tomó la orden: la saca del bucket "nuevas". */
+/** Pasa la orden a mano a otro estado. El backend rechaza los pasos que la matriz no admite. */
+export async function updateStudyOrderStatus(id: string, status: 'pending_scheduling' | 'delivered'): Promise<void> {
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.STATUS, { id, status });
+    unwrap<unknown>(raw);
+}
+
+/** Marca que la clínica tomó la orden: la saca de "nuevas". No cambia el estado. */
 export async function acknowledgeStudyOrder(id: string): Promise<StudyOrder> {
     const raw = await api.post(API_ROUTES.STUDY_ORDERS.ACKNOWLEDGE, { id });
     return unwrap<StudyOrder>(raw).data;
@@ -430,11 +436,7 @@ export async function linkStudyOrderPatient(id: string, patientId: string): Prom
  * tiene nada que enterarse. Se entera cuando la última la cierra, y eso lo
  * detecta el recálculo por su cuenta.
  *
- * Cancelar una cita no cambia el estado persistido de la orden — sigue
- * 'submitted' — pero sí devuelve sus líneas a "sin agendar", y de eso el
- * derivador tiene que enterarse. El backend no tiene forma de detectarlo: la
- * vista ya se corrigió sola y no guarda el estado anterior contra el cual
- * comparar. Quien cancela sí lo sabe, así que lo dice.
+ * `appointment_cancelled` avisa al derivador aunque el estado no cambie (queda otra cita en pie).
  */
 export type StudyOrderChangeHint = 'appointment_cancelled' | 'session_saved';
 

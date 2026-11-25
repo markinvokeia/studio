@@ -668,7 +668,8 @@
     "labOrderPastDueTitle": "Lab order past its due date",
     "labOrderDaysInStage": "{count, plural, one {# day} other {# days}} in stage",
     "labOrderDaysPastDue": "{count, plural, one {# day} other {# days}} past the due date",
-    "actionViewLabOrder": "View order"
+    "actionViewLabOrder": "View order",
+    "studyOrderChange_delivered": "The order was delivered."
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -10312,12 +10313,13 @@
       },
       "status": {
         "draft": "Draft",
-        "new": "Received",
-        "unscheduled": "Awaiting scheduling",
-        "partially_scheduled": "Partially scheduled",
+        "confirmed": "Confirmed",
+        "pending_scheduling": "Pending scheduling",
         "scheduled": "Scheduled",
-        "in_progress": "In progress",
-        "completed": "Completed",
+        "patient_present": "Patient present",
+        "in_execution": "In progress",
+        "completed": "Study completed",
+        "delivered": "Delivered",
         "cancelled": "Cancelled"
       }
     }
@@ -11634,7 +11636,7 @@
     "titleMine": "My Orders",
     "titleClinic": "Study Orders",
     "descriptionMine": "The orders you referred to Clínica Imagen and the status of each one.",
-    "descriptionClinic": "Incoming order queue. What arrived, what needs scheduling and what is overdue.",
+    "descriptionClinic": "Inbox of received orders and the status of each one.",
     "filterPlaceholder": "Search by patient...",
     "importDialog": {
       "title": "Import order",
@@ -11680,11 +11682,7 @@
     "buckets": {
       "all": "All",
       "new": "New",
-      "pending": "Pending",
       "overdue": "Overdue",
-      "scheduled": "Scheduled",
-      "completed": "Completed",
-      "drafts": "Drafts",
       "review": "To review"
     },
     "columns": {
@@ -11693,19 +11691,21 @@
       "doctor": "Referrer",
       "items": "Studies",
       "status": "Status",
-      "submittedAt": "Submitted",
+      "submittedAt": "Confirmed",
       "sede": "Location",
       "progress": "Progress",
-      "actions": "Actions"
+      "actions": "Actions",
+      "doctorOnOrder": "As stated on the order"
     },
     "status": {
       "draft": "Draft",
-      "new": "New",
-      "unscheduled": "Unscheduled",
-      "partially_scheduled": "Partial",
+      "confirmed": "Confirmed",
+      "pending_scheduling": "Pending scheduling",
       "scheduled": "Scheduled",
-      "in_progress": "In progress",
-      "completed": "Completed",
+      "patient_present": "Patient present",
+      "in_execution": "In progress",
+      "completed": "Study completed",
+      "delivered": "Delivered",
       "cancelled": "Cancelled",
       "overdue": "Overdue"
     },
@@ -11736,8 +11736,8 @@
       "noServicesSelected": "Select at least one study.",
       "saveDraft": "Save draft",
       "saveDraftShort": "Save",
-      "submitShort": "Send",
-      "submit": "Send to clinic",
+      "submitShort": "Confirm",
+      "submit": "Confirm order",
       "selectedCount": "{count} studies selected",
       "textsSection": "Details",
       "referringDoctor": "Referring doctor",
@@ -11749,9 +11749,9 @@
       "referringDoctorNameHelp": "As written on the paper. Reference only: it is not linked to any user."
     },
     "submitDialog": {
-      "title": "Send the order to the clinic?",
-      "description": "Once sent you will not be able to edit it. The clinic is notified immediately.",
-      "confirm": "Send",
+      "title": "Confirm the order?",
+      "description": "It becomes confirmed and the clinic is notified immediately. You will not be able to edit it afterwards.",
+      "confirm": "Confirm",
       "cancel": "Back",
       "replaces": "Also, order {number} will be cancelled and its appointments move to this one."
     },
@@ -11771,7 +11771,7 @@
     },
     "actions": {
       "edit": "Edit",
-      "submit": "Send",
+      "submit": "Confirm",
       "delete": "Delete",
       "acknowledge": "Take",
       "schedule": "Schedule",
@@ -11783,7 +11783,9 @@
       "menu": "Actions",
       "assign": "Assign",
       "reassign": "Reassign",
-      "reviewedBy": "Reviewed by: {name}"
+      "reviewedBy": "Reviewed by: {name}",
+      "markPending": "Move to pending scheduling",
+      "deliver": "Deliver"
     },
     "detail": {
       "expand": "Full screen",
@@ -11794,7 +11796,7 @@
     },
     "toast": {
       "savedTitle": "Order saved",
-      "submittedTitle": "Order sent",
+      "submittedTitle": "Order confirmed",
       "submittedDescription": "The clinic has received order {number}.",
       "deletedTitle": "Draft deleted",
       "acknowledgedTitle": "Order taken",
@@ -11802,7 +11804,11 @@
       "errorTitle": "The action could not be completed",
       "genericError": "An unexpected error occurred. Please try again.",
       "handoffResolved": "The WhatsApp handoff was resolved.",
-      "orderReplaced": "Order {number} was cancelled{count, plural, =0 {} =1 { and its appointment moved to the new one} other { and its # appointments moved to the new one}}."
+      "orderReplaced": "Order {number} was cancelled{count, plural, =0 {} =1 { and its appointment moved to the new one} other { and its # appointments moved to the new one}}.",
+      "draftCreatedTitle": "Draft saved",
+      "draftCreatedDescription": "Review it and confirm it when it is ready.",
+      "pendingSchedulingTitle": "The order is now pending scheduling",
+      "deliveredTitle": "Order delivered"
     },
     "validation": {
       "patientNameRequired": "Patient name is required",
@@ -11819,8 +11825,8 @@
       "noCatalog": "The study catalogue is not loaded yet. Ask the clinic to configure it.",
       "steps": "Order sections",
       "closeSteps": "Close sections",
-      "fromHandoff": "Filled in with what the WhatsApp assistant read. Check it against the originals and fix anything needed before submitting.",
-      "replacesOrder": "This order replaces {number}: when you submit it, {number} is cancelled and its appointments move to this one.",
+      "fromHandoff": "Filled in with what the WhatsApp assistant read. Check it against the originals and fix anything needed before confirming.",
+      "replacesOrder": "This order replaces {number}: when you confirm it, {number} is cancelled and its appointments move to this one.",
       "showOriginals": "Show originals",
       "hideOriginals": "Hide originals",
       "originals": "WhatsApp originals"
@@ -11854,7 +11860,7 @@
       "showOnce": "Copy it now: for security it will not be shown again.",
       "revokesPrevious": "Generating a new link voids the previous one.",
       "error": "Could not generate the link",
-      "blockedNotSubmitted": "The order must be submitted before a link can be generated.",
+      "blockedNotSubmitted": "The order must be confirmed and not finished before a link can be generated.",
       "blockedNoPatient": "Link the patient record before generating the link.",
       "blockedScheduled": "This order already has all of its studies scheduled.",
       "send": "Send link",
@@ -11873,7 +11879,7 @@
       "event": {
         "created": "Order created",
         "updated": "Draft edited",
-        "submitted": "Sent to the clinic",
+        "submitted": "Order confirmed",
         "acknowledged": "Clinic took the order",
         "scheduled": "Appointment scheduled",
         "rescheduled": "Appointment moved",
@@ -11887,7 +11893,8 @@
         "patient_booked": "Patient booked their slot",
         "review_updated": "Item reviewed",
         "assigned": "The order was assigned",
-        "unassigned": "The order was unassigned"
+        "unassigned": "The order was unassigned",
+        "status_changed": "Status changed"
       },
       "reviewStatus": {
         "pending": "back to pending",
@@ -11909,7 +11916,13 @@
         "services_added": "Studies added",
         "services_removed": "Studies removed"
       },
-      "emptyValue": "empty"
+      "emptyValue": "empty",
+      "automatic": "automatic",
+      "role": {
+        "clinic": "Clinic",
+        "doctor": "Dentist",
+        "assistant": "Assistant"
+      }
     },
     "appointmentCard": {
       "none": "This order has no appointments yet.",
@@ -11979,15 +11992,15 @@
     "review": {
       "title": "Items to review",
       "help": "What the WhatsApp assistant was not sure about when reading the order. Check it against the original.",
-      "blockingHelp": "{count, plural, one {1 item must be checked against the original before submitting the order.} other {# items must be checked against the original before submitting the order.}}",
+      "blockingHelp": "{count, plural, one {1 item must be checked against the original before confirming the order.} other {# items must be checked against the original before confirming the order.}}",
       "pendingCount": "{count, plural, one {1 pending} other {# pending}}",
       "allReviewed": "All reviewed",
       "blocking": "Blocks submission",
       "confidence": "Confidence {value}%",
       "notePlaceholder": "Note (optional): what was corrected or why it is dismissed",
-      "banner": "{count, plural, one {The assistant left 1 unclear item: review it before submitting.} other {The assistant left # unclear items: review them before submitting.}}",
+      "banner": "{count, plural, one {The assistant left 1 unclear item: review it before confirming.} other {The assistant left # unclear items: review them before confirming.}}",
       "wizardBanner": "{count, plural, one {There is 1 item the assistant was not sure about. Review it in the last step, looking at the original.} other {There are # items the assistant was not sure about. Review them in the last step, looking at the original.}}",
-      "submitBlocked": "{count, plural, one {Review the pending item before submitting.} other {Review the # pending items before submitting.}}",
+      "submitBlocked": "{count, plural, one {Review the pending item before confirming.} other {Review the # pending items before confirming.}}",
       "code": {
         "handoff_reason": "Handoff reason",
         "low_confidence": "Uncertain reading",
@@ -12017,7 +12030,7 @@
       },
       "toast": {
         "updated": "Item updated",
-        "pendingBlocking": "{count, plural, one {1 item left before you can submit.} other {# items left before you can submit.}}",
+        "pendingBlocking": "{count, plural, one {1 item left before you can confirm.} other {# items left before you can confirm.}}",
         "error": "Could not update the item",
         "bulkUpdated": "{count, plural, one {1 item updated} other {# items updated}}",
         "skipped": "{count, plural, one {1 had already been reviewed by someone else.} other {# had already been reviewed by someone else.}}"
@@ -12058,7 +12071,7 @@
       "refresh": "Refresh",
       "emptyPatient": "This patient has no study orders.",
       "emptyDoctor": "This doctor has not referred any study orders.",
-      "submittedOn": "Sent on {date}",
+      "submittedOn": "Confirmed on {date}",
       "createdOn": "Created on {date}",
       "forPatient": "for {patient}",
       "openInbox": "View all in the orders inbox",
@@ -12101,7 +12114,7 @@
         "studies": "Studies",
         "progress": "Progress",
         "sede": "Location",
-        "submitted": "Submitted",
+        "submitted": "Confirmed",
         "assigned": "Reviewed by",
         "review": "Review"
       },
@@ -12209,6 +12222,43 @@
         "seedDoctorMessage": "Hi, could you let me know once the study is scheduled? The patient prefers afternoon slots. Thanks.",
         "seedClinicNote": "Called the patient: they confirm afternoons work. Check CBCT availability before scheduling.",
         "clinicAuthor": "Front desk"
+      }
+    },
+    "deliverDialog": {
+      "title": "Mark the order as delivered?",
+      "description": "Order {number} becomes delivered. This is the last status and cannot be undone.",
+      "confirm": "Mark as delivered",
+      "cancel": "Back"
+    },
+    "progress": {
+      "title": "Order status"
+    },
+    "people": {
+      "patient": "Patient",
+      "doctor": "Dentist",
+      "rut": "Tax ID",
+      "office": "Practice address",
+      "state": {
+        "linked": "Linked record",
+        "onOrder": "As stated on the order",
+        "missing": "Not provided"
+      }
+    },
+    "stepper": {
+      "next": "Next step",
+      "more": "More options",
+      "arrive": "Mark patient as present",
+      "start": "Start study",
+      "finish": "Complete study",
+      "undoArrive": "Back to Scheduled",
+      "undoStart": "Back to Patient present",
+      "undoFinish": "Back to In progress",
+      "forAppointment": "{action} · appointment {date}",
+      "otherDay": {
+        "title": "The appointment is not today",
+        "description": "It is scheduled for {date}. Change its status anyway?",
+        "confirm": "Change status",
+        "cancel": "Back"
       }
     }
   },

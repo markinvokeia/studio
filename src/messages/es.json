@@ -668,7 +668,8 @@
     "labOrderPastDueTitle": "Orden de laboratorio con entrega vencida",
     "labOrderDaysInStage": "{count, plural, one {# día} other {# días}} en la etapa",
     "labOrderDaysPastDue": "{count, plural, one {# día} other {# días}} de atraso en la entrega",
-    "actionViewLabOrder": "Ver orden"
+    "actionViewLabOrder": "Ver orden",
+    "studyOrderChange_delivered": "La orden fue entregada."
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -10312,12 +10313,13 @@
       },
       "status": {
         "draft": "Borrador",
-        "new": "Recibida",
-        "unscheduled": "Pendiente de agendar",
-        "partially_scheduled": "Agendada en parte",
+        "confirmed": "Confirmada",
+        "pending_scheduling": "Agenda pendiente",
         "scheduled": "Agendada",
-        "in_progress": "En curso",
-        "completed": "Completada",
+        "patient_present": "Paciente presente",
+        "in_execution": "En ejecución",
+        "completed": "Estudio completado",
+        "delivered": "Entregada",
         "cancelled": "Cancelada"
       }
     }
@@ -11634,7 +11636,7 @@
     "titleMine": "Mis Órdenes",
     "titleClinic": "Órdenes de Estudio",
     "descriptionMine": "Las órdenes que derivaste a Clínica Imagen y en qué estado está cada una.",
-    "descriptionClinic": "Bandeja de órdenes recibidas. Qué entró, qué falta agendar y qué está atrasado.",
+    "descriptionClinic": "Bandeja de órdenes recibidas y en qué estado está cada una.",
     "filterPlaceholder": "Buscar por paciente...",
     "importDialog": {
       "title": "Importar orden",
@@ -11680,11 +11682,7 @@
     "buckets": {
       "all": "Todas",
       "new": "Nuevas",
-      "pending": "Pendientes",
       "overdue": "Atrasadas",
-      "scheduled": "Agendadas",
-      "completed": "Completadas",
-      "drafts": "Borradores",
       "review": "Por revisar"
     },
     "columns": {
@@ -11693,20 +11691,22 @@
       "doctor": "Derivador",
       "items": "Estudios",
       "status": "Estado",
-      "submittedAt": "Enviada",
+      "submittedAt": "Confirmada",
       "sede": "Sede",
       "progress": "Avance",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "doctorOnOrder": "Según la orden"
     },
     "status": {
       "draft": "Borrador",
-      "new": "Nueva",
-      "unscheduled": "Sin agendar",
-      "partially_scheduled": "Parcial",
+      "confirmed": "Confirmada",
+      "pending_scheduling": "Agenda pendiente",
       "scheduled": "Agendada",
-      "in_progress": "En curso",
-      "completed": "Completada",
-      "cancelled": "Anulada",
+      "patient_present": "Paciente presente",
+      "in_execution": "En ejecución",
+      "completed": "Estudio completado",
+      "delivered": "Entregada",
+      "cancelled": "Cancelada",
       "overdue": "Atrasada"
     },
     "tabs": {
@@ -11736,8 +11736,8 @@
       "noServicesSelected": "Seleccioná al menos un estudio.",
       "saveDraft": "Guardar borrador",
       "saveDraftShort": "Guardar",
-      "submitShort": "Enviar",
-      "submit": "Enviar a la clínica",
+      "submitShort": "Confirmar",
+      "submit": "Confirmar orden",
       "selectedCount": "{count} estudios seleccionados",
       "textsSection": "Detalles",
       "referringDoctor": "Doctor derivador",
@@ -11749,9 +11749,9 @@
       "referringDoctorNameHelp": "Como figura en el papel. Es solo una referencia: no se vincula a ningún usuario."
     },
     "submitDialog": {
-      "title": "¿Enviar la orden a la clínica?",
-      "description": "Una vez enviada no vas a poder editarla. La clínica recibe el aviso en el momento.",
-      "confirm": "Enviar",
+      "title": "¿Confirmar la orden?",
+      "description": "Queda confirmada y la clínica recibe el aviso en el momento. Después no vas a poder editarla.",
+      "confirm": "Confirmar",
       "cancel": "Volver",
       "replaces": "Además, la orden {number} se va a anular y sus citas pasan a esta."
     },
@@ -11771,7 +11771,7 @@
     },
     "actions": {
       "edit": "Editar",
-      "submit": "Enviar",
+      "submit": "Confirmar",
       "delete": "Eliminar",
       "acknowledge": "Tomar",
       "schedule": "Agendar",
@@ -11783,7 +11783,9 @@
       "menu": "Acciones",
       "assign": "Asignar",
       "reassign": "Reasignar",
-      "reviewedBy": "Revisada por: {name}"
+      "reviewedBy": "Revisada por: {name}",
+      "markPending": "Pasar a agenda pendiente",
+      "deliver": "Entregar"
     },
     "detail": {
       "expand": "Pantalla entera",
@@ -11794,7 +11796,7 @@
     },
     "toast": {
       "savedTitle": "Orden guardada",
-      "submittedTitle": "Orden enviada",
+      "submittedTitle": "Orden confirmada",
       "submittedDescription": "La clínica ya recibió la orden {number}.",
       "deletedTitle": "Borrador eliminado",
       "acknowledgedTitle": "Orden tomada",
@@ -11802,7 +11804,11 @@
       "errorTitle": "No se pudo completar la acción",
       "genericError": "Ocurrió un error inesperado. Intentá de nuevo.",
       "handoffResolved": "La derivación de WhatsApp quedó resuelta.",
-      "orderReplaced": "La orden {number} quedó anulada{count, plural, =0 {} =1 { y su cita pasó a la nueva} other { y sus # citas pasaron a la nueva}}."
+      "orderReplaced": "La orden {number} quedó anulada{count, plural, =0 {} =1 { y su cita pasó a la nueva} other { y sus # citas pasaron a la nueva}}.",
+      "draftCreatedTitle": "Borrador guardado",
+      "draftCreatedDescription": "Revisalo y confirmalo cuando esté listo.",
+      "pendingSchedulingTitle": "La orden quedó en agenda pendiente",
+      "deliveredTitle": "Orden entregada"
     },
     "validation": {
       "patientNameRequired": "El nombre del paciente es obligatorio",
@@ -11819,8 +11825,8 @@
       "noCatalog": "El catálogo de estudios todavía no está cargado. Avisá a la clínica para que lo configure.",
       "steps": "Secciones de la orden",
       "closeSteps": "Cerrar secciones",
-      "fromHandoff": "Cargado con lo que leyó el asistente de WhatsApp. Revisalo contra los originales y corregí lo que haga falta antes de enviar.",
-      "replacesOrder": "Esta orden reemplaza a la {number}: al enviarla, la {number} se anula y sus citas pasan a esta.",
+      "fromHandoff": "Cargado con lo que leyó el asistente de WhatsApp. Revisalo contra los originales y corregí lo que haga falta antes de confirmar.",
+      "replacesOrder": "Esta orden reemplaza a la {number}: al confirmarla, la {number} se anula y sus citas pasan a esta.",
       "showOriginals": "Ver originales",
       "hideOriginals": "Ocultar originales",
       "originals": "Originales de WhatsApp"
@@ -11854,7 +11860,7 @@
       "showOnce": "Copialo ahora: por seguridad no se vuelve a mostrar.",
       "revokesPrevious": "Generar un link nuevo anula el anterior.",
       "error": "No se pudo generar el link",
-      "blockedNotSubmitted": "La orden tiene que estar enviada para poder generar el link.",
+      "blockedNotSubmitted": "La orden tiene que estar confirmada y sin terminar para poder generar el link.",
       "blockedNoPatient": "Falta vincular la ficha del paciente antes de generar el link.",
       "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados.",
       "send": "Enviar link",
@@ -11873,7 +11879,7 @@
       "event": {
         "created": "Se creó la orden",
         "updated": "Se editó el borrador",
-        "submitted": "Se envió a la clínica",
+        "submitted": "Se confirmó la orden",
         "acknowledged": "La clínica tomó la orden",
         "scheduled": "Se agendó una cita",
         "rescheduled": "Se reagendó la cita",
@@ -11887,7 +11893,8 @@
         "patient_booked": "El paciente reservó su horario",
         "review_updated": "Punto revisado",
         "assigned": "Se asignó la orden",
-        "unassigned": "La orden quedó sin asignar"
+        "unassigned": "La orden quedó sin asignar",
+        "status_changed": "Cambió el estado"
       },
       "reviewStatus": {
         "pending": "vuelve a pendiente",
@@ -11909,7 +11916,13 @@
         "services_added": "Estudios agregados",
         "services_removed": "Estudios quitados"
       },
-      "emptyValue": "vacío"
+      "emptyValue": "vacío",
+      "automatic": "automático",
+      "role": {
+        "clinic": "Clínica",
+        "doctor": "Odontólogo",
+        "assistant": "Asistente"
+      }
     },
     "appointmentCard": {
       "none": "Esta orden todavía no tiene citas.",
@@ -11979,15 +11992,15 @@
     "review": {
       "title": "Puntos a revisar",
       "help": "Lo que el asistente de WhatsApp no tuvo claro al leer la orden. Revisalo contra el original.",
-      "blockingHelp": "{count, plural, one {Queda 1 punto por revisar contra el original antes de enviar la orden.} other {Quedan # puntos por revisar contra el original antes de enviar la orden.}}",
+      "blockingHelp": "{count, plural, one {Queda 1 punto por revisar contra el original antes de confirmar la orden.} other {Quedan # puntos por revisar contra el original antes de confirmar la orden.}}",
       "pendingCount": "{count, plural, one {1 pendiente} other {# pendientes}}",
       "allReviewed": "Todo revisado",
       "blocking": "Frena el envío",
       "confidence": "Confianza {value} %",
       "notePlaceholder": "Nota (opcional): qué se corrigió o por qué se descarta",
-      "banner": "{count, plural, one {El asistente dejó 1 punto sin aclarar: revisalo antes de enviar.} other {El asistente dejó # puntos sin aclarar: revisalos antes de enviar.}}",
+      "banner": "{count, plural, one {El asistente dejó 1 punto sin aclarar: revisalo antes de confirmar.} other {El asistente dejó # puntos sin aclarar: revisalos antes de confirmar.}}",
       "wizardBanner": "{count, plural, one {Hay 1 punto que el asistente no tuvo claro. Revisalo en el último paso, mirando el original.} other {Hay # puntos que el asistente no tuvo claros. Revisalos en el último paso, mirando el original.}}",
-      "submitBlocked": "{count, plural, one {Revisá el punto pendiente antes de enviar.} other {Revisá los # puntos pendientes antes de enviar.}}",
+      "submitBlocked": "{count, plural, one {Revisá el punto pendiente antes de confirmar.} other {Revisá los # puntos pendientes antes de confirmar.}}",
       "code": {
         "handoff_reason": "Motivo de la derivación",
         "low_confidence": "Lectura dudosa",
@@ -12017,7 +12030,7 @@
       },
       "toast": {
         "updated": "Punto actualizado",
-        "pendingBlocking": "{count, plural, one {Queda 1 punto antes de poder enviar.} other {Quedan # puntos antes de poder enviar.}}",
+        "pendingBlocking": "{count, plural, one {Queda 1 punto antes de poder confirmar.} other {Quedan # puntos antes de poder confirmar.}}",
         "error": "No se pudo actualizar el punto",
         "bulkUpdated": "{count, plural, one {1 punto actualizado} other {# puntos actualizados}}",
         "skipped": "{count, plural, one {1 ya lo había revisado otra persona.} other {# ya los había revisado otra persona.}}"
@@ -12058,7 +12071,7 @@
       "refresh": "Actualizar",
       "emptyPatient": "Este paciente no tiene órdenes de estudio.",
       "emptyDoctor": "Este doctor no derivó órdenes de estudio.",
-      "submittedOn": "Enviada el {date}",
+      "submittedOn": "Confirmada el {date}",
       "createdOn": "Creada el {date}",
       "forPatient": "para {patient}",
       "openInbox": "Ver todas en la bandeja de órdenes",
@@ -12101,7 +12114,7 @@
         "studies": "Estudios",
         "progress": "Avance",
         "sede": "Sede",
-        "submitted": "Enviada",
+        "submitted": "Confirmada",
         "assigned": "Revisada por",
         "review": "Revisión"
       },
@@ -12209,6 +12222,43 @@
         "seedDoctorMessage": "Hola, ¿me avisan cuando tengan fecha para el estudio? El paciente prefiere los horarios de la tarde. Gracias.",
         "seedClinicNote": "Llamamos al paciente: confirma que puede venir de tarde. Revisar disponibilidad del tomógrafo antes de agendar.",
         "clinicAuthor": "Recepción"
+      }
+    },
+    "deliverDialog": {
+      "title": "¿Marcar la orden como entregada?",
+      "description": "La orden {number} queda entregada. Es el último estado: después no se puede volver atrás.",
+      "confirm": "Marcar como entregada",
+      "cancel": "Volver"
+    },
+    "progress": {
+      "title": "Estado de la orden"
+    },
+    "people": {
+      "patient": "Paciente",
+      "doctor": "Odontólogo",
+      "rut": "RUT",
+      "office": "Dirección del consultorio",
+      "state": {
+        "linked": "Ficha vinculada",
+        "onOrder": "Según la orden",
+        "missing": "Sin informar"
+      }
+    },
+    "stepper": {
+      "next": "Siguiente paso",
+      "more": "Más opciones",
+      "arrive": "Marcar paciente presente",
+      "start": "Iniciar estudio",
+      "finish": "Completar estudio",
+      "undoArrive": "Volver a Agendada",
+      "undoStart": "Volver a Paciente presente",
+      "undoFinish": "Volver a En ejecución",
+      "forAppointment": "{action} · cita {date}",
+      "otherDay": {
+        "title": "La cita no es de hoy",
+        "description": "Está agendada para el {date}. ¿Querés cambiar su estado igual?",
+        "confirm": "Cambiar estado",
+        "cancel": "Volver"
       }
     }
   },

@@ -14,14 +14,15 @@ import { cn, formatDateTime, formatDisplayDate } from '@/lib/utils';
 import type { PatientStudyOrder, StudyOrderBoardStatus } from '@/lib/types';
 
 const VARIANT_BY_STATUS: Record<StudyOrderBoardStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'info' | 'warning'> = {
-  draft: 'outline',
-  new: 'info',
-  unscheduled: 'warning',
-  partially_scheduled: 'warning',
-  scheduled: 'default',
-  in_progress: 'warning',
-  completed: 'success',
-  cancelled: 'destructive',
+  draft:        'outline',
+  confirmed:      'info',
+  pending_scheduling: 'warning',
+  scheduled:      'default',
+  patient_present:  'info',
+  in_execution:     'warning',
+  completed:      'success',
+  delivered:      'success',
+  cancelled:      'destructive',
 };
 
 /** Estados de cita con traducción en `AppointmentStatus`; cualquier otro se muestra tal cual. */

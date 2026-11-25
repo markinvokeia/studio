@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/utils';
+import { isStudyOrderOpen } from '@/constants/study-order-status';
 import type { StudyOrder } from '@/lib/types';
 import { createStudyOrderBookingLink } from '@/services/study-orders';
 
@@ -44,7 +45,7 @@ export function StudyOrderBookingLinkTab({ order }: StudyOrderBookingLinkTabProp
      */
     const activeItems = order.items.filter((i) => !i.is_cancelled);
     const isFullyScheduled = activeItems.length > 0 && activeItems.every((i) => i.is_scheduled);
-    const blockedReason = order.status !== 'submitted' ? t('blockedNotSubmitted')
+    const blockedReason = !isStudyOrderOpen(order.status) ? t('blockedNotSubmitted')
         : !order.patient_id ? t('blockedNoPatient')
         : isFullyScheduled ? t('blockedScheduled')
         : null;

@@ -2,24 +2,46 @@
 
 La bandeja de órdenes de estudio suma una segunda vista, **Estados**: un tablero con una columna por estado de la orden, en el orden en que avanza. Recepción ve las órdenes agrupadas, las mueve arrastrándolas y las asigna a un responsable para que las revise.
 
-## Columnas
+## Los nueve estados
 
-`Borrador → Nueva → Sin agendar → Parcial → Agendada → En curso → Completada → Anulada`
+`Borrador → Confirmada → Agenda pendiente → Agendada → Paciente presente → En ejecución → Estudio completado → Entregada`, más `Cancelada`.
 
-Es el `board_status` **derivado** de `v_study_orders_board`: las citas mandan, no `study_orders.status`. Cada columna muestra su total. Las tarjetas por columna se eligen en la barra (10, 25, 50 o 100), y "Cargar más" trae las siguientes. La columna Anulada arranca plegada; el plegado se recuerda por navegador.
+Se guardan en `study_orders.status` (migración 179). `board_status` es el mismo valor. Cada columna muestra su total. Las tarjetas por columna se eligen en la barra (10, 25, 50 o 100), y "Cargar más" trae las siguientes. La columna Cancelada arranca plegada; el plegado se recuerda por navegador.
+
+| Desde | Puede pasar a |
+|---|---|
+| Borrador | Confirmada, Cancelada |
+| Confirmada | Agenda pendiente, Agendada, Cancelada |
+| Agenda pendiente | Agendada, Cancelada |
+| Agendada | Paciente presente, Agenda pendiente, Cancelada |
+| Paciente presente | En ejecución, Agendada, Agenda pendiente, Cancelada |
+| En ejecución | Estudio completado, Paciente presente, Agenda pendiente |
+| Estudio completado | Entregada, En ejecución, Agenda pendiente |
+| Entregada, Cancelada | finales |
+
+- **Toda orden nace en Borrador** (RF-04) y la clínica ve todos los borradores para revisarlos y confirmarlos. Confirmar es siempre un paso aparte.
+- **Única definición:** la función `study_order_transition_allowed(from, to)`. Un trigger rechaza cualquier otro cambio (`SO409`); la API responde 409.
+- **Las citas mandan** de Agendada a Estudio completado: `study_order_sync` recalcula cuando cambia una cita. Si la cita saltea pasos, el historial los registra con `automatic: true`. Una inasistencia no cancela: vuelve a Agenda pendiente.
+- **Historial:** cada cambio deja un evento `status_changed` en `study_order_events` con `from`, `to` y quién lo hizo. Se ve en la pestaña Orden (pasos) y en la actividad.
+- **Tomar** (`acknowledge`) ya no cambia el estado.
+
+## Línea de etapas
+
+La pestaña Orden muestra las ocho etapas en una línea; la cabecera del detalle, un botón con el **siguiente paso**. El desplegable de al lado trae las alternativas y volver atrás. De Agendada en adelante el botón cambia el estado de la **cita** (`APPOINTMENTS_UPDATE`) y la orden la sigue; si la cita no es de hoy, pide confirmación.
 
 ## Arrastrar y soltar = la acción real
 
-Soltar una tarjeta no escribe un estado: dispara la misma acción que el menú Acciones, con sus confirmaciones y permisos.
+Soltar una tarjeta dispara la misma acción que el menú Acciones, con sus confirmaciones y permisos.
 
 | De → a | Acción | Permiso |
 |---|---|---|
-| Borrador → Nueva | Enviar (pide confirmación) | `STUDY_ORDERS_SUBMIT` |
-| Nueva → Sin agendar | Tomar | `STUDY_ORDERS_ACKNOWLEDGE` |
-| Nueva / Sin agendar / Parcial → Parcial / Agendada | Abre el agendado en la agenda | `STUDY_ORDERS_SCHEDULE` |
-| Enviada (cualquier estado) → Anulada | Anular (pide motivo) | `STUDY_ORDERS_CANCEL` (el derivador, solo si nadie la tomó) |
+| Borrador → Confirmada | Confirmar (pide confirmación) | `STUDY_ORDERS_SUBMIT` |
+| Confirmada → Agenda pendiente | Pasar a agenda pendiente | `STUDY_ORDERS_SCHEDULE` o `STUDY_ORDERS_ACKNOWLEDGE` |
+| Confirmada / Agenda pendiente → Agendada | Abre el agendado en la agenda | `STUDY_ORDERS_SCHEDULE` |
+| Estudio completado → Entregada | Entregar (pide confirmación) | `STUDY_ORDERS_DELIVER` |
+| Confirmada … Paciente presente → Cancelada | Anular (pide motivo) | `STUDY_ORDERS_CANCEL` (el derivador, solo si nadie la tomó) |
 
-**En curso** y **Completada** no aceptan tarjetas: se llenan solas cuando se atienden las citas. Tampoco se puede volver a un estado anterior. Mientras se arrastra, las columnas válidas se resaltan y las demás se atenúan; si se suelta donde no corresponde, un aviso explica por qué.
+**Paciente presente**, **En ejecución** y **Estudio completado** no aceptan tarjetas: se llenan solas con las citas. Mientras se arrastra, las columnas válidas se resaltan; si se suelta donde no corresponde, un aviso explica por qué.
 
 Accesible con teclado: barra espaciadora para tomar y soltar, flechas para mover, Escape cancela y Enter abre la orden. En pantallas táctiles se arrastra con una pulsación larga.
 
@@ -45,3 +67,11 @@ Cada tarjeta tiene un botón **Ver resumen** (ícono de ojo) con los datos princ
 3. **Frontend:** nada extra. Usa la dependencia nueva `@dnd-kit/core`.
 
 Endpoints nuevos: `GET /study-orders/board`, `POST /study-orders/assign` y `GET /study-orders/assignees`. `GET /study-orders` acepta `assigned=me|none|<uuid>`, y la lista y el detalle devuelven `assigned_to`, `assigned_to_name` y `assigned_at`.
+
+### Nueve estados (C02.1)
+
+1. Aplicar `database/scripts/179_20261125_study-order-nine-states.sql` (después de la 132).
+2. Importar todos los `n8n-workflows/study-orders-*.json` (incluye el nuevo `study-orders-status.json`) y `docs/n8n-flows/All Appointment Workflows.json`.
+3. Publicar el frontend. Los tres pasos van juntos.
+
+Los flujos del agente de WhatsApp todavía usan el estado `submitted`: no activarlos hasta adaptarlos.

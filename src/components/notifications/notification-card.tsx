@@ -31,6 +31,7 @@ import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
@@ -1083,7 +1084,7 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
             <p className="mt-0.5 text-[11px] text-muted-foreground">{notification.sedeName}</p>
           )}
 
-          <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className={cn('mt-3 grid gap-1.5', STUDY_ORDERS_FEATURES.acknowledge ? 'grid-cols-3' : 'grid-cols-2')}>
             <Button
               variant="outline"
               size="sm"
@@ -1093,6 +1094,7 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
               <CalendarPlus className="h-3.5 w-3.5 text-primary" />
               {t('studyOrderActionSchedule')}
             </Button>
+            {STUDY_ORDERS_FEATURES.acknowledge && (
             <Button
               variant="outline"
               size="sm"
@@ -1103,6 +1105,7 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
               <Inbox className="h-3.5 w-3.5 text-primary" />
               {taken ? t('studyOrderActionTaken') : t('studyOrderActionTake')}
             </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -1126,7 +1129,7 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
  * un valor nuevo tiene que mostrarse como nada, no tumbar el panel.
  */
 const STUDY_ORDER_CHANGE_KEYS = new Set([
-  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled',
+  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled', 'delivered',
 ]);
 
 function StudyOrderStatusCard({ notification }: { notification: StudyOrderStatusChangedNotification }) {

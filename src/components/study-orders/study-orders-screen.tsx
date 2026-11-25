@@ -31,6 +31,7 @@ import { StudyOrderStatusBadge } from './study-order-status-badge';
 import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
+import { STUDY_ORDERS_FEATURES, STUDY_ORDER_STATUSES } from '@/constants/study-order-status';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -45,6 +46,7 @@ import {
     getStudyOrder,
     getStudyOrders,
     submitStudyOrder,
+    updateStudyOrderStatus,
     type StudyOrderOrigin,
     type StudyOrderScope,
 } from '@/services/study-orders';
@@ -338,6 +340,13 @@ function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, on
     );
 }
 
+/** Filtros que no son un estado: cada uno con su parte del módulo. */
+const BUCKET_ENABLED = {
+    new: STUDY_ORDERS_FEATURES.acknowledge,
+    overdue: STUDY_ORDERS_FEATURES.overdue,
+    review: STUDY_ORDERS_FEATURES.review,
+};
+
 /**
  * Subcomponente obligatorio: `useNarrowMode()` sólo devuelve algo distinto de
  * `false` dentro del subárbol de `leftPanel`, así que la decisión de mostrar
@@ -359,10 +368,11 @@ function StudyOrdersTableWithCards({
     // Sin 'all': DataTableToolbar ya agrega su propia opción "Todos" con ese
     // mismo value, y repetirla dejaba dos ítems marcados a la vez.
     const bucketOptions = React.useMemo(
-        () => (['new', 'pending', 'overdue', 'scheduled', 'completed', 'drafts', 'review'] as const).map((value) => ({
-            value,
-            label: t(`buckets.${value}`),
-        })),
+        () => [
+            ...(['new', 'overdue', 'review'] as const).filter((value) => BUCKET_ENABLED[value]).map((value) => ({ value: value as string, label: t(`buckets.${value}`) })),
+            // Los nueve estados, en el orden en que avanza la orden.
+            ...STUDY_ORDER_STATUSES.map((value) => ({ value: value as string, label: t(`status.${value}`) })),
+        ],
         [t],
     );
 
@@ -414,7 +424,7 @@ function StudyOrdersTableWithCards({
                     isSelected={isSelected}
                     // "Ana Pérez derivado por Dra. García": el derivador es parte
                     // de la identidad de la orden, no un dato secundario.
-                    title={referralLabel(order.patient_name, scope === 'clinic' ? order.doctor_name : null, t)}
+                    title={referralLabel(order.patient_name, scope === 'clinic' ? order.doctor_name ?? order.referring_doctor_name : null, t)}
                     // `subtitle` es un string, así que los tres datos restantes
                     // (número, fecha y cantidad) van en una línea separados por punto.
                     subtitle={[
@@ -437,7 +447,7 @@ function StudyOrdersTableWithCards({
                     showArrow
                     onClick={() => onRowSelect([order])}
                     actions={
-                        (order.status === 'draft' && onEditOrder) || (scope === 'clinic' && (order.assigned_to_name || onAssignOrder)) ? (
+                        (order.status === 'draft' && onEditOrder) || (STUDY_ORDERS_FEATURES.assign && scope === 'clinic' && (order.assigned_to_name || onAssignOrder)) ? (
                             <>
                                 {order.status === 'draft' && onEditOrder && (
                                     <button
@@ -450,7 +460,7 @@ function StudyOrdersTableWithCards({
                                     </button>
                                 )}
                                 {/* Quién la revisa; con permiso, tocarlo abre la asignación. */}
-                                {scope === 'clinic' && (onAssignOrder && isStudyOrderAssignable(order) ? (
+                                {STUDY_ORDERS_FEATURES.assign && scope === 'clinic' && (onAssignOrder && isStudyOrderAssignable(order) ? (
                                     <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); onAssignOrder(order); }}
@@ -496,13 +506,14 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     // aunque el usuario tenga el permiso (un administrador, por ejemplo).
     const canAcknowledge = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE);
     const canSchedule = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.SCHEDULE);
+    const canDeliver = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.DELIVER);
     // Anular: espeja la regla del backend. La clínica necesita el permiso; en
     // Mis Órdenes las órdenes son propias y el derivador puede anular las que
     // todavía no fueron tomadas — ese corte lo aplican la fila y el panel.
     const canCancel = !isClinic || hasPermission(STUDY_ORDERS_PERMISSIONS.CANCEL);
     // Importar una orden en papel (fotos o PDF): espeja el backend. Crea el borrador sin doctor
     // vinculado (CREATE_FOR_DOCTOR) y solo la clínica ve esos borradores y sus originales (VIEW_ALL).
-    const canImport = isClinic && hasAllPermissions([
+    const canImport = STUDY_ORDERS_FEATURES.importOrder && isClinic && hasAllPermissions([
         STUDY_ORDERS_PERMISSIONS.CREATE,
         STUDY_ORDERS_PERMISSIONS.CREATE_FOR_DOCTOR,
         STUDY_ORDERS_PERMISSIONS.VIEW_ALL,
@@ -510,7 +521,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [isImportOpen, setIsImportOpen] = React.useState(false);
     // Asignar el responsable y filtrar por él: solo en la bandeja de la clínica, con la bandeja completa.
     const canSeeAll = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
-    const canAssign = canSeeAll && hasPermission(STUDY_ORDERS_PERMISSIONS.ASSIGN);
+    const canAssign = STUDY_ORDERS_FEATURES.assign && canSeeAll && hasPermission(STUDY_ORDERS_PERMISSIONS.ASSIGN);
     const [assigned, setAssigned] = React.useState<StudyOrderAssignedFilter>(() => {
         const value = searchParams.get('assigned');
         return value === 'me' || value === 'none' ? value : 'all';
@@ -563,13 +574,20 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         return source === 'portal' || source === 'whatsapp' ? source : 'all';
     });
 
+    // Con el canal de WhatsApp apagado, la bandeja solo trae las cargadas en Invoke.
+    const sourceFilter = !STUDY_ORDERS_FEATURES.whatsapp ? 'portal' : isClinic && origin !== 'all' ? origin : undefined;
+
     const [orders, setOrders] = React.useState<StudyOrderListItem[]>([]);
     const [total, setTotal] = React.useState(0);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [selected, setSelected] = React.useState<StudyOrderListItem | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-    const [bucket, setBucket] = React.useState(() => (legacyHandoffLink ? 'drafts' : searchParams.get('bucket') || 'all'));
+    const [bucket, setBucket] = React.useState(() => {
+        const value = legacyHandoffLink ? 'draft' : searchParams.get('bucket') || 'all';
+        // Links guardados antes de los nueve estados.
+        return value === 'drafts' ? 'draft' : value;
+    });
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     // Por número de orden descendente, que es cronológico: la secuencia
     // OE-AAAA-NNNNNN se emite en orden. La columna `submitted_at` dejó de
@@ -580,6 +598,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
 
     const [pendingSubmit, setPendingSubmit] = React.useState<PendingOrder | null>(null);
     const [pendingDelete, setPendingDelete] = React.useState<PendingOrder | null>(null);
+    const [pendingDeliver, setPendingDeliver] = React.useState<PendingOrder | null>(null);
     const [pendingCancel, setPendingCancel] = React.useState<PendingOrder | null>(null);
     const [cancelReason, setCancelReason] = React.useState('');
     const [isMutating, setIsMutating] = React.useState(false);
@@ -606,9 +625,9 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             const { items, total: count } = await getStudyOrders({
                 scope,
                 boardStatus: bucket === 'all' ? undefined : bucket,
-                source: isClinic && origin !== 'all' ? origin : undefined,
+                source: sourceFilter,
                 search: searchTerm || undefined,
-                assigned: canSeeAll ? assigned : undefined,
+                assigned: canSeeAll && STUDY_ORDERS_FEATURES.assign ? assigned : undefined,
                 slaHours: DEFAULT_SLA_HOURS,
                 sort,
                 page: pagination.pageIndex + 1,
@@ -620,7 +639,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             setIsLoading(false);
             setIsRefreshing(false);
         },
-        [scope, bucket, origin, isClinic, canSeeAll, assigned, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
+        [scope, bucket, sourceFilter, canSeeAll, assigned, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
     );
 
     // Cualquier cambio de filtro vuelve a la primera página, o se pediría una
@@ -817,25 +836,29 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         setViewMode(mode);
     }, [viewMode, handleCloseDetail, setViewMode]);
 
+    const handleMarkPending = React.useCallback((orderId: string) => {
+        void runMutation(() => updateStudyOrderStatus(orderId, 'pending_scheduling'), t('toast.pendingSchedulingTitle'));
+    }, [runMutation, t]);
+
     /** Soltar una tarjeta en otra columna: la acción real que lleva a ese estado. */
     const handleBoardMove = React.useCallback((order: StudyOrderListItem, move: BoardMove) => {
         switch (move) {
             case 'submit': setPendingSubmit(order); break;
-            case 'acknowledge':
-                void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'));
-                break;
+            case 'markPending': handleMarkPending(order.id); break;
+            case 'deliver': setPendingDeliver(order); break;
             case 'schedule': void handleSchedule(order.id); break;
             case 'cancel': setPendingCancel(order); break;
         }
-    }, [runMutation, handleSchedule, t]);
+    }, [handleMarkPending, handleSchedule]);
 
     const boardCapabilities = React.useMemo<BoardCapabilities>(() => ({
         submit: canSubmit,
-        acknowledge: canAcknowledge,
+        markPending: canAcknowledge || canSchedule,
         schedule: canSchedule,
+        deliver: canDeliver,
         cancel: canCancel,
         isClinic,
-    }), [canSubmit, canAcknowledge, canSchedule, canCancel, isClinic]);
+    }), [canSubmit, canAcknowledge, canSchedule, canDeliver, canCancel, isClinic]);
 
     const columns = StudyOrderColumnsWrapper({
         scope,
@@ -847,6 +870,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             : undefined,
         onSchedule: canSchedule ? (order) => void handleSchedule(order.id) : undefined,
         onCancel: canCancel ? setPendingCancel : undefined,
+        onDeliver: canDeliver ? setPendingDeliver : undefined,
         onAssign: canAssign ? setAssigningOrder : undefined,
     });
 
@@ -874,6 +898,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             onSubmit={setPendingSubmit}
             onDelete={setPendingDelete}
             onCancel={setPendingCancel}
+            onMarkPending={(order) => handleMarkPending(order.id)}
+            onDeliver={setPendingDeliver}
             onAcknowledge={(order) =>
                 void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))}
             onSchedule={(order) => void handleSchedule(order.id)}
@@ -929,16 +955,16 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                         createActions={canImport ? <ImportOrderButton onClick={() => setIsImportOpen(true)} /> : undefined}
                                         extra={isClinic ? (
                                             <>
-                                                <OriginFilter value={origin} onChange={setOrigin} />
-                                                {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
+                                                {STUDY_ORDERS_FEATURES.whatsapp && <OriginFilter value={origin} onChange={setOrigin} />}
+                                                {STUDY_ORDERS_FEATURES.assign && canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
                                             </>
                                         ) : undefined}
                                     />
                                     <StudyOrderBoard
                                         scope={scope}
-                                        source={isClinic && origin !== 'all' ? origin : undefined}
+                                        source={sourceFilter}
                                         search={boardSearch}
-                                        assigned={canSeeAll ? assigned : 'all'}
+                                        assigned={canSeeAll && STUDY_ORDERS_FEATURES.assign ? assigned : 'all'}
                                         perColumn={perColumn}
                                         reloadKey={boardReloadKey}
                                         capabilities={boardCapabilities}
@@ -969,8 +995,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 onBucketChange={setBucket}
                                 originFilter={isClinic ? (
                                     <>
-                                        <OriginFilter value={origin} onChange={setOrigin} />
-                                        {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
+                                        {STUDY_ORDERS_FEATURES.whatsapp && <OriginFilter value={origin} onChange={setOrigin} />}
+                                        {STUDY_ORDERS_FEATURES.assign && canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
                                     </>
                                 ) : undefined}
                                 createActions={canImport ? <ImportOrderButton onClick={() => setIsImportOpen(true)} /> : undefined}
@@ -1013,7 +1039,14 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 onOpenChange={setIsFormOpen}
                 orderId={editingId}
                 orderNumber={editingNumber}
-                onSaved={reloadAll}
+                onSaved={(created) => {
+                    reloadAll();
+                    // La orden recién creada queda abierta: lo siguiente es revisarla y confirmarla.
+                    if (created) {
+                        setSelected({ id: created.id, patient_name: created.patientName } as unknown as StudyOrderListItem);
+                        setRowSelection({});
+                    }
+                }}
             />
 
             {canImport && (
@@ -1057,6 +1090,32 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             }}
                         >
                             {t('submitDialog.confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!pendingDeliver} onOpenChange={(open) => !open && setPendingDeliver(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deliverDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('deliverDialog.description', { number: pendingDeliver?.order_number ?? '' })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('deliverDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isMutating}
+                            onClick={() => {
+                                const order = pendingDeliver;
+                                setPendingDeliver(null);
+                                if (order) {
+                                    void runMutation(() => updateStudyOrderStatus(order.id, 'delivered'), t('toast.deliveredTitle'));
+                                }
+                            }}
+                        >
+                            {t('deliverDialog.confirm')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

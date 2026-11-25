@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Cron de reconciliación\n\nCorre cada 2 horas y corrige las órdenes cuyo estado persistido no refleja sus citas.\n\n**Por qué existe:** `/study-orders/recompute` lo llama el front al guardar una sesión clínica y al cancelar una cita, pero el front no siempre llega — la pestaña se cierra, la red se corta, o el estado de la cita cambia por un camino que no lo invoca. Sin esto, una orden puede quedarse en \"en curso\" para siempre y el derivador nunca se entera de que sus estudios están listos.\n\nSin nada que corregir devuelve cero filas y la ejecución se corta ahí: no notifica de más.",
+        "content": "## Cron de reconciliación\n\nCorre cada 15 minutos y corrige las órdenes cuyo estado no refleja sus citas. El historial lo firma **Sistema**.\n\n**Por qué existe:** el estado lo mueven `/appointments/update_status`, `/study-orders/link-appointment` y `/study-orders/recompute` con el usuario real, pero una cita puede cambiar por un camino que no pasa por ahí (Google, agente, edición directa).\n\nSin nada que corregir devuelve cero filas y la ejecución se corta ahí: no notifica de más.",
         "height": 380,
         "width": 460,
         "color": 4
@@ -22,8 +22,8 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 2
+              "field": "minutes",
+              "minutesInterval": 15
             }
           ]
         }
@@ -35,12 +35,12 @@
         0
       ],
       "id": "recon-cron",
-      "name": "Cada 2 horas"
+      "name": "Cada 15 minutos"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "\n-- Sin parámetros: corre como el sistema, desde un cron.\n--\n-- Red de seguridad de /recompute. Ese endpoint lo llama el front al guardar una\n-- sesión clínica y al cancelar una cita, pero el front no siempre llega: la\n-- pestaña se cierra, la red se corta, o alguien cambia el estado de una cita\n-- desde un camino que no lo invoca. Esto barre todas las órdenes y corrige las\n-- que quedaron con un estado persistido que no refleja sus citas.\n--\n-- Devuelve una fila por orden corregida, para que el nodo siguiente notifique.\n-- Sin nada que corregir devuelve cero filas y ahí se corta la ejecución.\nWITH state AS (\n    SELECT o.id,\n           CASE WHEN b.items_total > 0 AND b.items_completed = b.items_total\n                THEN 'completed' ELSE 'submitted' END AS target\n      FROM public.study_orders o\n      JOIN public.v_study_orders_board b ON b.id = o.id\n     WHERE o.status IN ('submitted', 'completed')\n)\nUPDATE public.study_orders o\n   SET status       = state.target,\n       completed_at = CASE WHEN state.target = 'completed' THEN (now() AT TIME ZONE 'America/Montevideo') ELSE NULL END,\n       updated_at   = (now() AT TIME ZONE 'America/Montevideo')\n  FROM state\n WHERE o.id = state.id\n   AND o.status IS DISTINCT FROM state.target\nRETURNING o.id::text AS order_id,\n          CASE WHEN state.target = 'completed' THEN 'completed' ELSE 'reopened' END AS change;",
+        "query": "\n-- Sin parámetros: corre como el sistema, desde un cron.\n--\n-- Red de seguridad de /recompute. Ese endpoint lo llama el front al guardar una\n-- sesión clínica y al cancelar una cita, pero el front no siempre llega: la\n-- pestaña se cierra, la red se corta, o alguien cambia el estado de una cita\n-- desde un camino que no lo invoca. Esto barre todas las órdenes y corrige las\n-- que quedaron con un estado persistido que no refleja sus citas.\n--\n-- Devuelve una fila por orden corregida, para que el nodo siguiente notifique.\n-- Sin nada que corregir devuelve cero filas y ahí se corta la ejecución.\nWITH stale AS MATERIALIZED (\n    SELECT o.id, o.status::text AS old_status\n      FROM public.study_orders o\n     WHERE o.status NOT IN ('draft', 'delivered', 'cancelled')\n       AND o.status <> public.study_order_status_from_appointments(o.id, o.status)\n),\nsynced AS MATERIALIZED (\n    SELECT st.id, st.old_status, public.study_order_sync(st.id, NULL, 'system') AS new_status\n      FROM stale st\n)\nSELECT s.id::text AS order_id, s.old_status, s.new_status,\n       -- Al derivador solo se le avisa el cierre y su reverso, igual que en /recompute.\n       CASE WHEN s.new_status = 'completed' THEN 'completed'\n            WHEN s.old_status = 'completed' THEN 'reopened'\n            ELSE '' END AS change\n  FROM synced s;",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -62,33 +62,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
+        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita\n--      una notificación de lo que acaba de hacer. Vacío = avisar igual.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, el mismo que ve la clínica.\n--\n-- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo\n-- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las\n-- que trae por REST, así que necesita id, type, status, metadata y created_at;\n-- con sólo el user_id la normalización devuelve null y el aviso se descarta en\n-- silencio — la notificación queda en la base y recién aparece al refrescar.\n-- Es la convención de los flujos de citas, que ya devuelven la fila entera.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'source',        so.source,\n           'referring_doctor_name', so.referring_doctor_name,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       (now() AT TIME ZONE 'America/Montevideo')\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\n   AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ JSON.stringify({ order_id: $json.order_id, event_type: $json.change, actor_kind: 'system' }) }}"
-        }
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        480,
-        180
-      ],
-      "id": "recon-event",
-      "name": "Registrar evento",
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita\n--      una notificación de lo que acaba de hacer. Vacío = avisar igual.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\n--\n-- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo\n-- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las\n-- que trae por REST, así que necesita id, type, status, metadata y created_at;\n-- con sólo el user_id la normalización devuelve null y el aviso se descarta en\n-- silencio — la notificación queda en la base y recién aparece al refrescar.\n-- Es la convención de los flujos de citas, que ya devuelven la fila entera.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'source',        so.source,\n           'referring_doctor_name', so.referring_doctor_name,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       (now() AT TIME ZONE 'America/Montevideo')\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\n   AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid\nRETURNING *;",
-        "options": {
-          "queryReplacement": "={{ [ $json.order_id, $json.change, '' ] }}"
+          "queryReplacement": "={{ [ $json.order_id || '', $json.change || '', '' ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -172,7 +148,7 @@
     }
   ],
   "connections": {
-    "Cada 2 horas": {
+    "Cada 15 minutos": {
       "main": [
         [
           {
@@ -186,11 +162,6 @@
     "Reconciliar": {
       "main": [
         [
-          {
-            "node": "Registrar evento",
-            "type": "main",
-            "index": 0
-          },
           {
             "node": "Notificar",
             "type": "main",

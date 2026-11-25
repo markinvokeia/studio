@@ -33,6 +33,7 @@ import {
     type StudyOrderSummarySection,
 } from './study-order-summary';
 
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { useStudyOrderChatterMode } from '@/hooks/use-study-order-chatter-source';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -74,7 +75,8 @@ export interface StudyOrderWizardProps {
     /** Sin id = alta. Con id = edición de un borrador. */
     orderId?: string | null;
     orderNumber?: string | null;
-    onSaved?: () => void;
+    /** `created` = el borrador recién creado, para abrirlo. */
+    onSaved?: (created?: { id: string; patientName: string }) => void;
 }
 
 /** Originales de WhatsApp que se muestran al lado del formulario. */
@@ -211,7 +213,8 @@ export function StudyOrderWizard({
     const [showChatter, setShowChatter] = React.useState(false);
     const [chatterKey, setChatterKey] = React.useState(0);
     /** NEXT_PUBLIC_STUDY_ORDER_CHATTER=off: sin botón ni panel. */
-    const chatterEnabled = useStudyOrderChatterMode() !== 'off';
+    const chatterMode = useStudyOrderChatterMode();
+    const chatterEnabled = STUDY_ORDERS_FEATURES.chatter && chatterMode !== 'off';
     const toggleChatter = React.useCallback((open: boolean) => {
         setShowChatter(open);
         saveChatterPref(open);
@@ -573,9 +576,12 @@ export function StudyOrderWizard({
                     description: [t('toast.submittedDescription', { number: submitted.order_number }), extra].filter(Boolean).join(' '),
                 });
             } else {
-                toast({ title: t('toast.savedTitle') });
+                toast({
+                    title: t(isCreating ? 'toast.draftCreatedTitle' : 'toast.savedTitle'),
+                    description: isCreating ? t('toast.draftCreatedDescription') : undefined,
+                });
             }
-            onSaved?.();
+            onSaved?.(isCreating ? { id: saved.id, patientName: patientName.trim() } : undefined);
             onOpenChange(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : t('toast.genericError'));
@@ -1236,12 +1242,13 @@ export function StudyOrderWizard({
                     <div className="flex items-center gap-2">
                         {isLast ? (
                             <>
-                                <Button variant="outline" onClick={() => void handleSave(false)} disabled={isSaving}>
+                                <Button variant={isCreating ? 'default' : 'outline'} onClick={() => void handleSave(false)} disabled={isSaving}>
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     <span className="sm:hidden">{t('form.saveDraftShort')}</span>
                                     <span className="hidden sm:inline">{t('form.saveDraft')}</span>
                                 </Button>
-                                <Button
+                                {/* Toda orden nace en borrador (RF-04): se confirma después, al revisarla. */}
+                                {!isCreating && <Button
                                     onClick={() => setConfirmSubmit(true)}
                                     disabled={isSaving || totalSelected === 0 || blockingPending > 0}
                                     title={blockingPending > 0 ? t('review.submitBlocked', { count: blockingPending }) : undefined}
@@ -1249,7 +1256,7 @@ export function StudyOrderWizard({
                                     <Send className="mr-2 h-4 w-4" />
                                     <span className="sm:hidden">{t('form.submitShort')}</span>
                                     <span className="hidden sm:inline">{t('form.submit')}</span>
-                                </Button>
+                                </Button>}
                             </>
                         ) : (
                             <>

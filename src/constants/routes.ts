@@ -599,6 +599,8 @@ export const API_ROUTES = {
         SUBMIT:        '/study-orders/submit',
         CANCEL:        '/study-orders/cancel',
         ACKNOWLEDGE:   '/study-orders/acknowledge',
+        /** Cambio de estado a mano: agenda pendiente y entregada. */
+        STATUS:        '/study-orders/status',
         /** Asigna (o deja sin asignar) el responsable de la orden en la clínica. */
         ASSIGN:        '/study-orders/assign',
         /** Usuarios a los que se puede asignar una orden (con STUDY_ORDERS_VIEW_ALL). */

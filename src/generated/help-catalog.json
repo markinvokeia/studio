@@ -1,5 +1,5 @@
 {
- "version": "cf9397c518a74b32",
+ "version": "2f0dbbc2b25adfa7",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -1939,6 +1939,11 @@
   {
    "code": "STUDY_ORDERS_DELETE",
    "constant": "STUDY_ORDERS_PERMISSIONS.DELETE"
+  },
+  {
+   "code": "STUDY_ORDERS_DELIVER",
+   "constant": "STUDY_ORDERS_PERMISSIONS.DELIVER",
+   "description": "Marcar la orden como entregada."
   },
   {
    "code": "STUDY_ORDERS_MESSAGE",

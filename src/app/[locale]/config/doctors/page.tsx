@@ -2,6 +2,7 @@
 
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import type { UniqueConflict } from '@/lib/types';
 import { formatPhoneNumber } from '@/lib/phone-text';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
@@ -301,7 +302,7 @@ export default function DoctorsPage() {
   const { user: currentUser } = useAuth();
   // Con VIEW_ALL se ven las órdenes de cualquier doctor; con VIEW_MINE sólo las
   // propias, así que el tab aparece únicamente en la ficha de uno mismo.
-  const canViewDoctorStudyOrders = !!selectedUser && (
+  const canViewDoctorStudyOrders = STUDY_ORDERS_FEATURES.relatedTabs && !!selectedUser && (
     hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL) ||
     (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(currentUser?.id) === String(selectedUser.id))
   );

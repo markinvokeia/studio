@@ -58,11 +58,13 @@ export interface StudyOrderSummaryProps {
     clinicalNotes?: string | null;
     /** Cabecera extra que el detalle mete arriba (doctor, sede sugerida). */
     header?: React.ReactNode;
+    /** Bloques de paciente y odontólogo del detalle: reemplazan a la línea del paciente. */
+    people?: React.ReactNode;
 }
 
 export function StudyOrderSummary({
     patientName, patientDocument, patientPhone, patientEmail,
-    deliveryLabels, sections, texts = [], clinicalNotes, header,
+    deliveryLabels, sections, texts = [], clinicalNotes, header, people,
 }: StudyOrderSummaryProps) {
     const t = useTranslations('StudyOrdersPage');
 
@@ -71,15 +73,20 @@ export function StudyOrderSummary({
 
     return (
         <div className="space-y-5">
-            <div className="rounded-lg border p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {t('form.patientSection')}
-                </p>
-                <p className="mt-1 font-medium">{patientName || '—'}</p>
-                <p className="text-sm text-muted-foreground">{contact || '—'}</p>
+            {people}
+            {(!people || deliveryLabels.length > 0 || header) && <div className="space-y-3 rounded-lg border p-4">
+                {!people && (
+                    <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                            {t('form.patientSection')}
+                        </p>
+                        <p className="mt-1 font-medium">{patientName || '—'}</p>
+                        <p className="text-sm text-muted-foreground">{contact || '—'}</p>
+                    </div>
+                )}
 
                 {deliveryLabels.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
                         {deliveryLabels.map((label) => (
                             <Badge key={label} variant="outline">{label}</Badge>
                         ))}
@@ -87,7 +94,7 @@ export function StudyOrderSummary({
                 )}
 
                 {header}
-            </div>
+            </div>}
 
             {withContent.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">

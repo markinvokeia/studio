@@ -19,6 +19,7 @@ import { PatientIndicationsTab } from '@/components/medical-instructions/patient
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 
+import { STUDY_ORDERS_FEATURES } from '@/constants/study-order-status';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import type { Appointment, PatientStudyOrder, User } from '@/lib/types';
 import { fetchUpcomingPatientAppointments } from '@/services/appointments';
@@ -121,7 +122,7 @@ export default function MyProfilePage() {
   }, [patientId, loadStudyOrders]);
 
   /** Con error se muestra igual: el paciente tiene que poder reintentar. */
-  const showOrdersTab = studyOrders.length > 0 || studyOrdersError;
+  const showOrdersTab = STUDY_ORDERS_FEATURES.patientPortal && (studyOrders.length > 0 || studyOrdersError);
 
   React.useEffect(() => {
     if (!patientId) return;

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, ArrowLeft, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserPlus, UserRound, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, ArrowLeft, CalendarClock, CalendarDays, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserPlus, UserRound, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,13 @@ import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { isStudyOrderAssignable } from './study-order-assign-dialog';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderChatter } from './study-order-chatter';
+import { StudyOrderPeople } from './study-order-people';
 import { StudyOrderReferralLine } from './study-order-referral-line';
 import { countPendingBlocking } from './study-order-review-list';
 import { StudyOrderReviewTab } from './study-order-review-tab';
 import { StudyOrderSessionTab } from './study-order-session-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
+import { StudyOrderNextStep, StudyOrderStepper } from './study-order-stepper';
 import {
     StudyOrderSummary, labelForDelivery, labelForModifier, labelForText,
     type StudyOrderSummarySection,
@@ -30,10 +32,11 @@ import { StudyOrderWhatsappTab } from './study-order-whatsapp-tab';
 import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { STUDY_ORDERS_FEATURES, isStudyOrderCancellable, isStudyOrderOpen } from '@/constants/study-order-status';
 import { useStudyOrderChatterMode } from '@/hooks/use-study-order-chatter-source';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn, formatDateTime, formatDisplayDate } from '@/lib/utils';
-import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
+import type { StudyOrder, StudyOrderFormOptions } from '@/lib/types';
 import { getStudyOrder, getStudyOrderFormOptions } from '@/services/study-orders';
 
 /**
@@ -59,6 +62,10 @@ export interface StudyOrderDetailPanelProps {
     /** Mover una cita existente de la orden a otra fecha y hora. */
     onReschedule?: (order: StudyOrder) => void;
     onCancel?: (order: StudyOrder) => void;
+    /** Confirmada → Agenda pendiente. */
+    onMarkPending?: (order: StudyOrder) => void;
+    /** Estudio completado → Entregada. */
+    onDeliver?: (order: StudyOrder) => void;
     /** Imprime la orden. Disponible en cualquier estado salvo borrador. */
     onPrint?: (order: StudyOrder) => void;
     /** Asignar el responsable (quien tenga STUDY_ORDERS_ASSIGN; el padre ya lo resolvió). */
@@ -91,20 +98,6 @@ export interface StudyOrderDetailPanelProps {
     backLabel?: string;
 }
 
-/** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
-function deriveBoardStatus(order: StudyOrder): StudyOrderBoardStatus {
-    if (order.status === 'cancelled') return 'cancelled';
-    if (order.status === 'draft') return 'draft';
-    if (order.status === 'completed') return 'completed';
-
-    const live = order.items.filter((i) => !i.is_cancelled);
-    if (live.length > 0 && live.every((i) => i.is_completed)) return 'completed';
-    if (live.some((i) => i.is_completed)) return 'in_progress';
-    if (live.length > 0 && live.every((i) => i.is_scheduled)) return 'scheduled';
-    if (live.some((i) => i.is_scheduled)) return 'partially_scheduled';
-    return order.acknowledged_at ? 'unscheduled' : 'new';
-}
-
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
     if (value === null || value === undefined || value === '') return null;
     return (
@@ -117,7 +110,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
-    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, onAssign, closeOnDesktopOnly = false,
+    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onMarkPending, onDeliver, onPrint, onAssign, closeOnDesktopOnly = false,
     isExpanded = false, onToggleExpand, backLabel, frameless = false,
 }: StudyOrderDetailPanelProps) {
     /** Marco de la tarjeta: el de siempre, o ninguno si la contiene otro panel. */
@@ -125,6 +118,7 @@ export function StudyOrderDetailPanel({
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
     const chatterMode = useStudyOrderChatterMode();
+    const showChatter = STUDY_ORDERS_FEATURES.chatter && chatterMode !== 'off';
 
     const [order, setOrder] = React.useState<StudyOrder | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -155,7 +149,7 @@ export function StudyOrderDetailPanel({
         return () => { cancelled = true; };
     }, [orderId, refreshKey, reloadKey]);
 
-    const hasOriginals = !!order?.whatsapp && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+    const hasOriginals = STUDY_ORDERS_FEATURES.originals && !!order?.whatsapp && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
     const isImported = order?.whatsapp?.channel === 'import';
     const reviewItems = order?.review_items ?? [];
     const reviewPending = reviewItems.filter((i) => i.status === 'pending').length;
@@ -168,7 +162,7 @@ export function StudyOrderDetailPanel({
             { id: 'order', icon: FileText, label: t('tabs.order') },
             // Lo que el agente de WhatsApp no tuvo claro: aparece solo si dejó algo, con el
             // número de pendientes en la etiqueta para que se vea sin abrirla.
-            ...(reviewItems.length > 0
+            ...(STUDY_ORDERS_FEATURES.review && reviewItems.length > 0
                 ? [{
                     id: 'review',
                     icon: ListChecks,
@@ -182,11 +176,11 @@ export function StudyOrderDetailPanel({
             // derivador le importa qué se le hizo a su paciente y quién lo hizo,
             // que es el desenlace de la orden que mandó. Registrar, en cambio,
             // está gateado por CLINICAL_SESSION_CREATE dentro de la pestaña.
-            { id: 'sessions', icon: Stethoscope, label: t('tabs.sessions') },
+            ...(STUDY_ORDERS_FEATURES.sessions ? [{ id: 'sessions', icon: Stethoscope, label: t('tabs.sessions') }] : []),
             ...(scope === 'clinic'
                 ? [{ id: 'patient', icon: User, label: t('tabs.patient') }]
                 : []),
-            ...(!readOnly && hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
+            ...(STUDY_ORDERS_FEATURES.bookingLink && !readOnly && hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
                 ? [{ id: 'link', icon: Link2, label: t('tabs.link') }]
                 : []),
             // Solo órdenes que entraron por WhatsApp o que se importaron subiendo sus fotos: los
@@ -219,7 +213,7 @@ export function StudyOrderDetailPanel({
     const headerActions = React.useMemo(() => {
         if (!order) return [];
         const isDraft = order.status === 'draft';
-        const isSubmitted = order.status === 'submitted';
+        const isOpen = isStudyOrderOpen(order.status);
         const isClinic = scope === 'clinic';
         const can = (code: string) => hasPermission(code);
 
@@ -233,18 +227,10 @@ export function StudyOrderDetailPanel({
         if (isDraft && onEdit && can(STUDY_ORDERS_PERMISSIONS.UPDATE)) {
             actions.push({ key: 'edit', label: t('actions.edit'), icon: Pencil, onClick: () => onEdit(order), variant: 'default' });
         }
-        if (isDraft && onSubmit && can(STUDY_ORDERS_PERMISSIONS.SUBMIT)) {
-            // Borrador creado al derivar desde WhatsApp: no sale con puntos bloqueantes sin revisar.
-            const blockingPending = countPendingBlocking(order.review_items);
-            actions.push({
-                key: 'submit', label: t('actions.submit'), icon: Send, onClick: () => onSubmit(order), variant: 'default',
-                disabledReason: blockingPending > 0 ? t('review.submitBlocked', { count: blockingPending }) : undefined,
-            });
-        }
-
-        // Tomar y agendar son trabajo de la clínica: no aparecen en Mis Órdenes
+        // Confirmar, agendar, agenda pendiente y entregar están en la línea de etapas.
+        // Tomar es trabajo de la clínica: no aparece en Mis Órdenes
         // ni siquiera para un administrador, que sí tiene los permisos.
-        if (isClinic && isSubmitted && !order.acknowledged_at && onAcknowledge && can(STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE)) {
+        if (STUDY_ORDERS_FEATURES.acknowledge && isClinic && isOpen && !order.acknowledged_at && onAcknowledge && can(STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE)) {
             actions.push({ key: 'ack', label: t('actions.acknowledge'), icon: Inbox, onClick: () => onAcknowledge(order), variant: 'default' });
         }
         // Con todas las líneas ya cubiertas por una cita, la orden sale del
@@ -254,15 +240,12 @@ export function StudyOrderDetailPanel({
         const activeItems = (order.items ?? []).filter((i) => !i.is_cancelled);
         const isFullyScheduled = activeItems.length > 0 && activeItems.every((i) => i.is_scheduled);
 
-        if (isClinic && isSubmitted && !isFullyScheduled && onSchedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
-            actions.push({ key: 'schedule', label: t('actions.schedule'), icon: CalendarPlus, onClick: () => onSchedule(order), variant: 'default' });
-        }
         // Reagendar aparece cuando hay una cita que todavía se puede mover: una
         // ya atendida o cancelada no se toca.
         const hasMovable = (order.appointments ?? []).some(
             (a) => !['completed', 'cancelled', 'deleted', 'no_show'].includes(a.status),
         );
-        if (isClinic && hasMovable && !isFullyScheduled && onReschedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
+        if (STUDY_ORDERS_FEATURES.reschedule && isClinic && hasMovable && !isFullyScheduled && onReschedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
             actions.push({ key: 'reschedule', label: t('actions.reschedule'), icon: CalendarClock, onClick: () => onReschedule(order), variant: 'default' });
         }
 
@@ -273,7 +256,7 @@ export function StudyOrderDetailPanel({
         //
         // Mismas condiciones que la pestaña, para no ofrecer un atajo hacia algo
         // que allá va a estar bloqueado.
-        if (isSubmitted && !isFullyScheduled && order.patient_id
+        if (STUDY_ORDERS_FEATURES.bookingLink && isOpen && !isFullyScheduled && order.patient_id
             && can(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)) {
             actions.push({
                 key: 'share-link',
@@ -290,7 +273,7 @@ export function StudyOrderDetailPanel({
         const recordable = (order.appointments ?? []).some(
             (a) => !a.session && !['cancelled', 'deleted', 'no_show'].includes(a.status),
         );
-        if (isSubmitted && recordable && order.patient_id && can(TIMELINE_PERMISSIONS.CREATE)) {
+        if (STUDY_ORDERS_FEATURES.sessions && isOpen && recordable && order.patient_id && can(TIMELINE_PERMISSIONS.CREATE)) {
             actions.push({
                 key: 'session',
                 label: t('sessionTab.record'),
@@ -304,7 +287,7 @@ export function StudyOrderDetailPanel({
         // No se ofrece en borrador — lo que no se envió todavía puede cambiar, y
         // un papel con una orden que después se editó es peor que ningún papel.
         // Asignar quién la revisa: lo que ve la clínica (enviadas, o borradores del agente de WhatsApp) y no anulado.
-        if (onAssign && isClinic && isStudyOrderAssignable(order)) {
+        if (STUDY_ORDERS_FEATURES.assign && onAssign && isClinic && isStudyOrderAssignable(order)) {
             actions.push({
                 key: 'assign',
                 label: order.assigned_to ? t('assign.reassign') : t('assign.action'),
@@ -314,7 +297,7 @@ export function StudyOrderDetailPanel({
             });
         }
 
-        if (!isDraft && onPrint) {
+        if (STUDY_ORDERS_FEATURES.print && !isDraft && onPrint) {
             actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default' });
         }
 
@@ -325,7 +308,7 @@ export function StudyOrderDetailPanel({
         // Anular: la clínica siempre; el derivador sólo mientras nadie la haya
         // tomado. Ya tomada, el botón queda a la vista pero gris y explica por qué
         // — es más útil que esconderlo y dejar al doctor buscándolo.
-        if (isSubmitted && onCancel) {
+        if (isStudyOrderCancellable(order.status) && onCancel) {
             const clinicMayCancel = isClinic && can(STUDY_ORDERS_PERMISSIONS.CANCEL);
             const ownerMayCancel = !isClinic;
             if (clinicMayCancel || ownerMayCancel) {
@@ -344,7 +327,7 @@ export function StudyOrderDetailPanel({
         // En consulta sólo queda imprimir: el link y registrar sesión no dependen de
         // un callback, así que hay que sacarlos acá.
         return readOnly ? actions.filter((action) => action.key === 'print') : actions;
-    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, onAssign, readOnly]);
+    }, [order, scope, hasPermission, t, onEdit, onDelete, onAcknowledge, onReschedule, onCancel, onPrint, onAssign, readOnly]);
 
     if (isLoading) {
         return (
@@ -393,13 +376,13 @@ export function StudyOrderDetailPanel({
                                 patientName={order.patient_name}
                                 // En Mis Órdenes el derivador es quien está
                                 // mirando: decírselo es redundante.
-                                doctorName={scope === 'clinic' ? order.doctor_name : null}
+                                doctorName={scope === 'clinic' ? order.doctor_name ?? order.referring_doctor_name : null}
                             />
                         </p>
-                        <StudyOrderStatusBadge status={deriveBoardStatus(order)} />
+                        <StudyOrderStatusBadge status={order.status} />
                         <WhatsappSourceBadge source={order.source} />
                         {/* Quién la revisa: solo en la bandeja de la clínica, que es donde se asigna. */}
-                        {scope === 'clinic' && order.assigned_to_name && (
+                        {STUDY_ORDERS_FEATURES.assign && scope === 'clinic' && order.assigned_to_name && (
                             <span
                                 className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
                                 title={order.assigned_at ? t('assign.assignedAt', { date: formatDateTime(order.assigned_at) }) : undefined}
@@ -412,13 +395,26 @@ export function StudyOrderDetailPanel({
                 </div>
                 {/* Siempre arriba a la derecha: las acciones van en un desplegable para dejarle el
                     ancho a las pestañas; después, pantalla entera y cerrar. */}
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 max-sm:max-w-[55%]">
+                    <StudyOrderNextStep
+                        order={order}
+                        scope={scope}
+                        readOnly={readOnly}
+                        onConfirm={onSubmit && (() => onSubmit(order))}
+                        onMarkPending={onMarkPending && (() => onMarkPending(order))}
+                        onSchedule={onSchedule && (() => onSchedule(order))}
+                        onDeliver={onDeliver && (() => onDeliver(order))}
+                        onChanged={() => {
+                            setReloadKey((k) => k + 1);
+                            onReviewChanged?.();
+                        }}
+                    />
                     {headerActions.length > 0 && (
                         // No modal: varias acciones abren un diálogo de confirmación y, con el menú
                         // modal, Radix puede dejar la página sin poder hacer clic al cerrarlo.
                         <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
-                                <Button size="sm" className="h-8 gap-1.5 px-3">
+                                <Button size="sm" variant="outline" className="h-8 gap-1.5 px-3">
                                     {t('actions.menu')}
                                     <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                                 </Button>
@@ -503,7 +499,7 @@ export function StudyOrderDetailPanel({
                 <CardContent className="flex-1 space-y-4 overflow-y-auto pt-4">
                     {activeTab === 'order' && (
                         <>
-                            {countPendingBlocking(order.review_items) > 0 && (
+                            {STUDY_ORDERS_FEATURES.review && countPendingBlocking(order.review_items) > 0 && (
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('review')}
@@ -513,6 +509,7 @@ export function StudyOrderDetailPanel({
                                     <span>{t('review.banner', { count: countPendingBlocking(order.review_items) })}</span>
                                 </button>
                             )}
+                            <StudyOrderStepper order={order} />
                             <OrderTab order={order} />
                         </>
                     )}
@@ -551,8 +548,8 @@ export function StudyOrderDetailPanel({
 
                     {/* Chatter: mensajes, notas internas y la bitácora de la orden, en un solo hilo.
                         Apagado (NEXT_PUBLIC_STUDY_ORDER_CHATTER=off), la línea de tiempo de siempre. */}
-                    {activeTab === 'activity' && chatterMode === 'off' && <StudyOrderTimeline events={order.events ?? []} />}
-                    {activeTab === 'activity' && chatterMode !== 'off' && (
+                    {activeTab === 'activity' && !showChatter && <StudyOrderTimeline events={order.events ?? []} />}
+                    {activeTab === 'activity' && showChatter && (
                         <StudyOrderChatter
                             orderId={order.id}
                             variant="embedded"
@@ -740,20 +737,12 @@ function OrderTab({ order }: { order: StudyOrder }) {
             sections={sections}
             texts={texts}
             clinicalNotes={order.clinical_notes}
-            header={
-                <dl className="mt-3 grid grid-cols-2 gap-3 border-t pt-3">
-                    <Field
-                        label={t('columns.doctor')}
-                        // Las órdenes de WhatsApp no se vinculan a un doctor: se muestra el
-                        // nombre del papel, aclarando que es solo referencia.
-                        value={order.doctor_name
-                            ?? (order.referring_doctor_name
-                                ? `${order.referring_doctor_name} (${t('whatsapp.doctorNotLinked')})`
-                                : null)}
-                    />
+            people={<StudyOrderPeople order={order} />}
+            header={order.preferred_sede_name ? (
+                <dl className="grid grid-cols-2 gap-3">
                     <Field label={t('form.preferredSede')} value={order.preferred_sede_name} />
                 </dl>
-            }
+            ) : undefined}
         />
     );
 }

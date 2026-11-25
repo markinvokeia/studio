@@ -1,5 +1,5 @@
 {
- "version": "6d986ee4e6c96c11",
+ "version": "d244c7356ef07a63",
  "locale": "en",
  "journey": [
   {
@@ -1940,6 +1940,11 @@
   {
    "code": "STUDY_ORDERS_DELETE",
    "constant": "STUDY_ORDERS_PERMISSIONS.DELETE"
+  },
+  {
+   "code": "STUDY_ORDERS_DELIVER",
+   "constant": "STUDY_ORDERS_PERMISSIONS.DELIVER",
+   "description": "Marcar la orden como entregada."
   },
   {
    "code": "STUDY_ORDERS_MESSAGE",
