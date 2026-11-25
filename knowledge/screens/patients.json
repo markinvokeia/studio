@@ -530,6 +530,10 @@
     "patients.section.ledger-toolbar": {
       "label": "Período, búsqueda y moneda"
     },
+    "patients.section.ledger-other-currencies": {
+      "label": "Movimientos en otras monedas",
+      "description": "Aviso que aparece cuando el paciente tiene movimientos en una moneda distinta de la que se está viendo. Indica cuántos hay y su saldo; se ven cambiando el filtro de moneda."
+    },
     "patients.section.ledger": {
       "label": "Cuenta corriente",
       "description": "Presupuestos, tratamientos y pagos con su saldo."

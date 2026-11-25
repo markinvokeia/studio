@@ -1,5 +1,5 @@
 {
- "version": "b730166edc7b9a9c",
+ "version": "67cc0c69f809afa6",
  "locale": "en",
  "journey": [
   {
@@ -10531,6 +10531,13 @@
      "id": "patients.section.ledger",
      "kind": "section",
      "label": "Account ledger",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Notice shown when the patient has transactions in a currency other than the one on screen. It tells how many there are and their balance; change the currency filter to see them.",
+     "id": "patients.section.ledger-other-currencies",
+     "kind": "section",
+     "label": "Transactions in other currencies",
      "source": "knowledge/screens/patients.json"
     },
     {

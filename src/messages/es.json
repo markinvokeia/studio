@@ -108,6 +108,12 @@
       "pago": "Pago",
       "notaCredito": "Nota de crédito"
     },
+    "otherCurrencies": {
+      "viewing": "Estás viendo solo los movimientos en {currency}. Este paciente también tiene:",
+      "summary": "{count, plural, one {# movimiento} other {# movimientos}} en {currency} (saldo {balance})",
+      "outOfPeriod": "(fuera del período elegido)",
+      "savedElsewhere": "Se guardó en {saved}, pero estás viendo {viewed}."
+    },
     "empty": "Sin movimientos en {currency}.",
     "search": "Buscar...",
     "finalBalance": "Saldo final:",

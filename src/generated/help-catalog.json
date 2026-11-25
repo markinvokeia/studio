@@ -1,5 +1,5 @@
 {
- "version": "ee44291538a4227e",
+ "version": "2f00173eb8cad0b5",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -10620,6 +10620,13 @@
      "id": "patients.section.ledger",
      "kind": "section",
      "label": "Cuenta corriente",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Aviso que aparece cuando el paciente tiene movimientos en una moneda distinta de la que se está viendo. Indica cuántos hay y su saldo; se ven cambiando el filtro de moneda.",
+     "id": "patients.section.ledger-other-currencies",
+     "kind": "section",
+     "label": "Movimientos en otras monedas",
      "source": "knowledge/screens/patients.json"
     },
     {

@@ -484,6 +484,10 @@
     "patients.section.ledger-toolbar": {
       "label": "Period, search and currency"
     },
+    "patients.section.ledger-other-currencies": {
+      "label": "Transactions in other currencies",
+      "description": "Notice shown when the patient has transactions in a currency other than the one on screen. It tells how many there are and their balance; change the currency filter to see them."
+    },
     "patients.section.ledger": {
       "label": "Account ledger",
       "description": "Quotes, treatments and payments with their balance."

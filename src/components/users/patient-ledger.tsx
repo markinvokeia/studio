@@ -5,7 +5,7 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
-import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, MapPin, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Send, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
+import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Info, Link2, ListChecks, Loader2, MapPin, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Send, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AppliedDiscountNote, DiscountControl } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
@@ -69,6 +69,9 @@ import {
 } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 import { useBillingChangeVersion } from '@/stores/billing-wizard-store';
+
+/** Extra toast content when what was just created lands outside the currency on screen. */
+type CreatedToastExtra = (landedIn: string[]) => { description?: string };
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -743,7 +746,7 @@ type QuoteEditorValues = z.infer<ReturnType<typeof buildQuoteEditorSchema>>;
  *   still fits (FIFO), before recalculating the invoice's total. That endpoint only touches
  *   the one line, so date/doctor/notes aren't offered here (no document-level fields to send).
  */
-function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editItems, userId, currency, onCancel, onSaved }: {
+function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editItems, userId, currency, createdToastExtra, onCancel, onSaved }: {
   doc: 'quote' | 'invoice';
   editRow?: LedgerRow;
   /** The full invoice behind `editRow` — only set when editing a billed treatment. Its
@@ -761,6 +764,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
   editItems?: (QuoteItem | InvoiceItem)[];
   userId: string;
   currency: string;
+  createdToastExtra?: CreatedToastExtra;
   onCancel: () => void;
   onSaved: () => Promise<void> | void;
 }) {
@@ -1005,7 +1009,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             is_sales: true,
           });
           if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-          toast({ title: t('toasts.quoteCreated') });
+          toast({ title: t('toasts.quoteCreated'), ...createdToastExtra?.([values.currency]) });
         } else {
           const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
             user_id: userId,
@@ -1025,7 +1029,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             is_sales: true,
           });
           if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-          toast({ title: t('toasts.treatmentCreated') });
+          toast({ title: t('toasts.treatmentCreated'), ...createdToastExtra?.([values.currency]) });
         }
       }
       await onSaved();
@@ -1258,7 +1262,7 @@ type PendingRow = PendingInvoiceLite & {
  * pendientes" panel — which is for choosing new allocations — doesn't apply here and is
  * hidden in edit mode.
  */
-function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, maxEditAmount, onCancel, onSaved }: {
+function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, maxEditAmount, createdToastExtra, onCancel, onSaved }: {
   userId: string;
   patientName?: string;
   patientEmail?: string;
@@ -1268,6 +1272,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   editPayment?: Payment;
   /** Ceiling on the edited amount: raising a payment with conversion would leave a leftover. */
   maxEditAmount?: number;
+  createdToastExtra?: CreatedToastExtra;
   onCancel: () => void;
   onSaved: () => Promise<void> | void;
 }) {
@@ -1540,7 +1545,11 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
       if (res?.error && res?.code >= 400) throw new Error(res.message);
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-      toast({ title: t('toasts.paymentCreated') });
+      // Converted money shows up in the invoices' currency, not in the payment's.
+      const landedIn = invoiceAllocations.length > 0
+        ? sortedPending.filter((inv) => (allocSource[inv.id] || 0) > 0).map((inv) => inv.currency)
+        : [values.currency];
+      toast({ title: t('toasts.paymentCreated'), ...createdToastExtra?.(landedIn) });
       await checkActiveSession();
       await onSaved();
     } catch (e: any) {
@@ -1962,7 +1971,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   // Solo se añade una tercera cuando la moneda activa no es ninguna de esas,
   // que es el caso de un registro guardado en otra ocasión con otra moneda: sin
   // ella el Select no podría representar su valor.
-  const currencies = React.useMemo(() => optionsFor(currency), [optionsFor, currency]);
+  // También se añade cualquier otra en la que el paciente tenga movimientos: si no,
+  // no habría forma de llegar a ellos desde el filtro.
+  const currencies = React.useMemo(
+    () => Array.from(new Set([...optionsFor(currency), ...Object.keys(ledgerByCurrency)])),
+    [optionsFor, currency, ledgerByCurrency],
+  );
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
     [currency, ledgerByCurrency],
@@ -1996,6 +2010,29 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     refresh: () => { void load(true); },
     getVisibleLedger: () => visibleLedger,
   }), [load, visibleLedger]);
+
+  // What the currency filter is hiding. Counted over the whole account, not just the active
+  // period: a forgotten date filter must not hide the notice too.
+  const otherCurrencies = React.useMemo(
+    () => Object.entries(ledgerByCurrency)
+      .filter(([code, codeRows]) => code !== currency && codeRows.length > 0)
+      .map(([code, codeRows]) => ({
+        code,
+        count: codeRows.length,
+        balance: computeLedgerTotals(codeRows).finalBalance,
+        outOfPeriod: !(rowsInRangeByCurrency[code] || []).some((r) => r.kind !== 'balance'),
+      })),
+    [ledgerByCurrency, rowsInRangeByCurrency, currency],
+  );
+
+  const createdToastExtra: CreatedToastExtra = (landedIn) => {
+    // The currency on screen after the reload: `load` drops back to the clinic's when the
+    // selected one has no rows.
+    const viewed = currency && ledgerByCurrency[currency] ? currency : (clinicInfo?.currency || landedIn[0]);
+    const saved = landedIn[0];
+    if (!saved || landedIn.includes(viewed)) return {};
+    return { description: t('otherCurrencies.savedElsewhere', { saved, viewed }) };
+  };
 
   // Currency used by the inline create editor (ledger's own currency, else clinic default).
   const editorCurrency = currency || clinicInfo?.currency || getClinicCurrency();
@@ -2745,6 +2782,23 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         <CardContent className="patient-ledger-container flex-1 flex flex-col min-h-0 gap-3 p-4">
           {toolbar}
 
+          {otherCurrencies.length > 0 && currency && (
+            <div
+              role="status"
+              data-help-id={composeHelpId(helpScope, 'section', 'ledger-other-currencies')}
+              className="flex shrink-0 items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
+            >
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {t('otherCurrencies.viewing', { currency })}{' '}
+                {otherCurrencies.map(({ code, count, balance, outOfPeriod }) => (
+                  t('otherCurrencies.summary', { count, currency: code, balance: fmtAmountZero(balance, code) })
+                  + (outOfPeriod ? ` ${t('otherCurrencies.outOfPeriod')}` : '')
+                )).join('; ')}
+              </span>
+            </div>
+          )}
+
           {/* Below a ~690px *panel* width (a container query on `patient-ledger-container`
               above, not the viewport — the sidebar routinely leaves this panel narrow even
               on a wide window) the rows switch to a stacked card layout, so the sticky
@@ -2976,6 +3030,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                   patientName={patientName}
                   patientEmail={patientEmail}
                   currency={editorCurrency}
+                  createdToastExtra={createdToastExtra}
                   pendingInvoices={pendingInvoices}
                   onCancel={() => setCreateDoc(null)}
                   onSaved={handleInlineSaved}
@@ -2985,6 +3040,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                   doc={createDoc}
                   userId={userId}
                   currency={editorCurrency}
+                  createdToastExtra={createdToastExtra}
                   onCancel={() => setCreateDoc(null)}
                   onSaved={handleInlineSaved}
                 />

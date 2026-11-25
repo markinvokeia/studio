@@ -108,6 +108,12 @@
       "pago": "Payment",
       "notaCredito": "Credit note"
     },
+    "otherCurrencies": {
+      "viewing": "You are only seeing transactions in {currency}. This patient also has:",
+      "summary": "{count, plural, one {# transaction} other {# transactions}} in {currency} (balance {balance})",
+      "outOfPeriod": "(outside the selected period)",
+      "savedElsewhere": "Saved in {saved}, but you are viewing {viewed}."
+    },
     "empty": "No activity in {currency}.",
     "search": "Search...",
     "finalBalance": "Final balance:",
