@@ -899,7 +899,7 @@
       "parameters": {
         "content": "## CRUD Appointments",
         "height": 2048,
-        "width": 5232,
+        "width": 5456,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -3582,20 +3582,6 @@
       "id": "83ce532b-7ffb-4e88-afe0-e0ca12f69887",
       "name": "users_appointments_noauth",
       "webhookId": "1839386e-e795-4387-809a-504b88e6fd49"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.calendar_ids = \"c_265000b8c870d7c13c68824b4a63ca2185090fb98d63d1ff4388d0c256dada39@group.calendar.google.com,c_e9099443d23a1faf4a4088d6ad84b77372dc01a5d8961c69202295bbc7a79fe1@group.calendar.google.com,c_aced3b2582a34c1bf3597e0239b520b671af851ea8d7372ee81fb7c2bff5940f@group.calendar.google.com,2c_b2004e32b7cff7b9a662c90a4ed6449b83b79d63eac853093ec1d4a008b43871@group.calendar.google.com\";\n  item.json.query = $('users_appointments_noauth').first().json.query;\n}\n\nreturn {\n  \"calendar_ids\": \"c_265000b8c870d7c13c68824b4a63ca2185090fb98d63d1ff4388d0c256dada39@group.calendar.google.com,c_e9099443d23a1faf4a4088d6ad84b77372dc01a5d8961c69202295bbc7a79fe1@group.calendar.google.com,c_aced3b2582a34c1bf3597e0239b520b671af851ea8d7372ee81fb7c2bff5940f@group.calendar.google.com,2c_b2004e32b7cff7b9a662c90a4ed6449b83b79d63eac853093ec1d4a008b43871@group.calendar.google.com\",\n  ...$('users_appointments_noauth').first().json.query\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -33840,
-        12864
-      ],
-      "id": "81e64082-af09-4ce3-affb-e6ad3328b59e",
-      "name": "Code in JavaScript",
-      "disabled": true
     },
     {
       "parameters": {
@@ -12808,17 +12794,6 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
             "node": "Get_Appointments",
             "type": "main",
             "index": 0
@@ -13385,6 +13360,11 @@
         [
           {
             "node": "Sync Study Order",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get appointment data",
             "type": "main",
             "index": 0
           }
@@ -14743,7 +14723,8 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timezone": "America/Montevideo"
   },
   "versionId": "c366011d-84c4-4ded-b90c-49c6a9c3dfe4",
   "meta": {

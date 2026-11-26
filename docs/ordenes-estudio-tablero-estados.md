@@ -73,6 +73,9 @@ Endpoints nuevos: `GET /study-orders/board`, `POST /study-orders/assign` y `GET 
 1. Aplicar `database/scripts/179_20261125_study-order-nine-states.sql` (después de la 132).
 2. Importar todos los `n8n-workflows/study-orders-*.json` (incluye el nuevo `study-orders-status.json`) y `docs/n8n-flows/All Appointment Workflows.json`.
 3. Publicar el frontend. Los tres pasos van juntos.
+4. Aplicar `database/scripts/180_20261126_study-orders-clinic-time.sql`. Pasa a hora de la clínica las fechas automáticas del módulo (`created_at`/`updated_at`). Donde nunca corrió la 077, corrige además las fechas ya guardadas en UTC. Sin la 180, en la Actividad «Se creó la orden» y «Se agendó una cita» aparecen tres horas después de los cambios de estado. **No correr la 077 a esta altura**: recrea la vista del tablero con los estados viejos.
+
+«All Appointment Workflows» fija `settings.timezone = America/Montevideo`. Sin eso, `$now` sale con la zona de la instancia de n8n y la hora de creación de citas y notificaciones queda corrida.
 
 Los flujos del agente de WhatsApp todavía usan el estado `submitted`: no activarlos hasta adaptarlos.
 
