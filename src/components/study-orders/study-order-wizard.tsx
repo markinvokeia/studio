@@ -114,6 +114,10 @@ const saveChatterPref = (open: boolean) => {
     try { window.localStorage.setItem(CHATTER_PREF_KEY, open ? '1' : '0'); } catch { /* sin almacenamiento: no se recuerda */ }
 };
 
+/** Datos obligatorios cuyo faltante frena el guardado (claves de `validation.*`). */
+type MissingField = 'patientNameRequired' | 'patientRequired' | 'sedeRequired' | 'frontRequired'
+    | 'doctorRequired' | 'itemsRequired';
+
 interface SelectionState {
     services: Map<string, StudyOrderCatalogService>;
     itemModifiers: Record<string, Record<string, string[]>>;
@@ -173,6 +177,8 @@ export function StudyOrderWizard({
     // así que se cierra solo al elegir una sección.
     const [isRailOpen, setIsRailOpen] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    /** Falta de un dato que bloqueó el guardado: el aviso se va solo en cuanto se completa. */
+    const [missing, setMissing] = React.useState<MissingField | null>(null);
 
     const [patientId, setPatientId] = React.useState('');
     const [patientName, setPatientName] = React.useState('');
@@ -266,7 +272,7 @@ export function StudyOrderWizard({
         setPatientPhone(''); setPatientEmail(''); setSedeId('');
         setDeliveryMethods([]); setClinicalNotes(''); setTexts({});
         setSelection({ ...EMPTY_SELECTION, services: new Map() });
-        setLoadedNumber(''); setError(null); setStepIndex(0);
+        setLoadedNumber(''); setError(null); setMissing(null); setStepIndex(0);
         setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
         setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); clearOriginalFocus();
         setReviewItems([]); setReplacesOrderNumber(null);
@@ -444,6 +450,37 @@ export function StudyOrderWizard({
         [options, texts],
     );
 
+    /** Lo que la clínica completa en el primer paso y no es un estudio: sede, odontólogo y la orden en papel. */
+    const summaryHeader = React.useMemo(() => {
+        if (!isClinicOrder && !sedeId) return undefined;
+        const sedeName = sedes.find((sede) => String(sede.id) === sedeId)?.name;
+        const doctor = doctorName || referringDoctorName.trim()
+            || (withoutDoctor ? t('form.withoutDoctor') : '');
+        const imageName = (side: StudyOrderImageSide) => {
+            const change = pendingImages[side];
+            if (change instanceof File) return change.name;
+            if (change === 'remove') return '';
+            return images.find((image) => image.side === side)?.file_name ?? '';
+        };
+        const rows: Array<{ label: string; value: string }> = [
+            { label: t('form.preferredSede'), value: sedeName ?? '' },
+            ...(isClinicOrder ? [
+                { label: t('form.referringDoctor'), value: doctor },
+                ...STUDY_ORDER_IMAGE_SIDES.map((side) => ({ label: t(`images.${side}`), value: imageName(side) })),
+            ] : []),
+        ];
+        return (
+            <dl className="grid gap-3 sm:grid-cols-2">
+                {rows.map((row) => (
+                    <div key={row.label} className="min-w-0 space-y-0.5">
+                        <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                        <dd className="truncate text-sm" title={row.value || undefined}>{row.value || '—'}</dd>
+                    </div>
+                ))}
+            </dl>
+        );
+    }, [isClinicOrder, sedeId, sedes, doctorName, referringDoctorName, withoutDoctor, pendingImages, images, t]);
+
     /** Sólo entran al recorrido las secciones que tienen algo para elegir. */
     const steps = React.useMemo<Step[]>(() => {
         const sectionSteps: Step[] = (options?.sections ?? [])
@@ -568,31 +605,43 @@ export function StudyOrderWizard({
         selection, texts, deliveryMethods, clinicalNotes, sedeId,
         isClinicOrder, doctorId, referringDoctorName]);
 
+    /** Qué datos obligatorios ya están: lo usa el guardado y, después, para retirar su aviso. */
+    const missingFilled = React.useMemo<Record<MissingField, boolean>>(() => ({
+        patientNameRequired: !!patientName.trim(),
+        patientRequired: !!patientId,
+        sedeRequired: !!sedeId,
+        frontRequired: pendingImages.front instanceof File
+            || (pendingImages.front !== 'remove' && images.some((image) => image.side === 'front')),
+        doctorRequired: !!doctorId || withoutDoctor || !!referringDoctorName.trim(),
+        itemsRequired: totalSelected > 0,
+    }), [patientName, patientId, sedeId, pendingImages, images, doctorId, withoutDoctor, referringDoctorName, totalSelected]);
+
+    React.useEffect(() => {
+        if (missing && missingFilled[missing]) {
+            setError(null);
+            setMissing(null);
+        }
+    }, [missing, missingFilled]);
+
     const handleSave = React.useCallback(async (submitAfterSave: boolean) => {
         if (savingRef.current) return;
         setError(null);
-        if (!isClinicOrder && !patientName.trim()) {
-            setError(t('validation.patientNameRequired'));
-            goTo(0);
-            return;
-        }
+        setMissing(null);
+        const fail = (key: MissingField, toFirstStep = true) => {
+            setError(t(`validation.${key}`));
+            setMissing(key);
+            if (toFirstStep) goTo(0);
+        };
+        if (!isClinicOrder && !missingFilled.patientNameRequired) return fail('patientNameRequired');
         if (isClinicOrder) {
-            const fail = (key: 'patientRequired' | 'sedeRequired' | 'frontRequired' | 'doctorRequired') => {
-                setError(t(`validation.${key}`));
-                goTo(0);
-            };
-            if (!patientId) return fail('patientRequired');
-            if (!sedeId) return fail('sedeRequired');
-            const hasFront = pendingImages.front instanceof File || images.some((image) => image.side === 'front');
-            if (!hasFront) return fail('frontRequired');
+            if (!missingFilled.patientRequired) return fail('patientRequired');
+            if (!missingFilled.sedeRequired) return fail('sedeRequired');
+            if (!missingFilled.frontRequired) return fail('frontRequired');
             // El odontólogo se puede dejar para después, pero no más allá de confirmar.
-            if (submitAfterSave && !doctorId && !withoutDoctor && !referringDoctorName.trim()) return fail('doctorRequired');
+            if (submitAfterSave && !missingFilled.doctorRequired) return fail('doctorRequired');
         }
         // El borrador de la clínica se guarda sin estudios; confirmarlo los exige.
-        if (totalSelected === 0 && (!isClinicOrder || submitAfterSave)) {
-            setError(t('validation.itemsRequired'));
-            return;
-        }
+        if (!missingFilled.itemsRequired && (!isClinicOrder || submitAfterSave)) return fail('itemsRequired', false);
 
         savingRef.current = true;
         setIsSaving(true);
@@ -649,8 +698,8 @@ export function StudyOrderWizard({
             savingRef.current = false;
             setIsSaving(false);
         }
-    }, [patientName, patientId, sedeId, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo,
-        isCreating, isClinicOrder, withoutDoctor, doctorId, referringDoctorName, images, pendingImages, changeImage]);
+    }, [missingFilled, buildPayload, toast, t, onSaved, onOpenChange, goTo,
+        isCreating, isClinicOrder, patientName, withoutDoctor, pendingImages, changeImage]);
 
     /** Mientras guarda no se cierra. Si la orden quedó creada sin todas sus imágenes, se abre igual. */
     const handleOpenChange = React.useCallback((next: boolean) => {
@@ -852,8 +901,8 @@ export function StudyOrderWizard({
                         <SheetDescription className="truncate text-sm text-muted-foreground">
                             {totalSelected > 0
                                 ? t('form.selectedCount', { count: totalSelected })
-                                : isClinicOrder && isCreating ? t('images.formHint') : t('form.noServicesSelected')
-}
+                                : !isClinicOrder ? t('form.noServicesSelected')
+                                    : isCreating ? t('images.formHint') : t('form.noServicesYet')}
                         </SheetDescription>
                     </div>
                     {orderId && chatterEnabled && (
@@ -1276,6 +1325,8 @@ export function StudyOrderWizard({
                                 sections={summarySections}
                                 texts={summaryTexts}
                                 clinicalNotes={clinicalNotes}
+                                emptyLabel={isClinicOrder ? t('form.noServicesYet') : undefined}
+                                header={summaryHeader}
                             />
                         </div>
                     )}

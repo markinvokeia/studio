@@ -60,11 +60,13 @@ export interface StudyOrderSummaryProps {
     header?: React.ReactNode;
     /** Bloques de paciente y odontólogo del detalle: reemplazan a la línea del paciente. */
     people?: React.ReactNode;
+    /** Texto sin estudios. Por defecto pide elegir uno; un borrador de la clínica todavía no los necesita. */
+    emptyLabel?: string;
 }
 
 export function StudyOrderSummary({
     patientName, patientDocument, patientPhone, patientEmail,
-    deliveryLabels, sections, texts = [], clinicalNotes, header, people,
+    deliveryLabels, sections, texts = [], clinicalNotes, header, people, emptyLabel,
 }: StudyOrderSummaryProps) {
     const t = useTranslations('StudyOrdersPage');
 
@@ -98,7 +100,7 @@ export function StudyOrderSummary({
 
             {withContent.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">
-                    {t('form.noServicesSelected')}
+                    {emptyLabel ?? t('form.noServicesSelected')}
                 </p>
             ) : (
                 withContent.map((section) => (

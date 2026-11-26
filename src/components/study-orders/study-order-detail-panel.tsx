@@ -743,6 +743,7 @@ function OrderTab({ order }: { order: StudyOrder }) {
             texts={texts}
             clinicalNotes={order.clinical_notes}
             people={<StudyOrderPeople order={order} />}
+            emptyLabel={order.status === 'draft' ? t('form.noServicesYet') : undefined}
             header={order.preferred_sede_name ? (
                 <dl className="grid grid-cols-2 gap-3">
                     <Field label={t('form.preferredSede')} value={order.preferred_sede_name} />

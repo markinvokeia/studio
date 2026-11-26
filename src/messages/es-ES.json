@@ -11734,6 +11734,7 @@
       "clinicalNotesPlaceholder": "Lo que la clínica tenga que saber antes del estudio",
       "regionsLabel": "Piezas",
       "noServicesSelected": "Selecciona al menos un estudio.",
+      "noServicesYet": "Todavía sin estudios. Se añaden antes de confirmar la orden.",
       "saveDraft": "Guardar borrador",
       "saveDraftShort": "Guardar",
       "submitShort": "Confirmar",

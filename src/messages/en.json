@@ -11734,6 +11734,7 @@
       "clinicalNotesPlaceholder": "Anything the clinic should know before the study",
       "regionsLabel": "Teeth",
       "noServicesSelected": "Select at least one study.",
+      "noServicesYet": "No studies yet. Add them before confirming the order.",
       "saveDraft": "Save draft",
       "saveDraftShort": "Save",
       "submitShort": "Confirm",
