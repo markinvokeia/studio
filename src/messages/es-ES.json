@@ -10074,7 +10074,8 @@
       "reason": "",
       "when": "{date} a las {time}",
       "emailSent": "Enviamos un correo con los detalles de tu cita a ti y a la clínica. Si necesitas cambiarla, comunícate con nosotros.",
-      "done": "Listo"
+      "done": "Listo",
+      "depositNoticeTitle": "Señal pendiente"
     }
   },
   "PatientPortal": {
@@ -10150,7 +10151,8 @@
       "bookedTitle": "¡Solicitud enviada!",
       "bookedDescription": "La clínica va a confirmarte la cita. Ya puedes ver tu perfil.",
       "goToProfile": "Ir a mi perfil",
-      "bookAnother": "Reservar otra cita"
+      "bookAnother": "Reservar otra cita",
+      "depositNoticeTitle": "Señal pendiente"
     },
     "backToStaff": "Volver a vista de Staff",
     "booking": {
@@ -10211,7 +10213,10 @@
       "noBookableServices": "Todavía no hay servicios disponibles para reservar online. Continúa y la clínica definirá el motivo de la cita.",
       "servicesLoadError": "No pudimos cargar los servicios.",
       "minutesShort": "{minutes} min",
-      "rescheduleNoServices": "Si no marcas ninguno, la cita se cambiará sin servicios asociados."
+      "rescheduleNoServices": "Si no marcas ninguno, la cita se cambiará sin servicios asociados.",
+      "depositNoticeTitle": "Falta la señal para confirmar tu cita",
+      "depositNoticeDescription": "Tu solicitud se ha registrado. También te hemos enviado estos datos por correo.",
+      "depositNoticeDismiss": "Entendido"
     },
     "info": {
       "emailLocked": "El correo no se puede cambiar: es a donde te llega tu código de acceso. Si necesitas actualizarlo, avísale a la clínica."
@@ -11250,6 +11255,35 @@
         "monthsHint": "1 es solo el mes en curso; 2 llega hasta el final del mes siguiente. Al final de cada mes quedan menos días para elegir.",
         "preview": "Hoy, un paciente podría reservar hasta el {date}.",
         "invalid": "Introduce un número entre 1 y {max}."
+      },
+      "deposit": {
+        "label": "Aviso de señal al reservar",
+        "help": "Al terminar una reserva nueva desde el portal, el paciente ve este aviso y también lo recibe en el correo de la reserva. No se muestra al cambiar la cita.",
+        "hint": "Es solo un aviso: la cita no se cancela sola al vencer el plazo. Si la señal no llega, cancélala desde la agenda.",
+        "hoursLabel": "Plazo para pagar la señal",
+        "hoursHelp": "Horas desde que el paciente reserva. Si la cita empieza antes, el plazo termina al inicio de la cita.",
+        "hoursUnit": "horas",
+        "hoursHint": "El aviso muestra la fecha y hora límite calculada con este plazo.",
+        "hoursInvalid": "Introduce un número entre {min} y {max}.",
+        "htmlLabel": "Contenido del aviso",
+        "htmlTab": "HTML",
+        "htmlHelp": "El mismo HTML se muestra al paciente al terminar la reserva y se añade al correo. Usa estilos en línea (atributo style): los correos ignoran las hojas de estilo.",
+        "htmlHint": "Para incluir una imagen, usa una dirección pública (https://…) en una etiqueta img. Los scripts no se ejecutan.",
+        "htmlRequired": "Escribe el contenido del aviso o restaura la plantilla para poder activarlo.",
+        "restore": "Restaurar plantilla",
+        "variablesLabel": "Variables:",
+        "previewLabel": "Vista previa",
+        "previewHint": "Con una cita de ejemplo para mañana a las 10:00, reservada ahora.",
+        "samplePatient": "María Pérez",
+        "variables": {
+          "patient_name": "Nombre del paciente",
+          "date": "Fecha de la cita (dd/mm/aaaa)",
+          "time": "Hora de la cita",
+          "deadline": "Fecha y hora límite para pagar la señal",
+          "hours": "Horas de plazo",
+          "clinic_name": "Nombre de la clínica",
+          "clinic_phone": "Teléfono de la clínica"
+        }
       }
     },
     "qr": {

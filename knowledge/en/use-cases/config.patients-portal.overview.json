@@ -25,6 +25,11 @@
       "details": "Which services can be booked online."
     },
     {
+      "id": "deposit-notice",
+      "title": "Deposit notice",
+      "details": "When on, the patient sees how much deposit to pay and by when after a new booking, and also gets it by email."
+    },
+    {
       "id": "presentation",
       "title": "Presentation",
       "details": "Texts and details the patient sees."

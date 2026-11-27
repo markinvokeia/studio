@@ -1,7 +1,23 @@
 'use client';
 
-import { format } from 'date-fns';
-import { AlertTriangle, CalendarCheck, CalendarRange, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Sparkles, Video } from 'lucide-react';
+import { addDays, format, setHours, startOfDay } from 'date-fns';
+import {
+  AlertTriangle,
+  Banknote,
+  CalendarCheck,
+  CalendarRange,
+  Code2,
+  Download,
+  ExternalLink,
+  Eye,
+  HelpCircle,
+  MessageSquareText,
+  RotateCcw,
+  Save,
+  Sparkles,
+  Timer,
+  Video,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { QRCodeCanvas } from 'qrcode.react';
 import * as React from 'react';
@@ -21,10 +37,12 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { AccessFlierButton } from '@/components/patient-portal/access-flier';
+import { DepositNoticeFrame } from '@/components/patient-portal/deposit-notice-frame';
 import { WelcomeVideo } from '@/components/patient-portal/welcome-video';
 
 import { PATIENT_PORTAL_CONFIG_PERMISSIONS } from '@/constants/permissions';
@@ -40,6 +58,15 @@ import {
   getBookingLimitDate,
   isValidBookingWindow,
 } from '@/lib/patient-booking-window';
+import {
+  DEFAULT_DEPOSIT_NOTICE_HTML,
+  DEPOSIT_HOURS_MAX,
+  DEPOSIT_HOURS_MIN,
+  DEPOSIT_NOTICE_VARIABLES,
+  getDepositDeadline,
+  isValidDepositHours,
+  renderDepositNotice,
+} from '@/lib/patient-deposit-notice';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import type { PatientBookingWindowUnit, PatientPortalConfig, Service } from '@/lib/types';
 import {
@@ -47,6 +74,7 @@ import {
   fetchPatientPortalConfig,
   updatePatientPortalConfig,
 } from '@/services/patient-portal-config';
+import { fetchPublicClinicInfo } from '@/services/public-clinic';
 import { getSalesServices } from '@/services/services';
 
 /**
@@ -54,6 +82,9 @@ import { getSalesServices } from '@/services/services';
  * `value=""`, y "sin servicio por defecto" es una opción legítima.
  */
 const NO_DEFAULT_SERVICE = '__none__';
+
+/** Pestañas del panel del aviso de seña. Prefijadas: dan los help ids `tab.deposit-*`. */
+type DepositTab = 'deposit-preview' | 'deposit-html';
 
 /**
  * Configuración → Portal del Paciente.
@@ -118,6 +149,21 @@ export default function PatientsPortalConfigPage() {
 
   const clinicLogoUrl = `${getWebhookBaseUrl()}${API_ROUTES.CLINIC_LOGO}`;
 
+  /** Nombre y teléfono reales para la vista previa del aviso de seña. */
+  const [clinicContact, setClinicContact] = React.useState({ name: '', phone: '' });
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchPublicClinicInfo().then((clinic) => {
+      if (!cancelled && clinic) setClinicContact({ name: clinic.name, phone: clinic.phone ?? '' });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const depositEditorRef = React.useRef<HTMLTextAreaElement>(null);
+  const [depositTab, setDepositTab] = React.useState<DepositTab>('deposit-preview');
+
   const qrDownloadRef = React.useRef<HTMLCanvasElement>(null);
 
   const handleDownloadQr = () => {
@@ -152,6 +198,42 @@ export default function PatientsPortalConfigPage() {
 
   const canEditBookingWindow = canEdit && config.patient_portal_enabled && config.online_booking_enabled;
   const isBookingWindowValid = isValidBookingWindow(config.booking_window_unit, config.booking_window_value);
+
+  // El aviso sólo existe al reservar: sin portal o sin reserva online no se puede activar.
+  const canToggleDeposit = config.patient_portal_enabled && config.online_booking_enabled;
+  const isDepositHoursValid = isValidDepositHours(config.deposit_hours);
+  // Activar el aviso con el editor vacío mostraría un recuadro en blanco.
+  const isDepositHtmlMissing = config.deposit_notice_enabled && !config.deposit_notice_html.trim();
+  const isDepositValid = isDepositHoursValid && !isDepositHtmlMissing;
+
+  /** Inserta `{{variable}}` donde está el cursor del editor del aviso. */
+  const insertDepositVariable = (variable: string) => {
+    const token = `{{${variable}}}`;
+    const el = depositEditorRef.current;
+    const html = config.deposit_notice_html;
+    const start = el?.selectionStart ?? html.length;
+    const end = el?.selectionEnd ?? html.length;
+    patch({ deposit_notice_html: html.slice(0, start) + token + html.slice(end) });
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + token.length, start + token.length);
+    });
+  };
+
+  /** Vista previa: una cita de ejemplo mañana a las 10:00, reservada ahora. */
+  const depositPreviewHtml = React.useMemo(() => {
+    const start = setHours(addDays(startOfDay(new Date()), 1), 10);
+    const hours = isValidDepositHours(config.deposit_hours) ? config.deposit_hours : DEPOSIT_HOURS_MIN;
+    return renderDepositNotice(config.deposit_notice_html, {
+      patient_name: t('fields.deposit.samplePatient'),
+      date: format(start, 'dd/MM/yyyy'),
+      time: format(start, 'HH:mm'),
+      deadline: format(getDepositDeadline(start, hours), 'dd/MM/yyyy HH:mm'),
+      hours: String(hours),
+      clinic_name: clinicContact.name,
+      clinic_phone: clinicContact.phone,
+    });
+  }, [config.deposit_notice_html, config.deposit_hours, clinicContact, t]);
 
   if (isLoading) {
     return (
@@ -193,7 +275,7 @@ export default function PatientsPortalConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button data-help-id="config.patients-portal.btn.save" onClick={() => save.run(config)} disabled={!isDirty || isRefreshing || !isBookingWindowValid} loading={save.isPending} className="gap-1.5">
+              <Button data-help-id="config.patients-portal.btn.save" onClick={() => save.run(config)} disabled={!isDirty || isRefreshing || !isBookingWindowValid || !isDepositValid} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -445,6 +527,157 @@ export default function PatientsPortalConfigPage() {
                 <p className="text-xs text-destructive">
                   {t('fields.bookingWindow.invalid', { max: BOOKING_WINDOW_MAX[config.booking_window_unit] })}
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Aviso de seña ──────────────────────────────────────────── */}
+          <Card data-help-id="config.patients-portal.section.deposit-notice">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className={`min-w-0 space-y-1 ${canToggleDeposit ? '' : 'opacity-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <Banknote className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('fields.deposit.label')}</span>
+                    <HelpTip text={t('fields.deposit.help')} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('fields.deposit.hint')}</p>
+                </div>
+                <Switch
+                  data-help-id="config.patients-portal.field.deposit-enabled"
+                  checked={config.deposit_notice_enabled}
+                  disabled={!canEdit || !canToggleDeposit}
+                  onCheckedChange={(v) => patch({ deposit_notice_enabled: v })}
+                />
+              </div>
+
+              {/* El resto sólo con el aviso activo: apagado no cambia nada para
+                  el paciente, y así la sección no ocupa media pantalla. Lo
+                  editado se conserva al apagarlo. */}
+              {config.deposit_notice_enabled && (
+                <div className="mt-5 space-y-5 border-t pt-5">
+                  {/* ── Plazo ── */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                    <div className="min-w-0 space-y-1">
+                      <FieldLabel
+                        htmlFor="deposit-hours"
+                        icon={Timer}
+                        label={t('fields.deposit.hoursLabel')}
+                        help={t('fields.deposit.hoursHelp')}
+                      />
+                      {isDepositHoursValid ? (
+                        <p className="text-xs text-muted-foreground">{t('fields.deposit.hoursHint')}</p>
+                      ) : (
+                        <p className="text-xs text-destructive">
+                          {t('fields.deposit.hoursInvalid', { min: DEPOSIT_HOURS_MIN, max: DEPOSIT_HOURS_MAX })}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="deposit-hours"
+                        data-help-id="config.patients-portal.field.deposit-hours"
+                        type="number"
+                        inputMode="numeric"
+                        min={DEPOSIT_HOURS_MIN}
+                        max={DEPOSIT_HOURS_MAX}
+                        className="w-20 text-center"
+                        // 0 representa el campo vacío mientras se escribe: el guardado queda
+                        // bloqueado hasta que haya un número válido.
+                        value={config.deposit_hours || ''}
+                        disabled={!canEdit}
+                        aria-invalid={!isDepositHoursValid}
+                        onChange={(e) => patch({ deposit_hours: Number.parseInt(e.target.value, 10) || 0 })}
+                      />
+                      <span className="text-sm text-muted-foreground">{t('fields.deposit.hoursUnit')}</span>
+                    </div>
+                  </div>
+
+                  {/* ── Contenido: vista previa o código, en un único panel ── */}
+                  <div className="space-y-2">
+                    <FieldLabel
+                      htmlFor="deposit-html"
+                      icon={Code2}
+                      label={t('fields.deposit.htmlLabel')}
+                      help={t('fields.deposit.htmlHelp')}
+                    />
+                    <Tabs value={depositTab} onValueChange={(v) => setDepositTab(v as DepositTab)}>
+                      <div className="overflow-hidden rounded-lg border">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-2 py-1.5">
+                          <TabsList className="w-auto gap-1 bg-transparent p-0">
+                            <TabsTrigger value="deposit-preview" className="h-7 gap-1.5 px-2.5 text-xs">
+                              <Eye className="h-3.5 w-3.5" />
+                              {t('fields.deposit.previewLabel')}
+                            </TabsTrigger>
+                            <TabsTrigger value="deposit-html" className="h-7 gap-1.5 px-2.5 text-xs">
+                              <Code2 className="h-3.5 w-3.5" />
+                              {t('fields.deposit.htmlTab')}
+                            </TabsTrigger>
+                          </TabsList>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-xs"
+                            data-help-id="config.patients-portal.btn.deposit-restore"
+                            disabled={!canEdit || config.deposit_notice_html === DEFAULT_DEPOSIT_NOTICE_HTML}
+                            onClick={() => patch({ deposit_notice_html: DEFAULT_DEPOSIT_NOTICE_HTML })}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            {t('fields.deposit.restore')}
+                          </Button>
+                        </div>
+
+                        {/* Fondo blanco fijo: es como se ve en el email, también en modo oscuro. */}
+                        <TabsContent
+                          value="deposit-preview"
+                          className="mt-0 bg-white p-4"
+                          data-help-id="config.patients-portal.section.deposit-preview"
+                        >
+                          <DepositNoticeFrame html={depositPreviewHtml} title={t('fields.deposit.previewLabel')} />
+                        </TabsContent>
+
+                        <TabsContent value="deposit-html" className="mt-0">
+                          <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2">
+                            <span className="text-xs text-muted-foreground">{t('fields.deposit.variablesLabel')}</span>
+                            {DEPOSIT_NOTICE_VARIABLES.map((variable) => (
+                              <button
+                                key={variable}
+                                type="button"
+                                disabled={!canEdit}
+                                title={t(`fields.deposit.variables.${variable}`)}
+                                onClick={() => insertDepositVariable(variable)}
+                                className="rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                              >
+                                {`{{${variable}}}`}
+                              </button>
+                            ))}
+                          </div>
+                          <Textarea
+                            ref={depositEditorRef}
+                            id="deposit-html"
+                            data-help-id="config.patients-portal.field.deposit-html"
+                            rows={18}
+                            spellCheck={false}
+                            disableSpeechInput
+                            className="min-h-[24rem] resize-y rounded-none border-0 font-mono text-xs leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                            value={config.deposit_notice_html}
+                            disabled={!canEdit}
+                            aria-invalid={isDepositHtmlMissing}
+                            onChange={(e) => patch({ deposit_notice_html: e.target.value })}
+                          />
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                    {isDepositHtmlMissing ? (
+                      <p className="text-xs text-destructive">{t('fields.deposit.htmlRequired')}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {depositTab === 'deposit-preview' ? t('fields.deposit.previewHint') : t('fields.deposit.htmlHint')}
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

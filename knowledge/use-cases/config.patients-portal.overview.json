@@ -36,6 +36,14 @@
       "skipIfMissing": true
     },
     {
+      "id": "deposit-notice",
+      "action": "highlight",
+      "target": "config.patients-portal.section.deposit-notice",
+      "title": "Aviso de seña",
+      "details": "Si lo activás, al terminar una reserva nueva el paciente ve cuánto y hasta cuándo tiene que pagar la seña, y lo recibe también por correo.",
+      "skipIfMissing": true
+    },
+    {
       "id": "presentation",
       "action": "highlight",
       "target": "config.patients-portal.section.presentation",

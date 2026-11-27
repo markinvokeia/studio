@@ -303,6 +303,9 @@ Datos públicos de la clínica para la landing `/patient-login`. **Sin autentica
                        "duration_minutes": 30 },   // o null
   "booking_window_unit": "days",              // "days" | "months"
   "booking_window_value": 30,                 // 1-365 días o 1-12 meses
+  "deposit_notice_enabled": false,            // aviso de seña al reservar (§3.4)
+  "deposit_hours": 2,                         // 1-72
+  "deposit_notice_html": "<div …>…</div>",    // plantilla PORTAL_DEPOSIT_NOTICE, o null
   "schedules": [ { "day_of_week": 1, "start_time": "09:00", "end_time": "18:00" } ]
 }
 ```
@@ -330,8 +333,12 @@ Guarda los ajustes de Configuración → Portal del Paciente. **Sólo actualiza*
   "service_selection_enabled": false, "show_pricing": false,
   "default_service_id": 48,              // entero, o null ⇒ sin servicio por defecto
   "booking_window_unit": "months", "booking_window_value": 1,
-  "welcome_video_url": null, "welcome_message": null }
+  "welcome_video_url": null, "welcome_message": null,
+  "deposit_notice_enabled": true, "deposit_hours": 2,
+  "deposit_notice_html": "<div …>…</div>" }   // null ⇒ se conserva la plantilla guardada
 ```
+
+`deposit_notice_html` no va a `clinic`: actualiza `communication_templates` (code `PORTAL_DEPOSIT_NOTICE`) en un CTE del mismo `UPDATE`. La fila la siembra la migración 181; el endpoint nunca la crea.
 Requiere el permiso `PATIENT_PORTAL_CONFIG_UPDATE`. La lectura no tiene endpoint propio: reutiliza `/api/public/clinic`, que ya devuelve estos campos.
 
 ### 2.8 `POST /api/public/appointment-notify`  *(noauth)*
@@ -354,6 +361,8 @@ Avisa al paciente **y** a la clínica de cualquier cambio que el paciente haga s
 | `cancelled` | Canceló | A la clínica se le avisa que el horario se liberó |
 
 El copy de ambos correos sale del nodo `Preparar Datos` según el evento; un valor desconocido cae a `booked`.
+
+Con el aviso de seña activo y `event = 'booked'`, el nodo `Combinar` arma el bloque del aviso (§3.4): lo agrega al correo del paciente después de la tabla, cambia el asunto a "Seña pendiente para tu cita" y suma una línea "Seña pendiente" al correo de la clínica.
 
 Es un flujo aparte y no un agregado a `/appointments/upsert`, porque ese endpoint lo usa toda la app —agenda del staff incluida— y mandaría correos donde hoy no se manda.
 
@@ -567,6 +576,28 @@ Servicios. El upsert del catálogo no toca esa columna.
 | Historia clínica | `CLINIC_HISTORY.*`, `ODONTOGRAM.PATIENT_ODONTOGRAMS` |
 | Finanzas | `GET /user_financial`, `/user_invoices`, `/user_payments`, `/user_quotes` |
 | Preferencias | `GET /users/preferences` |
+
+---
+
+## 3.4 Aviso de seña al reservar
+
+Opcional por clínica y **apagado por defecto** (`clinic.patient_portal_deposit_notice_enabled`).
+Activado, al terminar una **reserva nueva** (no al reagendar) el paciente ve un aviso
+con la seña a pagar y el plazo, y el mismo bloque llega en el correo de la reserva.
+
+| Pieza | Dónde |
+|---|---|
+| Activado / plazo en horas (1-72, default 2) | `clinic.patient_portal_deposit_notice_enabled` / `_deposit_hours` |
+| HTML del aviso | `communication_templates`, code `PORTAL_DEPOSIT_NOTICE` (sembrado por la migración 181) |
+| Edición | Configuración → Portal del Paciente → sección "Aviso de seña" |
+| Plantilla de partida | `DEFAULT_DEPOSIT_NOTICE_HTML` en `src/lib/patient-deposit-notice.ts` = la sembrada en SQL |
+
+- **Variables:** `{{patient_name}}` `{{date}}` `{{time}}` `{{deadline}}` `{{hours}}` `{{clinic_name}}` `{{clinic_phone}}`. Los valores se escapan (el nombre lo escribe el paciente); una variable desconocida queda tal cual.
+- **Plazo (`deadline`):** `deposit_hours` desde la reserva, pero nunca después del inicio de la cita. Lo calculan igual `getDepositDeadline()` (pantalla) y el nodo `Combinar` (correo, en America/Montevideo).
+- **Es sólo un aviso.** Ningún proceso cancela citas: si la seña no llega, recepción la cancela desde la agenda. La cita queda `pending` como cualquier reserva del portal.
+- **Seguridad:** en el portal el HTML se muestra en un `iframe` con `sandbox` sin `allow-scripts` (`DepositNoticeFrame`), así que nada ejecutable corre en el portal público. En el correo, `Combinar` además quita `<script>` y atributos `on*`.
+- **Imágenes:** no se suben archivos. Una imagen va como `<img src="https://…">` con una URL pública; los correos bloquean las imágenes embebidas en base64.
+- **Dónde se muestra:** paso final de la landing sin sesión, pantalla final de la primera reserva y, en "Mis citas", un diálogo al volver a la lista.
 
 ---
 

@@ -10074,7 +10074,8 @@
       "reason": "",
       "when": "{date} at {time}",
       "emailSent": "We emailed the appointment details to you and to the clinic. If you need to change it, get in touch with us.",
-      "done": "Done"
+      "done": "Done",
+      "depositNoticeTitle": "Deposit pending"
     }
   },
   "PatientPortal": {
@@ -10150,7 +10151,8 @@
       "bookedTitle": "Request sent!",
       "bookedDescription": "The clinic will confirm it shortly. You can now view your profile.",
       "goToProfile": "Go to my profile",
-      "bookAnother": "Book another appointment"
+      "bookAnother": "Book another appointment",
+      "depositNoticeTitle": "Deposit pending"
     },
     "backToStaff": "Back to staff view",
     "booking": {
@@ -10211,7 +10213,10 @@
       "noBookableServices": "There are no services available to book online yet. Continue and the clinic will set the reason for the visit.",
       "servicesLoadError": "We couldn't load the services.",
       "minutesShort": "{minutes} min",
-      "rescheduleNoServices": "If you don't pick any, the appointment is rescheduled with no services attached."
+      "rescheduleNoServices": "If you don't pick any, the appointment is rescheduled with no services attached.",
+      "depositNoticeTitle": "A deposit is needed to confirm your appointment",
+      "depositNoticeDescription": "Your request was recorded. We also emailed you these details.",
+      "depositNoticeDismiss": "Got it"
     },
     "info": {
       "emailLocked": "Your email can't be changed here — it's where your access code is sent. Ask the clinic if you need to update it."
@@ -11250,6 +11255,35 @@
         "monthsHint": "1 is the current month only; 2 runs through the end of next month. Fewer days are left to choose from near the end of each month.",
         "preview": "Today, a patient could book up to {date}.",
         "invalid": "Enter a number between 1 and {max}."
+      },
+      "deposit": {
+        "label": "Deposit notice on booking",
+        "help": "When a patient finishes a new booking in the portal, they see this notice and also get it in the booking email. It is not shown when rescheduling.",
+        "hint": "This is only a notice: the appointment is not cancelled automatically when the deadline passes. If the deposit does not arrive, cancel it from the calendar.",
+        "hoursLabel": "Time to pay the deposit",
+        "hoursHelp": "Hours from the moment the patient books. If the appointment starts earlier, the deadline is the appointment start.",
+        "hoursUnit": "hours",
+        "hoursHint": "The notice shows the deadline date and time calculated from this value.",
+        "hoursInvalid": "Enter a number between {min} and {max}.",
+        "htmlLabel": "Notice content",
+        "htmlTab": "HTML",
+        "htmlHelp": "The same HTML is shown to the patient after booking and added to the email. Use inline styles (style attribute): email clients ignore style sheets.",
+        "htmlHint": "To include an image, use a public address (https://…) in an img tag. Scripts do not run.",
+        "htmlRequired": "Write the notice content or restore the template to turn it on.",
+        "restore": "Restore template",
+        "variablesLabel": "Variables:",
+        "previewLabel": "Preview",
+        "previewHint": "Using a sample appointment tomorrow at 10:00, booked now.",
+        "samplePatient": "Jane Doe",
+        "variables": {
+          "patient_name": "Patient name",
+          "date": "Appointment date (dd/mm/yyyy)",
+          "time": "Appointment time",
+          "deadline": "Deadline (date and time) to pay the deposit",
+          "hours": "Hours allowed",
+          "clinic_name": "Clinic name",
+          "clinic_phone": "Clinic phone"
+        }
       }
     },
     "qr": {

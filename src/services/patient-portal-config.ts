@@ -4,6 +4,11 @@ import {
   DEFAULT_BOOKING_WINDOW_VALUE,
   parseBookingWindow,
 } from '@/lib/patient-booking-window';
+import {
+  DEFAULT_DEPOSIT_HOURS,
+  DEFAULT_DEPOSIT_NOTICE_HTML,
+  isValidDepositHours,
+} from '@/lib/patient-deposit-notice';
 import type { PatientPortalConfig } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -30,6 +35,9 @@ export const DEFAULT_PATIENT_PORTAL_CONFIG: PatientPortalConfig = {
   booking_window_value: DEFAULT_BOOKING_WINDOW_VALUE,
   welcome_video_url: '',
   welcome_message: '',
+  deposit_notice_enabled: false,
+  deposit_hours: DEFAULT_DEPOSIT_HOURS,
+  deposit_notice_html: DEFAULT_DEPOSIT_NOTICE_HTML,
 };
 
 export async function fetchPatientPortalConfig(options?: ApiRequestOptions): Promise<PatientPortalConfig> {
@@ -53,6 +61,13 @@ export async function fetchPatientPortalConfig(options?: ApiRequestOptions): Pro
     booking_window_value: bookingWindow.value,
     welcome_video_url: raw.welcome_video_url ?? '',
     welcome_message: raw.welcome_message ?? '',
+    deposit_notice_enabled: raw.deposit_notice_enabled === true,
+    deposit_hours: isValidDepositHours(Number(raw.deposit_hours)) ? Number(raw.deposit_hours) : DEFAULT_DEPOSIT_HOURS,
+    // Sin plantilla en la BD (migración 181 sin aplicar) se arranca de la de
+    // partida, así quien activa el aviso no empieza de un editor vacío.
+    deposit_notice_html: typeof raw.deposit_notice_html === 'string' && raw.deposit_notice_html.trim()
+      ? raw.deposit_notice_html
+      : DEFAULT_DEPOSIT_NOTICE_HTML,
   };
 }
 
@@ -71,6 +86,11 @@ export async function updatePatientPortalConfig(config: PatientPortalConfig, opt
     // (video genérico de Invoke IA y copy traducido).
     welcome_video_url: config.welcome_video_url.trim() || null,
     welcome_message: config.welcome_message.trim() || null,
+    deposit_notice_enabled: config.deposit_notice_enabled,
+    deposit_hours: config.deposit_hours,
+    // Va a communication_templates (PORTAL_DEPOSIT_NOTICE). Vacío ⇒ el flujo
+    // conserva la plantilla guardada.
+    deposit_notice_html: config.deposit_notice_html.trim() || null,
   }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;

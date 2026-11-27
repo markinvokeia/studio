@@ -1,5 +1,5 @@
 {
- "version": "18afee5eb173f426",
+ "version": "1c5fe26400387c98",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -7339,6 +7339,13 @@
   {
    "elements": [
     {
+     "description": "Vuelve a la plantilla de partida. No se guarda hasta pulsar Guardar.",
+     "id": "config.patients-portal.btn.deposit-restore",
+     "kind": "btn",
+     "label": "Restaurar plantilla",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "id": "config.patients-portal.btn.save",
      "kind": "btn",
      "label": "Guardar",
@@ -7356,6 +7363,27 @@
      "id": "config.patients-portal.field.booking-window-value",
      "kind": "field",
      "label": "Cantidad",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Activado, el paciente ve el aviso al reservar y lo recibe por correo. Apagado, la reserva termina como siempre. No se muestra al reagendar.",
+     "id": "config.patients-portal.field.deposit-enabled",
+     "kind": "field",
+     "label": "Aviso de seña al reservar",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Horas desde la reserva (1 a 72). Si la cita empieza antes, el plazo termina al inicio de la cita. Es sólo informativo: la cita no se cancela sola.",
+     "id": "config.patients-portal.field.deposit-hours",
+     "kind": "field",
+     "label": "Plazo para abonar la seña",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "El HTML del aviso, con variables como {{deadline}} o {{clinic_phone}} que se completan con los datos de cada reserva. Usá estilos en línea: es el mismo contenido del correo.",
+     "id": "config.patients-portal.field.deposit-html",
+     "kind": "field",
+     "label": "Contenido del aviso (HTML)",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
@@ -7380,10 +7408,38 @@
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
+     "description": "Mensaje que ve el paciente al terminar una reserva nueva y que también se agrega al correo de la reserva: la seña que tiene que pagar y el plazo para hacerlo.",
+     "id": "config.patients-portal.section.deposit-notice",
+     "kind": "section",
+     "label": "Aviso de seña",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Cómo se ve el aviso con una cita de ejemplo para mañana a las 10:00.",
+     "id": "config.patients-portal.section.deposit-preview",
+     "kind": "section",
+     "label": "Vista previa",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "description": "Textos y datos que ve el paciente.",
      "id": "config.patients-portal.section.presentation",
      "kind": "section",
      "label": "Presentación",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Editor del código del aviso, con las variables para insertar.",
+     "id": "config.patients-portal.tab.deposit-html",
+     "kind": "tab",
+     "label": "HTML",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Muestra el aviso como lo ve el paciente, con una cita de ejemplo.",
+     "id": "config.patients-portal.tab.deposit-preview",
+     "kind": "tab",
+     "label": "Vista previa",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     }
    ],
@@ -7397,12 +7453,13 @@
     "sales.services",
     "config.doctor-availability"
    ],
-   "purpose": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida.",
+   "purpose": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida, y el aviso de seña al reservar.",
    "route": "/config/patients-portal",
    "status": "draft",
    "summary": "Configuración del portal del paciente.",
    "tips": [
-    "Sólo se ofrecen los servicios marcados como agendables online."
+    "Sólo se ofrecen los servicios marcados como agendables online.",
+    "El aviso de seña no cancela citas: si la seña no llega en el plazo, recepción cancela la cita desde la agenda."
    ],
    "title": "Portal del Paciente",
    "useCases": [
@@ -28434,6 +28491,14 @@
      "skipIfMissing": true,
      "target": "config.patients-portal.section.booking-services",
      "title": "Servicios de la reserva"
+    },
+    {
+     "action": "highlight",
+     "details": "Si lo activás, al terminar una reserva nueva el paciente ve cuánto y hasta cuándo tiene que pagar la seña, y lo recibe también por correo.",
+     "id": "deposit-notice",
+     "skipIfMissing": true,
+     "target": "config.patients-portal.section.deposit-notice",
+     "title": "Aviso de seña"
     },
     {
      "action": "highlight",

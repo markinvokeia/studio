@@ -4114,6 +4114,15 @@ export type PublicClinicInfo = {
   booking_window_unit: PatientBookingWindowUnit;
   /** Tamaño de la ventana de reserva, en `booking_window_unit`. */
   booking_window_value: number;
+  /**
+   * `true` ⇒ al terminar una reserva nueva se muestra el aviso de seña
+   * (`deposit_notice_html`). Ver `src/lib/patient-deposit-notice.ts`.
+   */
+  deposit_notice_enabled: boolean;
+  /** Horas para abonar la seña desde la reserva. Sólo informativo. */
+  deposit_hours: number;
+  /** HTML del aviso, con variables `{{...}}` sin reemplazar. */
+  deposit_notice_html: string | null;
   /** Horarios de atención de la clínica, si no están cargados por sede. */
   schedules?: PublicClinicSchedule[];
 };
@@ -4310,6 +4319,12 @@ export type PatientPortalConfig = {
   booking_window_value: number;
   welcome_video_url: string;
   welcome_message: string;
+  /** Aviso de seña al terminar una reserva nueva. Apagado por defecto. */
+  deposit_notice_enabled: boolean;
+  /** Horas para abonar la seña (1-72). */
+  deposit_hours: number;
+  /** HTML del aviso (plantilla `PORTAL_DEPOSIT_NOTICE`). */
+  deposit_notice_html: string;
 };
 
 export type PatientAiActionType = 'open_booking' | 'open_tab' | 'none';

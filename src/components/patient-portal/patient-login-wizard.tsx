@@ -17,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 
 import { CodeInput } from '@/components/patient-portal/code-input';
-import { PatientBookingPanel } from '@/components/patient-portal/patient-booking-panel';
+import { DepositNoticeFrame } from '@/components/patient-portal/deposit-notice-frame';
+import { PatientBookingPanel, type PatientBookedDetails } from '@/components/patient-portal/patient-booking-panel';
 
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -133,7 +134,7 @@ export function PatientLoginWizard({
   const [isNewPatient, setIsNewPatient] = React.useState(false);
   /** Paciente resuelto para reservar sin sesión, sólo en modo "sólo citas". */
   const [guest, setGuest] = React.useState<GuestPatient | null>(null);
-  const [bookedDetails, setBookedDetails] = React.useState<{ date: string; time: string } | null>(null);
+  const [bookedDetails, setBookedDetails] = React.useState<PatientBookedDetails | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [resendIn, setResendIn] = React.useState(0);
 
@@ -609,6 +610,11 @@ export function PatientLoginWizard({
               <p className="text-base font-semibold">
                 {t('booked.when', { date: bookedDetails.date, time: bookedDetails.time })}
               </p>
+            )}
+            {/* Aviso de seña: va antes del "te enviamos un correo" porque es lo
+                que el paciente tiene que hacer ya. */}
+            {bookedDetails?.depositNoticeHtml && (
+              <DepositNoticeFrame html={bookedDetails.depositNoticeHtml} title={t('booked.depositNoticeTitle')} />
             )}
             <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
               {t('booked.emailSent')}

@@ -1,6 +1,6 @@
 'use client';
 
-import { addDays, differenceInCalendarDays, format, isSameDay, startOfDay } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, isSameDay, parse, startOfDay } from 'date-fns';
 import {
   ArrowLeft,
   CalendarCheck,
@@ -34,6 +34,7 @@ import {
   getBookingLimitDate,
   getBookingWindowRejection,
 } from '@/lib/patient-booking-window';
+import { getDepositDeadline, renderDepositNotice } from '@/lib/patient-deposit-notice';
 import { cn } from '@/lib/utils';
 import {
   createPatientAppointment,
@@ -62,10 +63,29 @@ const DAYS_PER_PAGE = 7;
  */
 type BookingStep = 'sede' | 'services' | 'slot' | 'confirm';
 
+/** Lo que recibe `onBooked` al terminar. */
+export interface PatientBookedDetails {
+  date: string;
+  time: string;
+  /**
+   * Aviso de seña ya renderizado, sólo en reservas nuevas y con la opción
+   * activa en la clínica. `null` ⇒ no hay que mostrar nada.
+   */
+  depositNoticeHtml: string | null;
+}
+
+/** Configuración del aviso de seña, leída del endpoint público al arrancar. */
+interface DepositNoticeSetup {
+  html: string;
+  hours: number;
+  clinicName: string;
+  clinicPhone: string;
+}
+
 interface PatientBookingPanelProps {
   patient: User;
   /** Recibe la fecha y hora confirmadas, para el mensaje final. */
-  onBooked: (details: { date: string; time: string }) => void;
+  onBooked: (details: PatientBookedDetails) => void;
   /**
    * `'public'` ⇒ el paciente reserva desde la landing sin sesión: se usan los
    * endpoints `_noauth` y se dispara el email de confirmación.
@@ -128,6 +148,7 @@ export function PatientBookingPanel({
   const [reason, setReason] = React.useState('');
   const [isLoadingSlots, setIsLoadingSlots] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [depositNotice, setDepositNotice] = React.useState<DepositNoticeSetup | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -149,6 +170,16 @@ export function PatientBookingPanel({
       if (clinic) {
         setBookingWindow({ unit: clinic.booking_window_unit, value: clinic.booking_window_value });
       }
+      setDepositNotice(
+        clinic?.deposit_notice_enabled && clinic.deposit_notice_html
+          ? {
+              html: clinic.deposit_notice_html,
+              hours: clinic.deposit_hours,
+              clinicName: clinic.name,
+              clinicPhone: clinic.phone ?? '',
+            }
+          : null,
+      );
 
       // El catálogo se pide siempre que la clínica habilitó elegir, también al
       // reagendar: mover una cita es la ocasión típica para corregir lo que se
@@ -340,6 +371,25 @@ export function PatientBookingPanel({
     if (previous) setStep(previous.id as BookingStep);
   };
 
+  /**
+   * Arma el aviso de seña con los datos de esta reserva. El email lo arma n8n
+   * con la misma plantilla y el mismo cálculo de plazo.
+   */
+  const buildDepositNotice = (date: string, time: string): string | null => {
+    if (!depositNotice) return null;
+    const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    const deadline = getDepositDeadline(start, depositNotice.hours);
+    return renderDepositNotice(depositNotice.html, {
+      patient_name: patient.name,
+      date: format(start, 'dd/MM/yyyy'),
+      time,
+      deadline: format(deadline, 'dd/MM/yyyy HH:mm'),
+      hours: String(depositNotice.hours),
+      clinic_name: depositNotice.clinicName,
+      clinic_phone: depositNotice.clinicPhone,
+    });
+  };
+
   const handleConfirm = async () => {
     if (!selectedSlot?.isAvailable) return;
     setIsSubmitting(true);
@@ -363,27 +413,34 @@ export function PatientBookingPanel({
             title: t('rescheduledPartialTitle'),
             description: t('rescheduledPartialDescription'),
           });
-          onBooked({ date: bookedDate, time: selectedSlot.time });
+          onBooked({ date: bookedDate, time: selectedSlot.time, depositNoticeHtml: null });
           return;
         }
         toast({ title: t('rescheduledTitle'), description: t('rescheduledDescription') });
-      } else {
-        const created: any = await createPatientAppointment(input);
-        await notifyAppointmentChange({
-          event: 'booked',
-          appointmentId: created?.id ?? created?.appointment_id,
-          patient,
-          date: bookedDate,
-          time: selectedSlot.time,
-          doctorName: selectedSlot.doctorName,
-          sedeName: selectedSede?.name || selectedSlot.calendarName,
-          reason,
-        });
-        if (authMode !== 'public') {
-          toast({ title: t('successTitle'), description: t('successDescription') });
-        }
+        // Al reagendar no se repite el aviso de seña: aplica sólo a reservas nuevas.
+        onBooked({ date: bookedDate, time: selectedSlot.time, depositNoticeHtml: null });
+        return;
       }
-      onBooked({ date: bookedDate, time: selectedSlot.time });
+
+      const created: any = await createPatientAppointment(input);
+      await notifyAppointmentChange({
+        event: 'booked',
+        appointmentId: created?.id ?? created?.appointment_id,
+        patient,
+        date: bookedDate,
+        time: selectedSlot.time,
+        doctorName: selectedSlot.doctorName,
+        sedeName: selectedSede?.name || selectedSlot.calendarName,
+        reason,
+      });
+      if (authMode !== 'public') {
+        toast({ title: t('successTitle'), description: t('successDescription') });
+      }
+      onBooked({
+        date: bookedDate,
+        time: selectedSlot.time,
+        depositNoticeHtml: buildDepositNotice(bookedDate, selectedSlot.time),
+      });
     } catch (error) {
       const rejectedLimit = getBookingWindowRejection(error);
       toast({

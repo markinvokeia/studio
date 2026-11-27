@@ -1,5 +1,5 @@
 {
- "version": "a6be2d8cc734613c",
+ "version": "b5e6df75106c4f9a",
  "locale": "en",
  "journey": [
   {
@@ -7250,6 +7250,13 @@
   {
    "elements": [
     {
+     "description": "Goes back to the starter template. Nothing is saved until you press Save.",
+     "id": "config.patients-portal.btn.deposit-restore",
+     "kind": "btn",
+     "label": "Restore template",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "id": "config.patients-portal.btn.save",
      "kind": "btn",
      "label": "Save",
@@ -7267,6 +7274,27 @@
      "id": "config.patients-portal.field.booking-window-value",
      "kind": "field",
      "label": "Amount",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "When on, the patient sees the notice after booking and gets it by email. When off, booking ends as usual. It is not shown when rescheduling.",
+     "id": "config.patients-portal.field.deposit-enabled",
+     "kind": "field",
+     "label": "Deposit notice on booking",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Hours from the booking (1 to 72). If the appointment starts earlier, the deadline is the appointment start. It is informational only: the appointment is not cancelled automatically.",
+     "id": "config.patients-portal.field.deposit-hours",
+     "kind": "field",
+     "label": "Time to pay the deposit",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "The notice HTML, with variables such as {{deadline}} or {{clinic_phone}} that are filled in with each booking. Use inline styles: it is the same content as the email.",
+     "id": "config.patients-portal.field.deposit-html",
+     "kind": "field",
+     "label": "Notice content (HTML)",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
@@ -7291,10 +7319,38 @@
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
+     "description": "Message the patient sees after a new booking, also added to the booking email: the deposit they have to pay and the deadline to pay it.",
+     "id": "config.patients-portal.section.deposit-notice",
+     "kind": "section",
+     "label": "Deposit notice",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "How the notice looks with a sample appointment tomorrow at 10:00.",
+     "id": "config.patients-portal.section.deposit-preview",
+     "kind": "section",
+     "label": "Preview",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "description": "Texts and details the patient sees.",
      "id": "config.patients-portal.section.presentation",
      "kind": "section",
      "label": "Presentation",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Code editor for the notice, with the variables to insert.",
+     "id": "config.patients-portal.tab.deposit-html",
+     "kind": "tab",
+     "label": "HTML",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Shows the notice as the patient sees it, with a sample appointment.",
+     "id": "config.patients-portal.tab.deposit-preview",
+     "kind": "tab",
+     "label": "Preview",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     }
    ],
@@ -7308,12 +7364,13 @@
     "sales.services",
     "config.doctor-availability"
    ],
-   "purpose": "Defines what the patient sees and can do online: book appointments, choose services, see prices, welcome message and video.",
+   "purpose": "Defines what the patient sees and can do online: book appointments, choose services, see prices, welcome message and video, and the deposit notice on booking.",
    "route": "/config/patients-portal",
    "status": "draft",
    "summary": "Patient portal setup.",
    "tips": [
-    "Only services marked as bookable online are offered."
+    "Only services marked as bookable online are offered.",
+    "The deposit notice does not cancel appointments: if the deposit does not arrive in time, reception cancels the appointment from the calendar."
    ],
    "title": "Patient Portal",
    "useCases": [
@@ -28347,6 +28404,14 @@
      "skipIfMissing": true,
      "target": "config.patients-portal.section.booking-services",
      "title": "Booking services"
+    },
+    {
+     "action": "highlight",
+     "details": "When on, the patient sees how much deposit to pay and by when after a new booking, and also gets it by email.",
+     "id": "deposit-notice",
+     "skipIfMissing": true,
+     "target": "config.patients-portal.section.deposit-notice",
+     "title": "Deposit notice"
     },
     {
      "action": "highlight",

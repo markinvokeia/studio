@@ -6,6 +6,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 
+import { DepositNoticeFrame } from '@/components/patient-portal/deposit-notice-frame';
 import { PatientBookingPanel } from '@/components/patient-portal/patient-booking-panel';
 
 import type { User } from '@/lib/types';
@@ -40,15 +41,22 @@ export function PatientOnboardingBooking({
 }: PatientOnboardingBookingProps) {
   const t = useTranslations('PatientPortal.onboarding');
   const [hasBooked, setHasBooked] = React.useState(false);
+  /** Aviso de seña de la reserva recién hecha, si la clínica lo activó. */
+  const [depositNoticeHtml, setDepositNoticeHtml] = React.useState<string | null>(null);
 
   if (hasBooked) {
     return (
-      <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col items-center justify-center px-4 py-8 text-center">
+      // `overflow-y-auto`: con el aviso de seña el contenido puede ser más alto
+      // que la pantalla de un teléfono.
+      <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <PartyPopper className="h-8 w-8 text-primary" />
         </div>
         <h1 className="mt-5 text-2xl font-bold tracking-tight">{t('bookedTitle')}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t('bookedDescription')}</p>
+        {depositNoticeHtml && (
+          <DepositNoticeFrame html={depositNoticeHtml} title={t('depositNoticeTitle')} className="mt-6" />
+        )}
         <Button
           size="lg"
           className="mt-8 h-12 w-full text-base"
@@ -78,7 +86,10 @@ export function PatientOnboardingBooking({
       <div className="min-h-0 flex-1">
         <PatientBookingPanel
           patient={patient}
-          onBooked={() => setHasBooked(true)}
+          onBooked={(details) => {
+            setDepositNoticeHtml(details.depositNoticeHtml);
+            setHasBooked(true);
+          }}
           secondaryAction={
             // Sin "lo hago más tarde" en modo sólo citas: no hay a dónde ir.
             appointmentsOnly ? undefined : (

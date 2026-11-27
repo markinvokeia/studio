@@ -1,5 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import { parseBookingWindow } from '@/lib/patient-booking-window';
+import { DEFAULT_DEPOSIT_HOURS, isValidDepositHours } from '@/lib/patient-deposit-notice';
 import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import type { PublicClinicInfo, PublicClinicSchedule, PublicSede } from '@/lib/types';
 import { api } from '@/services/api';
@@ -87,6 +88,12 @@ async function requestPublicClinicInfo(): Promise<PublicClinicInfo | null> {
         const { unit, value } = parseBookingWindow(raw.booking_window_unit, raw.booking_window_value);
         return { booking_window_unit: unit, booking_window_value: value };
       })(),
+      // Apagado salvo `true` explícito: con un flujo anterior al aviso, nada cambia.
+      deposit_notice_enabled: raw.deposit_notice_enabled === true,
+      deposit_hours: isValidDepositHours(Number(raw.deposit_hours)) ? Number(raw.deposit_hours) : DEFAULT_DEPOSIT_HOURS,
+      deposit_notice_html: typeof raw.deposit_notice_html === 'string' && raw.deposit_notice_html.trim()
+        ? raw.deposit_notice_html
+        : null,
       schedules,
     };
   } catch (error) {

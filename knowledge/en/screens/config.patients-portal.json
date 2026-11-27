@@ -1,9 +1,10 @@
 {
   "id": "config.patients-portal",
   "summary": "Patient portal setup.",
-  "purpose": "Defines what the patient sees and can do online: book appointments, choose services, see prices, welcome message and video.",
+  "purpose": "Defines what the patient sees and can do online: book appointments, choose services, see prices, welcome message and video, and the deposit notice on booking.",
   "tips": [
-    "Only services marked as bookable online are offered."
+    "Only services marked as bookable online are offered.",
+    "The deposit notice does not cancel appointments: if the deposit does not arrive in time, reception cancels the appointment from the calendar."
   ],
   "elements": {
     "config.patients-portal.section.access": {
@@ -25,6 +26,38 @@
     "config.patients-portal.field.booking-window-unit": {
       "label": "Unit",
       "description": "Days count from today. Months count calendar months: with 1, patients can only book in the current month."
+    },
+    "config.patients-portal.section.deposit-notice": {
+      "label": "Deposit notice",
+      "description": "Message the patient sees after a new booking, also added to the booking email: the deposit they have to pay and the deadline to pay it."
+    },
+    "config.patients-portal.field.deposit-enabled": {
+      "label": "Deposit notice on booking",
+      "description": "When on, the patient sees the notice after booking and gets it by email. When off, booking ends as usual. It is not shown when rescheduling."
+    },
+    "config.patients-portal.field.deposit-hours": {
+      "label": "Time to pay the deposit",
+      "description": "Hours from the booking (1 to 72). If the appointment starts earlier, the deadline is the appointment start. It is informational only: the appointment is not cancelled automatically."
+    },
+    "config.patients-portal.tab.deposit-preview": {
+      "label": "Preview",
+      "description": "Shows the notice as the patient sees it, with a sample appointment."
+    },
+    "config.patients-portal.tab.deposit-html": {
+      "label": "HTML",
+      "description": "Code editor for the notice, with the variables to insert."
+    },
+    "config.patients-portal.field.deposit-html": {
+      "label": "Notice content (HTML)",
+      "description": "The notice HTML, with variables such as {{deadline}} or {{clinic_phone}} that are filled in with each booking. Use inline styles: it is the same content as the email."
+    },
+    "config.patients-portal.btn.deposit-restore": {
+      "label": "Restore template",
+      "description": "Goes back to the starter template. Nothing is saved until you press Save."
+    },
+    "config.patients-portal.section.deposit-preview": {
+      "label": "Preview",
+      "description": "How the notice looks with a sample appointment tomorrow at 10:00."
     },
     "config.patients-portal.section.presentation": {
       "label": "Presentation",

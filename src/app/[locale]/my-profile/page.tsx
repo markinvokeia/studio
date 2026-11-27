@@ -5,7 +5,17 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
+import { DepositNoticeFrame } from '@/components/patient-portal/deposit-notice-frame';
 import { MyAppointmentsTab } from '@/components/patient-portal/my-appointments-tab';
 import { PatientAssistant } from '@/components/patient-portal/patient-assistant';
 import { PatientBookingPanel } from '@/components/patient-portal/patient-booking-panel';
@@ -43,6 +53,11 @@ export default function MyProfilePage() {
    */
   const [bookingMode, setBookingMode] = React.useState<{ appointment: Appointment | null } | null>(null);
   const [appointmentsRefresh, setAppointmentsRefresh] = React.useState(0);
+  /**
+   * Aviso de seña de la reserva recién hecha. Acá la reserva vuelve directo a la
+   * lista de citas (no hay pantalla final), así que el aviso va en un diálogo.
+   */
+  const [depositNoticeHtml, setDepositNoticeHtml] = React.useState<string | null>(null);
 
   /**
    * Un paciente sin citas futuras entra directo a solicitar una, en vez de
@@ -220,9 +235,10 @@ export default function MyProfilePage() {
                   <PatientBookingPanel
                     patient={patientAsUser}
                     rescheduleFrom={bookingMode.appointment}
-                    onBooked={() => {
+                    onBooked={(details) => {
                       setBookingMode(null);
                       setAppointmentsRefresh((n) => n + 1);
+                      setDepositNoticeHtml(details.depositNoticeHtml);
                     }}
                   />
                 </div>
@@ -278,6 +294,23 @@ export default function MyProfilePage() {
           </div>
         )}
       </div>
+
+      <Dialog open={depositNoticeHtml !== null} onOpenChange={(open) => { if (!open) setDepositNoticeHtml(null); }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t('booking.depositNoticeTitle')}</DialogTitle>
+            <DialogDescription>{t('booking.depositNoticeDescription')}</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            {depositNoticeHtml && (
+              <DepositNoticeFrame html={depositNoticeHtml} title={t('booking.depositNoticeTitle')} />
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button onClick={() => setDepositNoticeHtml(null)}>{t('booking.depositNoticeDismiss')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Oculto temporalmente: el agente conversacional no se utiliza por ahora. */}
       {false && (
