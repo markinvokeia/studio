@@ -1660,6 +1660,43 @@ export default function AppointmentsPage() {
      */
     const { context: studyOrderScheduling, start: startStudyOrderScheduling, clear: clearStudyOrderScheduling } = useStudyOrderScheduling();
 
+    // La agenda se abre en la sede que se eligió en la orden: sus calendarios y sus
+    // horarios, sin que el operario tenga que cambiarla a mano. Es un cambio de la
+    // vista, no de la configuración guardada: al terminar o cancelar la operación
+    // se vuelve a la sede configurada. Se aplica una vez por orden, así que si el
+    // operario cambia de sede durante la operación no se le vuelve a imponer.
+    const schedulingSedeId = studyOrderScheduling?.sedeId ? String(studyOrderScheduling.sedeId) : '';
+    const schedulingOrderId = studyOrderScheduling?.orderId ?? '';
+    const appliedSchedulingSedeRef = React.useRef<string | null>(null);
+    React.useEffect(() => {
+        if (!schedulingOrderId) {
+            if (appliedSchedulingSedeRef.current !== null) {
+                appliedSchedulingSedeRef.current = null;
+                setDefaultSede(calendarSettings?.default_sede ?? '');
+            }
+            return;
+        }
+        if (!schedulingSedeId || isDataLoading || calendars.length === 0) return;
+        const key = `${schedulingOrderId}:${schedulingSedeId}`;
+        if (appliedSchedulingSedeRef.current === key) return;
+        // Una sede sin calendarios dejaría la agenda vacía: mejor no tocar la vista.
+        if (!calendars.some((c) => String(c.sede_id ?? '') === schedulingSedeId)) return;
+        appliedSchedulingSedeRef.current = key;
+        setDefaultSede(schedulingSedeId);
+    }, [schedulingOrderId, schedulingSedeId, isDataLoading, calendars, calendarSettings?.default_sede]);
+
+    /**
+     * Calendario para precargar en la cita de la orden: sólo si su sede tiene uno
+     * solo, que es cuando la elección no es ambigua. Lee el store en el momento
+     * porque el deep link puede llegar antes de que el contexto se re-renderice.
+     */
+    const getSchedulingSedeCalendar = React.useCallback((): CalendarType | null => {
+        const sedeId = useStudyOrderScheduling.getState().context?.sedeId;
+        if (!sedeId) return null;
+        const inSede = calendars.filter((c) => String(c.sede_id ?? '') === String(sedeId));
+        return inSede.length === 1 ? inSede[0] : null;
+    }, [calendars]);
+
     const [scheduleNextData, setScheduleNextData] = React.useState<{
         patientId: string;
         patientName: string;
@@ -3753,6 +3790,7 @@ export default function AppointmentsPage() {
                     doctorId: order?.doctor_id ?? doctorId ?? null,
                     doctorName: order?.doctor_name ?? doctorName ?? null,
                     serviceIds: (items ?? []).map((i) => String(i.service_id)),
+                    sedeId: order?.preferred_sede_id != null ? String(order.preferred_sede_id) : null,
                 });
             });
         }
@@ -3793,7 +3831,7 @@ export default function AppointmentsPage() {
             : null;
         const calendar = scheduleNextData.calendarId
             ? (calendars.find(c => String(c.id) === scheduleNextData.calendarId) ?? null)
-            : null;
+            : getSchedulingSedeCalendar();
         const quote: Quote | null = scheduleNextData.quoteId
             ? {
                 id: scheduleNextData.quoteId,
@@ -3813,7 +3851,7 @@ export default function AppointmentsPage() {
             services: scheduleNextResolvedServices,
             quote,
         };
-    }, [scheduleNextData, doctors, calendars, scheduleNextResolvedServices]);
+    }, [scheduleNextData, doctors, calendars, scheduleNextResolvedServices, getSchedulingSedeCalendar]);
 
     // Modo personalizado: la notificación "agendar próxima cita" abre la tarjeta
     // simplificada en vez del dialog completo, con la misma pre-carga.
@@ -3835,7 +3873,9 @@ export default function AppointmentsPage() {
         if (scheduleDraftRunRef.current !== runId) return; // reemplazado por otra notificación
 
         const doctor = data.doctorId ? (doctors.find(d => String(d.id) === String(data.doctorId)) ?? null) : null;
-        const calendar = data.calendarId ? (calendars.find(c => String(c.id) === String(data.calendarId)) ?? null) : null;
+        const calendar = data.calendarId
+            ? (calendars.find(c => String(c.id) === String(data.calendarId)) ?? null)
+            : getSchedulingSedeCalendar();
         const totalDuration = draftServices.reduce((acc, s) => acc + ((s as any).duration_minutes || 0), 0);
 
         setEditingAppointment(null);
@@ -3852,7 +3892,7 @@ export default function AppointmentsPage() {
             quoteId: data.quoteId,
             notifId: data.notifId,
         }));
-    }, [services, doctors, calendars, newAppointmentMinutes]);
+    }, [services, doctors, calendars, newAppointmentMinutes, getSchedulingSedeCalendar]);
 
     // El deep-link se dispara al montar, antes de que getCalendarSettings() resuelva,
     // así que la apertura espera a conocer el modo. Se consume una sola vez.

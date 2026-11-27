@@ -12104,8 +12104,22 @@
       "retry": "Reintentar",
       "emptyColumn": "Sin órdenes en este estado",
       "loadMore": "Cargar más ({shown} de {total})",
-      "perColumn": "Órdenes por columna",
-      "perColumnOption": "{count} por columna",
+      "loadingMore": "Cargando más órdenes…",
+      "sort": {
+        "label": "Ordenar por",
+        "options": {
+          "priority": "Prioridad (atrasadas primero)",
+          "submitted_at_desc": "Más recientes",
+          "submitted_at_asc": "Más antiguas",
+          "patient_name_asc": "Paciente (A-Z)",
+          "patient_name_desc": "Paciente (Z-A)",
+          "doctor_name_asc": "Doctor (A-Z)",
+          "doctor_name_desc": "Doctor (Z-A)",
+          "sede_name_asc": "Sede (A-Z)",
+          "order_number_desc": "N.º de orden (mayor primero)",
+          "order_number_asc": "N.º de orden (menor primero)"
+        }
+      },
       "summary": "Ver resumen",
       "openDetail": "Ver detalle",
       "assign": "Asignar",

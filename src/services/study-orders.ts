@@ -7,6 +7,7 @@ import type {
     StudyOrderAssignee,
     StudyOrderAssignResult,
     StudyOrderBoardColumn,
+    StudyOrderBoardSort,
     StudyOrderBoardStatus,
     StudyOrderBookingLink,
     StudyOrderChatter,
@@ -202,7 +203,9 @@ export interface GetStudyOrderBoardParams {
     source?: StudyOrderOrigin;
     search?: string;
     assigned?: StudyOrderAssignedFilter;
-    /** Tarjetas por columna. */
+    /** Orden dentro de cada columna. Sin valor, por prioridad. */
+    sort?: StudyOrderBoardSort;
+    /** Tarjetas por columna (o de la columna pedida, al cargar más). */
     limit: number;
     /** "Cargar más": solo esa columna, desde `offset`. */
     column?: StudyOrderBoardStatus;
@@ -220,6 +223,7 @@ export async function getStudyOrderBoard(params: GetStudyOrderBoardParams): Prom
     if (params.source) query.source = params.source;
     if (params.search) query.q = params.search;
     if (params.assigned && params.assigned !== 'all') query.assigned = params.assigned;
+    if (params.sort && params.sort !== 'priority') query.sort = params.sort;
     if (params.column) {
         query.column = params.column;
         query.offset = String(params.offset ?? 0);

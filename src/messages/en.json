@@ -12104,8 +12104,22 @@
       "retry": "Retry",
       "emptyColumn": "No orders in this status",
       "loadMore": "Load more ({shown} of {total})",
-      "perColumn": "Orders per column",
-      "perColumnOption": "{count} per column",
+      "loadingMore": "Loading more orders…",
+      "sort": {
+        "label": "Sort by",
+        "options": {
+          "priority": "Priority (overdue first)",
+          "submitted_at_desc": "Newest first",
+          "submitted_at_asc": "Oldest first",
+          "patient_name_asc": "Patient (A-Z)",
+          "patient_name_desc": "Patient (Z-A)",
+          "doctor_name_asc": "Doctor (A-Z)",
+          "doctor_name_desc": "Doctor (Z-A)",
+          "sede_name_asc": "Location (A-Z)",
+          "order_number_desc": "Order no. (highest first)",
+          "order_number_asc": "Order no. (lowest first)"
+        }
+      },
       "summary": "View summary",
       "openDetail": "View details",
       "assign": "Assign",

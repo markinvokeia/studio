@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
-import { ClipboardList, FileUp, Globe, Inbox, LayoutList, MessageCircle, Pencil, PlusCircle, RefreshCw, Search, SquareKanban, UserCheck, UserPlus, UserRound, UserX, Users, X } from 'lucide-react';
+import { ArrowUpDown, ClipboardList, FileUp, Globe, Inbox, LayoutList, MessageCircle, Pencil, PlusCircle, RefreshCw, Search, SquareKanban, UserCheck, UserPlus, UserRound, UserX, Users, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -39,7 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
-import type { StudyOrder, StudyOrderAssignedFilter, StudyOrderListItem } from '@/lib/types';
+import type { StudyOrder, StudyOrderAssignedFilter, StudyOrderBoardSort, StudyOrderListItem } from '@/lib/types';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import {
     acknowledgeStudyOrder,
@@ -269,14 +269,64 @@ function ViewModeSwitch({ value, onChange }: { value: StudyOrdersViewMode; onCha
     );
 }
 
-/** Tarjetas por columna que se pueden elegir en el tablero. */
-const BOARD_PAGE_SIZES = [10, 25, 50, 100] as const;
+/** Criterios de orden del tablero, en el orden en que se ofrecen. */
+const BOARD_SORTS: StudyOrderBoardSort[] = [
+    'priority', 'submitted_at:desc', 'submitted_at:asc', 'patient_name:asc', 'patient_name:desc',
+    'doctor_name:asc', 'doctor_name:desc', 'sede_name:asc', 'order_number:desc', 'order_number:asc',
+];
+const BOARD_SORT_STORAGE = 'study-orders-board-sort';
+
+/** Clave de traducción de cada criterio (`board.sort.options.*`): los ':' no van en una clave. */
+const boardSortKey = (sort: StudyOrderBoardSort) => sort.replace(':', '_') as
+    'priority' | 'submitted_at_desc' | 'submitted_at_asc' | 'patient_name_asc' | 'patient_name_desc'
+    | 'doctor_name_asc' | 'doctor_name_desc' | 'sede_name_asc' | 'order_number_desc' | 'order_number_asc';
+
+/** "Ordenar por" del tablero: el orden de las tarjetas dentro de cada columna. */
+function BoardSortSelect({ value, onChange, showDoctor }: { value: StudyOrderBoardSort; onChange: (value: StudyOrderBoardSort) => void; showDoctor: boolean }) {
+    const t = useTranslations('StudyOrdersPage.board.sort');
+    const compact = useDataTableToolbarCompact();
+    // En Mis Órdenes todas son del mismo doctor: ordenar por doctor no aporta.
+    const options = showDoctor ? BOARD_SORTS : BOARD_SORTS.filter((s) => !s.startsWith('doctor_name'));
+    return (
+        <Select value={value} onValueChange={(next) => onChange(next as StudyOrderBoardSort)}>
+            {compact ? (
+                <SelectTrigger
+                   
+                    className="relative h-9 w-9 justify-center px-0 [&>svg:last-child]:hidden"
+                    aria-label={t('label')}
+                    title={`${t('label')}: ${t(`options.${boardSortKey(value)}`)}`}
+                >
+                    <ArrowUpDown className="h-4 w-4" />
+                    <span className="sr-only"><SelectValue /></span>
+                    {value !== 'priority' && (
+                        <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                    )}
+                </SelectTrigger>
+            ) : (
+                <SelectTrigger className="h-9 w-[210px]" aria-label={t('label')} title={t('label')}>
+                    {/* div y no span: el trigger recorta sus span hijos a una línea y rompería la fila. */}
+                    <div className="flex min-w-0 items-center gap-2">
+                        <ArrowUpDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <SelectValue />
+                    </div>
+                </SelectTrigger>
+            )}
+            <SelectContent>
+                {options.map((sort) => (
+                    <SelectItem key={sort} value={sort}>{t(`options.${boardSortKey(sort)}`)}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+}
 
 interface BoardToolbarProps {
     search: string;
     onSearchChange: (value: string) => void;
-    perColumn: number;
-    onPerColumnChange: (value: number) => void;
+    sort: StudyOrderBoardSort;
+    onSortChange: (value: StudyOrderBoardSort) => void;
+    /** Ofrecer ordenar por doctor (solo en la bandeja de la clínica). */
+    showDoctorSort: boolean;
     onRefresh: () => void;
     isRefreshing: boolean;
     onCreate?: () => void;
@@ -287,10 +337,10 @@ interface BoardToolbarProps {
 }
 
 /**
- * Barra del tablero: búsqueda, filtros, tarjetas por columna y actualizar. Como la de la lista,
- * mide su propio ancho: si no entra pasa a la línea siguiente y, muy angosta, queda solo con íconos.
+ * Barra del tablero: búsqueda, filtros, orden y actualizar. Como la de la lista, mide su propio
+ * ancho: si no entra pasa a la línea siguiente y, muy angosta, queda solo con íconos.
  */
-function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, onRefresh, isRefreshing, onCreate, createActions, extra }: BoardToolbarProps) {
+function BoardToolbar({ search, onSearchChange, sort, onSortChange, showDoctorSort, onRefresh, isRefreshing, onCreate, createActions, extra }: BoardToolbarProps) {
     const t = useTranslations('StudyOrdersPage');
     const tToolbar = useTranslations('DataTableToolbar');
     const rootRef = React.useRef<HTMLDivElement>(null);
@@ -327,18 +377,7 @@ function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, on
                 </div>
                 <div className="flex max-w-full flex-wrap items-center gap-2">
                     {extra}
-                    <Select value={String(perColumn)} onValueChange={(v) => onPerColumnChange(Number(v))}>
-                        <SelectTrigger className={cn('h-9', compact ? 'w-[72px]' : 'w-[150px]')} aria-label={t('board.perColumn')} title={t('board.perColumn')}>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {BOARD_PAGE_SIZES.map((size) => (
-                                <SelectItem key={size} value={String(size)}>
-                                    {compact ? size : t('board.perColumnOption', { count: size })}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <BoardSortSelect value={sort} onChange={onSortChange} showDoctor={showDoctorSort} />
                     <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onRefresh} disabled={isRefreshing}
                         aria-label={tToolbar('refresh')} title={tToolbar('refresh')}>
                         <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
@@ -552,18 +591,21 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     }, [viewStorageKey]);
     const isBoard = viewMode === 'board';
 
-    // Tablero: tarjetas por columna (se recuerda), búsqueda propia y recarga después de cada acción.
-    const [perColumn, setPerColumnState] = React.useState(25);
+    // Tablero: orden de las tarjetas (se recuerda), búsqueda propia y recarga después de cada acción.
+    // Las columnas no tienen tope: cada una carga más al llegar a su final.
+    const [boardSort, setBoardSortState] = React.useState<StudyOrderBoardSort>('priority');
     React.useEffect(() => {
         try {
-            const stored = Number(localStorage.getItem('study-orders-board-per-column'));
-            if ([10, 25, 50, 100].includes(stored)) setPerColumnState(stored);
+            const stored = localStorage.getItem(BOARD_SORT_STORAGE) as StudyOrderBoardSort | null;
+            if (stored && BOARD_SORTS.includes(stored)) setBoardSortState(stored);
         } catch { /* sin storage */ }
     }, []);
-    const setPerColumn = React.useCallback((value: number) => {
-        setPerColumnState(value);
-        try { localStorage.setItem('study-orders-board-per-column', String(value)); } catch { /* sin storage */ }
+    const setBoardSort = React.useCallback((value: StudyOrderBoardSort) => {
+        setBoardSortState(value);
+        try { localStorage.setItem(BOARD_SORT_STORAGE, value); } catch { /* sin storage */ }
     }, []);
+    // En Mis Órdenes no se ofrece ordenar por doctor; un valor recordado de la clínica cae a prioridad.
+    const effectiveBoardSort: StudyOrderBoardSort = !isClinic && boardSort.startsWith('doctor_name') ? 'priority' : boardSort;
     const [boardSearchInput, setBoardSearchInput] = React.useState('');
     const [boardSearch, setBoardSearch] = React.useState('');
     React.useEffect(() => {
@@ -720,6 +762,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             doctorId: order.doctor_id,
             doctorName: order.doctor_name,
             serviceIds: items.map((i) => i.service_id),
+            sedeId: order.preferred_sede_id != null ? String(order.preferred_sede_id) : null,
         });
 
         try {
@@ -961,8 +1004,9 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                     <BoardToolbar
                                         search={boardSearchInput}
                                         onSearchChange={setBoardSearchInput}
-                                        perColumn={perColumn}
-                                        onPerColumnChange={setPerColumn}
+                                        sort={effectiveBoardSort}
+                                        onSortChange={setBoardSort}
+                                        showDoctorSort={isClinic}
                                         onRefresh={() => setBoardReloadKey((k) => k + 1)}
                                         isRefreshing={isBoardLoading}
                                         onCreate={canCreate ? handleCreate : undefined}
@@ -979,7 +1023,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                         source={sourceFilter}
                                         search={boardSearch}
                                         assigned={canSeeAll && STUDY_ORDERS_FEATURES.assign ? assigned : 'all'}
-                                        perColumn={perColumn}
+                                        sort={effectiveBoardSort}
                                         reloadKey={boardReloadKey}
                                         capabilities={boardCapabilities}
                                         selectedId={selected?.id}

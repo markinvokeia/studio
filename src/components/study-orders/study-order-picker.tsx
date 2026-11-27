@@ -171,6 +171,7 @@ export function StudyOrderPicker({
                 doctorId: chosen.doctor_id,
                 doctorName: chosen.doctor_name,
                 serviceIds: [],
+                sedeId: chosen.preferred_sede_id != null ? String(chosen.preferred_sede_id) : null,
             });
         }
 

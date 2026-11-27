@@ -28,6 +28,11 @@ export interface StudyOrderSchedulingContext {
     doctorName?: string | null;
     /** Servicios pendientes de agendar, para precargarlos en la cita. */
     serviceIds: string[];
+    /**
+     * Sede que se eligió en la orden. La agenda se abre ya en esa sede (sus
+     * calendarios y sus horarios), así el operario no tiene que buscarla.
+     */
+    sedeId?: string | null;
 }
 
 interface StudyOrderSchedulingStore {

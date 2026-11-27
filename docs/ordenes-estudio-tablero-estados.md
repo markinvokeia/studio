@@ -6,7 +6,7 @@ La bandeja de órdenes de estudio suma una segunda vista, **Estados**: un tabler
 
 `Borrador → Confirmada → Agenda pendiente → Agendada → Paciente presente → En ejecución → Estudio completado → Entregada`, más `Cancelada`.
 
-Se guardan en `study_orders.status` (migración 179). `board_status` es el mismo valor. Cada columna muestra su total. Las tarjetas por columna se eligen en la barra (10, 25, 50 o 100), y "Cargar más" trae las siguientes. La columna Cancelada arranca plegada; el plegado se recuerda por navegador.
+Se guardan en `study_orders.status` (migración 179). `board_status` es el mismo valor. Cada columna muestra su total. No hay tope por columna: cada una trae 20 tarjetas y, al llegar a su final con el scroll, pide las 20 siguientes de esa columna sola (`column` + `offset`), con un botón "Cargar más" de respaldo. Al recargar después de una acción se vuelve a pedir lo que ya estaba a la vista (hasta 200 por columna). "Ordenar por" (en la barra, se recuerda por navegador) define el orden dentro de cada columna (`sort`): prioridad (atrasadas primero, después las más recientes; es el default), fecha de envío, paciente, doctor (solo en la bandeja de la clínica), sede o número de orden. La columna Cancelada arranca plegada; el plegado se recuerda por navegador.
 
 | Desde | Puede pasar a |
 |---|---|

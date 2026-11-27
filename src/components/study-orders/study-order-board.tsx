@@ -5,7 +5,7 @@ import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors,
     type Announcements, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
-import { AlertTriangle, ChevronLeft, ChevronRight, Eye, GripVertical, UserPlus } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Eye, GripVertical, Loader2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_FEATURES, STUDY_ORDER_STATUSES, isAppointmentDrivenStatus, isStudyOrderCancellable } from '@/constants/study-order-status';
 import { cn, formatDisplayDate } from '@/lib/utils';
-import type { StudyOrderAssignedFilter, StudyOrderBoardStatus, StudyOrderListItem } from '@/lib/types';
+import type { StudyOrderAssignedFilter, StudyOrderBoardSort, StudyOrderBoardStatus, StudyOrderListItem } from '@/lib/types';
 import { getStudyOrderBoard, type StudyOrderOrigin, type StudyOrderScope } from '@/services/study-orders';
 
 /**
@@ -116,6 +116,14 @@ interface ColumnState {
 
 type BoardData = Record<StudyOrderBoardStatus, ColumnState>;
 
+/**
+ * Tarjetas que se piden por vez. No hay tope por columna: al llegar al final de una columna se
+ * piden las siguientes de esa columna sola (Completada crece mucho más que las demás).
+ */
+const PAGE_SIZE = 20;
+/** Al recargar se vuelve a pedir lo que ya estaba a la vista, hasta este máximo por columna. */
+const MAX_RELOAD = 200;
+
 const COLLAPSED_STORAGE = 'study-order-board-collapsed';
 
 function readCollapsed(scope: StudyOrderScope): Set<StudyOrderBoardStatus> {
@@ -132,8 +140,8 @@ export interface StudyOrderBoardProps {
     source?: StudyOrderOrigin;
     search: string;
     assigned: StudyOrderAssignedFilter;
-    /** Tarjetas por columna (y cuántas más trae "Cargar más"). */
-    perColumn: number;
+    /** Orden de las tarjetas dentro de cada columna. */
+    sort: StudyOrderBoardSort;
     /** Cambia para volver a pedir el tablero (después de una acción, o con Actualizar). */
     reloadKey: number;
     capabilities: BoardCapabilities;
@@ -148,7 +156,7 @@ export interface StudyOrderBoardProps {
 }
 
 export function StudyOrderBoard({
-    scope, source, search, assigned, perColumn, reloadKey, capabilities, selectedId,
+    scope, source, search, assigned, sort, reloadKey, capabilities, selectedId,
     onOpen, onMove, onAssign, onLoadingChange, className,
 }: StudyOrderBoardProps) {
     const t = useTranslations('StudyOrdersPage');
@@ -173,55 +181,80 @@ export function StudyOrderBoard({
         });
     };
 
+    // Lo que define qué se ve. Si cambia, el tablero arranca de nuevo desde arriba; si solo se
+    // recarga (después de una acción o con Actualizar), se vuelve a pedir lo que ya estaba a la vista
+    // para que la columna no se achique ni salte al principio.
+    const viewKey = JSON.stringify({ scope, source, search, assigned, sort });
+    const lastViewKeyRef = React.useRef<string | null>(null);
+    const dataRef = React.useRef<BoardData | null>(null);
+    React.useEffect(() => { dataRef.current = data; }, [data]);
+    /** Cambia con cada carga completa: una tanda de "más" que llega tarde se descarta. */
+    const generationRef = React.useRef(0);
+
     // Carga del tablero. Al recargar se deja lo que había a la vista (sin esqueleto); una
     // respuesta vieja no pisa a una nueva.
     React.useEffect(() => {
         const controller = new AbortController();
+        const generation = ++generationRef.current;
+        const sameView = lastViewKeyRef.current === viewKey;
+        lastViewKeyRef.current = viewKey;
+        const current = sameView ? dataRef.current : null;
+        const loaded = current ? Math.max(0, ...BOARD_COLUMNS.map((s) => current[s].items.length)) : 0;
+        const limit = Math.min(MAX_RELOAD, Math.max(PAGE_SIZE, loaded));
+
         setError(false);
+        setLoadingMore(new Set());
         onLoadingChange?.(true);
-        getStudyOrderBoard({ scope, source, search: search || undefined, assigned, limit: perColumn, signal: controller.signal })
+        getStudyOrderBoard({ scope, source, search: search || undefined, assigned, sort, limit, signal: controller.signal })
             .then((columns) => {
-                if (controller.signal.aborted) return;
+                if (controller.signal.aborted || generation !== generationRef.current) return;
                 const next = Object.fromEntries(BOARD_COLUMNS.map((s) => [s, { total: 0, items: [] }])) as unknown as BoardData;
                 for (const column of columns) {
                     if (next[column.status]) next[column.status] = { total: Number(column.total) || 0, items: column.items ?? [] };
                 }
                 setData(next);
-                setLoadingMore(new Set());
             })
             .catch(() => { if (!controller.signal.aborted) setError(true); })
             .finally(() => { if (!controller.signal.aborted) onLoadingChange?.(false); });
         return () => controller.abort();
-        // `onLoadingChange` no va: es un aviso hacia afuera, no una entrada.
+        // `onLoadingChange` no va: es un aviso hacia afuera, no una entrada. `viewKey` resume
+        // scope/source/search/assigned/sort.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [scope, source, search, assigned, perColumn, reloadKey, retryKey]);
+    }, [viewKey, reloadKey, retryKey]);
 
+    // Siguientes tarjetas de una columna: la pide la columna cuando su final entra en pantalla.
     const loadMore = async (status: StudyOrderBoardStatus) => {
-        if (!data || loadingMore.has(status)) return;
+        const column = data?.[status];
+        if (!column || column.items.length >= column.total || loadingMore.has(status)) return;
+        const generation = generationRef.current;
         setLoadingMore((prev) => new Set(prev).add(status));
         try {
-            const [column] = await getStudyOrderBoard({
-                scope, source, search: search || undefined, assigned, limit: perColumn,
-                column: status, offset: data[status].items.length,
+            const [page] = await getStudyOrderBoard({
+                scope, source, search: search || undefined, assigned, sort, limit: PAGE_SIZE,
+                column: status, offset: column.items.length,
             });
-            if (column) {
+            // Cambiaron los filtros o el orden mientras tanto: esta tanda ya no corresponde.
+            if (generation !== generationRef.current) return;
+            if (page) {
                 setData((prev) => prev && ({
                     ...prev,
                     [status]: {
-                        total: Number(column.total) || prev[status].total,
+                        total: Number(page.total) || 0,
                         // Sin repetidos: si entró una orden nueva, el corrimiento podría traer una que ya está.
-                        items: [...prev[status].items, ...column.items.filter((o) => !prev[status].items.some((p) => p.id === o.id))],
+                        items: [...prev[status].items, ...page.items.filter((o) => !prev[status].items.some((p) => p.id === o.id))],
                     },
                 }));
             }
         } catch {
-            setError(true);
+            if (generation === generationRef.current) setError(true);
         } finally {
-            setLoadingMore((prev) => {
-                const next = new Set(prev);
-                next.delete(status);
-                return next;
-            });
+            if (generation === generationRef.current) {
+                setLoadingMore((prev) => {
+                    const next = new Set(prev);
+                    next.delete(status);
+                    return next;
+                });
+            }
         }
     };
 
@@ -319,7 +352,11 @@ export function StudyOrderBoard({
                                 status={status}
                                 label={statusLabel(status)}
                                 total={column?.total ?? 0}
+                                shown={column?.items.length ?? 0}
                                 isLoading={!data}
+                                loadingMore={loadingMore.has(status)}
+                                onLoadMore={() => void loadMore(status)}
+                                viewKey={viewKey}
                                 collapsed={collapsed.has(status)}
                                 onToggleCollapsed={() => toggleCollapsed(status)}
                                 dragState={!dragging ? 'idle' : dragging.board_status === status ? 'origin' : dropMove ? 'allowed' : 'blocked'}
@@ -336,18 +373,6 @@ export function StudyOrderBoard({
                                 ))}
                                 {column && column.items.length === 0 && (
                                     <p className="px-2 py-6 text-center text-xs text-muted-foreground">{t('board.emptyColumn')}</p>
-                                )}
-                                {column && column.items.length < column.total && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full text-xs"
-                                        loading={loadingMore.has(status)}
-                                        disabled={loadingMore.has(status)}
-                                        onClick={() => void loadMore(status)}
-                                    >
-                                        {t('board.loadMore', { shown: column.items.length, total: column.total })}
-                                    </Button>
                                 )}
                             </BoardColumn>
                         );
@@ -367,7 +392,13 @@ interface BoardColumnProps {
     status: StudyOrderBoardStatus;
     label: string;
     total: number;
+    /** Tarjetas ya cargadas. */
+    shown: number;
     isLoading: boolean;
+    loadingMore: boolean;
+    onLoadMore: () => void;
+    /** Filtros y orden: si cambian, la columna vuelve arriba. */
+    viewKey: string;
     collapsed: boolean;
     onToggleCollapsed: () => void;
     /** Mientras se arrastra: si acepta la tarjeta, si no, o si es de donde salió. */
@@ -375,9 +406,34 @@ interface BoardColumnProps {
     children?: React.ReactNode;
 }
 
-function BoardColumn({ status, label, total, isLoading, collapsed, onToggleCollapsed, dragState, children }: BoardColumnProps) {
+function BoardColumn({
+    status, label, total, shown, isLoading, loadingMore, onLoadMore, viewKey, collapsed, onToggleCollapsed, dragState, children,
+}: BoardColumnProps) {
     const t = useTranslations('StudyOrdersPage.board');
     const { setNodeRef, isOver } = useDroppable({ id: status });
+    const hasMore = !isLoading && shown < total;
+
+    // Carga por partes: cuando el final de la columna entra en pantalla se piden las siguientes.
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const sentinelRef = React.useRef<HTMLDivElement>(null);
+    const onLoadMoreRef = React.useRef(onLoadMore);
+    React.useEffect(() => { onLoadMoreRef.current = onLoadMore; });
+    React.useEffect(() => {
+        const root = scrollRef.current;
+        const sentinel = sentinelRef.current;
+        if (!hasMore || loadingMore || !root || !sentinel || typeof IntersectionObserver === 'undefined') return;
+        const observer = new IntersectionObserver(
+            (entries) => { if (entries.some((e) => e.isIntersecting)) onLoadMoreRef.current(); },
+            { root, rootMargin: '0px 0px 160px 0px' },
+        );
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, shown, collapsed]);
+
+    // Otro filtro u otro orden: la columna arranca desde la primera tarjeta.
+    React.useEffect(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }, [viewKey]);
 
     // Plegada: una franja angosta con el nombre y el total. Igual acepta tarjetas (anular).
     if (collapsed) {
@@ -431,13 +487,28 @@ function BoardColumn({ status, label, total, isLoading, collapsed, onToggleColla
             {dragState === 'blocked' && (
                 <p className="px-3 pb-1 text-[11px] text-muted-foreground">{t('notAllowedHere')}</p>
             )}
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pb-2">
+            <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pb-2">
                 {isLoading ? (
                     <>
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-24 w-full" />
                     </>
                 ) : children}
+                {hasMore && (
+                    <div ref={sentinelRef} className="flex min-h-9 items-center justify-center">
+                        {loadingMore ? (
+                            <span role="status" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                                {t('loadingMore')}
+                            </span>
+                        ) : (
+                            // Respaldo si el final de la columna no dispara la carga (sin IntersectionObserver).
+                            <Button variant="ghost" size="sm" className="h-7 w-full text-xs text-muted-foreground" onClick={onLoadMore}>
+                                {t('loadMore', { shown, total })}
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
         </section>
     );

@@ -235,7 +235,7 @@ return [{ json: {
 workflows.push({
     file: 'study-orders-board.json',
     name: 'Study Orders - Board',
-    sticky: `## GET /study-orders/board\n\nTablero de la bandeja (vista **Estados**): una columna por estado de la orden, en el orden en que avanza.\n\nColumnas: ${BOARD_COLUMNS.map((c) => `\`${c}\``).join(' · ')}. Es el \`board_status\` DERIVADO de \`v_study_orders_board\` (las citas mandan), igual que en la lista.\n\n**Query**\n- \`scope\`, \`q\`, \`source\`, \`sede_id\`, \`patient_id\`, \`doctor_id\`, \`assigned\`, \`date_from\`, \`date_to\`, \`sla_hours\`: igual que GET /study-orders\n- \`limit\`: tarjetas por columna (default 25, máx. 200)\n- \`column\` + \`offset\`: "cargar más" de una sola columna\n\nMismo alcance y permisos que la lista (comparten la CTE \`base\`): \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "status": "new", "total": 12, "items": [ { "id": "...", "board_status": "new", "assigned_to_name": "Ana" } ] } ],\n  "meta": { "limit": 25, "column": null, "offset": 0 } }\n\`\`\``,
+    sticky: `## GET /study-orders/board\n\nTablero de la bandeja (vista **Estados**): una columna por estado de la orden, en el orden en que avanza.\n\nColumnas: ${BOARD_COLUMNS.map((c) => `\`${c}\``).join(' · ')}. Es el \`board_status\` DERIVADO de \`v_study_orders_board\` (las citas mandan), igual que en la lista.\n\n**Query**\n- \`scope\`, \`q\`, \`source\`, \`sede_id\`, \`patient_id\`, \`doctor_id\`, \`assigned\`, \`date_from\`, \`date_to\`, \`sla_hours\`: igual que GET /study-orders\n- \`limit\`: tarjetas por columna (default 25, máx. 200)\n- \`column\` + \`offset\`: "cargar más" de una sola columna (el tablero lo pide al llegar al final de la columna)\n- \`sort\`: orden dentro de cada columna — \`priority\` (default: atrasadas primero, después las más recientes), \`submitted_at:desc|asc\`, \`patient_name:asc|desc\`, \`doctor_name:asc|desc\`, \`sede_name:asc\`, \`order_number:desc|asc\`\n\nMismo alcance y permisos que la lista (comparten la CTE \`base\`): \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "status": "new", "total": 12, "items": [ { "id": "...", "board_status": "new", "assigned_to_name": "Ana" } ] } ],\n  "meta": { "limit": 25, "column": null, "offset": 0 } }\n\`\`\``,
     method: 'GET',
     path: 'study-orders/board',
     id: 'board',
@@ -249,6 +249,10 @@ const COLUMNS = ${JSON.stringify(BOARD_COLUMNS)};
 const limit = Math.min(200, Math.max(1, parseInt(q.limit, 10) || 25));
 const column = COLUMNS.includes(q.column) ? q.column : '';
 const offset = column ? Math.max(0, parseInt(q.offset, 10) || 0) : 0;
+// Orden dentro de cada columna. Lista blanca: un valor raro cae al orden por prioridad.
+const SORTS = ['priority', 'submitted_at:desc', 'submitted_at:asc', 'patient_name:asc', 'patient_name:desc',
+               'doctor_name:asc', 'doctor_name:desc', 'sede_name:asc', 'order_number:desc', 'order_number:asc'];
+const sort = SORTS.includes(q.sort) ? q.sort : 'priority';
 
 const filters = {
   scope: ['clinic', 'patient'].includes(q.scope) ? q.scope : 'mine',
@@ -262,6 +266,7 @@ const filters = {
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
   date_to: q.date_to || '',
+  sort,
   column,
   limit,
   offset,

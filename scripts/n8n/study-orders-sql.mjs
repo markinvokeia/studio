@@ -288,18 +288,32 @@ q AS (
 args AS (
     SELECT coalesce(NULLIF(f ->> 'scope', ''), 'mine')          AS scope,
            coalesce(f ->> 'column', '')                         AS col,${INBOX_ARGS}
+           coalesce(NULLIF(f ->> 'sort', ''), 'priority')       AS sort,
            coalesce((f ->> 'limit')::int, 25)                   AS lim,
            coalesce((f ->> 'offset')::int, 0)                   AS off
       FROM q
 ),${inboxBaseCte({ withBucket: false })},
 ranked AS (
     SELECT b.*,
-           -- Dentro de cada columna: primero las atrasadas, después las más recientes.
+           -- Orden dentro de cada columna. priority (por defecto): primero las atrasadas, después
+           -- las más recientes. Los demás criterios desempatan por fecha y número, así que cargar
+           -- más con offset no repite ni saltea tarjetas.
            row_number() OVER (PARTITION BY b.board_status
-                              ORDER BY b.is_overdue DESC,
-                                       coalesce(b.submitted_at, b.created_at) DESC,
-                                       b.order_number DESC) AS rn
+                              ORDER BY
+                                CASE WHEN a.sort = 'priority'          THEN b.is_overdue END DESC NULLS LAST,
+                                CASE WHEN a.sort = 'submitted_at:asc'  THEN coalesce(b.submitted_at, b.created_at) END ASC,
+                                CASE WHEN a.sort = 'patient_name:asc'  THEN lower(b.patient_name) END ASC NULLS LAST,
+                                CASE WHEN a.sort = 'patient_name:desc' THEN lower(b.patient_name) END DESC NULLS LAST,
+                                CASE WHEN a.sort = 'doctor_name:asc'   THEN lower(coalesce(b.doctor_name, b.referring_doctor_name)) END ASC NULLS LAST,
+                                CASE WHEN a.sort = 'doctor_name:desc'  THEN lower(coalesce(b.doctor_name, b.referring_doctor_name)) END DESC NULLS LAST,
+                                CASE WHEN a.sort = 'sede_name:asc'     THEN lower(b.preferred_sede_name) END ASC NULLS LAST,
+                                CASE WHEN a.sort = 'order_number:asc'  THEN b.order_number END ASC,
+                                CASE WHEN a.sort = 'order_number:desc' THEN b.order_number END DESC,
+                                coalesce(b.submitted_at, b.created_at) DESC,
+                                b.order_number DESC,
+                                b.id) AS rn
       FROM base b
+      CROSS JOIN args a
 )
 SELECT coalesce(json_agg(json_build_object(
            'status', c.status,

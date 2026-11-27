@@ -4824,6 +4824,22 @@ export interface StudyOrderBoardColumn {
   items: StudyOrderListItem[];
 }
 
+/**
+ * Orden de las tarjetas dentro de cada columna del tablero. `priority` (por defecto): primero las
+ * atrasadas, después las más recientes. Misma lista blanca que el flujo de /study-orders/board.
+ */
+export type StudyOrderBoardSort =
+  | 'priority'
+  | 'submitted_at:desc'
+  | 'submitted_at:asc'
+  | 'patient_name:asc'
+  | 'patient_name:desc'
+  | 'doctor_name:asc'
+  | 'doctor_name:desc'
+  | 'sede_name:asc'
+  | 'order_number:desc'
+  | 'order_number:asc';
+
 /** Filtro por responsable: asignadas a mí, sin asignar, o todas. */
 export type StudyOrderAssignedFilter = 'all' | 'me' | 'none';
 
